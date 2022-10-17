@@ -1,8 +1,8 @@
-use std::fs::File;
 use anyhow::{Context, Result};
-use std::path::PathBuf;
 use clap::Parser;
 use shin::format::rom::IndexEntry;
+use std::fs::File;
+use std::path::PathBuf;
 
 #[derive(clap::Parser, Debug)]
 struct Args {
@@ -23,18 +23,17 @@ enum RomCommand {
     List {
         rom_path: PathBuf,
     },
-    ExtractOne { // TODO: make a more generalized interface, maybe like tar or 7z
+    ExtractOne {
+        // TODO: make a more generalized interface, maybe like tar or 7z
         rom_path: PathBuf,
         rom_filename: String,
         output_path: PathBuf,
-    }
+    },
 }
 
 #[derive(clap::Subcommand, Debug)]
 enum ScenarioCommand {
-    Dump {
-        scenario_path: PathBuf,
-    }
+    Dump { scenario_path: PathBuf },
 }
 
 fn rom_command(command: RomCommand) -> Result<()> {
@@ -50,14 +49,18 @@ fn rom_command(command: RomCommand) -> Result<()> {
                 println!("{} {}", ty, name);
             }
             Ok(())
-        },
+        }
         RomCommand::ExtractOne {
-            rom_path, rom_filename, output_path
+            rom_path,
+            rom_filename,
+            output_path,
         } => {
             use std::io::Read;
             let rom = File::open(rom_path).context("Opening rom file")?;
             let mut reader = shin::format::rom::RomReader::new(rom).context("Parsing ROM")?;
-            let file = reader.find_file(&rom_filename).context("Searching for file in ROM")?;
+            let file = reader
+                .find_file(&rom_filename)
+                .context("Searching for file in ROM")?;
             let mut file = reader.open_file(file).context("Opening file in rom")?;
             let mut buf = Vec::new();
             file.read_to_end(&mut buf)?;
@@ -69,7 +72,9 @@ fn rom_command(command: RomCommand) -> Result<()> {
 
 fn scenario_command(command: ScenarioCommand) -> Result<()> {
     match command {
-        ScenarioCommand::Dump { scenario_path: path } => {
+        ScenarioCommand::Dump {
+            scenario_path: path,
+        } => {
             let scenario = std::fs::read(path)?;
             let reader = shin::format::scenario::ScenarioReader::new(scenario)?;
             // println!("{:#?}", reader);

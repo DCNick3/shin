@@ -16,6 +16,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.65"
 binrw = "0.10.0"
+bytes = "1.2.1"
 clap = { version = "4.0.15", features = ["derive"] }
 itertools = "0.10.5"
 

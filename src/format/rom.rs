@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
 use anyhow::{anyhow, bail, Context, Result};
-use std::io;
-use std::io::{SeekFrom};
 use binrw::{BinRead, BinResult, BinWrite, NullString, ReadOptions};
 use itertools::Itertools;
+use std::collections::BTreeMap;
+use std::io;
+use std::io::SeekFrom;
 
 const VERSION: u32 = 0x10001;
 const DIRECTORY_OFFSET_MULTIPLIER: u64 = 16;
@@ -49,9 +49,11 @@ struct RawEntry {
 impl BinRead for Entry {
     type Args = ReadContext;
 
-    fn read_options<R: io::Read + io::Seek>(reader: &mut R, ro: &ReadOptions, ctx: Self::Args)
-                                            -> BinResult<Entry>
-    {
+    fn read_options<R: io::Read + io::Seek>(
+        reader: &mut R,
+        ro: &ReadOptions,
+        ctx: Self::Args,
+    ) -> BinResult<Entry> {
         // let entry_pos = reader.stream_position()?;
         let entry: RawEntry = <_>::read_options(reader, ro, ())?;
 
@@ -59,7 +61,9 @@ impl BinRead for Entry {
 
         let is_directory = entry.directory_and_name_offset >> 31 != 0;
 
-        reader.seek(SeekFrom::Start(ctx.current_dir_offset + (entry.directory_and_name_offset & 0x7fffffff) as u64))?;
+        reader.seek(SeekFrom::Start(
+            ctx.current_dir_offset + (entry.directory_and_name_offset & 0x7fffffff) as u64,
+        ))?;
         let name: NullString = <_>::read_options(reader, ro, ())?;
 
         let res = match is_directory {
@@ -93,7 +97,7 @@ enum Entry {
     File {
         name: String,
         data_offset: u64,
-        data_size: u32
+        data_size: u32,
     },
 }
 
@@ -146,19 +150,27 @@ struct NamedEntry(String, IndexEntry);
 impl BinRead for NamedEntry {
     type Args = ReadContext;
 
-    fn read_options<R: io::Read + io::Seek>(reader: &mut R, ro: &ReadOptions, ctx: Self::Args)
-                                            -> BinResult<NamedEntry>
-    {
+    fn read_options<R: io::Read + io::Seek>(
+        reader: &mut R,
+        ro: &ReadOptions,
+        ctx: Self::Args,
+    ) -> BinResult<NamedEntry> {
         let entry: Entry = <_>::read_options(reader, ro, ctx)?;
         let leave_pos = reader.stream_position()?;
         let res = match entry {
-            Entry::Directory { name, entries_offset } => {
+            Entry::Directory {
+                name,
+                entries_offset,
+            } => {
                 if matches!(name.as_str(), "." | "..") {
                     // do not read contents of these, just return a dummy entry
                     // they will be ignored anyways
-                    NamedEntry(name, IndexEntry::Directory(IndexDirectory {
-                        entries: BTreeMap::new(),
-                    }))
+                    NamedEntry(
+                        name,
+                        IndexEntry::Directory(IndexDirectory {
+                            entries: BTreeMap::new(),
+                        }),
+                    )
                 } else {
                     reader.seek(SeekFrom::Start(ctx.index_offset + entries_offset))?;
                     let entry = <_>::read_options(reader, ro, ctx)?;
@@ -166,12 +178,17 @@ impl BinRead for NamedEntry {
                     NamedEntry(name, IndexEntry::Directory(entry))
                 }
             }
-            Entry::File { name, data_offset, data_size } => {
-                NamedEntry(name, IndexEntry::File(IndexFile {
+            Entry::File {
+                name,
+                data_offset,
+                data_size,
+            } => NamedEntry(
+                name,
+                IndexEntry::File(IndexFile {
                     data_offset,
                     data_size,
-                }))
-            }
+                }),
+            ),
         };
 
         reader.seek(SeekFrom::Start(leave_pos))?;
@@ -182,8 +199,11 @@ impl BinRead for NamedEntry {
 impl BinRead for IndexDirectory {
     type Args = ReadContext;
 
-    fn read_options<R: io::Read + io::Seek>(reader: &mut R, ro: &ReadOptions, ctx: Self::Args)
-                                            -> BinResult<IndexDirectory> {
+    fn read_options<R: io::Read + io::Seek>(
+        reader: &mut R,
+        ro: &ReadOptions,
+        ctx: Self::Args,
+    ) -> BinResult<IndexDirectory> {
         let dir_offset = reader.stream_position()?;
         let entry_count: u32 = <_>::read_options(reader, ro, ())?;
 
@@ -191,14 +211,12 @@ impl BinRead for IndexDirectory {
         for _ in 0..entry_count {
             let entry: NamedEntry = <_>::read_options(reader, ro, ctx.with_dir_offset(dir_offset))?;
             if matches!(entry.0.as_str(), "." | "..") {
-                continue
+                continue;
             }
             entries.insert(entry.0, entry.1);
         }
 
-        Ok(IndexDirectory {
-            entries
-        })
+        Ok(IndexDirectory { entries })
     }
 }
 
@@ -235,7 +253,9 @@ impl<S: io::Read + io::Seek> RomReader<S> {
     }
 
     pub fn find_file(&self, path: &str) -> Result<IndexFile> {
-        let path = path.strip_prefix('/').ok_or_else(|| anyhow!("Path must start with /"))?;
+        let path = path
+            .strip_prefix('/')
+            .ok_or_else(|| anyhow!("Path must start with /"))?;
 
         let mut entry = &self.index;
         let mut split_path = path.split('/').peekable();
@@ -248,7 +268,10 @@ impl<S: io::Read + io::Seek> RomReader<S> {
             }
             entry = match entry.entries.get(part) {
                 Some(IndexEntry::Directory(dir)) => dir,
-                Some(IndexEntry::File(_)) => bail!("Invalid path, found a file when expected a directory: {:?}", path),
+                Some(IndexEntry::File(_)) => bail!(
+                    "Invalid path, found a file when expected a directory: {:?}",
+                    path
+                ),
                 None => bail!("Invalid path, directory not found: {:?}", path),
             }
         }
@@ -257,7 +280,10 @@ impl<S: io::Read + io::Seek> RomReader<S> {
 
         Ok(*match entry.entries.get(filename) {
             Some(IndexEntry::File(file)) => file,
-            Some(IndexEntry::Directory(_)) => bail!("Invalid path, found a directory when expected a file: {:?}", path),
+            Some(IndexEntry::Directory(_)) => bail!(
+                "Invalid path, found a directory when expected a file: {:?}",
+                path
+            ),
             None => bail!("Invalid path, file not found: {:?}", path),
         })
     }
@@ -270,7 +296,7 @@ impl<S: io::Read + io::Seek> RomReader<S> {
         })
     }
 
-    pub fn traverse(&self) -> impl Iterator<Item=(String, &IndexEntry)> {
+    pub fn traverse(&self) -> impl Iterator<Item = (String, &IndexEntry)> {
         Traverse {
             stack: vec![("", self.index.iter())],
         }
@@ -293,16 +319,19 @@ impl<'a> Iterator for Traverse<'a> {
 
             match iter.next() {
                 Some((entry_name, entry)) => {
-                    let name = self.stack.iter().map(|(p, _)| p).chain(std::iter::once(&entry_name)).join("/");
+                    let name = self
+                        .stack
+                        .iter()
+                        .map(|(p, _)| p)
+                        .chain(std::iter::once(&entry_name))
+                        .join("/");
                     return match entry {
                         IndexEntry::Directory(dir) => {
                             self.stack.push((entry_name, dir.iter()));
                             Some((name, entry))
                         }
-                        IndexEntry::File(_) => {
-                            Some((name, entry))
-                        }
-                    }
+                        IndexEntry::File(_) => Some((name, entry)),
+                    };
                 }
                 None => {
                     self.stack.pop();
@@ -322,8 +351,11 @@ pub struct RomFileReader<'a, S: io::Read + io::Seek> {
 
 impl<'a, S: io::Read + io::Seek> io::Read for RomFileReader<'a, S> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let to_read = std::cmp::min(buf.len() as u64, self.file.data_size as u64 - self.position) as usize;
-        self.reader.reader.seek(SeekFrom::Start(self.file.data_offset + self.position))?;
+        let to_read =
+            std::cmp::min(buf.len() as u64, self.file.data_size as u64 - self.position) as usize;
+        self.reader
+            .reader
+            .seek(SeekFrom::Start(self.file.data_offset + self.position))?;
         let read = self.reader.reader.read(&mut buf[..to_read])?;
         self.position += read as u64;
         Ok(read)
@@ -344,7 +376,8 @@ impl<'a, S: io::Read + io::Seek> io::Seek for RomFileReader<'a, S> {
             SeekFrom::Start(pos) => Some(pos),
             SeekFrom::End(pos) => checked_add_signed(self.file.data_size as u64, pos),
             SeekFrom::Current(pos) => checked_add_signed(self.position, pos),
-        }.ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid seek"))?;
+        }
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid seek"))?;
         let new_pos = std::cmp::min(self.file.data_size as u64, new_pos);
         let new_pos = std::cmp::max(0, new_pos);
         self.position = new_pos;
