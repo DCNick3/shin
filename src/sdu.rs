@@ -1,5 +1,5 @@
 use std::fs::File;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::path::PathBuf;
 use clap::Parser;
 use shin::format::rom::IndexEntry;
@@ -14,6 +14,8 @@ struct Args {
 enum SduAction {
     #[clap(subcommand)]
     Rom(RomCommand),
+    #[clap(subcommand)]
+    Scenario(ScenarioCommand),
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -28,11 +30,18 @@ enum RomCommand {
     }
 }
 
+#[derive(clap::Subcommand, Debug)]
+enum ScenarioCommand {
+    Dump {
+        scenario_path: PathBuf,
+    }
+}
+
 fn rom_command(command: RomCommand) -> Result<()> {
     match command {
         RomCommand::List { rom_path: path } => {
-            let rom = File::open(path)?;
-            let reader = shin::format::rom::RomReader::new(rom)?;
+            let rom = File::open(path).context("Opening rom file")?;
+            let reader = shin::format::rom::RomReader::new(rom).context("Parsing ROM")?;
             for (name, entry) in reader.traverse() {
                 let ty = match entry {
                     IndexEntry::File(_) => "FILE",
@@ -46,13 +55,24 @@ fn rom_command(command: RomCommand) -> Result<()> {
             rom_path, rom_filename, output_path
         } => {
             use std::io::Read;
-            let rom = File::open(rom_path)?;
-            let mut reader = shin::format::rom::RomReader::new(rom)?;
-            let file = reader.find_file(&rom_filename)?;
-            let mut file = reader.open_file(file)?;
+            let rom = File::open(rom_path).context("Opening rom file")?;
+            let mut reader = shin::format::rom::RomReader::new(rom).context("Parsing ROM")?;
+            let file = reader.find_file(&rom_filename).context("Searching for file in ROM")?;
+            let mut file = reader.open_file(file).context("Opening file in rom")?;
             let mut buf = Vec::new();
             file.read_to_end(&mut buf)?;
-            std::fs::write(output_path, buf)?;
+            std::fs::write(output_path, buf).context("Writing file")?;
+            Ok(())
+        }
+    }
+}
+
+fn scenario_command(command: ScenarioCommand) -> Result<()> {
+    match command {
+        ScenarioCommand::Dump { scenario_path: path } => {
+            let scenario = std::fs::read(path)?;
+            let reader = shin::format::scenario::ScenarioReader::new(scenario)?;
+            // println!("{:#?}", reader);
             Ok(())
         }
     }
@@ -62,5 +82,6 @@ fn main() -> Result<()> {
     let args = Args::parse();
     match args.action {
         SduAction::Rom(cmd) => rom_command(cmd),
+        SduAction::Scenario(cmd) => scenario_command(cmd),
     }
 }

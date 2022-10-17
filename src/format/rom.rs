@@ -168,7 +168,7 @@ impl BinRead for NamedEntry {
             }
             Entry::File { name, data_offset, data_size } => {
                 NamedEntry(name, IndexEntry::File(IndexFile {
-                    data_offset: data_offset + ctx.index_offset,
+                    data_offset,
                     data_size,
                 }))
             }
@@ -345,6 +345,8 @@ impl<'a, S: io::Read + io::Seek> io::Seek for RomFileReader<'a, S> {
             SeekFrom::End(pos) => checked_add_signed(self.file.data_size as u64, pos),
             SeekFrom::Current(pos) => checked_add_signed(self.position, pos),
         }.ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid seek"))?;
+        let new_pos = std::cmp::min(self.file.data_size as u64, new_pos);
+        let new_pos = std::cmp::max(0, new_pos);
         self.position = new_pos;
         Ok(new_pos)
     }
