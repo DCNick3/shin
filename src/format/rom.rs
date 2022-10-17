@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use std::io;
 use std::io::{SeekFrom};
 use binrw::{BinRead, BinResult, BinWrite, NullString, ReadOptions};
@@ -235,10 +235,15 @@ impl<S: io::Read + io::Seek> RomReader<S> {
     }
 
     pub fn find_file(&self, path: &str) -> Result<IndexFile> {
+        let path = path.strip_prefix('/').ok_or_else(|| anyhow!("Path must start with /"))?;
+
         let mut entry = &self.index;
         let mut split_path = path.split('/').peekable();
+        let mut filename = None;
+
         while let Some(part) = split_path.next() {
             if split_path.peek().is_none() {
+                filename = Some(part);
                 break;
             }
             entry = match entry.entries.get(part) {
@@ -248,7 +253,9 @@ impl<S: io::Read + io::Seek> RomReader<S> {
             }
         }
 
-        Ok(*match entry.entries.get(split_path.peek().unwrap() as &str) {
+        let filename = filename.ok_or_else(|| anyhow!("Invalid path, no filename: {:?}", path))?;
+
+        Ok(*match entry.entries.get(filename) {
             Some(IndexEntry::File(file)) => file,
             Some(IndexEntry::Directory(_)) => bail!("Invalid path, found a directory when expected a file: {:?}", path),
             None => bail!("Invalid path, file not found: {:?}", path),
