@@ -79,7 +79,7 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             let scenario = std::fs::read(path)?;
             let scenario = shin::format::scenario::Scenario::new(scenario)?;
 
-            let mut vm = shin::vm::AdvVm::new(&scenario, 2);
+            let mut vm = shin::vm::AdvVm::new(&scenario, 3);
             vm.run()?;
 
             // println!("{:#?}", reader);

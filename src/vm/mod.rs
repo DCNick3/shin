@@ -11,8 +11,16 @@ use tracing::{debug, instrument, trace, warn};
 // TODO: add a listener trait that can be used to get notified of commands
 pub struct AdvVm<'a> {
     scenario: &'a Scenario,
+    /// Memory (aka registers I guess)
     memory: [i32; 0x1000],
+    /// Call stack
+    /// Stores the return address for each call instruction
+    /// Also push instruction pushes here for some reason
     call_stack: Vec<CodeAddress>,
+    /// Data stack
+    /// Stores the arguments for each call instruction
+    /// Can be addresses via MemoryAddress with addresses > 0x1000
+    /// Also called mem3 in ShinDataUtil
     data_stack: Vec<i32>,
     instruction_reader: InstructionReader<'a>,
 }

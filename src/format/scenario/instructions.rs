@@ -624,6 +624,11 @@ pub enum Instruction {
         expr: Expression,
     },
 
+    // #[brw(magic(0x44u8))]
+    // gt {
+    //
+    // },
+    /// Jump Conditional
     #[brw(magic(0x46u8))]
     jc {
         cond: JumpCond,
@@ -632,6 +637,7 @@ pub enum Instruction {
         target: CodeAddress,
     },
 
+    /// Jump Unconditional
     #[brw(magic(0x47u8))]
     j {
         target: CodeAddress,
@@ -643,24 +649,32 @@ pub enum Instruction {
     // (Higurashi does not use mem3 aka data stack at all, maybe because the script was converted)
     // call,
     // ret,
+    /// Jump via Table
+    /// Used to implement switch statements
     #[brw(magic(0x4au8))]
     jt {
         value: NumberSpec,
         table: U16SmallList<[CodeAddress; 32]>,
     },
+    /// Push Values to call stack
+    /// Used to preserve values of memory probably
     #[brw(magic(0x4du8))]
     push {
         values: U8SmallList<[NumberSpec; 6]>,
     },
+    /// Pop Values from call stack
+    /// Used to restore values of memory previously pushed by push
     #[brw(magic(0x4eu8))]
     pop {
         dest: U8SmallList<[MemoryAddress; 6]>,
     },
+    /// Call Subroutine with Parameters
     #[brw(magic(0x4fu8))]
     call {
         target: CodeAddress,
         args: U8SmallList<[NumberSpec; 6]>,
     },
+    /// Return from Subroutine
     #[brw(magic(0x50u8))]
     r#return {},
     // rnd,
