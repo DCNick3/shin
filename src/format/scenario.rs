@@ -1,6 +1,6 @@
 use crate::format::text;
 use anyhow::{Context, Result};
-use binrw::{BinRead, BinResult, BinWrite, ReadOptions, VecArgs};
+use binrw::{BinRead, BinResult, BinWrite, ReadOptions};
 use std::io::{Cursor, Read, Seek};
 
 struct ShortString(String);
@@ -16,18 +16,14 @@ impl BinRead for ShortString {
     ) -> BinResult<Self> {
         let len = u8::read_options(reader, options, ())?;
         // "- 1" to strip the null terminator
-        let data = <Vec<u8>>::read_options(
-            reader,
-            options,
-            VecArgs {
-                count: (len - 1) as usize,
-                inner: (),
-            },
-        )?;
 
-        text::read_sjis_string(&data)
-            .map(Self)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e).into())
+        let res = Self(text::read_sjis_string(reader, (len - 1) as usize)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e).into())?);
+
+        // read the null terminator
+        let _ = u8::read_options(reader, options, ())?;
+
+        Ok(res)
     }
 }
 
@@ -38,9 +34,12 @@ struct ScenarioSectionHeader {
     element_count: u32,
 }
 
-fn parse_section<T: BinRead, C: AsRef<[u8]>>(cur: &mut Cursor<C>) -> Result<Vec<T>> {
+fn parse_section<T: BinRead<Args = ()>, C: AsRef<[u8]>>(cur: &mut Cursor<C>) -> Result<Vec<T>> {
     let header = ScenarioSectionHeader::read(cur).context("Parsing scenario section header")?;
 
+    for _ in 0..header.element_count {
+        let _ = T::read_le(cur).context("Parsing scenario section element")?;
+    }
     todo!()
 }
 
@@ -78,8 +77,7 @@ impl ScenarioReader {
         let header = ScenarioHeader::read(&mut cur)?;
 
         cur.set_position(header.offset_36 as u64);
-
-        // parse_section()
+        parse_section::<ShortString, _>(&mut cur)?;
 
         todo!()
     }

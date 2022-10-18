@@ -22,3 +22,4 @@ itertools = "0.10.5"
 
 [profile.release]
 debug = true
+lto = 'thin'
