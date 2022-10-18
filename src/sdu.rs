@@ -76,7 +76,11 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             scenario_path: path,
         } => {
             let scenario = std::fs::read(path)?;
-            let reader = shin::format::scenario::ScenarioReader::new(scenario)?;
+            let reader = shin::format::scenario::Scenario::new(scenario)?;
+
+            let offset = reader.code_offset();
+            let instr = reader.instruction_at(offset)?;
+
             // println!("{:#?}", reader);
             Ok(())
         }
