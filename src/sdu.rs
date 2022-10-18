@@ -3,6 +3,7 @@ use clap::Parser;
 use shin::format::rom::IndexEntry;
 use std::fs::File;
 use std::path::PathBuf;
+use tracing_subscriber::EnvFilter;
 
 #[derive(clap::Parser, Debug)]
 struct Args {
@@ -76,10 +77,10 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             scenario_path: path,
         } => {
             let scenario = std::fs::read(path)?;
-            let reader = shin::format::scenario::Scenario::new(scenario)?;
+            let scenario = shin::format::scenario::Scenario::new(scenario)?;
 
-            let offset = reader.code_offset();
-            let instr = reader.instruction_at(offset)?;
+            let mut vm = shin::vm::AdvVm::new(&scenario, 0);
+            vm.run()?;
 
             // println!("{:#?}", reader);
             Ok(())
@@ -88,6 +89,11 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
+        .compact()
+        .init();
     let args = Args::parse();
     match args.action {
         SduAction::Rom(cmd) => rom_command(cmd),

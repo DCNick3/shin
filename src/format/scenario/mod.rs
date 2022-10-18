@@ -1,14 +1,32 @@
 pub mod instructions;
 
-use crate::format::scenario::instructions::Instruction;
+use crate::format::scenario::instructions::{CodeAddress, Instruction};
 use crate::format::text;
 use anyhow::{Context, Result};
-use binrw::{BinRead, BinResult, BinWrite, ReadOptions, VecArgs};
-use std::io::{Cursor, Read, Seek};
+use binrw::{BinRead, BinResult, BinWrite, ReadOptions, VecArgs, WriteOptions};
+use smallvec::SmallVec;
+use std::fmt;
+use std::io::{Cursor, Read, Seek, Write};
+use std::marker::PhantomData;
 
-struct U8List<T>(Vec<T>);
-struct U16List<T>(Vec<T>);
-struct U16String(String);
+// TODO: make lists generic over the type of length
+#[derive(Debug)]
+pub struct U8List<T>(pub Vec<T>);
+#[derive(Debug)]
+pub struct U16List<T>(pub Vec<T>);
+
+#[derive(Debug)]
+pub struct SJisString<L: Into<usize> + TryFrom<usize> + 'static>(String, PhantomData<L>);
+pub type U8String = SJisString<u8>;
+pub type U16String = SJisString<u16>;
+
+pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, A: smallvec::Array>(
+    pub SmallVec<A>,
+    pub PhantomData<L>,
+);
+
+pub type U8SmallList<A> = SmallList<u8, A>;
+pub type U16SmallList<A> = SmallList<u16, A>;
 
 impl<T: BinRead<Args = ()>> BinRead for U8List<T> {
     type Args = ();
@@ -30,7 +48,18 @@ impl<T: BinRead<Args = ()>> BinRead for U8List<T> {
         )?))
     }
 }
+impl<T: BinWrite<Args = ()>> BinWrite for U8List<T> {
+    type Args = ();
 
+    fn write_options<W: Write + Seek>(
+        &self,
+        _writer: &mut W,
+        _options: &WriteOptions,
+        _: (),
+    ) -> BinResult<()> {
+        todo!()
+    }
+}
 impl<T: BinRead<Args = ()>> BinRead for U16List<T> {
     type Args = ();
 
@@ -51,8 +80,19 @@ impl<T: BinRead<Args = ()>> BinRead for U16List<T> {
         )?))
     }
 }
+impl<T: BinWrite<Args = ()>> BinWrite for U16List<T> {
+    type Args = ();
 
-impl BinRead for U16String {
+    fn write_options<W: Write + Seek>(
+        &self,
+        _writer: &mut W,
+        _options: &WriteOptions,
+        _: (),
+    ) -> BinResult<()> {
+        todo!()
+    }
+}
+impl<L: Into<usize> + TryFrom<usize> + 'static> BinRead for SJisString<L> {
     type Args = ();
 
     fn read_options<R: Read + Seek>(
@@ -63,12 +103,78 @@ impl BinRead for U16String {
         let len = u16::read_options(reader, options, ())?;
         // "- 1" to strip the null terminator
 
-        let res = Self(text::read_sjis_string(reader, (len - 1) as usize)?);
+        let res = Self(
+            text::read_sjis_string(reader, (len - 1) as usize)?,
+            PhantomData,
+        );
 
         // read the null terminator
         let _ = u8::read_options(reader, options, ())?;
 
         Ok(res)
+    }
+}
+impl<L: Into<usize> + TryFrom<usize>> BinWrite for SJisString<L> {
+    type Args = ();
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        _writer: &mut W,
+        _options: &WriteOptions,
+        _: (),
+    ) -> BinResult<()> {
+        todo!()
+    }
+}
+
+impl<L: Into<usize> + TryFrom<usize>, A: smallvec::Array> fmt::Debug for SmallList<L, A>
+where
+    A::Item: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("U8SmallList").field(&self.0).finish()
+    }
+}
+
+impl<
+        L: Into<usize> + TryFrom<usize> + BinRead<Args = ()>,
+        A: smallvec::Array<Item = T> + 'static,
+        T: BinRead<Args = ()>,
+    > BinRead for SmallList<L, A>
+{
+    type Args = ();
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        options: &ReadOptions,
+        _: (),
+    ) -> BinResult<Self> {
+        let len = L::read_options(reader, options, ())?.into();
+
+        let mut res = SmallVec::new();
+        res.reserve(len);
+        for _ in 0..len {
+            res.push(<_>::read_options(reader, options, ())?);
+        }
+
+        Ok(Self(res, PhantomData {}))
+    }
+}
+impl<
+        L: Into<usize> + TryFrom<usize> + BinWrite<Args = ()>,
+        A: smallvec::Array<Item = T> + 'static,
+        T: BinWrite<Args = ()>,
+    > BinWrite for SmallList<L, A>
+{
+    type Args = ();
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        options: &WriteOptions,
+        _: (),
+    ) -> BinResult<()> {
+        todo!()
     }
 }
 
@@ -140,7 +246,7 @@ pub struct Scenario {
     section_64: Vec<(U16String, U16List<u16>)>,
     section_68: Vec<(u16, u16, u16)>,
     tips_data: Vec<(u8, u16, U16String, U16String)>,
-    code_offset: u32,
+    entrypoint_address: CodeAddress,
     raw_data: Vec<u8>,
 }
 
@@ -227,7 +333,7 @@ impl Scenario {
             section_64,
             section_68,
             tips_data,
-            code_offset: header.code_offset,
+            entrypoint_address: CodeAddress(header.code_offset),
             raw_data: data,
         })
     }
@@ -236,13 +342,38 @@ impl Scenario {
         &self.raw_data
     }
 
-    pub fn code_offset(&self) -> u32 {
-        self.code_offset
+    pub fn entrypoint_address(&self) -> CodeAddress {
+        self.entrypoint_address
     }
 
-    pub fn instruction_at(&self, offset: u32) -> Result<Instruction> {
-        let mut cur = Cursor::new(&self.raw_data);
-        cur.set_position(offset as u64);
-        Ok(Instruction::read(&mut cur)?)
+    pub fn instruction_reader(&self, offset: CodeAddress) -> InstructionReader {
+        InstructionReader::new(&self.raw_data, offset)
+    }
+}
+
+pub struct InstructionReader<'a> {
+    cur: Cursor<&'a [u8]>,
+}
+
+impl<'a> InstructionReader<'a> {
+    pub fn new(data: &'a [u8], offset: CodeAddress) -> Self {
+        let mut cur = Cursor::new(data);
+        cur.set_position(offset.0 as u64);
+        Self { cur }
+    }
+
+    #[inline]
+    pub fn read(&mut self) -> Result<Instruction> {
+        let instruction = Instruction::read(&mut self.cur)?;
+        Ok(instruction)
+    }
+
+    pub fn position(&self) -> CodeAddress {
+        CodeAddress(self.cur.position().try_into().unwrap())
+    }
+
+    pub fn set_position(&mut self, offset: CodeAddress) {
+        assert!(offset.0 as u64 <= self.cur.get_ref().len() as u64);
+        self.cur.set_position(offset.0 as u64);
     }
 }
