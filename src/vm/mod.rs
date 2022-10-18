@@ -4,7 +4,7 @@ use crate::format::scenario::instructions::{
     UnaryOperationType,
 };
 use crate::format::scenario::{InstructionReader, Scenario};
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use smallvec::SmallVec;
 use tracing::{debug, instrument, trace, warn};
 
@@ -299,6 +299,10 @@ impl<'a> AdvVm<'a> {
             }
             Instruction::Command(command) => {
                 match command {
+                    Command::EXIT { arg1, arg2 } => {
+                        trace!(?pc, ?arg1, ?arg2, "exit");
+                        bail!("VM exited");
+                    }
                     Command::DEBUGOUT { format, args } => {
                         let args = args
                             .0

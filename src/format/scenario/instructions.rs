@@ -577,11 +577,7 @@ pub enum Command {
     #[brw(magic(0xcbu8))]
     PAGEBACK {},
     #[brw(magic(0xccu8))]
-    PLANESELECT {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
-        arg3: NumberSpec,
-    },
+    PLANESELECT { arg: NumberSpec },
     #[brw(magic(0xcdu8))]
     PLANECLEAR {},
     #[brw(magic(0xceu8))]
