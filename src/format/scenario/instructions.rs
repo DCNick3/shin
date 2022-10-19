@@ -1,4 +1,5 @@
 use crate::format::scenario::{U16SmallList, U16String, U8SmallList, U8String};
+use crate::format::text::read_sjis_string;
 use binrw::{BinRead, BinResult, BinWrite, ReadOptions, WriteOptions};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -409,6 +410,52 @@ impl BinWrite for BitmaskNumberArray {
     }
 }
 
+#[derive(Debug)]
+pub struct StringArray(SmallVec<[String; 4]>);
+
+impl BinRead for StringArray {
+    type Args = ();
+
+    fn read_options<R: io::Read + io::Seek>(
+        reader: &mut R,
+        options: &ReadOptions,
+        _: (),
+    ) -> BinResult<Self> {
+        let size = u16::read_options(reader, options, ())?;
+        let pos = reader.stream_position()?;
+        let mut res = SmallVec::new();
+        loop {
+            let s = read_sjis_string(reader, None)?;
+
+            res.push(s);
+
+            let v = u8::read_options(reader, options, ())?;
+            if v == 0x00 {
+                break;
+            } else {
+                reader.seek(SeekFrom::Current(-1))?;
+            }
+        }
+        let end = reader.stream_position()?;
+        let diff = end - pos;
+        assert_eq!(diff, size as u64);
+        Ok(Self(res))
+    }
+}
+
+impl BinWrite for StringArray {
+    type Args = ();
+
+    fn write_options<W: io::Write + io::Seek>(
+        &self,
+        _writer: &mut W,
+        _options: &WriteOptions,
+        _: (),
+    ) -> BinResult<()> {
+        todo!()
+    }
+}
+
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little)]
@@ -439,7 +486,15 @@ pub enum Command {
     #[brw(magic(0x8au8))]
     MSGCLOSE { arg: u8 },
 
-    // TODO: 0x8d - SELECT
+    #[brw(magic(0x8du8))]
+    SELECT {
+        choice_set_base: u16,
+        choice_index: u16,
+        dest: MemoryAddress,
+        arg4: NumberSpec,
+        choice_title: U16String,
+        variants: StringArray,
+    },
     #[brw(magic(0x8eu8))]
     WIPE {
         arg1: NumberSpec,
@@ -624,10 +679,12 @@ pub enum Instruction {
         expr: Expression,
     },
 
-    // #[brw(magic(0x44u8))]
-    // gt {
-    //
-    // },
+    #[brw(magic(0x44u8))]
+    gt {
+        dest: MemoryAddress,
+        value: NumberSpec,
+        table: U16SmallList<[NumberSpec; 32]>,
+    },
     /// Jump Conditional
     #[brw(magic(0x46u8))]
     jc {
@@ -642,19 +699,31 @@ pub enum Instruction {
     j {
         target: CodeAddress,
     },
-    // j,
     // ShinDataUtil is using names "call" and "return" for opcodes 0x48 and 0x49
     // while this is kinda true, there are instructions that are much more like "call" and "return"
     // I think I will rename these to gosub or smth, because they do not pass any parameters
     // (Higurashi does not use mem3 aka data stack at all, maybe because the script was converted)
-    // call,
-    // ret,
+    /// Call a Subroutine without Parameters
+    #[brw(magic(0x48u8))]
+    gosub {
+        target: CodeAddress,
+    },
+    /// Return from a Subroutine called with `gosub`
+    #[brw(magic(0x49u8))]
+    retsub {},
     /// Jump via Table
     /// Used to implement switch statements
     #[brw(magic(0x4au8))]
     jt {
         value: NumberSpec,
         table: U16SmallList<[CodeAddress; 32]>,
+    },
+    // 0x4b not implemented
+    #[brw(magic(0x4cu8))]
+    rnd {
+        dest: MemoryAddress,
+        min: NumberSpec,
+        max: NumberSpec,
     },
     /// Push Values to call stack
     /// Used to preserve values of memory probably
@@ -674,11 +743,8 @@ pub enum Instruction {
         target: CodeAddress,
         args: U8SmallList<[NumberSpec; 6]>,
     },
-    /// Return from Subroutine
+    /// Return from Subroutine called with `call`
     #[brw(magic(0x50u8))]
     r#return {},
-    // rnd,
-    // push,
-    // pop,
     Command(Command),
 }

@@ -6,9 +6,7 @@ include!("conv_tables.rs");
 fn convert_single_sjis_char(c: u8) -> char {
     if c < 0x20 {
         // SAFETY: c < 0x20, so it is safe to construct such a char
-        unsafe {
-            char::from_u32_unchecked(c as u32)
-        }
+        unsafe { char::from_u32_unchecked(c as u32) }
     } else if (0x20..0x80).contains(&c) {
         let index = (c - 0x20) as usize;
         // SAFETY: index < 0x60, so it is safe to access the table
@@ -34,13 +32,13 @@ fn convert_double_sjis_char(first: u8, second: u8) -> char {
             second - 0x41
         }
     } else {
-        return '\0'
+        return '\0';
     } as usize;
 
     let row = match first {
-        0x81..=0xa0 => (first - 0x81) * 2,      // 64 JIS rows (each HI byte value spans 2 rows)
+        0x81..=0xa0 => (first - 0x81) * 2, // 64 JIS rows (each HI byte value spans 2 rows)
         0xe0..=0xfc => (first - 0xe0) * 2 + 62, // 58 JIS rows (each HI byte value spans 2 rows)
-        _ => return '\0'
+        _ => return '\0',
     } as usize;
 
     // row \in [0; 121]
@@ -59,29 +57,46 @@ fn is_extended(c: u8) -> bool {
 /// The game engine files are encoded in (a variant of) Shift-JIS
 /// But the game engine itself uses UTF-8
 /// This function converts (a variant of) Shift-JIS to UTF-8
-pub fn read_sjis_string<T: io::Read>(s: &mut T, byte_size: usize) -> io::Result<String> {
+/// This function stops reading either at the first null byte or when byte_size bytes have been read
+pub fn read_sjis_string<T: io::Read>(s: &mut T, byte_size: Option<usize>) -> io::Result<String> {
     use io::Read;
 
     let mut res = String::new();
     // TODO: maybe there is a better estimation
-    res.reserve(byte_size);
-    let mut b = s.bytes().take(byte_size);
+    if let Some(size) = byte_size {
+        res.reserve(size);
+    }
+    let mut b = s
+        .bytes()
+        .take_while(|c| c.as_ref().map_or(true, |&c| c != 0))
+        .take(byte_size.unwrap_or(usize::MAX));
 
     while let Some(c1) = b.next() {
         let c1 = c1?;
         let utf8_c = if is_extended(c1) {
-            let c2 = b.next().ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "unexpected end of string when reading double-byte char"))??;
+            let c2 = b.next().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "unexpected end of string when reading double-byte char",
+                )
+            })??;
             let utf8_c = convert_double_sjis_char(c1, c2);
 
             if utf8_c == '\0' {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid double-byte char"))
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "invalid double-byte char",
+                ));
                 // bail!("unmappable sjis char: 0x{:02x}, 0x{:02x}", c1, c2);
             }
             utf8_c
         } else {
             let utf8_c = convert_single_sjis_char(c1);
             if utf8_c == '\0' {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid single-byte char"))
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "invalid single-byte char",
+                ));
                 // bail!("unmappable sjis char: 0x{:02x}", c1);
             }
             utf8_c
@@ -100,7 +115,7 @@ mod tests {
     #[test]
     fn test_sjis() {
         let s = b"\x82\xa0\x82\xa2\x82\xa4\x82\xa6\x82\xa8";
-        let s = read_sjis_string(&mut io::Cursor::new(s), s.len()).unwrap();
+        let s = read_sjis_string(&mut io::Cursor::new(s), Some(s.len())).unwrap();
         assert_eq!(s, "あいうえお");
     }
 

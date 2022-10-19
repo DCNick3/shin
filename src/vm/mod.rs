@@ -4,7 +4,7 @@ use crate::format::scenario::instructions::{
     UnaryOperationType,
 };
 use crate::format::scenario::{InstructionReader, Scenario};
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use smallvec::SmallVec;
 use tracing::{debug, instrument, trace, warn};
 
@@ -22,11 +22,13 @@ pub struct AdvVm<'a> {
     /// Can be addresses via MemoryAddress with addresses > 0x1000
     /// Also called mem3 in ShinDataUtil
     data_stack: Vec<i32>,
+    /// PRNG state, updated on each instruction executed
+    prng_state: u32,
     instruction_reader: InstructionReader<'a>,
 }
 
 impl<'a> AdvVm<'a> {
-    pub fn new(scenario: &'a Scenario, init_val: i32) -> Self {
+    pub fn new(scenario: &'a Scenario, init_val: i32, random_seed: u32) -> Self {
         let mut memory = [0; 0x1000];
         memory[0] = init_val;
 
@@ -36,6 +38,7 @@ impl<'a> AdvVm<'a> {
             call_stack: Vec::new(),
             data_stack: vec![0; 0x16], // Umineko scenario writes out of bounds of the stack so we add some extra space
             instruction_reader: scenario.instruction_reader(scenario.entrypoint_address()),
+            prng_state: random_seed,
         }
     }
 
@@ -165,10 +168,32 @@ impl<'a> AdvVm<'a> {
         stack.pop().unwrap()
     }
 
+    fn update_prng(&mut self) {
+        self.prng_state = self.prng_state.wrapping_mul(0x343fd).wrapping_add(0x269ec3);
+    }
+
+    fn run_prng(&self, a: i32, b: i32) -> i32 {
+        let state = self.prng_state;
+
+        if a == b {
+            a
+        } else {
+            let useful_state = (state >> 8 & 0xffff) as i32;
+            let interval_size = (b - a).abs() + 1;
+            let lower_bound = a.min(b);
+
+            let amplitude = (useful_state * interval_size) >> 0x10;
+
+            lower_bound + amplitude
+        }
+    }
+
     /// Execute one instruction
     /// pc is the program counter before the instruction was read
     #[instrument(skip(self), level = "trace")]
     fn run_instruction(&mut self, instruction: Instruction, pc: CodeAddress) -> Result<()> {
+        self.update_prng();
+
         match instruction {
             Instruction::uo(UnaryOperation {
                 ty,
@@ -230,6 +255,17 @@ impl<'a> AdvVm<'a> {
                 trace!(?pc, ?dest, ?result, ?expr, "exp");
                 self.set_memory(dest, result);
             }
+            Instruction::gt { dest, value, table } => {
+                let value = self.get_number(value);
+
+                let result = if value >= 0 && value < table.0.len() as i32 {
+                    self.get_number(table.0[value as usize])
+                } else {
+                    0
+                };
+                trace!(?pc, ?value, ?result, ?dest, table_len = ?table.0.len(), "gt");
+                self.set_memory(dest, result);
+            }
             Instruction::jc {
                 cond,
                 left,
@@ -249,6 +285,16 @@ impl<'a> AdvVm<'a> {
                 trace!(?pc, ?target, "j");
                 self.instruction_reader.set_position(target);
             }
+            Instruction::gosub { target } => {
+                trace!(?pc, ?target, "gosub");
+                self.push_code_stack(self.instruction_reader.position());
+                self.instruction_reader.set_position(target);
+            }
+            Instruction::retsub {} => {
+                let target = self.pop_code_stack();
+                trace!(?pc, ?target, "retsub");
+                self.instruction_reader.set_position(target);
+            }
             Instruction::jt { value, table } => {
                 let value = self.get_number(value);
 
@@ -261,6 +307,13 @@ impl<'a> AdvVm<'a> {
                     self.instruction_reader
                         .set_position(table.0[value as usize]);
                 }
+            }
+            Instruction::rnd { dest, min, max } => {
+                let min = self.get_number(min);
+                let max = self.get_number(max);
+                let result = self.run_prng(min, max);
+                trace!(?pc, ?dest, ?min, ?max, ?result, prng_state = ?self.prng_state, "rnd");
+                self.set_memory(dest, result);
             }
             Instruction::call { target, args } => {
                 let args = args
@@ -306,6 +359,9 @@ impl<'a> AdvVm<'a> {
                 self.instruction_reader.set_position(target);
             }
             Instruction::Command(command) => {
+                // TODO: most commands a no-op for now (not actually accurate!)
+                // SGET, SELECT and QUIZ are the ones that cannot safely be ignored
+                // because they return a value to memory (others are just commands to the game loop)
                 match command {
                     Command::EXIT { arg1, arg2 } => {
                         trace!(?pc, ?arg1, ?arg2, "exit");
@@ -320,9 +376,18 @@ impl<'a> AdvVm<'a> {
 
                         debug!(?pc, ?format, ?args, "DEBUGOUT");
                     }
+                    Command::SGET { dest, slot_number } => {
+                        let slot_number = self.get_number(slot_number);
+                        // TODO: stub
+                        warn!("SGET {} stub, returning 0", slot_number);
+                        let result = 0; //self.get_save_slot(slot_number);
+                        trace!(?pc, ?dest, ?slot_number, ?result, "sget");
+                        self.set_memory(dest, result);
+                    }
+                    Command::SELECT { .. } => todo!(),
+                    Command::QUIZ { .. } => todo!(),
                     _ => {}
                 }
-                // TODO: commands a no-op for now (not actually accurate!)
             }
         }
 

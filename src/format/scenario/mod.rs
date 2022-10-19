@@ -104,7 +104,7 @@ impl<L: Into<usize> + TryFrom<usize> + 'static> BinRead for SJisString<L> {
         // "- 1" to strip the null terminator
 
         let res = Self(
-            text::read_sjis_string(reader, (len - 1) as usize)?,
+            text::read_sjis_string(reader, Some((len - 1) as usize))?,
             PhantomData,
         );
 
@@ -170,8 +170,8 @@ impl<
 
     fn write_options<W: Write + Seek>(
         &self,
-        writer: &mut W,
-        options: &WriteOptions,
+        _writer: &mut W,
+        _options: &WriteOptions,
         _: (),
     ) -> BinResult<()> {
         todo!()
