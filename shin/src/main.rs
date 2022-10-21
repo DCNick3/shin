@@ -1,9 +1,23 @@
+mod camera;
+
 use anyhow::Result;
 use bevy::prelude::*;
+use bevy::render::camera::CameraProjectionPlugin;
 
-fn hello_world() {
+// struct
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     trace!("!!! hello world !!!");
-    println!("hello world!");
+
+    commands.spawn_bundle(camera::Camera2dBundle {
+        projection: camera::OrthographicProjection::default(),
+        ..Default::default()
+    });
+    commands.spawn_bundle(SpriteBundle {
+        texture: asset_server.load("bea.png"),
+        transform: Transform::from_scale(Vec3::splat(1.0)),
+        ..default()
+    });
 }
 
 fn main() {
@@ -17,6 +31,7 @@ fn main() {
             // here we can modify the default plugins
             group
         })
-        .add_startup_system(hello_world)
+        .add_plugin(CameraProjectionPlugin::<camera::OrthographicProjection>::default())
+        .add_startup_system(setup)
         .run();
 }

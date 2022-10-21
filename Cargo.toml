@@ -10,3 +10,7 @@ resolver = "2"
 [profile.release]
 debug = true
 lto = 'thin'
+
+# optimize deps
+[profile.dev.package."*"]
+opt-level = 2
