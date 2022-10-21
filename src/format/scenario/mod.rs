@@ -16,7 +16,7 @@ pub struct U8List<T>(pub Vec<T>);
 pub struct U16List<T>(pub Vec<T>);
 
 #[derive(Debug)]
-pub struct SJisString<L: Into<usize> + TryFrom<usize> + 'static>(String, PhantomData<L>);
+pub struct SJisString<L: Into<usize> + TryFrom<usize> + 'static>(pub String, pub PhantomData<L>);
 pub type U8String = SJisString<u8>;
 pub type U16String = SJisString<u16>;
 
@@ -124,6 +124,16 @@ impl<L: Into<usize> + TryFrom<usize>> BinWrite for SJisString<L> {
         _: (),
     ) -> BinResult<()> {
         todo!()
+    }
+}
+impl<L: Into<usize> + TryFrom<usize>> AsRef<str> for SJisString<L> {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+impl<L: Into<usize> + TryFrom<usize>> SJisString<L> {
+    pub fn as_str(&self) -> &str {
+        &self.0
     }
 }
 

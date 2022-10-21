@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use shin::format::rom::IndexEntry;
+use shin::vm::DummyAdvListener;
 use std::fs::File;
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
@@ -79,8 +80,8 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             let scenario = std::fs::read(path)?;
             let scenario = shin::format::scenario::Scenario::new(scenario)?;
 
-            let mut vm = shin::vm::AdvVm::new(&scenario, 0, 42);
-            vm.run()?;
+            let mut vm = shin::vm::AdvVm::new(&scenario, 25, 42);
+            futures::executor::block_on(vm.run(&mut DummyAdvListener))?;
 
             // println!("{:#?}", reader);
             Ok(())

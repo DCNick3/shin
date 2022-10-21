@@ -5,8 +5,35 @@ use crate::format::scenario::instructions::{
 };
 use crate::format::scenario::{InstructionReader, Scenario};
 use anyhow::{bail, Result};
+use async_trait::async_trait;
 use smallvec::SmallVec;
 use tracing::{debug, instrument, trace, warn};
+
+// this is an async trait for now
+// maybe using associated Future types (or a poll function??) would be better
+#[async_trait]
+pub trait AdvListener {
+    // TODO: maybe we should return something from these?
+    async fn exit(&mut self, arg1: u8, arg2: i32);
+    async fn sget(&mut self, slot_number: i32) -> i32;
+    async fn debugout(&mut self, format: &str, args: &[i32]);
+}
+
+pub struct DummyAdvListener;
+
+#[async_trait]
+impl AdvListener for DummyAdvListener {
+    async fn exit(&mut self, arg1: u8, arg2: i32) {
+        debug!("exit({}, {})", arg1, arg2);
+    }
+    async fn sget(&mut self, slot_number: i32) -> i32 {
+        debug!("sget({})", slot_number);
+        0
+    }
+    async fn debugout(&mut self, format: &str, args: &[i32]) {
+        debug!("debugout({}, {:?})", format, args);
+    }
+}
 
 // TODO: add a listener trait that can be used to get notified of commands
 pub struct AdvVm<'a> {
@@ -188,10 +215,60 @@ impl<'a> AdvVm<'a> {
         }
     }
 
+    async fn run_command<L: AdvListener>(
+        &mut self,
+        command: Command,
+        pc: CodeAddress,
+        listener: &mut L,
+    ) -> Result<()> {
+        // TODO: most commands a no-op for now (not actually accurate!)
+        // SGET, SELECT and QUIZ are the ones that cannot safely be ignored
+        // because they return a value to memory (others are just commands to the game loop)
+        match command {
+            Command::EXIT { arg1, arg2 } => {
+                let arg2 = self.get_number(arg2);
+                trace!(?pc, ?arg1, ?arg2, "exit");
+                listener.exit(arg1, arg2).await;
+
+                // TODO: dont use errors for this, return a enum with variants Continue, Exit, etc
+                bail!("VM exited");
+            }
+            Command::DEBUGOUT { format, args } => {
+                let args = args
+                    .0
+                    .into_iter()
+                    .map(|v| self.get_number(v))
+                    .collect::<SmallVec<[i32; 6]>>();
+
+                debug!(?pc, ?format, ?args, "DEBUGOUT");
+
+                listener.debugout(format.as_str(), &args).await;
+            }
+            Command::SGET { dest, slot_number } => {
+                let slot_number = self.get_number(slot_number);
+                let result = listener.sget(slot_number).await;
+                trace!(?pc, ?dest, ?slot_number, ?result, "sget");
+                self.set_memory(dest, result);
+            }
+            Command::SELECT { .. } => todo!(),
+            Command::QUIZ { .. } => todo!(),
+            _ => {
+                warn!(?pc, ?command, "unimplemented command");
+            }
+        }
+
+        Ok(())
+    }
+
     /// Execute one instruction
     /// pc is the program counter before the instruction was read
-    #[instrument(skip(self), level = "trace")]
-    fn run_instruction(&mut self, instruction: Instruction, pc: CodeAddress) -> Result<()> {
+    #[instrument(skip(self, listener), level = "trace")]
+    async fn run_instruction<L: AdvListener>(
+        &mut self,
+        instruction: Instruction,
+        pc: CodeAddress,
+        listener: &mut L,
+    ) -> Result<()> {
         self.update_prng();
 
         match instruction {
@@ -359,46 +436,18 @@ impl<'a> AdvVm<'a> {
                 self.instruction_reader.set_position(target);
             }
             Instruction::Command(command) => {
-                // TODO: most commands a no-op for now (not actually accurate!)
-                // SGET, SELECT and QUIZ are the ones that cannot safely be ignored
-                // because they return a value to memory (others are just commands to the game loop)
-                match command {
-                    Command::EXIT { arg1, arg2 } => {
-                        trace!(?pc, ?arg1, ?arg2, "exit");
-                        bail!("VM exited");
-                    }
-                    Command::DEBUGOUT { format, args } => {
-                        let args = args
-                            .0
-                            .into_iter()
-                            .map(|v| self.get_number(v))
-                            .collect::<SmallVec<[i32; 6]>>();
-
-                        debug!(?pc, ?format, ?args, "DEBUGOUT");
-                    }
-                    Command::SGET { dest, slot_number } => {
-                        let slot_number = self.get_number(slot_number);
-                        // TODO: stub
-                        warn!("SGET {} stub, returning 0", slot_number);
-                        let result = 0; //self.get_save_slot(slot_number);
-                        trace!(?pc, ?dest, ?slot_number, ?result, "sget");
-                        self.set_memory(dest, result);
-                    }
-                    Command::SELECT { .. } => todo!(),
-                    Command::QUIZ { .. } => todo!(),
-                    _ => {}
-                }
+                self.run_command::<L>(command, pc, listener).await?;
             }
         }
 
         Ok(())
     }
 
-    pub fn run(&mut self) -> Result<()> {
+    pub async fn run<L: AdvListener>(&mut self, listener: &mut L) -> Result<()> {
         loop {
             let pc = self.instruction_reader.position();
             let instruction = self.instruction_reader.read()?;
-            self.run_instruction(instruction, pc)?;
+            self.run_instruction::<L>(instruction, pc, listener).await?;
         }
     }
 }
