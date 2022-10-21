@@ -1,10 +1,10 @@
 use bevy::prelude::*;
-use bevy::render::camera::{
-    CameraProjection, CameraRenderGraph, DepthCalculation, ScalingMode, WindowOrigin,
-};
+use bevy::render::camera::{CameraProjection, CameraRenderGraph, DepthCalculation, WindowOrigin};
 use bevy::render::primitives::Frustum;
 use bevy::render::view::VisibleEntities;
 
+/// Custom CameraProjection implementation for keeping the constant aspect ratio and fixed virtual width & height.
+/// (based on [bevy::render::camera::OrthographicProjection])
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component, Default)]
 pub struct OrthographicProjection {
@@ -92,6 +92,7 @@ impl Default for OrthographicProjection {
     }
 }
 
+/// Custom Camera2dBundle using the [OrthographicProjection] instead of the default [bevy::render::camera::OrthographicProjection]
 #[derive(Bundle)]
 pub struct Camera2dBundle {
     pub camera: Camera,

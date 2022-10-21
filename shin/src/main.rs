@@ -6,8 +6,6 @@ use bevy_prototype_lyon::prelude::*;
 use anyhow::Result;
 use bevy::render::camera::CameraProjectionPlugin;
 
-// struct
-
 fn add_pillarbox_rects(commands: &mut Commands) {
     let bottom_rect = shapes::Rectangle {
         extents: Vec2::new(1920.0, 9999.0),
