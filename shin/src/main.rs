@@ -1,10 +1,43 @@
 mod camera;
 
-use anyhow::Result;
 use bevy::prelude::*;
+use bevy_prototype_lyon::prelude::*;
+
+use anyhow::Result;
 use bevy::render::camera::CameraProjectionPlugin;
 
 // struct
+
+fn add_pillarbox_rects(commands: &mut Commands) {
+    let bottom_rect = shapes::Rectangle {
+        extents: Vec2::new(1920.0, 9999.0),
+        origin: RectangleOrigin::CustomCenter(Vec2::new(0.0, -540.0 - 9999.0 / 2.0)),
+    };
+    let top_rect = shapes::Rectangle {
+        extents: Vec2::new(1920.0, 9999.0),
+        origin: RectangleOrigin::CustomCenter(Vec2::new(0.0, 540.0 + 9999.0 / 2.0)),
+    };
+    let left_rect = shapes::Rectangle {
+        extents: Vec2::new(9999.0, 1080.0),
+        origin: RectangleOrigin::CustomCenter(Vec2::new(-960.0 - 9999.0 / 2.0, 0.0)),
+    };
+    let right_rect = shapes::Rectangle {
+        extents: Vec2::new(9999.0, 1080.0),
+        origin: RectangleOrigin::CustomCenter(Vec2::new(960.0 + 9999.0 / 2.0, 0.0)),
+    };
+
+    commands.spawn_bundle(
+        GeometryBuilder::new()
+            .add(&bottom_rect)
+            .add(&top_rect)
+            .add(&left_rect)
+            .add(&right_rect)
+            .build(
+                DrawMode::Fill(FillMode::color(Color::rgb(0.0, 0.0, 0.0))),
+                Transform::from_xyz(0.0, 0.0, 999.0),
+            ),
+    );
+}
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     trace!("!!! hello world !!!");
@@ -13,6 +46,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         projection: camera::OrthographicProjection::default(),
         ..Default::default()
     });
+    add_pillarbox_rects(&mut commands);
+
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("bea.png"),
         transform: Transform::from_scale(Vec3::splat(1.0)),
@@ -32,6 +67,7 @@ fn main() {
             group
         })
         .add_plugin(CameraProjectionPlugin::<camera::OrthographicProjection>::default())
+        .add_plugin(ShapePlugin)
         .add_startup_system(setup)
         .run();
 }

@@ -12,6 +12,7 @@ smallvec = "1.10.0"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 bevy = "0.8.1"
+bevy_prototype_lyon = "0.6.0"
 
 [features]
 default = ["bevy/dynamic"]
