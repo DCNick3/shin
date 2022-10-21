@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use shin::format::rom::IndexEntry;
-use shin::vm::DummyAdvListener;
+use shin_core::format::rom::IndexEntry;
+use shin_core::vm::DummyAdvListener;
 use std::fs::File;
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
@@ -42,7 +42,7 @@ fn rom_command(command: RomCommand) -> Result<()> {
     match command {
         RomCommand::List { rom_path: path } => {
             let rom = File::open(path).context("Opening rom file")?;
-            let reader = shin::format::rom::RomReader::new(rom).context("Parsing ROM")?;
+            let reader = shin_core::format::rom::RomReader::new(rom).context("Parsing ROM")?;
             for (name, entry) in reader.traverse() {
                 let ty = match entry {
                     IndexEntry::File(_) => "FILE",
@@ -59,7 +59,7 @@ fn rom_command(command: RomCommand) -> Result<()> {
         } => {
             use std::io::Read;
             let rom = File::open(rom_path).context("Opening rom file")?;
-            let mut reader = shin::format::rom::RomReader::new(rom).context("Parsing ROM")?;
+            let mut reader = shin_core::format::rom::RomReader::new(rom).context("Parsing ROM")?;
             let file = reader
                 .find_file(&rom_filename)
                 .context("Searching for file in ROM")?;
@@ -78,9 +78,9 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             scenario_path: path,
         } => {
             let scenario = std::fs::read(path)?;
-            let scenario = shin::format::scenario::Scenario::new(scenario)?;
+            let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
 
-            let mut vm = shin::vm::AdvVm::new(&scenario, 25, 42);
+            let mut vm = shin_core::vm::AdvVm::new(&scenario, 25, 42);
             futures::executor::block_on(vm.run(&mut DummyAdvListener))?;
 
             // println!("{:#?}", reader);

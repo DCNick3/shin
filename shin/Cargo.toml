@@ -1,0 +1,13 @@
+[package]
+name = "shin"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+anyhow = "1.0.65"
+async-trait = "0.1.58"
+futures = "0.3.25"
+smallvec = "1.10.0"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }

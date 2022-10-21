@@ -1,0 +1,12 @@
+[package]
+name = "sdu"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+shin-core = { path = "../shin-core" }
+anyhow = "1.0.66"
+clap = { version = "4.0.15", features = ["derive"] }
+futures = "0.3.25"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
