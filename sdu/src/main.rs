@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
+use shin_core::format::picture::DummyPictureBuilder;
 use shin_core::format::rom::IndexEntry;
 use shin_core::vm::DummyAdvListener;
 use std::fs::File;
@@ -18,6 +19,8 @@ enum SduAction {
     Rom(RomCommand),
     #[clap(subcommand)]
     Scenario(ScenarioCommand),
+    #[clap(subcommand)]
+    Picture(PictureCommand),
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -36,6 +39,14 @@ enum RomCommand {
 #[derive(clap::Subcommand, Debug)]
 enum ScenarioCommand {
     Dump { scenario_path: PathBuf },
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum PictureCommand {
+    Decode {
+        picture_path: PathBuf,
+        output_path: PathBuf,
+    },
 }
 
 fn rom_command(command: RomCommand) -> Result<()> {
@@ -89,6 +100,26 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
     }
 }
 
+fn picture_command(command: PictureCommand) -> Result<()> {
+    match command {
+        PictureCommand::Decode {
+            picture_path: path,
+            output_path,
+        } => {
+            let picture = std::fs::read(path)?;
+            let picture = shin_core::format::picture::read_picture(picture, DummyPictureBuilder)?;
+            // TODO
+            // let mut image = image::RgbImage::new(picture.width(), picture.height());
+            // for (x, y, pixel) in image.enumerate_pixels_mut() {
+            //     let color = picture.get_pixel(x, y);
+            //     *pixel = image::Rgb([color.r, color.g, color.b]);
+            // }
+            // image.save(output_path)?;
+            Ok(())
+        }
+    }
+}
+
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -99,5 +130,6 @@ fn main() -> Result<()> {
     match args.action {
         SduAction::Rom(cmd) => rom_command(cmd),
         SduAction::Scenario(cmd) => scenario_command(cmd),
+        SduAction::Picture(cmd) => picture_command(cmd),
     }
 }
