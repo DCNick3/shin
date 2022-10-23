@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use shin_core::format::picture::DummyPictureBuilder;
+use shin_core::format::picture::SimplePicture;
 use shin_core::format::rom::IndexEntry;
 use shin_core::vm::DummyAdvListener;
 use std::fs::File;
@@ -107,14 +107,8 @@ fn picture_command(command: PictureCommand) -> Result<()> {
             output_path,
         } => {
             let picture = std::fs::read(path)?;
-            let picture = shin_core::format::picture::read_picture(picture, DummyPictureBuilder)?;
-            // TODO
-            // let mut image = image::RgbImage::new(picture.width(), picture.height());
-            // for (x, y, pixel) in image.enumerate_pixels_mut() {
-            //     let color = picture.get_pixel(x, y);
-            //     *pixel = image::Rgb([color.r, color.g, color.b]);
-            // }
-            // image.save(output_path)?;
+            let picture = shin_core::format::picture::read_picture::<SimplePicture>(&picture, ())?;
+            picture.image.save(output_path)?;
             Ok(())
         }
     }
