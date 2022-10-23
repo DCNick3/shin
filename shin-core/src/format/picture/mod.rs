@@ -100,7 +100,7 @@ impl PicChunkHeader {
     }
 }
 
-#[derive(BinRead, BinWrite, Debug)]
+#[derive(BinRead, BinWrite, Debug, Copy, Clone)]
 #[br(little)]
 pub struct PicVertexEntry {
     pub from_x: u16,
@@ -165,6 +165,7 @@ pub trait PictureBuilder<'d>: Send {
     fn build(self) -> Result<Self::Output>;
 }
 
+#[derive(Debug, Clone)]
 pub struct SimplePictureChunk {
     pub offset_x: usize,
     pub offset_y: usize,
@@ -202,16 +203,16 @@ impl PictureChunkBuilder for SimplePictureChunk {
     }
 }
 
-pub struct SimplePicture {
+pub struct SimpleMergedPicture {
     pub image: RgbaImage,
     pub origin_x: usize,
     pub origin_y: usize,
     pub picture_id: u32,
 }
 
-impl<'a> PictureBuilder<'a> for SimplePicture {
+impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
     type Args = ();
-    type Output = SimplePicture;
+    type Output = SimpleMergedPicture;
     type ChunkBuilder = SimplePictureChunk;
 
     fn new(
@@ -222,7 +223,7 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
         origin_y: usize,
         picture_id: u32,
     ) -> Self {
-        SimplePicture {
+        SimpleMergedPicture {
             image: RgbaImage::new(effective_width as u32, effective_height as u32),
             origin_x,
             origin_y,
@@ -243,6 +244,52 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
         let chunk_image = chunk.data;
         image::imageops::replace(&mut self.image, &chunk_image, x as i64, y as i64);
 
+        Ok(())
+    }
+
+    fn build(self) -> Result<Self::Output> {
+        Ok(self)
+    }
+}
+
+pub struct SimplePicture {
+    pub chunks: Vec<((usize, usize), SimplePictureChunk)>,
+    pub effective_width: usize,
+    pub effective_height: usize,
+    pub origin_x: usize,
+    pub origin_y: usize,
+    pub picture_id: u32,
+}
+
+impl<'a> PictureBuilder<'a> for SimplePicture {
+    type Args = ();
+    type Output = SimplePicture;
+    type ChunkBuilder = SimplePictureChunk;
+
+    fn new(
+        _: (),
+        effective_width: usize,
+        effective_height: usize,
+        origin_x: usize,
+        origin_y: usize,
+        picture_id: u32,
+    ) -> Self {
+        Self {
+            chunks: vec![],
+            effective_width,
+            effective_height,
+            origin_x,
+            origin_y,
+            picture_id,
+        }
+    }
+
+    fn add_chunk(
+        &mut self,
+        position: (usize, usize),
+        chunk: <Self::ChunkBuilder as PictureChunkBuilder>::Output,
+    ) -> Result<()> {
+        self.chunks.push((position, chunk));
         Ok(())
     }
 
