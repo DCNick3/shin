@@ -375,7 +375,7 @@ impl BinWrite for Expression {
 }
 
 #[derive(Debug)]
-pub struct BitmaskNumberArray([NumberSpec; 8]);
+pub struct BitmaskNumberArray(pub [NumberSpec; 8]);
 
 impl BinRead for BitmaskNumberArray {
     type Args = ();
@@ -411,7 +411,7 @@ impl BinWrite for BitmaskNumberArray {
 }
 
 #[derive(Debug)]
-pub struct StringArray(SmallVec<[String; 4]>);
+pub struct StringArray(pub SmallVec<[String; 4]>);
 
 impl BinRead for StringArray {
     type Args = ();
@@ -482,7 +482,10 @@ pub enum Command {
         value: NumberSpec,
     },
     #[brw(magic(0x83u8))]
-    WAIT { arg1: u8, arg2: NumberSpec },
+    WAIT {
+        wait_kind: u8,
+        wait_amount: NumberSpec,
+    },
     // 0x84 is unused
     #[brw(magic(0x85u8))]
     MSGINIT { arg: NumberSpec },

@@ -91,7 +91,7 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             let scenario = std::fs::read(path)?;
             let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
 
-            let mut vm = shin_core::vm::AdvVm::new(&scenario, 25, 42);
+            let mut vm = shin_core::vm::AdvVm::new(&scenario, 0, 42);
             loop {
                 // NOTE: usually you would want to do something when the VM has returned "Pending"
                 // stuff like running game loop to let the command progress...
