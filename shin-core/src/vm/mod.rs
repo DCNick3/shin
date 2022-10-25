@@ -1,42 +1,20 @@
+pub mod command;
+
 use crate::format::scenario::instructions::{
     BinaryOperation, BinaryOperationType, CodeAddress, Command, Expression, ExpressionTerm,
     Instruction, JumpCond, JumpCondType, MemoryAddress, NumberSpec, UnaryOperation,
     UnaryOperationType,
 };
 use crate::format::scenario::{InstructionReader, Scenario};
-use anyhow::{bail, Result};
-use async_trait::async_trait;
+use crate::vm::command::{
+    AdvCommand, AdvListener, CommandContext, CommandPoll, CommandState, ExitResult,
+};
+use anyhow::Result;
 use smallvec::SmallVec;
-use tracing::{debug, instrument, trace, warn};
-
-// this is an async trait for now
-// maybe using associated Future types (or a poll function??) would be better
-#[async_trait]
-pub trait AdvListener {
-    // TODO: maybe we should return something from these?
-    async fn exit(&mut self, arg1: u8, arg2: i32);
-    async fn sget(&mut self, slot_number: i32) -> i32;
-    async fn debugout(&mut self, format: &str, args: &[i32]);
-}
-
-pub struct DummyAdvListener;
-
-#[async_trait]
-impl AdvListener for DummyAdvListener {
-    async fn exit(&mut self, arg1: u8, arg2: i32) {
-        debug!("exit({}, {})", arg1, arg2);
-    }
-    async fn sget(&mut self, slot_number: i32) -> i32 {
-        debug!("sget({})", slot_number);
-        0
-    }
-    async fn debugout(&mut self, format: &str, args: &[i32]) {
-        debug!("debugout({}, {:?})", format, args);
-    }
-}
+use tracing::{instrument, trace, warn};
 
 // TODO: add a listener trait that can be used to get notified of commands
-pub struct AdvVm<'a> {
+pub struct AdvVm<'a, L: AdvListener> {
     scenario: &'a Scenario,
     /// Memory (aka registers I guess)
     memory: [i32; 0x1000],
@@ -51,10 +29,11 @@ pub struct AdvVm<'a> {
     data_stack: Vec<i32>,
     /// PRNG state, updated on each instruction executed
     prng_state: u32,
+    command_context: Option<CommandContext<L>>,
     instruction_reader: InstructionReader<'a>,
 }
 
-impl<'a> AdvVm<'a> {
+impl<'a, L: AdvListener> AdvVm<'a, L> {
     pub fn new(scenario: &'a Scenario, init_val: i32, random_seed: u32) -> Self {
         let mut memory = [0; 0x1000];
         memory[0] = init_val;
@@ -66,6 +45,7 @@ impl<'a> AdvVm<'a> {
             data_stack: vec![0; 0x16], // Umineko scenario writes out of bounds of the stack so we add some extra space
             instruction_reader: scenario.instruction_reader(scenario.entrypoint_address()),
             prng_state: random_seed,
+            command_context: None,
         }
     }
 
@@ -215,24 +195,46 @@ impl<'a> AdvVm<'a> {
         }
     }
 
-    async fn run_command<L: AdvListener>(
+    fn run_command(
         &mut self,
         command: Command,
         pc: CodeAddress,
         listener: &mut L,
-    ) -> Result<()> {
-        // TODO: most commands a no-op for now (not actually accurate!)
-        // SGET, SELECT and QUIZ are the ones that cannot safely be ignored
-        // because they return a value to memory (others are just commands to the game loop)
-        match command {
+    ) -> CommandContext<L> {
+        use tracing::trace_span;
+        // TODO: we probably can manage spans in a generalized way
+        let (span, command_state) = match command {
             Command::EXIT { arg1, arg2 } => {
                 let arg2 = self.get_number(arg2);
-                trace!(?pc, ?arg1, ?arg2, "exit");
-                listener.exit(arg1, arg2).await;
-
-                // TODO: dont use errors for this, return a enum with variants Continue, Exit, etc
-                bail!("VM exited");
+                (
+                    trace_span!("EXIT", ?pc, ?arg1, ?arg2).entered(),
+                    CommandState::Exit(listener.exit(arg1, arg2)),
+                )
             }
+            Command::SGET { dest, slot_number } => {
+                let slot_number = self.get_number(slot_number);
+                (
+                    trace_span!("SGET", ?pc, ?dest, ?slot_number).entered(),
+                    CommandState::SGet(dest, listener.sget(slot_number)),
+                )
+            }
+            Command::SSET { slot_number, value } => {
+                let slot_number = self.get_number(slot_number);
+                let value = self.get_number(value);
+                (
+                    trace_span!("SSET", ?pc, ?slot_number, ?value).entered(),
+                    CommandState::SSet(listener.sset(slot_number, value)),
+                )
+            }
+
+            Command::MSGINIT { arg } => {
+                let arg = self.get_number(arg);
+                let span = trace_span!("MSGINIT", ?pc, ?arg).entered();
+                (span, CommandState::MsgInit(listener.msginit(arg)))
+            }
+
+            Command::SELECT { .. } => todo!(),
+            Command::QUIZ { .. } => todo!(),
             Command::DEBUGOUT { format, args } => {
                 let args = args
                     .0
@@ -240,35 +242,75 @@ impl<'a> AdvVm<'a> {
                     .map(|v| self.get_number(v))
                     .collect::<SmallVec<[i32; 6]>>();
 
-                debug!(?pc, ?format, ?args, "DEBUGOUT");
-
-                listener.debugout(format.as_str(), &args).await;
+                (
+                    trace_span!("DEBUGOUT", ?pc, ?format, ?args).entered(),
+                    CommandState::DebugOut(listener.debugout(format.as_str(), &args)),
+                )
             }
-            Command::SGET { dest, slot_number } => {
-                let slot_number = self.get_number(slot_number);
-                let result = listener.sget(slot_number).await;
-                trace!(?pc, ?dest, ?slot_number, ?result, "sget");
-                self.set_memory(dest, result);
-            }
-            Command::SELECT { .. } => todo!(),
-            Command::QUIZ { .. } => todo!(),
             _ => {
                 warn!(?pc, ?command, "unimplemented command");
+                todo!("unimplemented command: {:?}", command)
             }
+        };
+
+        CommandContext {
+            span: span.exit(),
+            command_state,
+        }
+    }
+
+    fn poll_command(&mut self, listener: &mut L) -> CommandPoll<ExitResult> {
+        const CONTINUE: CommandPoll<ExitResult> = CommandPoll::Ready(ExitResult::Continue);
+
+        let result = match &mut self.command_context {
+            None => CONTINUE,
+            Some(CommandContext {
+                span,
+                command_state,
+            }) => {
+                let span = span.clone(); // make the borrow checker happy
+                let _guard = span.enter();
+                match command_state {
+                    CommandState::Exit(cmd) => cmd.poll(listener),
+                    &mut CommandState::SGet(dest, ref mut cmd) => cmd
+                        .poll(listener)
+                        .and_continue(|result| self.set_memory(dest, result)),
+                    CommandState::SSet(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::MsgInit(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::MsgSet(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::MsgSignal(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::MsgSync(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::MsgClose(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::SaveInfo(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::AutoSave(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::LayerInit(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::LayerLoad(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::LayerUnload(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::LayerCtrl(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::LayerWait(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::LayerSwap(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::LayerSelect(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::DebugOut(cmd) => cmd.poll(listener).map_continue(),
+                }
+            }
+        };
+
+        if let CommandPoll::Ready(_) = &result {
+            self.command_context = None;
         }
 
-        Ok(())
+        result
     }
 
     /// Execute one instruction
     /// pc is the program counter before the instruction was read
-    #[instrument(skip(self, listener), level = "trace")]
-    async fn run_instruction<L: AdvListener>(
+    #[instrument(skip(self, listener, instruction), level = "trace")]
+    fn run_instruction(
         &mut self,
         instruction: Instruction,
         pc: CodeAddress,
         listener: &mut L,
-    ) -> Result<()> {
+    ) -> CommandPoll<ExitResult> {
         self.update_prng();
 
         match instruction {
@@ -436,18 +478,36 @@ impl<'a> AdvVm<'a> {
                 self.instruction_reader.set_position(target);
             }
             Instruction::Command(command) => {
-                self.run_command::<L>(command, pc, listener).await?;
+                debug_assert!(matches!(self.command_context, None));
+                self.command_context = Some(self.run_command(command, pc, listener));
+                return self.poll_command(listener);
             }
         }
 
-        Ok(())
+        CommandPoll::Ready(ExitResult::Continue)
     }
 
-    pub async fn run<L: AdvListener>(&mut self, listener: &mut L) -> Result<()> {
+    pub fn run(&mut self, listener: &mut L) -> Result<CommandPoll<i32>> {
+        match self.poll_command(listener) {
+            CommandPoll::Ready(ExitResult::Continue) => {}
+            CommandPoll::Ready(ExitResult::Exit(result)) => return Ok(CommandPoll::Ready(result)),
+            CommandPoll::Pending => {
+                return Ok(CommandPoll::Pending);
+            }
+        }
+
         loop {
             let pc = self.instruction_reader.position();
             let instruction = self.instruction_reader.read()?;
-            self.run_instruction::<L>(instruction, pc, listener).await?;
+            match self.run_instruction(instruction, pc, listener) {
+                CommandPoll::Ready(ExitResult::Continue) => {}
+                CommandPoll::Ready(ExitResult::Exit(result)) => {
+                    return Ok(CommandPoll::Ready(result))
+                }
+                CommandPoll::Pending => {
+                    return Ok(CommandPoll::Pending);
+                }
+            }
         }
     }
 }

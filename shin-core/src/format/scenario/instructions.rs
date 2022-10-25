@@ -461,7 +461,15 @@ impl BinWrite for StringArray {
 #[brw(little)]
 pub enum Command {
     #[brw(magic(0x00u8))]
-    EXIT { arg1: u8, arg2: NumberSpec },
+    EXIT {
+        /// This is encoded in the instruction
+        /// If it's zero then the VM shuts down
+        /// If it's nonzero then the VM treats it as a NOP
+        /// Maybe it's a feature that is not used for umineko?
+        arg1: u8,
+        ///
+        arg2: NumberSpec,
+    },
 
     #[brw(magic(0x81u8))]
     SGET {
@@ -469,7 +477,10 @@ pub enum Command {
         slot_number: NumberSpec,
     },
     #[brw(magic(0x82u8))]
-    SSET { arg1: NumberSpec, arg2: NumberSpec },
+    SSET {
+        slot_number: NumberSpec,
+        value: NumberSpec,
+    },
     #[brw(magic(0x83u8))]
     WAIT { arg1: u8, arg2: NumberSpec },
     // 0x84 is unused
@@ -591,32 +602,48 @@ pub enum Command {
         arg2: U8SmallList<[NumberSpec; 6]>,
     },
 
+    /// Reset property values to their initial state
     #[brw(magic(0xc0u8))]
     LAYERINIT { arg: NumberSpec },
+    /// Load a layer resource or smth
+    /// There are multiple layer types and they have different arguments
     #[brw(magic(0xc1u8))]
     LAYERLOAD {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
-        arg3: NumberSpec,
+        layer_id: NumberSpec,
+        layer_type: NumberSpec,
+        // TODO: what does this mean again?
+        leave_uninitialized: NumberSpec,
         params: BitmaskNumberArray,
     },
     #[brw(magic(0xc2u8))]
-    LAYERUNLOAD { arg1: NumberSpec, arg2: NumberSpec },
+    LAYERUNLOAD {
+        layer_id: NumberSpec,
+        delay_time: NumberSpec,
+    },
+    /// Change layer property, possibly through a transition.
     #[brw(magic(0xc3u8))]
     LAYERCTRL {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
+        layer_id: NumberSpec,
+        property_id: NumberSpec,
+        // in the params there are (always?) three numbers
+        // ctrl_value, ctrl_time and ctrl_flags
         params: BitmaskNumberArray,
     },
+    /// Wait for property transitions to finish.
     #[brw(magic(0xc4u8))]
     LAYERWAIT {
-        arg1: NumberSpec,
-        arg2: U8SmallList<[NumberSpec; 6]>,
+        layer_id: NumberSpec,
+        wait_properties: U8SmallList<[NumberSpec; 6]>,
     },
     #[brw(magic(0xc5u8))]
     LAYERSWAP { arg1: NumberSpec, arg2: NumberSpec },
+    /// Select a subset of layers to perform batch operations
+    /// (TODO: fact check) These can be used as layer_id = -4
     #[brw(magic(0xc6u8))]
-    LAYERSELECT { arg1: NumberSpec, arg2: NumberSpec },
+    LAYERSELECT {
+        selection_start_id: NumberSpec,
+        selection_end_id: NumberSpec,
+    },
     #[brw(magic(0xc7u8))]
     MOVIEWAIT { arg1: NumberSpec, arg2: NumberSpec },
     // 0xc8 unused
