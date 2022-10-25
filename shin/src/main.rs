@@ -1,10 +1,16 @@
 mod asset;
 mod camera;
+pub mod layer;
+mod vm;
 
 use bevy::prelude::*;
+use bevy_asset_loader::prelude::*;
 use bevy_prototype_lyon::prelude::*;
+use iyes_loopless::prelude::*;
 
 use crate::asset::picture::PicturePlugin;
+use crate::asset::scenario::ScenarioPlugin;
+use crate::vm::VmPlugin;
 use bevy::render::camera::CameraProjectionPlugin;
 
 fn add_pillarbox_rects(commands: &mut Commands) {
@@ -47,18 +53,18 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
     add_pillarbox_rects(&mut commands);
 
-    commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("ship_p1a.pic"),
-        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-        ..default()
-    });
-
-    commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("bea.png"),
-        transform: Transform::from_scale(Vec3::splat(1.0))
-            .mul_transform(Transform::from_xyz(0.0, 0.0, 1.0)),
-        ..default()
-    });
+    // commands.spawn_bundle(SpriteBundle {
+    //     texture: asset_server.load("ship_p1a.pic"),
+    //     transform: Transform::from_xyz(0.0, 0.0, 0.0),
+    //     ..default()
+    // });
+    //
+    // commands.spawn_bundle(SpriteBundle {
+    //     texture: asset_server.load("bea.png"),
+    //     transform: Transform::from_scale(Vec3::splat(1.0))
+    //         .mul_transform(Transform::from_xyz(0.0, 0.0, 1.0)),
+    //     ..default()
+    // });
 
     // commands.spawn_bundle(PictureLayerBundle {
     //     picture_layer: PictureLayer {
@@ -69,6 +75,28 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     //     visibility: Default::default(),
     //     computed_visibility: Default::default(),
     // });
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+enum MyStates {
+    AdvLoading,
+    Adv,
+}
+
+#[derive(AssetCollection)]
+struct AdvAssets {
+    #[asset(path = "main.snr")]
+    scenario: Handle<asset::scenario::Scenario>,
+}
+
+fn setup_adv(
+    mut commands: Commands,
+    adv_assets: Res<AdvAssets>,
+    scenario_assets: Res<Assets<asset::scenario::Scenario>>,
+) {
+    info!("Scenario loaded!");
+    let scenario = scenario_assets.get(&adv_assets.scenario).unwrap().0.clone();
+    commands.spawn().insert(vm::Vm::new(scenario, 0, 42));
 }
 
 fn main() {
@@ -84,7 +112,17 @@ fn main() {
         })
         .add_plugin(CameraProjectionPlugin::<camera::OrthographicProjection>::default())
         .add_plugin(ShapePlugin)
+        // shin plugins
         .add_plugin(PicturePlugin)
+        .add_plugin(ScenarioPlugin)
+        .add_plugin(VmPlugin)
+        .add_loopless_state(MyStates::AdvLoading)
+        .add_loading_state(
+            LoadingState::new(MyStates::AdvLoading)
+                .continue_to_state(MyStates::Adv)
+                .with_collection::<AdvAssets>(),
+        )
+        .add_enter_system(MyStates::Adv, setup_adv)
         .add_startup_system(setup)
         .run();
 }

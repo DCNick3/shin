@@ -11,3 +11,4 @@ clap = { version = "4.0.15", features = ["derive"] }
 futures = "0.3.25"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 image = "0.24.4"
+bytes = "1.2.1"

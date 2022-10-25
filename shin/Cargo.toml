@@ -13,9 +13,16 @@ futures = "0.3.25"
 smallvec = "1.10.0"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-bevy = "0.8.1"
-bevy_prototype_lyon = "0.6.0"
 copyless = "0.1.5"
+arrayvec = "0.7.2"
+bytes = "1.2.1"
+
+bevy = "0.8.1"
+bevy_asset_loader = { version = "0.12.1", features = ["stageless"] }
+bevy_prototype_lyon = "0.6.0"
+iyes_loopless = "0.7.0" # bevy_asset_loader uses 0.7, so we need to use the same version
+num-derive = "0.3.3"
+num-traits = "0.2.15"
 
 [features]
 default = [

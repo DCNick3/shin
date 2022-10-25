@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use bytes::Bytes;
 use clap::Parser;
 use shin_core::format::picture::SimpleMergedPicture;
 use shin_core::format::rom::IndexEntry;
@@ -89,13 +90,14 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             scenario_path: path,
         } => {
             let scenario = std::fs::read(path)?;
+            let scenario = Bytes::from(scenario);
             let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
 
-            let mut vm = shin_core::vm::AdvVm::new(&scenario, 0, 42);
+            let mut vm = shin_core::vm::AdvVm::new(&scenario, 0, 42, DummyAdvListener);
             loop {
                 // NOTE: usually you would want to do something when the VM has returned "Pending"
                 // stuff like running game loop to let the command progress...
-                if let CommandPoll::Ready(result) = vm.run(&mut DummyAdvListener)? {
+                if let CommandPoll::Ready(result) = vm.run(&())? {
                     println!("VM finished with exit code {}", result);
                     break;
                 }
@@ -125,7 +127,7 @@ fn picture_command(command: PictureCommand) -> Result<()> {
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
-        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
+        // .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
         .compact()
         .init();
     let args = Args::parse();

@@ -4,6 +4,7 @@ use crate::format::scenario::instructions::{CodeAddress, Instruction};
 use crate::format::text;
 use anyhow::{Context, Result};
 use binrw::{BinRead, BinResult, BinWrite, ReadOptions, VecArgs, WriteOptions};
+use bytes::Bytes;
 use smallvec::SmallVec;
 use std::fmt;
 use std::io::{Cursor, Read, Seek, Write};
@@ -257,11 +258,11 @@ pub struct Scenario {
     section_68: Vec<(u16, u16, u16)>,
     tips_data: Vec<(u8, u16, U16String, U16String)>,
     entrypoint_address: CodeAddress,
-    raw_data: Vec<u8>,
+    raw_data: Bytes,
 }
 
 impl Scenario {
-    pub fn new(data: Vec<u8>) -> Result<Self> {
+    pub fn new(data: Bytes) -> Result<Self> {
         let mut cur = Cursor::new(&data);
         let header = ScenarioHeader::read(&mut cur)?;
 
@@ -357,16 +358,16 @@ impl Scenario {
     }
 
     pub fn instruction_reader(&self, offset: CodeAddress) -> InstructionReader {
-        InstructionReader::new(&self.raw_data, offset)
+        InstructionReader::new(self.raw_data.clone(), offset)
     }
 }
 
-pub struct InstructionReader<'a> {
-    cur: Cursor<&'a [u8]>,
+pub struct InstructionReader {
+    cur: Cursor<Bytes>,
 }
 
-impl<'a> InstructionReader<'a> {
-    pub fn new(data: &'a [u8], offset: CodeAddress) -> Self {
+impl InstructionReader {
+    pub fn new(data: Bytes, offset: CodeAddress) -> Self {
         let mut cur = Cursor::new(data);
         cur.set_position(offset.0 as u64);
         Self { cur }

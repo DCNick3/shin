@@ -7,15 +7,14 @@ use crate::format::scenario::instructions::{
 };
 use crate::format::scenario::{InstructionReader, Scenario};
 use crate::vm::command::{
-    AdvCommand, AdvListener, CommandContext, CommandPoll, CommandState, ExitResult, LayerId,
+    AdvCommand, AdvListener, CommandContext, CommandPoll, CommandState, ExitResult, VLayerId,
 };
 use anyhow::Result;
 use smallvec::SmallVec;
 use tracing::{instrument, trace, warn};
 
 // TODO: add a listener trait that can be used to get notified of commands
-pub struct AdvVm<'a, L: AdvListener> {
-    scenario: &'a Scenario,
+pub struct AdvVm<L: AdvListener> {
     /// Memory (aka registers I guess)
     memory: [i32; 0x1000],
     /// Call stack
@@ -30,29 +29,30 @@ pub struct AdvVm<'a, L: AdvListener> {
     /// PRNG state, updated on each instruction executed
     prng_state: u32,
     command_context: Option<CommandContext<L>>,
-    instruction_reader: InstructionReader<'a>,
+    instruction_reader: InstructionReader,
+    listener: L,
 }
 
-impl<'a, L: AdvListener> AdvVm<'a, L> {
-    pub fn new(scenario: &'a Scenario, init_val: i32, random_seed: u32) -> Self {
+impl<L: AdvListener> AdvVm<L> {
+    pub fn new(scenario: &Scenario, init_val: i32, random_seed: u32, listener: L) -> Self {
         let mut memory = [0; 0x1000];
         memory[0] = init_val;
 
         Self {
-            scenario,
             memory,
             call_stack: Vec::new(),
             data_stack: vec![0; 0x16], // Umineko scenario writes out of bounds of the stack so we add some extra space
             instruction_reader: scenario.instruction_reader(scenario.entrypoint_address()),
             prng_state: random_seed,
             command_context: None,
+            listener,
         }
     }
 
     #[inline]
     fn get_memory(&self, addr: MemoryAddress) -> i32 {
         if let Some(offset) = addr.as_stack_offset() {
-            self.data_stack[self.data_stack.len() - 1 - (offset + 1) as usize]
+            self.data_stack[self.data_stack.len() - 1 - (offset) as usize]
         } else {
             self.memory[addr.0 as usize]
         }
@@ -64,7 +64,7 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
             let len = self.data_stack.len();
             // the top of the data stack is always the frame size
             // so we need to subtract 1 to get the actual top of the stack
-            self.data_stack[len - 1 - (offset + 1) as usize] = val;
+            self.data_stack[len - 1 - (offset) as usize] = val;
         } else {
             self.memory[addr.0 as usize] = val;
         }
@@ -199,31 +199,32 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
         &mut self,
         command: Command,
         pc: CodeAddress,
-        listener: &mut L,
+        ctx: &L::Context<'_>,
     ) -> CommandContext<L> {
-        use tracing::trace_span;
+        use tracing::debug_span;
+
         // TODO: we probably can manage spans in a generalized way
         let (span, command_state) = match command {
             Command::EXIT { arg1, arg2 } => {
                 let arg2 = self.get_number(arg2);
                 (
-                    trace_span!("EXIT", ?pc, ?arg1, ?arg2).entered(),
-                    CommandState::Exit(listener.exit(arg1, arg2)),
+                    debug_span!("EXIT", ?pc, ?arg1, ?arg2).entered(),
+                    CommandState::Exit(self.listener.exit(ctx, arg1, arg2)),
                 )
             }
             Command::SGET { dest, slot_number } => {
                 let slot_number = self.get_number(slot_number);
                 (
-                    trace_span!("SGET", ?pc, ?dest, ?slot_number).entered(),
-                    CommandState::SGet(dest, listener.sget(slot_number)),
+                    debug_span!("SGET", ?pc, ?dest, ?slot_number).entered(),
+                    CommandState::SGet(dest, self.listener.sget(ctx, slot_number)),
                 )
             }
             Command::SSET { slot_number, value } => {
                 let slot_number = self.get_number(slot_number);
                 let value = self.get_number(value);
                 (
-                    trace_span!("SSET", ?pc, ?slot_number, ?value).entered(),
-                    CommandState::SSet(listener.sset(slot_number, value)),
+                    debug_span!("SSET", ?pc, ?slot_number, ?value).entered(),
+                    CommandState::SSet(self.listener.sset(ctx, slot_number, value)),
                 )
             }
             Command::WAIT {
@@ -232,38 +233,47 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
             } => {
                 let wait_amount = self.get_number(wait_amount);
                 (
-                    trace_span!("WAIT", ?pc, ?wait_kind, ?wait_amount).entered(),
-                    CommandState::Wait(listener.wait(wait_kind, wait_amount)),
+                    debug_span!("WAIT", ?pc, ?wait_kind, ?wait_amount).entered(),
+                    CommandState::Wait(self.listener.wait(ctx, wait_kind, wait_amount)),
                 )
             }
             Command::MSGINIT { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("MSGINIT", ?pc, ?arg).entered();
-                (span, CommandState::MsgInit(listener.msginit(arg)))
+                let span = debug_span!("MSGINIT", ?pc, ?arg).entered();
+                (span, CommandState::MsgInit(self.listener.msginit(ctx, arg)))
             }
             Command::MSGSET { msg_id, text } => {
                 let text = text.as_str();
-                let span = trace_span!("MSGSET", ?pc, ?msg_id, ?text).entered();
-                (span, CommandState::MsgSet(listener.msgset(msg_id, text)))
+                let span = debug_span!("MSGSET", ?pc, ?msg_id, ?text).entered();
+                (
+                    span,
+                    CommandState::MsgSet(self.listener.msgset(ctx, msg_id, text)),
+                )
             }
             Command::MSGWAIT { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("MSGWAIT", ?pc, ?arg).entered();
-                (span, CommandState::MsgWait(listener.msgwait(arg)))
+                let span = debug_span!("MSGWAIT", ?pc, ?arg).entered();
+                (span, CommandState::MsgWait(self.listener.msgwait(ctx, arg)))
             }
             Command::MSGSIGNAL {} => {
-                let span = trace_span!("MSGSIGNAL", ?pc).entered();
-                (span, CommandState::MsgSignal(listener.msgsignal()))
+                let span = debug_span!("MSGSIGNAL", ?pc).entered();
+                (span, CommandState::MsgSignal(self.listener.msgsignal(ctx)))
             }
             Command::MSGSYNC { arg1, arg2 } => {
                 let arg1 = self.get_number(arg1);
                 let arg2 = self.get_number(arg2);
-                let span = trace_span!("MSGSYNC", ?pc, ?arg1, ?arg2).entered();
-                (span, CommandState::MsgSync(listener.msgsync(arg1, arg2)))
+                let span = debug_span!("MSGSYNC", ?pc, ?arg1, ?arg2).entered();
+                (
+                    span,
+                    CommandState::MsgSync(self.listener.msgsync(ctx, arg1, arg2)),
+                )
             }
             Command::MSGCLOSE { arg } => {
-                let span = trace_span!("MSGCLOSE", ?pc, ?arg).entered();
-                (span, CommandState::MsgClose(listener.msgclose(arg)))
+                let span = debug_span!("MSGCLOSE", ?pc, ?arg).entered();
+                (
+                    span,
+                    CommandState::MsgClose(self.listener.msgclose(ctx, arg)),
+                )
             }
             Command::SELECT {
                 choice_set_base,
@@ -282,7 +292,7 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                     .iter()
                     .map(|v| v.as_str())
                     .collect::<SmallVec<[&str; 4]>>();
-                let span = trace_span!(
+                let span = debug_span!(
                     "SELECT",
                     ?pc,
                     ?choice_set_base,
@@ -297,7 +307,8 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                     span,
                     CommandState::Select(
                         dest,
-                        listener.select(
+                        self.listener.select(
+                            ctx,
                             choice_set_base,
                             choice_index,
                             arg4,
@@ -317,15 +328,15 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 let arg2 = self.get_number(arg2);
                 let arg3 = self.get_number(arg3);
                 let params = params.0.map(|p| self.get_number(p));
-                let span = trace_span!("WIPE", ?pc, ?arg1, ?arg2, ?arg3, ?params).entered();
+                let span = debug_span!("WIPE", ?pc, ?arg1, ?arg2, ?arg3, ?params).entered();
                 (
                     span,
-                    CommandState::Wipe(listener.wipe(arg1, arg2, arg3, &params)),
+                    CommandState::Wipe(self.listener.wipe(ctx, arg1, arg2, arg3, &params)),
                 )
             }
             Command::WIPEWAIT {} => {
-                let span = trace_span!("WIPEWAIT", ?pc).entered();
-                (span, CommandState::WipeWait(listener.wipewait()))
+                let span = debug_span!("WIPEWAIT", ?pc).entered();
+                (span, CommandState::WipeWait(self.listener.wipewait(ctx)))
             }
             Command::BGMPLAY {
                 arg1,
@@ -337,32 +348,35 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 let arg2 = self.get_number(arg2);
                 let arg3 = self.get_number(arg3);
                 let arg4 = self.get_number(arg4);
-                let span = trace_span!("BGMPLAY", ?pc, ?arg1, ?arg2, ?arg3, ?arg4).entered();
+                let span = debug_span!("BGMPLAY", ?pc, ?arg1, ?arg2, ?arg3, ?arg4).entered();
                 (
                     span,
-                    CommandState::BgmPlay(listener.bgmplay(arg1, arg2, arg3, arg4)),
+                    CommandState::BgmPlay(self.listener.bgmplay(ctx, arg1, arg2, arg3, arg4)),
                 )
             }
             Command::BGMSTOP { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("BGMSTOP", ?pc, ?arg).entered();
-                (span, CommandState::BgmStop(listener.bgmstop(arg)))
+                let span = debug_span!("BGMSTOP", ?pc, ?arg).entered();
+                (span, CommandState::BgmStop(self.listener.bgmstop(ctx, arg)))
             }
             Command::BGMVOL { arg1, arg2 } => {
                 let arg1 = self.get_number(arg1);
                 let arg2 = self.get_number(arg2);
-                let span = trace_span!("BGMVOL", ?pc, ?arg1, ?arg2).entered();
-                (span, CommandState::BgmVol(listener.bgmvol(arg1, arg2)))
+                let span = debug_span!("BGMVOL", ?pc, ?arg1, ?arg2).entered();
+                (
+                    span,
+                    CommandState::BgmVol(self.listener.bgmvol(ctx, arg1, arg2)),
+                )
             }
             Command::BGMWAIT { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("BGMWAIT", ?pc, ?arg).entered();
-                (span, CommandState::BgmWait(listener.bgmwait(arg)))
+                let span = debug_span!("BGMWAIT", ?pc, ?arg).entered();
+                (span, CommandState::BgmWait(self.listener.bgmwait(ctx, arg)))
             }
             Command::BGMSYNC { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("BGMSYNC", ?pc, ?arg).entered();
-                (span, CommandState::BgmSync(listener.bgmsync(arg)))
+                let span = debug_span!("BGMSYNC", ?pc, ?arg).entered();
+                (span, CommandState::BgmSync(self.listener.bgmsync(ctx, arg)))
             }
             Command::SEPLAY {
                 arg1,
@@ -380,7 +394,7 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 let arg5 = self.get_number(arg5);
                 let arg6 = self.get_number(arg6);
                 let arg7 = self.get_number(arg7);
-                let span = trace_span!(
+                let span = debug_span!(
                     "SEPLAY",
                     ?pc,
                     ?arg1,
@@ -394,37 +408,52 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 .entered();
                 (
                     span,
-                    CommandState::SePlay(listener.seplay(arg1, arg2, arg3, arg4, arg5, arg6, arg7)),
+                    CommandState::SePlay(
+                        self.listener
+                            .seplay(ctx, arg1, arg2, arg3, arg4, arg5, arg6, arg7),
+                    ),
                 )
             }
             Command::SESTOP { arg1, arg2 } => {
                 let arg1 = self.get_number(arg1);
                 let arg2 = self.get_number(arg2);
-                let span = trace_span!("SESTOP", ?pc, ?arg1, ?arg2).entered();
-                (span, CommandState::SeStop(listener.sestop(arg1, arg2)))
+                let span = debug_span!("SESTOP", ?pc, ?arg1, ?arg2).entered();
+                (
+                    span,
+                    CommandState::SeStop(self.listener.sestop(ctx, arg1, arg2)),
+                )
             }
             Command::SESTOPALL { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("SESTOPALL", ?pc, ?arg).entered();
-                (span, CommandState::SeStopAll(listener.sestopall(arg)))
+                let span = debug_span!("SESTOPALL", ?pc, ?arg).entered();
+                (
+                    span,
+                    CommandState::SeStopAll(self.listener.sestopall(ctx, arg)),
+                )
             }
 
             // GAP
             Command::SAVEINFO { level, info } => {
                 let level = self.get_number(level);
                 let info = info.as_str();
-                let span = trace_span!("SAVEINFO", ?pc, ?level, ?info).entered();
-                (span, CommandState::SaveInfo(listener.saveinfo(level, info)))
+                let span = debug_span!("SAVEINFO", ?pc, ?level, ?info).entered();
+                (
+                    span,
+                    CommandState::SaveInfo(self.listener.saveinfo(ctx, level, info)),
+                )
             }
             Command::AUTOSAVE {} => {
-                let span = trace_span!("AUTOSAVE", ?pc).entered();
-                (span, CommandState::AutoSave(listener.autosave()))
+                let span = debug_span!("AUTOSAVE", ?pc).entered();
+                (span, CommandState::AutoSave(self.listener.autosave(ctx)))
             }
 
             Command::LAYERINIT { arg: layer_id } => {
-                let arg = LayerId(self.get_number(layer_id));
-                let span = trace_span!("LAYERINIT", ?pc, ?arg).entered();
-                (span, CommandState::LayerInit(listener.layerinit(arg)))
+                let arg = VLayerId(self.get_number(layer_id));
+                let span = debug_span!("LAYERINIT", ?pc, ?arg).entered();
+                (
+                    span,
+                    CommandState::LayerInit(self.listener.layerinit(ctx, arg)),
+                )
             }
             Command::LAYERLOAD {
                 layer_id,
@@ -432,11 +461,11 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 leave_uninitialized,
                 params,
             } => {
-                let layer_id = LayerId(self.get_number(layer_id));
+                let layer_id = VLayerId(self.get_number(layer_id));
                 let layer_type = self.get_number(layer_type);
                 let leave_uninitialized = self.get_number(leave_uninitialized);
                 let params = params.0.map(|v| self.get_number(v));
-                let span = trace_span!(
+                let span = debug_span!(
                     "LAYERLOAD",
                     ?pc,
                     ?layer_id,
@@ -447,7 +476,8 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 .entered();
                 (
                     span,
-                    CommandState::LayerLoad(listener.layerload(
+                    CommandState::LayerLoad(self.listener.layerload(
+                        ctx,
                         layer_id,
                         layer_type,
                         leave_uninitialized,
@@ -459,12 +489,12 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 layer_id,
                 delay_time,
             } => {
-                let layer_id = LayerId(self.get_number(layer_id));
+                let layer_id = VLayerId(self.get_number(layer_id));
                 let delay_time = self.get_number(delay_time);
-                let span = trace_span!("LAYERUNLOAD", ?pc, ?layer_id, ?delay_time).entered();
+                let span = debug_span!("LAYERUNLOAD", ?pc, ?layer_id, ?delay_time).entered();
                 (
                     span,
-                    CommandState::LayerUnload(listener.layerunload(layer_id, delay_time)),
+                    CommandState::LayerUnload(self.listener.layerunload(ctx, layer_id, delay_time)),
                 )
             }
             Command::LAYERCTRL {
@@ -472,30 +502,39 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 property_id,
                 params,
             } => {
-                let layer_id = LayerId(self.get_number(layer_id));
+                let layer_id = VLayerId(self.get_number(layer_id));
                 let property_id = self.get_number(property_id);
                 let params = params.0.map(|v| self.get_number(v));
                 let span =
-                    trace_span!("LAYERCTRL", ?pc, ?layer_id, ?property_id, ?params).entered();
+                    debug_span!("LAYERCTRL", ?pc, ?layer_id, ?property_id, ?params).entered();
                 (
                     span,
-                    CommandState::LayerCtrl(listener.layerctrl(layer_id, property_id, &params)),
+                    CommandState::LayerCtrl(self.listener.layerctrl(
+                        ctx,
+                        layer_id,
+                        property_id,
+                        &params,
+                    )),
                 )
             }
             Command::LAYERWAIT {
                 layer_id,
                 wait_properties,
             } => {
-                let layer_id = LayerId(self.get_number(layer_id));
+                let layer_id = VLayerId(self.get_number(layer_id));
                 let wait_properties = wait_properties
                     .0
                     .into_iter()
                     .map(|v| self.get_number(v))
                     .collect::<SmallVec<[i32; 6]>>();
-                let span = trace_span!("LAYERWAIT", ?pc, ?layer_id, ?wait_properties).entered();
+                let span = debug_span!("LAYERWAIT", ?pc, ?layer_id, ?wait_properties).entered();
                 (
                     span,
-                    CommandState::LayerWait(listener.layerwait(layer_id, &wait_properties)),
+                    CommandState::LayerWait(self.listener.layerwait(
+                        ctx,
+                        layer_id,
+                        &wait_properties,
+                    )),
                 )
             }
             Command::TRANSSET {
@@ -508,45 +547,57 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 let arg2 = self.get_number(arg2);
                 let arg3 = self.get_number(arg3);
                 let params = params.0.map(|v| self.get_number(v));
-                let span = trace_span!("TRANSSET", ?pc, ?arg1, ?arg2, ?arg3, ?params).entered();
+                let span = debug_span!("TRANSSET", ?pc, ?arg1, ?arg2, ?arg3, ?params).entered();
                 (
                     span,
-                    CommandState::TransSet(listener.transset(arg1, arg2, arg3, &params)),
+                    CommandState::TransSet(self.listener.transset(ctx, arg1, arg2, arg3, &params)),
                 )
             }
             Command::TRANSWAIT { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("TRANSWAIT", ?pc, ?arg).entered();
-                (span, CommandState::TransWait(listener.transwait(arg)))
+                let span = debug_span!("TRANSWAIT", ?pc, ?arg).entered();
+                (
+                    span,
+                    CommandState::TransWait(self.listener.transwait(ctx, arg)),
+                )
             }
             Command::PAGEBACK {} => {
-                let span = trace_span!("PAGEBACK", ?pc).entered();
-                (span, CommandState::PageBack(listener.pageback()))
+                let span = debug_span!("PAGEBACK", ?pc).entered();
+                (span, CommandState::PageBack(self.listener.pageback(ctx)))
             }
             Command::PLANESELECT { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("PLANESELECT", ?pc, ?arg).entered();
-                (span, CommandState::PlaneSelect(listener.planeselect(arg)))
+                let span = debug_span!("PLANESELECT", ?pc, ?arg).entered();
+                (
+                    span,
+                    CommandState::PlaneSelect(self.listener.planeselect(ctx, arg)),
+                )
             }
             Command::MASKLOAD { arg1, arg2, arg3 } => {
                 let arg1 = self.get_number(arg1);
                 let arg2 = self.get_number(arg2);
                 let arg3 = self.get_number(arg3);
-                let span = trace_span!("MASKLOAD", ?pc, ?arg1, ?arg2, ?arg3).entered();
+                let span = debug_span!("MASKLOAD", ?pc, ?arg1, ?arg2, ?arg3).entered();
                 (
                     span,
-                    CommandState::MaskLoad(listener.maskload(arg1, arg2, arg3)),
+                    CommandState::MaskLoad(self.listener.maskload(ctx, arg1, arg2, arg3)),
                 )
             }
             Command::MASKUNLOAD {} => {
-                let span = trace_span!("MASKUNLOAD", ?pc).entered();
-                (span, CommandState::MaskUnload(listener.maskunload()))
+                let span = debug_span!("MASKUNLOAD", ?pc).entered();
+                (
+                    span,
+                    CommandState::MaskUnload(self.listener.maskunload(ctx)),
+                )
             }
             Command::CHARS { arg1, arg2 } => {
                 let arg1 = self.get_number(arg1);
                 let arg2 = self.get_number(arg2);
-                let span = trace_span!("CHARS", ?pc, ?arg1, ?arg2).entered();
-                (span, CommandState::Chars(listener.chars(arg1, arg2)))
+                let span = debug_span!("CHARS", ?pc, ?arg1, ?arg2).entered();
+                (
+                    span,
+                    CommandState::Chars(self.listener.chars(ctx, arg1, arg2)),
+                )
             }
             Command::TIPSGET { arg } => {
                 let arg = arg
@@ -554,22 +605,28 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                     .iter()
                     .map(|v| self.get_number(*v))
                     .collect::<SmallVec<[i32; 6]>>();
-                let span = trace_span!("TIPSGET", ?pc, ?arg).entered();
-                (span, CommandState::TipsGet(listener.tipsget(&arg)))
+                let span = debug_span!("TIPSGET", ?pc, ?arg).entered();
+                (
+                    span,
+                    CommandState::TipsGet(self.listener.tipsget(ctx, &arg)),
+                )
             }
             Command::QUIZ { dest, arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("QUIZ", ?pc, ?dest, ?arg).entered();
-                (span, CommandState::Quiz(dest, listener.quiz(arg)))
+                let span = debug_span!("QUIZ", ?pc, ?dest, ?arg).entered();
+                (span, CommandState::Quiz(dest, self.listener.quiz(ctx, arg)))
             }
             Command::SHOWCHARS {} => {
-                let span = trace_span!("SHOWCHARS", ?pc).entered();
-                (span, CommandState::ShowChars(listener.showchars()))
+                let span = debug_span!("SHOWCHARS", ?pc).entered();
+                (span, CommandState::ShowChars(self.listener.showchars(ctx)))
             }
             Command::NOTIFYSET { arg } => {
                 let arg = self.get_number(arg);
-                let span = trace_span!("NOTIFYSET", ?pc, ?arg).entered();
-                (span, CommandState::NotifySet(listener.notifyset(arg)))
+                let span = debug_span!("NOTIFYSET", ?pc, ?arg).entered();
+                (
+                    span,
+                    CommandState::NotifySet(self.listener.notifyset(ctx, arg)),
+                )
             }
 
             Command::DEBUGOUT { format, args } => {
@@ -580,8 +637,8 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                     .collect::<SmallVec<[i32; 6]>>();
 
                 (
-                    trace_span!("DEBUGOUT", ?pc, ?format, ?args).entered(),
-                    CommandState::DebugOut(listener.debugout(format.as_str(), &args)),
+                    debug_span!("DEBUGOUT", ?pc, ?format, ?args).entered(),
+                    CommandState::DebugOut(self.listener.debugout(ctx, format.as_str(), &args)),
                 )
             }
             _ => {
@@ -596,10 +653,12 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
         }
     }
 
-    fn poll_command(&mut self, listener: &mut L) -> CommandPoll<ExitResult> {
+    fn poll_command(&mut self, ctx: &L::Context<'_>) -> CommandPoll<ExitResult> {
         // hack to get IntelliJ rust plugin to stop complaining about poll being undefined
         #[allow(unused_imports)]
         use std::future::Future;
+
+        let listener = &mut self.listener;
 
         const CONTINUE: CommandPoll<ExitResult> = CommandPoll::Ready(ExitResult::Continue);
 
@@ -612,59 +671,59 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
                 let span = span.clone(); // make the borrow checker happy
                 let _guard = span.enter();
                 match command_state {
-                    CommandState::Exit(cmd) => cmd.poll(listener),
+                    CommandState::Exit(cmd) => cmd.poll(ctx, listener),
                     &mut CommandState::SGet(dest, ref mut cmd) => cmd
-                        .poll(listener)
+                        .poll(ctx, listener)
                         .and_continue(|result| self.set_memory(dest, result)),
-                    CommandState::SSet(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::Wait(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MsgInit(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MsgSet(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MsgWait(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MsgSignal(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MsgSync(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MsgClose(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::SSet(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::Wait(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MsgInit(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MsgSet(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MsgWait(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MsgSignal(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MsgSync(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MsgClose(cmd) => cmd.poll(ctx, listener).map_continue(),
                     &mut CommandState::Select(dest, ref mut cmd) => cmd
-                        .poll(listener)
+                        .poll(ctx, listener)
                         .and_continue(|result| self.set_memory(dest, result)),
-                    CommandState::Wipe(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::WipeWait(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::BgmPlay(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::BgmStop(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::BgmVol(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::BgmWait(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::BgmSync(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::SePlay(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::SeStop(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::SeStopAll(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::Wipe(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::WipeWait(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::BgmPlay(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::BgmStop(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::BgmVol(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::BgmWait(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::BgmSync(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::SePlay(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::SeStop(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::SeStopAll(cmd) => cmd.poll(ctx, listener).map_continue(),
 
-                    CommandState::SaveInfo(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::AutoSave(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::LayerInit(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::LayerLoad(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::LayerUnload(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::LayerCtrl(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::LayerWait(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::LayerSwap(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::LayerSelect(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MovieWait(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::TransSet(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::TransWait(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::PageBack(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::PlaneSelect(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::PlaneClear(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MaskLoad(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::MaskUnload(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::SaveInfo(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::AutoSave(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::LayerInit(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::LayerLoad(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::LayerUnload(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::LayerCtrl(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::LayerWait(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::LayerSwap(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::LayerSelect(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MovieWait(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::TransSet(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::TransWait(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::PageBack(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::PlaneSelect(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::PlaneClear(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MaskLoad(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::MaskUnload(cmd) => cmd.poll(ctx, listener).map_continue(),
 
-                    CommandState::Chars(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::TipsGet(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::Chars(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::TipsGet(cmd) => cmd.poll(ctx, listener).map_continue(),
                     &mut CommandState::Quiz(dest, ref mut cmd) => cmd
-                        .poll(listener)
+                        .poll(ctx, listener)
                         .and_continue(|result| self.set_memory(dest, result)),
-                    CommandState::ShowChars(cmd) => cmd.poll(listener).map_continue(),
-                    CommandState::NotifySet(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::ShowChars(cmd) => cmd.poll(ctx, listener).map_continue(),
+                    CommandState::NotifySet(cmd) => cmd.poll(ctx, listener).map_continue(),
 
-                    CommandState::DebugOut(cmd) => cmd.poll(listener).map_continue(),
+                    CommandState::DebugOut(cmd) => cmd.poll(ctx, listener).map_continue(),
                 }
             }
         };
@@ -678,12 +737,12 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
 
     /// Execute one instruction
     /// pc is the program counter before the instruction was read
-    #[instrument(skip(self, listener, instruction), level = "trace")]
+    #[instrument(skip(self, ctx), level = "trace")]
     fn run_instruction(
         &mut self,
         instruction: Instruction,
         pc: CodeAddress,
-        listener: &mut L,
+        ctx: &L::Context<'_>,
     ) -> CommandPoll<ExitResult> {
         self.update_prng();
 
@@ -853,16 +912,16 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
             }
             Instruction::Command(command) => {
                 debug_assert!(matches!(self.command_context, None));
-                self.command_context = Some(self.begin_command(command, pc, listener));
-                return self.poll_command(listener);
+                self.command_context = Some(self.begin_command(command, pc, ctx));
+                return self.poll_command(ctx);
             }
         }
 
         CommandPoll::Ready(ExitResult::Continue)
     }
 
-    pub fn run(&mut self, listener: &mut L) -> Result<CommandPoll<i32>> {
-        match self.poll_command(listener) {
+    pub fn run(&mut self, ctx: &L::Context<'_>) -> Result<CommandPoll<i32>> {
+        match self.poll_command(ctx) {
             CommandPoll::Ready(ExitResult::Continue) => {}
             CommandPoll::Ready(ExitResult::Exit(result)) => return Ok(CommandPoll::Ready(result)),
             CommandPoll::Pending => {
@@ -873,7 +932,7 @@ impl<'a, L: AdvListener> AdvVm<'a, L> {
         loop {
             let pc = self.instruction_reader.position();
             let instruction = self.instruction_reader.read()?;
-            match self.run_instruction(instruction, pc, listener) {
+            match self.run_instruction(instruction, pc, ctx) {
                 CommandPoll::Ready(ExitResult::Continue) => {}
                 CommandPoll::Ready(ExitResult::Exit(result)) => {
                     return Ok(CommandPoll::Ready(result))
