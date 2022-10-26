@@ -16,7 +16,7 @@ impl Wait {
 impl AdvCommand<VmImpl> for Wait {
     type Output = ();
 
-    fn poll(&mut self, ctx: &ListenerCtx, _listener: &mut VmImpl) -> CommandPoll<Self::Output> {
+    fn poll(&mut self, ctx: &mut ListenerCtx) -> CommandPoll<Self::Output> {
         self.waiting_left = self.waiting_left.saturating_sub(ctx.time.delta());
 
         if self.waiting_left == Duration::from_secs(0) {

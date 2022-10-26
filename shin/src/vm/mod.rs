@@ -52,41 +52,51 @@ struct VmImpl {
 pub struct Vm {
     scenario: Arc<Scenario>,
     vm: AdvVm<VmImpl>,
+    state: VmState,
 }
 
 impl Vm {
     pub fn new(scenario: Arc<Scenario>, init_val: i32, random_seed: u32) -> Self {
         Self {
-            vm: AdvVm::new(
-                &scenario,
-                init_val,
-                random_seed,
-                VmImpl {
-                    state: VmState::new(),
-                },
-            ),
+            vm: AdvVm::new(&scenario, init_val, random_seed),
+            state: VmState::new(),
             scenario,
         }
     }
 }
 
-pub fn adv_vm_system(commands: Commands, mut q: Query<&mut Vm>, time: Res<Time>) {
-    let commands = Arc::new(RefCell::new(commands));
+fn run_one_vm<'w, 's, 'vm>(commands: &'vm mut Commands<'w, 's>, vm: &'vm mut Vm, time: Time)
+where
+    'w: 'vm,
+    's: 'vm,
+{
+    let Vm { vm, state, .. } = vm;
+
+    let mut ctx = ListenerCtx {
+        time,
+        commands,
+        vm_state: state,
+    };
+
+    match vm.run::<'vm>(&mut ctx).expect("VM error") {
+        CommandPoll::Ready(result) => {
+            panic!("VM finished with exit code {}", result);
+        }
+        CommandPoll::Pending => {}
+    }
+
+    todo!()
+}
+
+pub fn adv_vm_system(mut commands: Commands, mut q: Query<&mut Vm>, time: Res<Time>) {
+    // let commands = Arc::new(RefCell::new(commands));
 
     for mut vm in &mut q {
         trace!("Updating a VM");
 
-        let ctx = ListenerCtx {
-            time: time.clone(),
-            commands: commands.clone(),
-        };
+        run_one_vm(&mut commands, &mut vm, time.clone());
 
-        match vm.vm.run(&ctx).expect("VM error") {
-            CommandPoll::Ready(result) => {
-                panic!("VM finished with exit code {}", result);
-            }
-            CommandPoll::Pending => {}
-        }
+        // let commands = commands.clone();
     }
 }
 

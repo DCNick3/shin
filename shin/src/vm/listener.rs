@@ -5,74 +5,80 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, warn};
 
-pub struct ListenerCtx<'a> {
-    pub commands: Arc<RefCell<bevy::ecs::system::Commands<'a, 'a>>>,
+pub struct ListenerCtx<'vm, 'c>
+where
+// 's: 'vm,
+// 'w: 'vm,
+// 'vm: 's,
+// 'vm: 'w,
+{
+    pub commands: &'c mut bevy::ecs::system::Commands<'c, 'c>,
     pub time: bevy::time::Time,
+    pub vm_state: &'vm mut VmState,
 }
 
 impl AdvListener for VmImpl {
-    type Context<'a> = ListenerCtx<'a>;
+    type Context<'a> = ListenerCtx<'a, 'a>;
 
     type Exit = Ready<ExitResult>;
-    fn exit(&mut self, _ctx: &ListenerCtx, arg1: u8, arg2: i32) -> Self::Exit {
+    fn exit(_ctx: &mut ListenerCtx, arg1: u8, arg2: i32) -> Self::Exit {
         todo!()
     }
 
     type SGet = Ready<i32>;
-    fn sget(&mut self, _ctx: &ListenerCtx, slot_number: i32) -> Self::SGet {
+    fn sget(_ctx: &mut ListenerCtx, slot_number: i32) -> Self::SGet {
         warn!("TODO: SGET {}", slot_number);
         ready(0)
     }
 
     type SSet = Ready<()>;
-    fn sset(&mut self, _ctx: &ListenerCtx, slot_number: i32, value: i32) -> Self::SSet {
+    fn sset(_ctx: &mut ListenerCtx, slot_number: i32, value: i32) -> Self::SSet {
         warn!("TODO: SSET {} {}", slot_number, value);
         ready(())
     }
 
     type Wait = super::commands::Wait;
-    fn wait(&mut self, _ctx: &ListenerCtx, wait_kind: u8, wait_amount: i32) -> Self::Wait {
+    fn wait(_ctx: &mut ListenerCtx, wait_kind: u8, wait_amount: i32) -> Self::Wait {
         assert_eq!(wait_kind, 0);
         debug!("WAIT {}", wait_amount);
         super::commands::Wait::new(Duration::from_millis(wait_amount.try_into().unwrap()))
     }
 
     type MsgInit = Ready<()>;
-    fn msginit(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::MsgInit {
+    fn msginit(_ctx: &mut ListenerCtx, arg: i32) -> Self::MsgInit {
         warn!("TODO: MSGINIT {}", arg);
         ready(())
     }
 
     type MsgSet = Ready<()>;
-    fn msgset(&mut self, _ctx: &ListenerCtx, msg_id: u32, text: &str) -> Self::MsgSet {
+    fn msgset(_ctx: &mut ListenerCtx, msg_id: u32, text: &str) -> Self::MsgSet {
         todo!()
     }
 
     type MsgWait = Ready<()>;
-    fn msgwait(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::MsgWait {
+    fn msgwait(_ctx: &mut ListenerCtx, arg: i32) -> Self::MsgWait {
         todo!()
     }
 
     type MsgSignal = Ready<()>;
-    fn msgsignal(&mut self, _ctx: &ListenerCtx) -> Self::MsgSignal {
+    fn msgsignal(_ctx: &mut ListenerCtx) -> Self::MsgSignal {
         todo!()
     }
 
     type MsgSync = Ready<()>;
-    fn msgsync(&mut self, _ctx: &ListenerCtx, arg1: i32, arg2: i32) -> Self::MsgSync {
+    fn msgsync(_ctx: &mut ListenerCtx, arg1: i32, arg2: i32) -> Self::MsgSync {
         todo!()
     }
 
     type MsgClose = Ready<()>;
-    fn msgclose(&mut self, _ctx: &ListenerCtx, arg: u8) -> Self::MsgClose {
+    fn msgclose(_ctx: &mut ListenerCtx, arg: u8) -> Self::MsgClose {
         warn!("TODO: MSGCLOSE {}", arg);
         ready(())
     }
 
     type Select = Ready<i32>;
     fn select(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         choice_set_base: u16,
         choice_index: u16,
         arg4: i32,
@@ -84,8 +90,7 @@ impl AdvListener for VmImpl {
 
     type Wipe = Ready<()>;
     fn wipe(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         arg1: i32,
         arg2: i32,
         arg3: i32,
@@ -96,14 +101,13 @@ impl AdvListener for VmImpl {
     }
 
     type WipeWait = Ready<()>;
-    fn wipewait(&mut self, _ctx: &ListenerCtx) -> Self::WipeWait {
+    fn wipewait(_ctx: &mut ListenerCtx) -> Self::WipeWait {
         todo!()
     }
 
     type BgmPlay = Ready<()>;
     fn bgmplay(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         arg1: i32,
         arg2: i32,
         arg3: i32,
@@ -113,29 +117,28 @@ impl AdvListener for VmImpl {
     }
 
     type BgmStop = Ready<()>;
-    fn bgmstop(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::BgmStop {
+    fn bgmstop(_ctx: &mut ListenerCtx, arg: i32) -> Self::BgmStop {
         todo!()
     }
 
     type BgmVol = Ready<()>;
-    fn bgmvol(&mut self, _ctx: &ListenerCtx, arg1: i32, arg2: i32) -> Self::BgmVol {
+    fn bgmvol(_ctx: &mut ListenerCtx, arg1: i32, arg2: i32) -> Self::BgmVol {
         todo!()
     }
 
     type BgmWait = Ready<()>;
-    fn bgmwait(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::BgmWait {
+    fn bgmwait(_ctx: &mut ListenerCtx, arg: i32) -> Self::BgmWait {
         todo!()
     }
 
     type BgmSync = Ready<()>;
-    fn bgmsync(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::BgmSync {
+    fn bgmsync(_ctx: &mut ListenerCtx, arg: i32) -> Self::BgmSync {
         todo!()
     }
 
     type SePlay = Ready<()>;
     fn seplay(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         arg1: i32,
         arg2: i32,
         arg3: i32,
@@ -148,29 +151,29 @@ impl AdvListener for VmImpl {
     }
 
     type SeStop = Ready<()>;
-    fn sestop(&mut self, _ctx: &ListenerCtx, arg1: i32, arg2: i32) -> Self::SeStop {
+    fn sestop(_ctx: &mut ListenerCtx, arg1: i32, arg2: i32) -> Self::SeStop {
         todo!()
     }
 
     type SeStopAll = Ready<()>;
-    fn sestopall(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::SeStopAll {
+    fn sestopall(_ctx: &mut ListenerCtx, arg: i32) -> Self::SeStopAll {
         todo!()
     }
 
     type SaveInfo = Ready<()>;
-    fn saveinfo(&mut self, _ctx: &ListenerCtx, level: i32, info: &str) -> Self::SaveInfo {
-        self.state.save_info.set_save_info(level, info);
+    fn saveinfo(ctx: &mut ListenerCtx, level: i32, info: &str) -> Self::SaveInfo {
+        ctx.vm_state.save_info.set_save_info(level, info);
         ready(())
     }
 
     type AutoSave = Ready<()>;
-    fn autosave(&mut self, _ctx: &ListenerCtx) -> Self::AutoSave {
+    fn autosave(_ctx: &mut ListenerCtx) -> Self::AutoSave {
         warn!("TODO: AUTOSAVE");
         ready(())
     }
 
     type LayerInit = Ready<()>;
-    fn layerinit(&mut self, _ctx: &ListenerCtx, layer_id: VLayerId) -> Self::LayerInit {
+    fn layerinit(_ctx: &mut ListenerCtx, layer_id: VLayerId) -> Self::LayerInit {
         if let Some(layer_id) = layer_id.to_layer_id() {
             todo!("LayerInit {:?}", layer_id)
         } else {
@@ -181,16 +184,15 @@ impl AdvListener for VmImpl {
 
     type LayerLoad = Ready<()>;
     fn layerload(
-        &mut self,
-        _ctx: &ListenerCtx,
+        ctx: &mut ListenerCtx,
         layer_id: VLayerId,
         layer_type: i32,
         leave_uninitialized: i32,
         params: &[i32; 8],
     ) -> Self::LayerLoad {
         if let Some(layer_id) = layer_id.to_layer_id() {
-            if let Some(layerbank_id) = self
-                .state
+            if let Some(layerbank_id) = ctx
+                .vm_state
                 .layerbank_info
                 .get_or_allocate_layerbank_id(layer_id.into())
             {
@@ -211,13 +213,15 @@ impl AdvListener for VmImpl {
 
     type LayerUnload = Ready<()>;
     fn layerunload(
-        &mut self,
-        _ctx: &ListenerCtx,
+        ctx: &mut ListenerCtx,
         layer_id: VLayerId,
         delay_time: i32,
     ) -> Self::LayerUnload {
         if let Some(layer_id) = layer_id.to_layer_id() {
-            if let Some(layerbank_id) = self.state.layerbank_info.get_layerbank_id(layer_id.into())
+            if let Some(layerbank_id) = ctx
+                .vm_state
+                .layerbank_info
+                .get_layerbank_id(layer_id.into())
             {
                 todo!("LayerUnload {:?}, bank = {:?}", layer_id, layerbank_id)
             }
@@ -229,8 +233,7 @@ impl AdvListener for VmImpl {
 
     type LayerCtrl = Ready<()>;
     fn layerctrl(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         layer_id: VLayerId,
         property_id: i32,
         params: &[i32; 8],
@@ -240,8 +243,7 @@ impl AdvListener for VmImpl {
 
     type LayerWait = Ready<()>;
     fn layerwait(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         layer_id: VLayerId,
         wait_properties: &[i32],
     ) -> Self::LayerWait {
@@ -250,8 +252,7 @@ impl AdvListener for VmImpl {
 
     type LayerSwap = Ready<()>;
     fn layerswap(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         layer_id1: LayerId,
         layer_id2: LayerId,
     ) -> Self::LayerSwap {
@@ -260,8 +261,7 @@ impl AdvListener for VmImpl {
 
     type LayerSelect = Ready<()>;
     fn layerselect(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         selection_start_id: LayerId,
         selection_end_id: LayerId,
     ) -> Self::LayerSelect {
@@ -269,14 +269,13 @@ impl AdvListener for VmImpl {
     }
 
     type MovieWait = Ready<()>;
-    fn moviewait(&mut self, _ctx: &ListenerCtx, arg: i32, arg2: i32) -> Self::MovieWait {
+    fn moviewait(_ctx: &mut ListenerCtx, arg: i32, arg2: i32) -> Self::MovieWait {
         todo!()
     }
 
     type TransSet = Ready<()>;
     fn transset(
-        &mut self,
-        _ctx: &ListenerCtx,
+        _ctx: &mut ListenerCtx,
         arg: i32,
         arg2: i32,
         arg3: i32,
@@ -286,63 +285,63 @@ impl AdvListener for VmImpl {
     }
 
     type TransWait = Ready<()>;
-    fn transwait(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::TransWait {
+    fn transwait(_ctx: &mut ListenerCtx, arg: i32) -> Self::TransWait {
         todo!()
     }
 
     type PageBack = Ready<()>;
-    fn pageback(&mut self, _ctx: &ListenerCtx) -> Self::PageBack {
+    fn pageback(_ctx: &mut ListenerCtx) -> Self::PageBack {
         warn!("TODO: PAGEBACK");
         ready(())
     }
 
     type PlaneSelect = Ready<()>;
-    fn planeselect(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::PlaneSelect {
+    fn planeselect(_ctx: &mut ListenerCtx, arg: i32) -> Self::PlaneSelect {
         todo!()
     }
 
     type PlaneClear = Ready<()>;
-    fn planeclear(&mut self, _ctx: &ListenerCtx) -> Self::PlaneClear {
+    fn planeclear(_ctx: &mut ListenerCtx) -> Self::PlaneClear {
         todo!()
     }
 
     type MaskLoad = Ready<()>;
-    fn maskload(&mut self, _ctx: &ListenerCtx, arg1: i32, arg2: i32, arg3: i32) -> Self::MaskLoad {
+    fn maskload(_ctx: &mut ListenerCtx, arg1: i32, arg2: i32, arg3: i32) -> Self::MaskLoad {
         todo!()
     }
 
     type MaskUnload = Ready<()>;
-    fn maskunload(&mut self, _ctx: &ListenerCtx) -> Self::MaskUnload {
+    fn maskunload(_ctx: &mut ListenerCtx) -> Self::MaskUnload {
         todo!()
     }
 
     type Chars = Ready<()>;
-    fn chars(&mut self, _ctx: &ListenerCtx, arg1: i32, arg2: i32) -> Self::Chars {
+    fn chars(_ctx: &mut ListenerCtx, arg1: i32, arg2: i32) -> Self::Chars {
         todo!()
     }
 
     type TipsGet = Ready<()>;
-    fn tipsget(&mut self, _ctx: &ListenerCtx, arg: &[i32]) -> Self::TipsGet {
+    fn tipsget(_ctx: &mut ListenerCtx, arg: &[i32]) -> Self::TipsGet {
         todo!()
     }
 
     type Quiz = Ready<i32>;
-    fn quiz(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::Quiz {
+    fn quiz(_ctx: &mut ListenerCtx, arg: i32) -> Self::Quiz {
         todo!()
     }
 
     type ShowChars = Ready<()>;
-    fn showchars(&mut self, _ctx: &ListenerCtx) -> Self::ShowChars {
+    fn showchars(_ctx: &mut ListenerCtx) -> Self::ShowChars {
         todo!()
     }
 
     type NotifySet = Ready<()>;
-    fn notifyset(&mut self, _ctx: &ListenerCtx, arg: i32) -> Self::NotifySet {
+    fn notifyset(_ctx: &mut ListenerCtx, arg: i32) -> Self::NotifySet {
         todo!()
     }
 
     type DebugOut = Ready<()>;
-    fn debugout(&mut self, _ctx: &ListenerCtx, format: &str, args: &[i32]) -> Self::DebugOut {
+    fn debugout(_ctx: &mut ListenerCtx, format: &str, args: &[i32]) -> Self::DebugOut {
         todo!()
     }
 }
