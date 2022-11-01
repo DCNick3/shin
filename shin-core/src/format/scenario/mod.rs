@@ -1,6 +1,6 @@
 pub mod instructions;
 
-use crate::format::scenario::instructions::{CodeAddress, Instruction};
+use crate::format::scenario::instructions::{CodeAddress, Instruction, NumberSpec};
 use crate::format::text;
 use anyhow::{Context, Result};
 use binrw::{BinRead, BinResult, BinWrite, ReadOptions, VecArgs, WriteOptions};
@@ -28,6 +28,9 @@ pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, A: smallvec::Arr
 
 pub type U8SmallList<A> = SmallList<u8, A>;
 pub type U16SmallList<A> = SmallList<u16, A>;
+
+pub type U8SmallNumberList<A = [NumberSpec; 6]> = U8SmallList<A>;
+pub type U16SmallNumberList<A = [NumberSpec; 6]> = U16SmallList<A>;
 
 impl<T: BinRead<Args = ()>> BinRead for U8List<T> {
     type Args = ();

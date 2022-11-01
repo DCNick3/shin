@@ -4,7 +4,6 @@ use std::cell::RefCell;
 use crate::vm::layer::LayerbankInfo;
 use crate::vm::listener::ListenerCtx;
 use shin_core::format::scenario::Scenario;
-use shin_core::vm::command::CommandPoll;
 use shin_core::vm::AdvVm;
 use std::sync::Arc;
 
@@ -51,7 +50,7 @@ struct VmImpl {
 #[derive(Component)]
 pub struct Vm {
     scenario: Arc<Scenario>,
-    vm: AdvVm<VmImpl>,
+    vm: AdvVm,
     state: VmState,
 }
 

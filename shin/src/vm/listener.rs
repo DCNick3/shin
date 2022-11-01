@@ -1,5 +1,5 @@
 use crate::vm::{VmImpl, VmState};
-use shin_core::vm::command::{ready, AdvListener, ExitResult, LayerId, Ready, VLayerId};
+use shin_core::vm::command::{LayerId, VLayerId};
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::time::Duration;

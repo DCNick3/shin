@@ -1,0 +1,17 @@
+[package]
+name = "shin-derive"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+darling = "0.14.2"
+itertools = "0.10.5"
+proc-macro2 = "1.0.47"
+quote = "1.0.21"
+syn = "1.0.103"
+synstructure = "0.12.6"

@@ -1,6 +1,5 @@
 use crate::vm::listener::ListenerCtx;
 use crate::vm::VmImpl;
-use shin_core::vm::command::{AdvCommand, CommandPoll};
 use std::time::Duration;
 
 pub struct Wait {

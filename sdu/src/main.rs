@@ -3,7 +3,7 @@ use bytes::Bytes;
 use clap::Parser;
 use shin_core::format::picture::SimpleMergedPicture;
 use shin_core::format::rom::IndexEntry;
-use shin_core::vm::command::{CommandPoll, DummyAdvListener};
+use shin_core::vm::command::CommandResult;
 use std::fs::File;
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
@@ -93,14 +93,13 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             let scenario = Bytes::from(scenario);
             let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
 
-            let mut vm = shin_core::vm::AdvVm::new(&scenario, 0, 42, DummyAdvListener);
+            let mut vm = shin_core::vm::AdvVm::new(&scenario, 0, 42);
+            let mut result = CommandResult::None;
             loop {
                 // NOTE: usually you would want to do something when the VM has returned "Pending"
                 // stuff like running game loop to let the command progress...
-                if let CommandPoll::Ready(result) = vm.run(&())? {
-                    println!("VM finished with exit code {}", result);
-                    break;
-                }
+                let command = vm.run(result)?;
+                result = command.execute_dummy();
             }
 
             // println!("{:#?}", reader);

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "shin-derive",
     "shin-core",
     "sdu",
     "shin",
