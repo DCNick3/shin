@@ -276,6 +276,7 @@ pub fn impl_command(input: Structure) -> TokenStream {
         }
 
         impl #from_vm_ctx<CompiletimeCommand> for RuntimeCommand {
+            #[inline]
             fn from_vm_ctx(ctx: &#VM_CTX, input: CompiletimeCommand) -> Self {
                 match input {
                     #(CompiletimeCommand::#variant_names(v) => RuntimeCommand::#variant_names(#from_vm_ctx::from_vm_ctx(ctx, v))),*

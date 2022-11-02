@@ -49,7 +49,7 @@ impl VmCtx {
         if let Some(offset) = addr.as_stack_offset() {
             self.data_stack[self.data_stack.len() - 1 - (offset) as usize]
         } else {
-            self.memory[addr.0 as usize]
+            self.memory[addr.raw() as usize]
         }
     }
 
@@ -64,7 +64,7 @@ impl VmCtx {
             // so we need to subtract 1 to get the actual top of the stack
             self.data_stack[len - 1 - (offset) as usize] = val;
         } else {
-            self.memory[addr.0 as usize] = val;
+            self.memory[addr.raw() as usize] = val;
         }
     }
 

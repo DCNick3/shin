@@ -287,9 +287,14 @@ pub enum CommandResult {
 }
 
 impl RuntimeCommand {
-    pub fn execute_dummy(self) -> CommandResult {
-        match self {
-            RuntimeCommand::EXIT(cmd) => cmd.token.finish(),
+    #[inline]
+    pub fn execute_dummy(self) -> Option<CommandResult> {
+        Some(match self {
+            RuntimeCommand::EXIT(_) => {
+                // TODO: actually the logic behind this is a bit more complex
+                // works for now though
+                return None;
+            }
             RuntimeCommand::SGET(cmd) => cmd.token.finish(0),
             RuntimeCommand::SSET(cmd) => cmd.token.finish(),
             RuntimeCommand::WAIT(cmd) => cmd.token.finish(),
@@ -348,6 +353,6 @@ impl RuntimeCommand {
             RuntimeCommand::SHOWCHARS(cmd) => cmd.token.finish(),
             RuntimeCommand::NOTIFYSET(cmd) => cmd.token.finish(),
             RuntimeCommand::DEBUGOUT(cmd) => cmd.token.finish(),
-        }
+        })
     }
 }

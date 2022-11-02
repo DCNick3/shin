@@ -31,6 +31,7 @@ impl AdvVm {
     /// Execute one instruction
     /// pc is the program counter before the instruction was read
     #[instrument(skip(self), level = "trace")]
+    #[inline]
     fn run_instruction(
         &mut self,
         instruction: Instruction,
@@ -203,14 +204,16 @@ impl AdvVm {
                 self.instruction_reader.set_position(target);
             }
             Instruction::Command(command) => {
+                let command = RuntimeCommand::from_vm_ctx(&self.ctx, command);
                 trace!(?pc, ?command, "command");
-                return Some(RuntimeCommand::from_vm_ctx(&self.ctx, command));
+                return Some(command);
             }
         }
 
         None
     }
 
+    #[inline]
     pub fn run(&mut self, prev_command_result: CommandResult) -> Result<RuntimeCommand> {
         match prev_command_result {
             CommandResult::None => {}

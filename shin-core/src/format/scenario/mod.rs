@@ -382,6 +382,7 @@ impl InstructionReader {
         Ok(instruction)
     }
 
+    #[inline]
     pub fn position(&self) -> CodeAddress {
         CodeAddress(self.cur.position().try_into().unwrap())
     }

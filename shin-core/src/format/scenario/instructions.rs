@@ -21,7 +21,7 @@ impl Debug for CodeAddress {
 
 #[derive(BinRead, BinWrite, Copy, Clone)]
 #[brw(little)]
-pub struct MemoryAddress(pub u16);
+pub struct MemoryAddress(u16);
 
 impl Debug for MemoryAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -39,10 +39,24 @@ impl MemoryAddress {
 
     pub fn as_stack_offset(&self) -> Option<u16> {
         if self.0 >= Self::STACK_ADDR_START {
-            Some(self.0 - Self::STACK_ADDR_START)
+            Some(self.raw() - Self::STACK_ADDR_START + 1)
         } else {
             None
         }
+    }
+
+    pub fn from_stack_offset(offset: u16) -> Self {
+        assert!(offset > 0);
+        Self(offset + Self::STACK_ADDR_START - 1)
+    }
+
+    pub fn from_memory_addr(addr: u16) -> Self {
+        assert!(addr < Self::STACK_ADDR_START);
+        Self(addr)
+    }
+
+    pub fn raw(&self) -> u16 {
+        self.0
     }
 }
 
@@ -93,13 +107,11 @@ impl BinRead for NumberSpec {
                     let b3 = u8::read_options(reader, options, ())? as i32;
                     Self::Constant(b1 | (b2 << 8) | (b3 << 16) | (k_sext << 24))
                 }
-                3 => Self::Memory(MemoryAddress(k as u16)),
-                4 => Self::Memory(MemoryAddress(
+                3 => Self::Memory(MemoryAddress::from_memory_addr(k as u16)),
+                4 => Self::Memory(MemoryAddress::from_memory_addr(
                     u8::read_options(reader, options, ())? as u16 | (k as u16) << 8,
                 )),
-                5 => Self::Memory(MemoryAddress(
-                    MemoryAddress::STACK_ADDR_START + (k as u16 + 1),
-                )),
+                5 => Self::Memory(MemoryAddress::from_stack_offset(k as u16 + 1)),
                 _ => unreachable!("unknown number spec type: P={}", p),
             }
         } else {

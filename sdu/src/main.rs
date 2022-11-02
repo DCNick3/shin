@@ -99,7 +99,11 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                 // NOTE: usually you would want to do something when the VM has returned "Pending"
                 // stuff like running game loop to let the command progress...
                 let command = vm.run(result)?;
-                result = command.execute_dummy();
+                if let Some(new_result) = command.execute_dummy() {
+                    result = new_result
+                } else {
+                    break;
+                }
             }
 
             // println!("{:#?}", reader);
