@@ -1,18 +1,20 @@
-use crate::vm::layer::{LayerId, LayerbankId, LAYERBANKS_COUNT, LAYERS_COUNT};
 use arrayvec::ArrayVec;
+use shin_core::vm::command::layer_id::{
+    LayerId, LayerIdOpt, LayerbankId, LayerbankIdOpt, LAYERBANKS_COUNT, LAYERS_COUNT,
+};
 
 pub struct SaveInfo {
     pub info: [String; 4],
 }
 
 impl SaveInfo {
-    pub fn set_save_info(&mut self, level: i32, info: &str) {
+    pub fn set_save_info(&mut self, level: i32, info: String) {
         assert!(
             (0..=4).contains(&level),
             "SaveInfo::set_save_info: level out of range"
         );
 
-        self.info[level as usize] = info.to_string();
+        self.info[level as usize] = info;
     }
 }
 
@@ -53,21 +55,21 @@ pub struct LayerbankInfo {
     free_layerbanks: ArrayVec<LayerbankId, { LAYERBANKS_COUNT as usize }>,
 
     // TODO: handle layer planes
-    layerbank_id_to_layer_id: [LayerId; LAYERBANKS_COUNT as usize],
-    layer_id_to_layerbank_id: [LayerbankId; 0x100],
+    layerbank_id_to_layer_id: [LayerIdOpt; LAYERBANKS_COUNT as usize],
+    layer_id_to_layerbank_id: [LayerbankIdOpt; 0x100],
 }
 
 impl LayerbankInfo {
     pub fn new() -> Self {
         Self {
             free_layerbanks: (0..LAYERBANKS_COUNT).map(LayerbankId::new).collect(),
-            layerbank_id_to_layer_id: [LayerId::NONE; LAYERBANKS_COUNT as usize],
-            layer_id_to_layerbank_id: [LayerbankId::NONE; LAYERS_COUNT as usize],
+            layerbank_id_to_layer_id: [LayerIdOpt::none(); LAYERBANKS_COUNT as usize],
+            layer_id_to_layerbank_id: [LayerbankIdOpt::none(); LAYERS_COUNT as usize],
         }
     }
 
     pub fn get_layerbank_id(&self, layer_id: LayerId) -> Option<LayerbankId> {
-        self.layer_id_to_layerbank_id[layer_id.to_raw().unwrap() as usize].ok()
+        self.layer_id_to_layerbank_id[layer_id.raw() as usize].opt()
     }
 
     fn alloc_layerbank(&mut self) -> Option<LayerbankId> {
@@ -75,10 +77,10 @@ impl LayerbankInfo {
     }
 
     pub fn get_or_allocate_layerbank_id(&mut self, layer_id: LayerId) -> Option<LayerbankId> {
-        if let Some(id) = self.layer_id_to_layerbank_id[layer_id.to_raw().unwrap() as usize].ok() {
+        if let Some(id) = self.layer_id_to_layerbank_id[layer_id.raw() as usize].opt() {
             Some(id)
         } else if let Some(id) = self.alloc_layerbank() {
-            self.layer_id_to_layerbank_id[layer_id.to_raw().unwrap() as usize] = id;
+            self.layer_id_to_layerbank_id[layer_id.raw() as usize] = LayerbankIdOpt::some(id);
             Some(id)
         } else {
             None
@@ -91,7 +93,6 @@ pub struct VmState {
     pub msg_info: MsgInfo,
     pub globals_info: GlobalsInfo,
     pub layerbank_info: LayerbankInfo,
-    // TODO: store ADV globals somewhere (maybe use a bevy resource?)
 }
 
 impl VmState {

@@ -1,6 +1,9 @@
 #![allow(clippy::upper_case_acronyms)]
 
+mod autosave;
+mod layerinit;
 mod msginit;
+mod saveinfo;
 mod sget;
 mod sset;
 mod wait;
@@ -8,7 +11,10 @@ mod wait;
 use crate::vm::ExecuteCommandResult;
 use shin_core::vm::command::CommandResult;
 
+pub use autosave::AUTOSAVE;
+pub use layerinit::LAYERINIT;
 pub use msginit::MSGINIT;
+pub use saveinfo::SAVEINFO;
 pub use sget::SGET;
 pub use sset::SSET;
 pub use wait::WAIT;

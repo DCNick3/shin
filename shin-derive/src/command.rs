@@ -9,7 +9,10 @@ use synstructure::{Structure, VariantInfo};
 
 #[derive(FromMeta, Default)]
 struct CommandFieldMeta {
+    #[darling(default)]
     dest: bool,
+    #[darling(default)]
+    rty: Option<String>,
 }
 
 struct CommandField {
@@ -102,18 +105,27 @@ impl CommandVariant {
 
 impl CommandField {
     pub fn runtime_type(&self) -> TokenStream {
-        let ty = &self.field.ty;
-        // TODO: handle some attr to override the runtime type
-        quote! {
-            <#ty as #FROM_VM_CTX_DEFAULT>::Output
+        if let Some(ref rty) = self.meta.rty {
+            let rty = syn::parse_str::<syn::Type>(rty).unwrap();
+            quote!(#rty)
+        } else {
+            let ty = &self.field.ty;
+            quote! {
+                <#ty as #FROM_VM_CTX_DEFAULT>::Output
+            }
         }
     }
 
     pub fn as_conv_trait(&self) -> TokenStream {
-        let ty = &self.field.ty;
-        // TODO: handle some attr to override the runtime type
-        quote! {
-            <#ty as #FROM_VM_CTX_DEFAULT>
+        if let Some(ref rty) = self.meta.rty {
+            let ty = &self.field.ty;
+            let rty = syn::parse_str::<syn::Type>(rty).unwrap();
+            quote!(<#rty as #FROM_VM_CTX<#ty>>)
+        } else {
+            let ty = &self.field.ty;
+            quote! {
+                <#ty as #FROM_VM_CTX_DEFAULT>
+            }
         }
     }
 }

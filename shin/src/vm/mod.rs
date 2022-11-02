@@ -8,7 +8,6 @@ use state::VmState;
 use std::sync::Arc;
 
 mod commands;
-mod layer;
 mod state;
 
 #[derive(Component)]
@@ -75,8 +74,8 @@ fn execute_command(
         RuntimeCommand::VOICESTOP(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::VOICEWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::SYSSE(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SAVEINFO(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::AUTOSAVE(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::SAVEINFO(cmd) => commands::SAVEINFO::start(cmd, vm).apply_result(commands),
+        RuntimeCommand::AUTOSAVE(cmd) => commands::AUTOSAVE::start(cmd, vm).apply_result(commands),
         RuntimeCommand::EVBEGIN(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::EVEND(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::RESUMESET(cmd) => todo!("Execute command {:?}", cmd),
@@ -84,7 +83,9 @@ fn execute_command(
         RuntimeCommand::SYSCALL(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::TROPHY(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::UNLOCK(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::LAYERINIT(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::LAYERINIT(cmd) => {
+            commands::LAYERINIT::start(cmd, vm).apply_result(commands)
+        }
         RuntimeCommand::LAYERLOAD(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::LAYERUNLOAD(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::LAYERCTRL(cmd) => todo!("Execute command {:?}", cmd),

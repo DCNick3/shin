@@ -249,6 +249,7 @@ struct ScenarioHeader {
     pub offset_84: u32,
 }
 
+#[allow(unused)]
 pub struct Scenario {
     mask_data: Vec<U16String>,
     pic_data: Vec<(U16String, u16)>,

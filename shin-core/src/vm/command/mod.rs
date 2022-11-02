@@ -1,38 +1,14 @@
+pub mod layer_id;
+
 use crate::format::scenario::instructions::{
     BitmaskNumberArray, MemoryAddress, NumberSpec, StringArray,
 };
 use crate::format::scenario::{U16String, U8SmallNumberList, U8String};
 use shin_derive::Command;
-use std::fmt::{Display, Formatter};
 
-/// Layer id, allowing for the special values -1, -2, -3, -4, -5
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VLayerId(pub i32);
-/// Layer id, but allowing only "real" layers
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LayerId(pub u32);
-
-impl VLayerId {
-    pub fn to_layer_id(self) -> Option<LayerId> {
-        if self.0 < 0 {
-            None
-        } else {
-            Some(LayerId(self.0 as u32))
-        }
-    }
-}
-
-impl Display for VLayerId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Display for LayerId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
+// those are actually used by the generated code (it's a bit messy, i know)
+#[allow(unused)]
+use layer_id::VLayerId;
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Command, Debug)]
@@ -192,7 +168,10 @@ pub enum Command {
 
     /// Reset property values to their initial state
     #[cmd(opcode = 0xc0u8)]
-    LAYERINIT { arg: NumberSpec },
+    LAYERINIT {
+        #[cmd(rty = "VLayerId")]
+        arg: NumberSpec,
+    },
     /// Load a layer resource or smth
     /// There are multiple layer types and they have different arguments
     #[cmd(opcode = 0xc1u8)]
