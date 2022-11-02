@@ -184,6 +184,7 @@ pub enum Command {
     },
     #[cmd(opcode = 0xc2u8)]
     LAYERUNLOAD {
+        #[cmd(rty = "VLayerId")]
         layer_id: NumberSpec,
         delay_time: NumberSpec,
     },

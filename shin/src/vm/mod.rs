@@ -29,7 +29,13 @@ impl Vm {
 
 #[derive(Component)]
 pub struct VmContinuation {
-    pub command_result: CommandResult,
+    command_result: CommandResult,
+}
+
+impl VmContinuation {
+    pub fn new(command_result: CommandResult) -> Self {
+        Self { command_result }
+    }
 }
 
 enum ExecuteCommandResult {
@@ -42,21 +48,26 @@ enum ExecuteCommandResult {
 fn execute_command(
     commands: &mut Commands,
     vm: &mut Vm,
+    entity: Entity,
     command: RuntimeCommand,
 ) -> ExecuteCommandResult {
     match command {
         RuntimeCommand::EXIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SGET(cmd) => commands::SGET::start(cmd, vm).apply_result(commands),
-        RuntimeCommand::SSET(cmd) => commands::SSET::start(cmd, vm).apply_result(commands),
-        RuntimeCommand::WAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::MSGINIT(cmd) => commands::MSGINIT::start(cmd, vm).apply_result(commands),
+        RuntimeCommand::SGET(cmd) => commands::SGET::start(cmd, vm).apply_result(commands, entity),
+        RuntimeCommand::SSET(cmd) => commands::SSET::start(cmd, vm).apply_result(commands, entity),
+        RuntimeCommand::WAIT(cmd) => commands::WAIT::start(cmd, vm).apply_result(commands, entity),
+        RuntimeCommand::MSGINIT(cmd) => {
+            commands::MSGINIT::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::MSGSET(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::MSGWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::MSGSIGNAL(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::MSGSYNC(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::MSGCLOSE(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::MSGCLOSE(cmd) => {
+            commands::MSGCLOSE::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::SELECT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::WIPE(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::WIPE(cmd) => commands::WIPE::start(cmd, vm).apply_result(commands, entity),
         RuntimeCommand::WIPEWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::BGMPLAY(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::BGMSTOP(cmd) => todo!("Execute command {:?}", cmd),
@@ -74,8 +85,12 @@ fn execute_command(
         RuntimeCommand::VOICESTOP(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::VOICEWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::SYSSE(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SAVEINFO(cmd) => commands::SAVEINFO::start(cmd, vm).apply_result(commands),
-        RuntimeCommand::AUTOSAVE(cmd) => commands::AUTOSAVE::start(cmd, vm).apply_result(commands),
+        RuntimeCommand::SAVEINFO(cmd) => {
+            commands::SAVEINFO::start(cmd, vm).apply_result(commands, entity)
+        }
+        RuntimeCommand::AUTOSAVE(cmd) => {
+            commands::AUTOSAVE::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::EVBEGIN(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::EVEND(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::RESUMESET(cmd) => todo!("Execute command {:?}", cmd),
@@ -84,10 +99,12 @@ fn execute_command(
         RuntimeCommand::TROPHY(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::UNLOCK(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::LAYERINIT(cmd) => {
-            commands::LAYERINIT::start(cmd, vm).apply_result(commands)
+            commands::LAYERINIT::start(cmd, vm).apply_result(commands, entity)
         }
         RuntimeCommand::LAYERLOAD(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::LAYERUNLOAD(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::LAYERUNLOAD(cmd) => {
+            commands::LAYERUNLOAD::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::LAYERCTRL(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::LAYERWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::LAYERSWAP(cmd) => todo!("Execute command {:?}", cmd),
@@ -95,7 +112,9 @@ fn execute_command(
         RuntimeCommand::MOVIEWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::TRANSSET(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::TRANSWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::PAGEBACK(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::PAGEBACK(cmd) => {
+            commands::PAGEBACK::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::PLANESELECT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::PLANECLEAR(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::MASKLOAD(cmd) => todo!("Execute command {:?}", cmd),
@@ -121,7 +140,7 @@ fn adv_vm_system(mut commands: Commands, mut q: Query<(Entity, &mut Vm, &VmConti
 
         loop {
             let command = vm.vm.run(command_result).expect("VM error");
-            match execute_command(&mut commands, &mut vm, command) {
+            match execute_command(&mut commands, &mut vm, entity, command) {
                 ExecuteCommandResult::Continue(new_command_result) => {
                     command_result = new_command_result
                 }

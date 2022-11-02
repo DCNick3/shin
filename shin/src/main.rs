@@ -97,9 +97,10 @@ fn setup_adv(
 ) {
     info!("Scenario loaded!");
     let scenario = scenario_assets.get(&adv_assets.scenario).unwrap().0.clone();
-    commands.spawn().insert(vm::Vm::new(scenario, 0, 42)).insert(VmContinuation {
-        command_result: CommandResult::None
-    });
+    commands
+        .spawn()
+        .insert(vm::Vm::new(scenario, 0, 42))
+        .insert(VmContinuation::new(CommandResult::None));
 }
 
 fn main() {

@@ -81,9 +81,18 @@ impl LayerbankInfo {
             Some(id)
         } else if let Some(id) = self.alloc_layerbank() {
             self.layer_id_to_layerbank_id[layer_id.raw() as usize] = LayerbankIdOpt::some(id);
+            self.layerbank_id_to_layer_id[id.raw() as usize] = LayerIdOpt::some(layer_id);
             Some(id)
         } else {
             None
+        }
+    }
+
+    pub fn free_layerbank(&mut self, layer_id: LayerId) {
+        if let Some(id) = self.layer_id_to_layerbank_id[layer_id.raw() as usize].opt() {
+            self.layer_id_to_layerbank_id[layer_id.raw() as usize] = LayerbankIdOpt::none();
+            self.layerbank_id_to_layer_id[id.raw() as usize] = LayerIdOpt::none();
+            self.free_layerbanks.push(id);
         }
     }
 }
