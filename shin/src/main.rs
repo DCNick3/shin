@@ -10,8 +10,9 @@ use iyes_loopless::prelude::*;
 
 use crate::asset::picture::PicturePlugin;
 use crate::asset::scenario::ScenarioPlugin;
-use crate::vm::VmPlugin;
+use crate::vm::{VmContinuation, VmPlugin};
 use bevy::render::camera::CameraProjectionPlugin;
+use shin_core::vm::command::CommandResult;
 
 fn add_pillarbox_rects(commands: &mut Commands) {
     let bottom_rect = shapes::Rectangle {
@@ -96,7 +97,9 @@ fn setup_adv(
 ) {
     info!("Scenario loaded!");
     let scenario = scenario_assets.get(&adv_assets.scenario).unwrap().0.clone();
-    commands.spawn().insert(vm::Vm::new(scenario, 0, 42));
+    commands.spawn().insert(vm::Vm::new(scenario, 0, 42)).insert(VmContinuation {
+        command_result: CommandResult::None
+    });
 }
 
 fn main() {

@@ -18,6 +18,6 @@ pub struct Layer {}
 
 pub struct LayerLoader {}
 
-pub fn load_layer(ty: LayerType) -> Layer {
+pub fn load_layer(_ty: LayerType) -> Layer {
     todo!()
 }
