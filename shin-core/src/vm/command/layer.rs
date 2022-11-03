@@ -116,7 +116,7 @@ impl FromVmCtx<NumberSpec> for LayerId {
     }
 }
 
-#[derive(FromPrimitive, Debug, Copy, Clone)]
+#[derive(FromPrimitive, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LayerType {
     Null = 0,
     Tile = 1,

@@ -69,14 +69,22 @@ fn execute_command(
         RuntimeCommand::SELECT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::WIPE(cmd) => commands::WIPE::start(cmd, vm).apply_result(commands, entity),
         RuntimeCommand::WIPEWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::BGMPLAY(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::BGMSTOP(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::BGMPLAY(cmd) => {
+            commands::BGMPLAY::start(cmd, vm).apply_result(commands, entity)
+        }
+        RuntimeCommand::BGMSTOP(cmd) => {
+            commands::BGMSTOP::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::BGMVOL(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::BGMWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::BGMSYNC(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SEPLAY(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::SEPLAY(cmd) => {
+            commands::SEPLAY::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::SESTOP(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SESTOPALL(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::SESTOPALL(cmd) => {
+            commands::SESTOPALL::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::SEVOL(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::SEPAN(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::SEWAIT(cmd) => todo!("Execute command {:?}", cmd),

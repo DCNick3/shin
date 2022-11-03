@@ -1,6 +1,8 @@
 #![allow(clippy::upper_case_acronyms)]
 
 mod autosave;
+mod bgmplay;
+mod bgmstop;
 mod layerctrl;
 mod layerinit;
 mod layerload;
@@ -9,6 +11,8 @@ mod msgclose;
 mod msginit;
 mod pageback;
 mod saveinfo;
+mod seplay;
+mod sestopall;
 mod sget;
 mod sset;
 mod wait;
@@ -18,6 +22,8 @@ use crate::vm::ExecuteCommandResult;
 use shin_core::vm::command::CommandResult;
 
 pub use autosave::AUTOSAVE;
+pub use bgmplay::BGMPLAY;
+pub use bgmstop::BGMSTOP;
 pub use layerctrl::LAYERCTRL;
 pub use layerinit::LAYERINIT;
 pub use layerload::LAYERLOAD;
@@ -26,6 +32,8 @@ pub use msgclose::MSGCLOSE;
 pub use msginit::MSGINIT;
 pub use pageback::PAGEBACK;
 pub use saveinfo::SAVEINFO;
+pub use seplay::SEPLAY;
+pub use sestopall::SESTOPALL;
 pub use sget::SGET;
 pub use sset::SSET;
 pub use wait::WAIT;

@@ -27,8 +27,18 @@ impl super::Command<command::runtime::LAYERLOAD> for LAYERLOAD {
                     .get_or_allocate_layerbank_id(id)
                     .expect("layerbank allocation failed");
                 let info = &mut vm.state.layerbank_info[layerbank.raw() as usize];
-                if let Some(_old) = info {
-                    todo!("Reuse existing layerbank in LAYERLOAD");
+                if let Some(old) = info {
+                    if old.ty == command.layer_type && old.layerinit_params == command.params {
+                        // nothing to do (yet)
+                        // TODO: the game has slightly different logic, setting some flags? resetting the properties?
+                    } else {
+                        *old = LayerbankInfo {
+                            ty: command.layer_type,
+                            layer_id: id,
+                            layerinit_params: command.params,
+                            properties: [0; 90],
+                        };
+                    }
                 } else {
                     *info = Some(LayerbankInfo {
                         ty: command.layer_type,
