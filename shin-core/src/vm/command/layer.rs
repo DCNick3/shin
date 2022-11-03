@@ -1,5 +1,6 @@
 use crate::format::scenario::instructions::NumberSpec;
 use crate::vm::{FromVmCtx, VmCtx};
+use num_derive::FromPrimitive;
 
 pub const LAYERBANKS_COUNT: u8 = 0x30;
 pub const LAYERS_COUNT: u32 = 0x100;
@@ -65,6 +66,7 @@ pub type LayerbankIdOpt = IdOpt<u8, { LAYERBANKS_COUNT as u32 }>;
 /// Layer id, allowing for the special values -1, -2, -3, -4, -5
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VLayerId(i32);
+#[derive(Debug)]
 pub enum VLayerIdRepr {
     // TODO: give these meaningful names
     Neg1,
@@ -111,5 +113,27 @@ impl FromVmCtx<NumberSpec> for VLayerId {
 impl FromVmCtx<NumberSpec> for LayerId {
     fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
         LayerId::new(ctx.get_number(input).try_into().unwrap())
+    }
+}
+
+#[derive(FromPrimitive, Debug, Copy, Clone)]
+pub enum LayerType {
+    Null = 0,
+    Tile = 1,
+    Picture = 2,
+    Bustup = 3,
+    Animation = 4,
+    Effect = 5,
+    Movie = 6,
+    FocusLine = 7,
+    Rain = 8,
+    Quiz = 9,
+}
+
+impl FromVmCtx<NumberSpec> for LayerType {
+    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
+        let num = ctx.get_number(input);
+        num_traits::FromPrimitive::from_i32(num)
+            .unwrap_or_else(|| panic!("LayerType::from_vm_ctx: invalid layer type: {}", num))
     }
 }

@@ -101,11 +101,15 @@ fn execute_command(
         RuntimeCommand::LAYERINIT(cmd) => {
             commands::LAYERINIT::start(cmd, vm).apply_result(commands, entity)
         }
-        RuntimeCommand::LAYERLOAD(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::LAYERLOAD(cmd) => {
+            commands::LAYERLOAD::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::LAYERUNLOAD(cmd) => {
             commands::LAYERUNLOAD::start(cmd, vm).apply_result(commands, entity)
         }
-        RuntimeCommand::LAYERCTRL(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::LAYERCTRL(cmd) => {
+            commands::LAYERCTRL::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::LAYERWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::LAYERSWAP(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::LAYERSELECT(cmd) => todo!("Execute command {:?}", cmd),

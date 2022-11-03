@@ -1,4 +1,4 @@
-pub mod layer_id;
+pub mod layer;
 
 use crate::format::scenario::instructions::{
     BitmaskNumberArray, MemoryAddress, NumberSpec, StringArray,
@@ -8,7 +8,7 @@ use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
-use layer_id::VLayerId;
+use layer::{LayerType, VLayerId};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Command, Debug)]
@@ -176,7 +176,9 @@ pub enum Command {
     /// There are multiple layer types and they have different arguments
     #[cmd(opcode = 0xc1u8)]
     LAYERLOAD {
+        #[cmd(rty = "VLayerId")]
         layer_id: NumberSpec,
+        #[cmd(rty = "LayerType")]
         layer_type: NumberSpec,
         // TODO: what does this mean again?
         leave_uninitialized: NumberSpec,
@@ -191,6 +193,7 @@ pub enum Command {
     /// Change layer property, possibly through a transition.
     #[cmd(opcode = 0xc3u8)]
     LAYERCTRL {
+        #[cmd(rty = "VLayerId")]
         layer_id: NumberSpec,
         property_id: NumberSpec,
         // in the params there are (always?) three numbers
@@ -200,6 +203,7 @@ pub enum Command {
     /// Wait for property transitions to finish.
     #[cmd(opcode = 0xc4u8)]
     LAYERWAIT {
+        #[cmd(rty = "VLayerId")]
         layer_id: NumberSpec,
         wait_properties: U8SmallNumberList,
     },

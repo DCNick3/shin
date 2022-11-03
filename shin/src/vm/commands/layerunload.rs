@@ -1,7 +1,7 @@
 use crate::vm::Vm;
 use bevy::prelude::*;
 use shin_core::vm::command;
-use shin_core::vm::command::layer_id::VLayerIdRepr;
+use shin_core::vm::command::layer::VLayerIdRepr;
 use shin_core::vm::command::CommandResult;
 
 #[derive(Component)]
@@ -20,7 +20,7 @@ impl super::Command<command::runtime::LAYERUNLOAD> for LAYERUNLOAD {
                 todo!("LAYERUNLOAD: selected");
             }
             VLayerIdRepr::Layer(id) => {
-                vm.state.layerbank_info.free_layerbank(id);
+                vm.state.layerbank_allocator.free_layerbank(id);
                 // TODO: handle all the on-screen stuff
             }
         }

@@ -1,7 +1,9 @@
 #![allow(clippy::upper_case_acronyms)]
 
 mod autosave;
+mod layerctrl;
 mod layerinit;
+mod layerload;
 mod layerunload;
 mod msgclose;
 mod msginit;
@@ -16,7 +18,9 @@ use crate::vm::ExecuteCommandResult;
 use shin_core::vm::command::CommandResult;
 
 pub use autosave::AUTOSAVE;
+pub use layerctrl::LAYERCTRL;
 pub use layerinit::LAYERINIT;
+pub use layerload::LAYERLOAD;
 pub use layerunload::LAYERUNLOAD;
 pub use msgclose::MSGCLOSE;
 pub use msginit::MSGINIT;
