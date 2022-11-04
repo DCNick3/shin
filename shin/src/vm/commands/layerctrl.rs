@@ -1,4 +1,3 @@
-use crate::vm::state::LayerbankInfo;
 use crate::vm::Vm;
 use bevy::prelude::*;
 use shin_core::vm::command;

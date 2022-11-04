@@ -9,7 +9,7 @@ pub struct AUTOSAVE;
 impl super::Command<command::runtime::AUTOSAVE> for AUTOSAVE {
     type Result = CommandResult;
 
-    fn start(command: command::runtime::AUTOSAVE, vm: &mut Vm) -> Self::Result {
+    fn start(command: command::runtime::AUTOSAVE, _vm: &mut Vm) -> Self::Result {
         warn!("TODO: AUTOSAVE: {:?}", command);
         command.token.finish()
     }

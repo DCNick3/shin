@@ -9,7 +9,7 @@ pub struct SESTOPALL;
 impl super::Command<command::runtime::SESTOPALL> for SESTOPALL {
     type Result = CommandResult;
 
-    fn start(command: command::runtime::SESTOPALL, vm: &mut Vm) -> Self::Result {
+    fn start(command: command::runtime::SESTOPALL, _vm: &mut Vm) -> Self::Result {
         warn!("TODO: SESTOPALL: {:?}", command);
         command.token.finish()
     }

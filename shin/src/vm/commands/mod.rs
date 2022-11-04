@@ -9,6 +9,7 @@ mod layerload;
 mod layerunload;
 mod msgclose;
 mod msginit;
+mod msgset;
 mod pageback;
 mod saveinfo;
 mod seplay;
@@ -30,6 +31,7 @@ pub use layerload::LAYERLOAD;
 pub use layerunload::LAYERUNLOAD;
 pub use msgclose::MSGCLOSE;
 pub use msginit::MSGINIT;
+pub use msgset::MSGSET;
 pub use pageback::PAGEBACK;
 pub use saveinfo::SAVEINFO;
 pub use seplay::SEPLAY;
@@ -90,6 +92,6 @@ pub struct CommandsPlugin;
 
 impl bevy::app::Plugin for CommandsPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        app.add_system(wait::system);
+        app.add_system(wait::system).add_system(msgset::system);
     }
 }

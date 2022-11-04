@@ -38,7 +38,7 @@ impl VmContinuation {
     }
 }
 
-enum ExecuteCommandResult {
+pub enum ExecuteCommandResult {
     Continue(CommandResult),
     Yield,
     Exit,
@@ -59,7 +59,9 @@ fn execute_command(
         RuntimeCommand::MSGINIT(cmd) => {
             commands::MSGINIT::start(cmd, vm).apply_result(commands, entity)
         }
-        RuntimeCommand::MSGSET(cmd) => todo!("Execute command {:?}", cmd),
+        RuntimeCommand::MSGSET(cmd) => {
+            commands::MSGSET::start(cmd, vm).apply_result(commands, entity)
+        }
         RuntimeCommand::MSGWAIT(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::MSGSIGNAL(cmd) => todo!("Execute command {:?}", cmd),
         RuntimeCommand::MSGSYNC(cmd) => todo!("Execute command {:?}", cmd),

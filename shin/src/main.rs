@@ -45,7 +45,7 @@ fn add_pillarbox_rects(commands: &mut Commands) {
     );
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, _asset_server: Res<AssetServer>) {
     trace!("!!! hello world !!!");
 
     commands.spawn_bundle(camera::Camera2dBundle {

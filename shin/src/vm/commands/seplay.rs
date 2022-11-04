@@ -9,7 +9,7 @@ pub struct SEPLAY;
 impl super::Command<command::runtime::SEPLAY> for SEPLAY {
     type Result = CommandResult;
 
-    fn start(command: command::runtime::SEPLAY, vm: &mut Vm) -> Self::Result {
+    fn start(command: command::runtime::SEPLAY, _vm: &mut Vm) -> Self::Result {
         warn!("TODO: SEPLAY: {:?}", command);
         command.token.finish()
     }
