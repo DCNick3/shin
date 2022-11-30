@@ -1,5 +1,6 @@
 use crate::format::scenario::instructions::NumberSpec;
 use crate::vm::{FromVmCtx, VmCtx};
+use enum_map::Enum;
 use num_derive::FromPrimitive;
 
 pub const LAYERBANKS_COUNT: u8 = 0x30;
@@ -138,7 +139,7 @@ impl FromVmCtx<NumberSpec> for LayerType {
     }
 }
 
-#[derive(FromPrimitive, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(FromPrimitive, Enum, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LayerProperty {
     Prop0 = 0,
     Prop1 = 1,

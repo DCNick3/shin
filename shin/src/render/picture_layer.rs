@@ -1,7 +1,8 @@
 use crate::asset::picture::GpuPicture;
+use crate::interpolator::Interpolator;
 use crate::render::pipelines::{DrawSource, SpriteVertex};
 use crate::render::{pipelines, RenderContext};
-use cgmath::{Vector2, Vector3, Vector4};
+use cgmath::{Matrix4, Vector2, Vector3, Vector4};
 use wgpu::util::DeviceExt;
 
 pub struct PictureLayer {
@@ -9,6 +10,8 @@ pub struct PictureLayer {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
+
+    y_translation: Interpolator,
 }
 
 impl PictureLayer {
@@ -64,7 +67,12 @@ impl PictureLayer {
             vertex_buffer,
             index_buffer,
             num_indices: indices.len() as u32,
+            y_translation: Interpolator::new(),
         }
+    }
+
+    pub fn update(&mut self, delta_time: f32) {
+        self.y_translation.update(delta_time);
     }
 
     pub fn render<'a>(&'a self, ctx: &mut RenderContext<'a, '_>) {
@@ -77,6 +85,7 @@ impl PictureLayer {
                 instances: 0..1,
             },
             &self.picture,
+            Matrix4::from_translation(Vector3::new(0.0, self.y_translation.value(), 0.0)),
         );
     }
 }

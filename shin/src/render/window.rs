@@ -29,6 +29,8 @@ struct State {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     bind_group_layouts: BindGroupLayouts,
+    // TODO: do we want to pull the bevy deps?
+    time: bevy_time::Time,
     pipelines: Pipelines,
     camera: Camera,
     pillarbox: Pillarbox,
@@ -61,7 +63,7 @@ impl State {
                     // we're building for the web we'll have to disable some.
                     limits: wgpu::Limits {
                         max_texture_dimension_2d: 4096,
-                        max_push_constant_size: 16,
+                        max_push_constant_size: 64,
 
                         ..wgpu::Limits::downlevel_webgl2_defaults()
                     },
@@ -106,6 +108,7 @@ impl State {
             config,
             size,
             bind_group_layouts,
+            time: bevy_time::Time::default(),
             pipelines,
             camera,
             pillarbox,
@@ -132,7 +135,11 @@ impl State {
         false
     }
 
-    fn update(&mut self) {}
+    fn update(&mut self) {
+        self.time.update();
+        let delta_time = self.time.delta_seconds();
+        self.bg_pic.update(delta_time);
+    }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;

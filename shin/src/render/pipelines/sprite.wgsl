@@ -5,28 +5,34 @@ struct VertexIn {
 }
 
 struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
+    @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
     @location(1) texture_coordinate: vec2<f32>,
 }
 
 // TODO: this should be an include...
 struct CameraParams {
-    projectionMatrix: mat4x4<f32>,
+    projection_matrix: mat4x4<f32>,
 }
 
 @group(0) @binding(0)
-var<uniform> params: CameraParams;
+var<uniform> camera: CameraParams;
 
 @group(1) @binding(0)
 var sprite_texture: texture_2d<f32>;
 @group(1) @binding(1)
 var sprite_sampler: sampler;
 
+struct SpriteParams {
+    transform: mat4x4<f32>,
+}
+
+var<push_constant> params: SpriteParams;
+
 @vertex
 fn vertex_main(input: VertexIn) -> VertexOutput {
     var output: VertexOutput;
-    output.clip_position = params.projectionMatrix * vec4<f32>(input.position, 1.0);
+    output.position = camera.projection_matrix * params.transform * vec4<f32>(input.position, 1.0);
     output.color = input.color;
     output.texture_coordinate = input.texture_coordinate;
     return output;

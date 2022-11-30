@@ -81,7 +81,16 @@ pub mod sprite {
     use crate::asset::picture::GpuPicture;
     use crate::render::bind_group_layouts::BindGroupLayouts;
     use crate::render::pipelines::DrawSource;
+    use bytemuck::{Pod, Zeroable};
+    use cgmath::Matrix4;
+    use std::mem;
     use wgpu::include_wgsl;
+
+    #[derive(Pod, Zeroable, Copy, Clone, Debug)]
+    #[repr(C)]
+    struct SpriteParams {
+        pub transform: Matrix4<f32>,
+    }
 
     pub fn make_pipeline(
         device: &wgpu::Device,
@@ -93,7 +102,10 @@ pub mod sprite {
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("sprite_pipeline_layout"),
             bind_group_layouts: &[&bind_group_layouts.camera, &bind_group_layouts.picture],
-            push_constant_ranges: &[],
+            push_constant_ranges: &[wgpu::PushConstantRange {
+                stages: wgpu::ShaderStages::all(),
+                range: 0..(mem::size_of::<SpriteParams>() as u32),
+            }],
         });
 
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -132,12 +144,18 @@ pub mod sprite {
         ctx: &mut crate::render::RenderContext<'a, '_>,
         source: DrawSource<'a, SpriteVertex>,
         picture: &'a GpuPicture,
+        transform: Matrix4<f32>,
     ) {
         ctx.render_pass.set_pipeline(&ctx.pipelines.sprite);
         ctx.render_pass
             .set_bind_group(0, &ctx.common_binds.camera, &[]);
         // TODO: use origin info from the picture
         ctx.render_pass.set_bind_group(1, &picture.bind_group, &[]);
+        ctx.render_pass.set_push_constants(
+            wgpu::ShaderStages::all(),
+            0,
+            bytemuck::cast_slice(&[SpriteParams { transform }]),
+        );
         source.draw(ctx);
     }
 }

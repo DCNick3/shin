@@ -2,6 +2,7 @@ mod asset;
 // mod camera;
 // pub mod layer;
 // mod vm;
+mod interpolator;
 mod render;
 
 fn main() {
