@@ -1,260 +1,140 @@
-use crate::Plugin;
-use bevy::app::App;
-use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
-use bevy::math::Vec2;
-use bevy::prelude::*;
-use bevy::reflect::TypeUuid;
-use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use bevy::utils::BoxedFuture;
+use crate::render::bind_group_layouts::BindGroupLayouts;
+use anyhow::Result;
 use shin_core::format::picture::SimpleMergedPicture;
-use tracing::trace;
+use std::num::NonZeroU32;
 
-#[derive(Debug, Copy, Clone, TypeUuid)]
-#[uuid = "6f1a853e-249e-4373-90bd-8c571a330884"]
-pub struct PictureOrigin(pub Vec2);
+pub type Picture = SimpleMergedPicture;
 
-// #[derive(Debug, Clone, TypeUuid)]
-// #[uuid = "800d5b93-78cb-41c2-baa7-b40ec94b70b6"]
-// pub struct Picture {
-//     chunks: Image,
-//     effective_width: usize,
-//     effective_height: usize,
-//     origin_x: usize,
-//     origin_y: usize,
-// }
+pub fn load_picture(bytes: &[u8]) -> Result<Picture> {
+    shin_core::format::picture::read_picture::<Picture>(bytes, ())
+}
 
-// pub struct GpuPictureChunk {
-//     position: Vec2,
-//     texture: Texture,
-//     texture_view: TextureView,
-//     sampler: Sampler,
-// }
-//
-// pub struct GpuPicture {
-//     chunks: Vec<GpuPictureChunk>,
-//     effective_width: usize,
-//     effective_height: usize,
-//     origin_x: usize,
-//     origin_y: usize,
-// }
+fn make_texture(device: &wgpu::Device, picture: &Picture) -> wgpu::Texture {
+    let size = wgpu::Extent3d {
+        width: picture.image.width(),
+        height: picture.image.height(),
+        depth_or_array_layers: 1,
+    };
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some(&format!("picture_texture_{:08x}", picture.picture_id)),
+        size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+    });
+    texture
+}
 
-pub struct PictureLoader;
+pub struct GpuPicture {
+    pub texture: wgpu::Texture,
+    pub sampler: wgpu::Sampler,
+    pub bind_group: wgpu::BindGroup,
+    pub width: u32,
+    pub height: u32,
+    pub origin_x: f32,
+    pub origin_y: f32,
+    pub picture_id: u32,
+}
 
-impl AssetLoader for PictureLoader {
-    fn load<'a>(
-        &'a self,
-        bytes: &'a [u8],
-        load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, anyhow::Result<(), bevy::asset::Error>> {
-        Box::pin(async move {
-            trace!("Loading PIC {}", load_context.path().display());
-            // even though the original game splits the picture into chunks and keeps it so during the rendering,
-            // this is not really efficient for modern GPUs
-            // so we merge the chunks into a single texture
-            // as a bonus, we can re-use the bevy's sprite engine (and a pipeline) instead of writing our own
-            let pic = shin_core::format::picture::read_picture::<SimpleMergedPicture>(bytes, ())?;
-            let origin = Vec2::new(pic.origin_x as f32, pic.origin_y as f32);
-            let pic = Image::new(
-                Extent3d {
-                    width: pic.image.width() as u32,
-                    height: pic.image.height() as u32,
-                    depth_or_array_layers: 1,
+impl GpuPicture {
+    pub fn load(
+        device: &wgpu::Device,
+        bind_group_layouts: &BindGroupLayouts,
+        queue: &mut wgpu::Queue,
+        picture: Picture,
+    ) -> GpuPicture {
+        let texture = make_texture(device, &picture);
+        queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &texture,
+                mip_level: 0,
+                origin: Default::default(),
+                aspect: wgpu::TextureAspect::All,
+            },
+            &picture.image,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: NonZeroU32::new(4 * picture.image.width()),
+                rows_per_image: NonZeroU32::new(picture.image.height()),
+            },
+            wgpu::Extent3d {
+                width: picture.image.width(),
+                height: picture.image.height(),
+                depth_or_array_layers: 1,
+            },
+        );
+
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some(&format!("picture_sampler_{:08x}", picture.picture_id)),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some(&format!("picture_bind_group_{:08x}", picture.picture_id)),
+            layout: &bind_group_layouts.picture,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(
+                        &texture.create_view(&Default::default()),
+                    ),
                 },
-                TextureDimension::D2,
-                pic.image.into_raw(),
-                TextureFormat::Rgba8UnormSrgb,
-            );
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+        });
 
-            load_context.set_default_asset(LoadedAsset::new(pic));
-            // I think this is kinda a shitty way to pass this information...
-            // I need to find a better way to pass origin information to the renderer
-            load_context.set_labeled_asset("origin", LoadedAsset::new(PictureOrigin(origin)));
-
-            Ok(())
-        })
+        GpuPicture {
+            texture,
+            sampler,
+            bind_group,
+            width: picture.image.width(),
+            height: picture.image.height(),
+            origin_x: picture.origin_x as f32,
+            origin_y: picture.origin_y as f32,
+            picture_id: picture.picture_id,
+        }
     }
 
-    fn extensions(&self) -> &[&str] {
-        &["pic"]
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
     }
 }
 
-// impl RenderAsset for Picture {
-//     type ExtractedAsset = Picture;
-//     type PreparedAsset = GpuPicture;
-//     type Param = (
-//         SRes<RenderDevice>,
-//         SRes<RenderQueue>,
-//         SRes<DefaultImageSampler>,
-//     );
-//
-//     fn extract_asset(&self) -> Self::ExtractedAsset {
-//         self.clone()
-//     }
-//
-//     fn prepare_asset(
-//         extracted_asset: Self::ExtractedAsset,
-//         (render_device, render_queue, default_sampler): &mut SystemParamItem<Self::Param>,
-//     ) -> Result<Self::PreparedAsset, PrepareAssetError<Self::ExtractedAsset>> {
-//         trace!("Preparing PIC asset for rendering");
-//
-//         let mut chunks = Vec::new();
-//         for (position, chunk) in extracted_asset.chunks {
-//             let format = TextureFormat::bevy_default();
-//
-//             let size = Extent3d {
-//                 width: chunk.data.width(),
-//                 height: chunk.data.height(),
-//                 depth_or_array_layers: 1,
-//             };
-//             let texture = render_device.create_texture(&TextureDescriptor {
-//                 size,
-//                 format,
-//                 dimension: TextureDimension::D2,
-//                 label: Some(&format!("PIC_CHUNK({}, {})", position.x, position.y)),
-//                 mip_level_count: 1,
-//                 sample_count: 1,
-//                 usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-//             });
-//
-//             let format_size = format.pixel_size();
-//             render_queue.write_texture(
-//                 ImageCopyTexture {
-//                     texture: &texture,
-//                     mip_level: 0,
-//                     origin: Origin3d::ZERO,
-//                     aspect: TextureAspect::All,
-//                 },
-//                 &chunk.data,
-//                 ImageDataLayout {
-//                     offset: 0,
-//                     bytes_per_row: Some(
-//                         std::num::NonZeroU32::new(chunk.data.width() * format_size as u32).unwrap(),
-//                     ),
-//                     rows_per_image: None,
-//                 },
-//                 size,
-//             );
-//
-//             let texture_view = texture.create_view(&Default::default());
-//             let sampler = (***default_sampler).clone();
-//
-//             chunks.push(GpuPictureChunk {
-//                 position,
-//                 texture,
-//                 texture_view,
-//                 sampler,
-//             });
-//         }
-//
-//         Ok(GpuPicture {
-//             chunks,
-//             effective_width: extracted_asset.effective_width,
-//             effective_height: extracted_asset.effective_height,
-//             origin_x: extracted_asset.origin_x,
-//             origin_y: extracted_asset.origin_y,
-//         })
-//     }
-// }
-//
-// // TODO: this is a GREAT simplification
-// #[derive(Component, Clone)]
-// pub struct PictureLayer {
-//     pub picture: Handle<Picture>,
-// }
-//
-// #[derive(Bundle, Clone)]
-// pub struct PictureLayerBundle {
-//     pub picture_layer: PictureLayer,
-//     pub transform: Transform,
-//     pub global_transform: GlobalTransform,
-//     /// User indication of whether an entity is visible
-//     pub visibility: Visibility,
-//     /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
-//     pub computed_visibility: ComputedVisibility,
-// }
-//
-// #[derive(Component, Clone, Copy)]
-// pub struct ExtractedPictureLayer {
-//     pub entity: Entity,
-//     pub transform: GlobalTransform,
-//     pub color: Color,
-//     /// Handle to the `Picture` of this sprite
-//     /// PERF: storing a `HandleId` instead of `Handle<Picture>` enables some optimizations (`ExtractedPictureLayer` becomes `Copy` and doesn't need to be dropped)
-//     pub picture_handle_id: HandleId,
-// }
-//
-// #[derive(Default)]
-// pub struct ExtractedPictureLayers {
-//     pub layers: Vec<ExtractedPictureLayer>,
-// }
-//
-// fn extract_picture_layers(
-//     mut extracted_picture_layers: ResMut<ExtractedPictureLayers>,
-//     picture_layers_query: Extract<
-//         Query<(Entity, &ComputedVisibility, &PictureLayer, &GlobalTransform)>,
-//     >,
-// ) {
-//     extracted_picture_layers.layers.clear();
-//     for (entity, visibility, picture_layer, transform) in picture_layers_query.iter() {
-//         if !visibility.is_visible() {
-//             continue;
-//         }
-//         // PERF: we don't check in this function that the `Picture` asset is ready, since it should be in most cases and hashing the handle is expensive
-//         extracted_picture_layers
-//             .layers
-//             .alloc()
-//             .init(ExtractedPictureLayer {
-//                 entity,
-//                 color: Color::WHITE,
-//                 transform: *transform,
-//                 picture_handle_id: picture_layer.picture.id,
-//             });
-//     }
-// }
-//
-// fn queue_picture_layers(
-//     mut commands: Commands,
-//     // TODO: this needs A LOT of figuring out
-//     // mut view_entities: Local<FixedBitSet>,
-//     // draw_functions: Res<DrawFunctions<Transparent2d>>,
-//     // render_device: Res<RenderDevice>,
-//     // render_queue: Res<RenderQueue>,
-//     // mut sprite_meta: ResMut<SpriteMeta>,
-//     // view_uniforms: Res<ViewUniforms>,
-//     // sprite_pipeline: Res<SpritePipeline>,
-//     // mut pipelines: ResMut<SpecializedRenderPipelines<SpritePipeline>>,
-//     // mut pipeline_cache: ResMut<PipelineCache>,
-//     // mut image_bind_groups: ResMut<ImageBindGroups>,
-//     // gpu_images: Res<RenderAssets<Image>>,
-//     // msaa: Res<Msaa>,
-//     mut extracted_picture_layers: ResMut<ExtractedPictureLayers>,
-//     // mut views: Query<(&VisibleEntities, &mut RenderPhase<Transparent2d>)>,
-//     // events: Res<SpriteAssetEvents>,
-// ) {
-// }
-
-pub struct PicturePlugin;
-impl Plugin for PicturePlugin {
-    fn build(&self, app: &mut App) {
-        app.add_asset::<PictureOrigin>()
-            .add_asset_loader(PictureLoader);
-
-        // app.add_plugin(RenderAssetPlugin::<Picture>::with_prepare_asset_label(
-        //     PrepareAssetLabel::PreAssetPrepare, // TODO: this is what image loader uses. is it correct? why does it matter at all?
-        // ));
-
-        // if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
-        //     render_app
-        //         .init_resource::<ExtractedPictureLayers>()
-        //         // .init_resource::<SpriteAssetEvents>()
-        //         // .add_render_command::<Transparent2d, DrawSprite>()
-        //         .add_system_to_stage(
-        //             RenderStage::Extract,
-        //             extract_picture_layers, //.label(SpriteSystem::ExtractSprites),
-        //         )
-        //         // .add_system_to_stage(RenderStage::Extract, render::extract_sprite_events)
-        //         .add_system_to_stage(RenderStage::Queue, queue_picture_layers);
-        // };
-    }
+pub fn make_picture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("picture_bind_group_layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    })
 }

@@ -8,7 +8,7 @@ use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
-use layer::{LayerType, VLayerId};
+use layer::{LayerProperty, LayerType, VLayerId};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Command, Debug)]
@@ -195,6 +195,7 @@ pub enum Command {
     LAYERCTRL {
         #[cmd(rty = "VLayerId")]
         layer_id: NumberSpec,
+        #[cmd(rty = "LayerProperty")]
         property_id: NumberSpec,
         // in the params there are (always?) three numbers
         // ctrl_value, ctrl_time and ctrl_flags

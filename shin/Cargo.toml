@@ -16,15 +16,29 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 copyless = "0.1.5"
 arrayvec = "0.7.2"
 bytes = "1.2.1"
+cfg-if = "1.0.0"
 
-bevy = "0.8.1"
-bevy_asset_loader = { version = "0.12.1", features = ["stageless"] }
-bevy_prototype_lyon = "0.6.0"
-iyes_loopless = "0.7.0" # bevy_asset_loader uses 0.7, so we need to use the same version
+# TODO: no bevy, ECS is weird
+#bevy = "0.8.1"
+#bevy_asset_loader = { version = "0.12.1", features = ["stageless"] }
+#bevy_prototype_lyon = "0.6.0"
+#iyes_loopless = "0.7.0" # bevy_asset_loader uses 0.7, so we need to use the same version
+
+winit = "0.27.5"
+wgpu = "0.14.0"
+wrld = "1.0.0"
+
+# git version for yet unreleased bytemuck feature
+cgmath = { git = "https://github.com/rustgd/cgmath.git", rev = "d5e765db61cf9039cb625a789a59ddf6b6ab2337", features = ["bytemuck"] }
+bytemuck = { version = "1.12.3", features = ["derive"] }
+image = "0.24.5"
+
+pollster = "0.2.5"
+
 num-derive = "0.3.3"
 num-traits = "0.2.15"
 
 [features]
 default = [
-    "bevy/dynamic"
+#    "bevy/dynamic"
 ]

@@ -1,5 +1,3 @@
-mod layer_group;
-
 use shin_core::vm::command::layer::LayerType;
 
 pub struct Layer {}
