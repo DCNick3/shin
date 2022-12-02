@@ -1,9 +1,11 @@
-use shin_core::vm::command::layer::LayerType;
+use crate::interpolator::Interpolator;
+use enum_map::EnumMap;
+use shin_core::vm::command::layer::LayerProperty;
 
-pub struct Layer {}
+pub struct LayerProperties {
+    properies: EnumMap<LayerProperty, Interpolator>,
+}
 
-pub struct LayerLoader {}
-
-pub fn load_layer(_ty: LayerType) -> Layer {
-    todo!()
+impl LayerProperties {
+    //
 }

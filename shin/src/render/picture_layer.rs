@@ -1,5 +1,5 @@
 use crate::asset::picture::GpuPicture;
-use crate::interpolator::Interpolator;
+use crate::interpolator::{Easing, Interpolator};
 use crate::render::pipelines::{DrawSource, SpriteVertex};
 use crate::render::{pipelines, RenderContext};
 use cgmath::{Matrix4, Vector2, Vector3, Vector4};
@@ -11,7 +11,7 @@ pub struct PictureLayer {
     index_buffer: wgpu::Buffer,
     num_indices: u32,
 
-    y_translation: Interpolator,
+    rotation: Interpolator,
 }
 
 impl PictureLayer {
@@ -62,17 +62,22 @@ impl PictureLayer {
             usage: wgpu::BufferUsages::INDEX,
         });
 
+        let mut interpolator = Interpolator::new(0.0);
+        interpolator.enqueue(400.0, 1.5, Easing::EaseIn);
+        interpolator.enqueue(-400.0, 2.0, Easing::Identity);
+        interpolator.enqueue(0.0, 1.5, Easing::EaseOut);
+
         Self {
             picture,
             vertex_buffer,
             index_buffer,
             num_indices: indices.len() as u32,
-            y_translation: Interpolator::new(),
+            rotation: interpolator,
         }
     }
 
     pub fn update(&mut self, delta_time: f32) {
-        self.y_translation.update(delta_time);
+        self.rotation.update(delta_time);
     }
 
     pub fn render<'a>(&'a self, ctx: &mut RenderContext<'a, '_>) {
@@ -85,7 +90,7 @@ impl PictureLayer {
                 instances: 0..1,
             },
             &self.picture,
-            Matrix4::from_translation(Vector3::new(0.0, self.y_translation.value(), 0.0)),
+            Matrix4::from_angle_z(cgmath::Deg(self.rotation.value())),
         );
     }
 }

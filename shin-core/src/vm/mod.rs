@@ -18,6 +18,7 @@ pub struct AdvVm {
     /// Vm execution context
     ctx: VmCtx,
     instruction_reader: InstructionReader,
+    position: CodeAddress,
 }
 
 impl AdvVm {
@@ -25,6 +26,7 @@ impl AdvVm {
         Self {
             ctx: VmCtx::new(init_val, random_seed),
             instruction_reader: scenario.instruction_reader(scenario.entrypoint_address()),
+            position: scenario.entrypoint_address(),
         }
     }
 
@@ -38,6 +40,7 @@ impl AdvVm {
         pc: CodeAddress,
     ) -> Option<RuntimeCommand> {
         self.ctx.update_prng();
+        self.position = pc;
 
         match instruction {
             Instruction::uo(UnaryOperation {
@@ -211,6 +214,11 @@ impl AdvVm {
         }
 
         None
+    }
+
+    #[inline]
+    pub fn position(&self) -> CodeAddress {
+        self.position
     }
 
     #[inline]

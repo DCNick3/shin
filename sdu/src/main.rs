@@ -39,7 +39,14 @@ enum RomCommand {
 
 #[derive(clap::Subcommand, Debug)]
 enum ScenarioCommand {
-    Dump { scenario_path: PathBuf },
+    Dump {
+        scenario_path: PathBuf,
+        #[clap(short, long, default_value = "0")]
+        init_val: i32,
+    },
+    Decompile {
+        scenario_path: PathBuf,
+    },
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -88,17 +95,19 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
     match command {
         ScenarioCommand::Dump {
             scenario_path: path,
+            init_val,
         } => {
             let scenario = std::fs::read(path)?;
             let scenario = Bytes::from(scenario);
             let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
 
-            let mut vm = shin_core::vm::AdvVm::new(&scenario, 0, 42);
+            let mut vm = shin_core::vm::AdvVm::new(&scenario, init_val, 42);
             let mut result = CommandResult::None;
             loop {
                 // NOTE: usually you would want to do something when the VM has returned "Pending"
                 // stuff like running game loop to let the command progress...
                 let command = vm.run(result)?;
+                println!("{:08x} {}", vm.position().0, command);
                 if let Some(new_result) = command.execute_dummy() {
                     result = new_result
                 } else {
@@ -108,6 +117,9 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
 
             // println!("{:#?}", reader);
             Ok(())
+        }
+        ScenarioCommand::Decompile { scenario_path: _ } => {
+            todo!("Decompile scenario");
         }
     }
 }

@@ -1,7 +1,5 @@
-use cgmath::{Vector2, Vector3, Vector4};
 use std::iter;
 use tracing::warn;
-use wgpu::util::DeviceExt;
 
 use winit::dpi::LogicalSize;
 use winit::{
@@ -17,7 +15,7 @@ use crate::render::bind_group_layouts::BindGroupLayouts;
 use crate::render::camera::Camera;
 use crate::render::picture_layer::PictureLayer;
 use crate::render::pillarbox::Pillarbox;
-use crate::render::pipelines::{CommonBinds, SpriteVertex};
+use crate::render::pipelines::CommonBinds;
 use crate::render::RenderContext;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -156,45 +154,6 @@ impl State {
         let common_binds = CommonBinds {
             camera: self.camera.bind_group(),
         };
-
-        let vertices = [
-            SpriteVertex {
-                position: Vector3::new(-960.0, 540.0, 0.0),
-                color: Vector4::new(1.0, 1.0, 1.0, 1.0),
-                texture_coordinate: Vector2::new(0.0, 0.0),
-            },
-            SpriteVertex {
-                position: Vector3::new(960.0, 540.0, 0.0),
-                color: Vector4::new(1.0, 1.0, 1.0, 1.0),
-                texture_coordinate: Vector2::new(1.0, 0.0),
-            },
-            SpriteVertex {
-                position: Vector3::new(960.0, -540.0, 0.0),
-                color: Vector4::new(1.0, 1.0, 1.0, 1.0),
-                texture_coordinate: Vector2::new(1.0, 1.0),
-            },
-            SpriteVertex {
-                position: Vector3::new(-960.0, -540.0, 0.0),
-                color: Vector4::new(1.0, 1.0, 1.0, 1.0),
-                texture_coordinate: Vector2::new(0.0, 1.0),
-            },
-        ];
-        let indices = [0u16, 1, 2, 2, 3, 0];
-
-        let vertex_buffer = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(&vertices),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        let index_buffer = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Index Buffer"),
-                contents: bytemuck::cast_slice(&indices),
-                usage: wgpu::BufferUsages::INDEX,
-            });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
