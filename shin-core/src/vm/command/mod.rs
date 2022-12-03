@@ -46,22 +46,22 @@ pub enum Command {
     },
     #[cmd(opcode = 0x83u8)]
     WAIT {
-        wait_kind: u8,
+        allow_interrupt: u8,
         wait_amount: NumberSpec,
     },
     // 0x84 is unused
     #[cmd(opcode = 0x85u8)]
-    MSGINIT { arg: NumberSpec },
+    MSGINIT { messagebox_param: NumberSpec },
     #[cmd(opcode = 0x86u8)]
     MSGSET { msg_id: u32, text: U16String }, // TODO: this string needs a fixup (see ShinDataUtil's OpcodeDefinitions.NeedsStringFixup)
     #[cmd(opcode = 0x87u8)]
-    MSGWAIT { arg: NumberSpec },
+    MSGWAIT { section_num: NumberSpec },
     #[cmd(opcode = 0x88u8)]
     MSGSIGNAL {},
     #[cmd(opcode = 0x89u8)]
-    MSGSYNC { arg1: NumberSpec, arg2: NumberSpec },
+    MSGSYNC { arg1: NumberSpec, arg2: NumberSpec }, // unused
     #[cmd(opcode = 0x8au8)]
-    MSGCLOSE { arg: u8 },
+    MSGCLOSE { wait_for_close: u8 },
 
     #[cmd(opcode = 0x8du8)]
     SELECT {
@@ -69,7 +69,7 @@ pub enum Command {
         choice_index: u16,
         #[cmd(dest)]
         dest: MemoryAddress,
-        arg4: NumberSpec,
+        choice_visibility_mask: NumberSpec,
         choice_title: U16String,
         variants: StringArray,
     },
@@ -77,54 +77,63 @@ pub enum Command {
     WIPE {
         arg1: NumberSpec,
         arg2: NumberSpec,
-        arg3: NumberSpec,
+        wipe_time: NumberSpec,
         params: BitmaskNumberArray,
     },
     #[cmd(opcode = 0x8fu8)]
     WIPEWAIT {},
     #[cmd(opcode = 0x90u8)]
     BGMPLAY {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
-        arg3: NumberSpec,
-        arg4: NumberSpec,
+        bgm_data_id: NumberSpec,
+        fade_in_time: NumberSpec,
+        no_repeat: NumberSpec,
+        volume: NumberSpec,
     },
     #[cmd(opcode = 0x91u8)]
-    BGMSTOP { arg: NumberSpec },
+    BGMSTOP { fade_out_time: NumberSpec },
     #[cmd(opcode = 0x92u8)]
-    BGMVOL { arg1: NumberSpec, arg2: NumberSpec },
+    BGMVOL {
+        volume: NumberSpec,
+        fade_in_time: NumberSpec,
+    },
     #[cmd(opcode = 0x93u8)]
-    BGMWAIT { arg: NumberSpec },
+    BGMWAIT { wait_mask: NumberSpec },
     #[cmd(opcode = 0x94u8)]
-    BGMSYNC { arg: NumberSpec },
+    BGMSYNC { sync_time: NumberSpec },
     #[cmd(opcode = 0x95u8)]
     SEPLAY {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
-        arg3: NumberSpec,
-        arg4: NumberSpec,
-        arg5: NumberSpec,
-        arg6: NumberSpec,
-        arg7: NumberSpec,
+        se_slot: NumberSpec,
+        se_data_id: NumberSpec,
+        fade_in_time: NumberSpec,
+        no_repeat: NumberSpec,
+        volume: NumberSpec,
+        pan: NumberSpec,
+        play_speed: NumberSpec,
     },
     #[cmd(opcode = 0x96u8)]
-    SESTOP { arg1: NumberSpec, arg2: NumberSpec },
+    SESTOP {
+        se_slot: NumberSpec,
+        fade_out_time: NumberSpec,
+    },
     #[cmd(opcode = 0x97u8)]
-    SESTOPALL { arg: NumberSpec },
+    SESTOPALL { fade_out_time: NumberSpec },
     #[cmd(opcode = 0x98u8)]
     SEVOL {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
-        arg3: NumberSpec,
+        se_slot: NumberSpec,
+        volume: NumberSpec,
+        fade_in_time: NumberSpec,
     },
     #[cmd(opcode = 0x99u8)]
     SEPAN {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
-        arg3: NumberSpec,
+        se_slot: NumberSpec,
+        pan: NumberSpec,
+        fade_in_time: NumberSpec,
     },
     #[cmd(opcode = 0x9au8)]
-    SEWAIT { arg1: NumberSpec, arg2: NumberSpec },
+    SEWAIT {
+        se_slot: NumberSpec, // may have a special value of -1
+        wait_mask: NumberSpec,
+    },
     #[cmd(opcode = 0x9bu8)]
     SEONCE {
         arg1: NumberSpec,
@@ -136,13 +145,13 @@ pub enum Command {
     #[cmd(opcode = 0x9cu8)]
     VOICEPLAY {
         name: U16String,
-        arg1: NumberSpec,
-        arg2: NumberSpec,
+        volume: NumberSpec,
+        flags: NumberSpec,
     },
     #[cmd(opcode = 0x9du8)]
     VOICESTOP {},
     #[cmd(opcode = 0x9eu8)]
-    VOICEWAIT { arg: NumberSpec },
+    VOICEWAIT { wait_mask: NumberSpec },
     #[cmd(opcode = 0x9fu8)]
     SYSSE { arg1: NumberSpec, arg2: NumberSpec },
 
@@ -162,15 +171,18 @@ pub enum Command {
     SYSCALL { arg1: NumberSpec, arg2: NumberSpec },
 
     #[cmd(opcode = 0xb0u8)]
-    TROPHY { arg: NumberSpec },
+    TROPHY { trophy_id: NumberSpec },
     #[cmd(opcode = 0xb1u8)]
-    UNLOCK { arg1: u8, arg2: U8SmallNumberList },
+    UNLOCK {
+        unlock_type: u8,
+        unlock_indices: U8SmallNumberList,
+    },
 
     /// Reset property values to their initial state
     #[cmd(opcode = 0xc0u8)]
     LAYERINIT {
         #[cmd(rty = "VLayerId")]
-        arg: NumberSpec,
+        layer_id: NumberSpec,
     },
     /// Load a layer resource or smth
     /// There are multiple layer types and they have different arguments
@@ -232,7 +244,7 @@ pub enum Command {
     #[cmd(opcode = 0xcbu8)]
     PAGEBACK {},
     #[cmd(opcode = 0xccu8)]
-    PLANESELECT { arg: NumberSpec },
+    PLANESELECT { plane_id: NumberSpec },
     #[cmd(opcode = 0xcdu8)]
     PLANECLEAR {},
     #[cmd(opcode = 0xceu8)]
@@ -247,7 +259,7 @@ pub enum Command {
     #[cmd(opcode = 0xe0u8)]
     CHARS { arg1: NumberSpec, arg2: NumberSpec },
     #[cmd(opcode = 0xe1u8)]
-    TIPSGET { arg: U8SmallNumberList },
+    TIPSGET { tip_ids: U8SmallNumberList },
     #[cmd(opcode = 0xe2u8)]
     QUIZ {
         #[cmd(dest)]
