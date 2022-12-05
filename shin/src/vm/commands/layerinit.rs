@@ -1,12 +1,13 @@
-use crate::vm::Vm;
-use shin_core::vm::command;
-use shin_core::vm::command::layer::VLayerIdRepr;
-use shin_core::vm::command::CommandResult;
+use super::prelude::*;
 
 pub struct LAYERINIT;
 
 impl super::Command<command::runtime::LAYERINIT> for LAYERINIT {
     type Result = CommandResult;
+
+    fn apply_state(command: &command::runtime::LAYERINIT, state: &mut VmState) {
+        todo!()
+    }
 
     fn start(command: command::runtime::LAYERINIT, _vm: &mut Vm) -> Self::Result {
         match command.layer_id.repr() {

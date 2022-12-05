@@ -1,11 +1,13 @@
-use crate::vm::Vm;
-use shin_core::vm::command;
-use shin_core::vm::command::CommandResult;
+use super::prelude::*;
 
 pub struct SAVEINFO;
 
 impl super::Command<command::runtime::SAVEINFO> for SAVEINFO {
     type Result = CommandResult;
+
+    fn apply_state(command: &command::runtime::SAVEINFO, state: &mut VmState) {
+        todo!()
+    }
 
     fn start(command: command::runtime::SAVEINFO, vm: &mut Vm) -> Self::Result {
         vm.state

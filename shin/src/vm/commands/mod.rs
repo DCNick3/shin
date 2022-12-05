@@ -1,5 +1,15 @@
 #![allow(clippy::upper_case_acronyms)]
 
+mod prelude {
+    pub use crate::vm::commands::CommandYield;
+    pub use crate::vm::state::VmState;
+    pub use crate::vm::Vm;
+    pub use shin_core::vm::command;
+    pub use shin_core::vm::command::layer::VLayerIdRepr;
+    pub use shin_core::vm::command::CommandResult;
+    pub use tracing::warn;
+}
+
 mod autosave;
 mod bgmplay;
 mod bgmstop;
@@ -56,6 +66,7 @@ impl CommandStartResult for CommandResult {
 }
 
 // TODO: add trait bound for T
+// smth like "can be executed in a game loop repeatedly"
 pub struct CommandYield<T>(T);
 
 impl<T> CommandStartResult for CommandYield<T> {
@@ -74,5 +85,7 @@ impl CommandStartResult for CommandExit {
 }
 pub trait Command<T> {
     type Result: CommandStartResult;
+
+    fn apply_state(command: &T, state: &mut crate::vm::VmState);
     fn start(command: T, vm: &mut crate::vm::Vm) -> Self::Result;
 }

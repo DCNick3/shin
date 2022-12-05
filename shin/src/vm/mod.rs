@@ -30,6 +30,8 @@ pub enum ExecuteCommandResult {
     Exit,
 }
 
+// TODO: make this & also a yielded value enum into a macro over command types
+// prolly even generate the cmd names in shin-core?
 #[allow(clippy::unit_arg)]
 fn execute_command(vm: &mut Vm, command: RuntimeCommand) -> ExecuteCommandResult {
     match command {

@@ -1,7 +1,4 @@
-use crate::vm::commands::CommandYield;
-use crate::vm::Vm;
-use shin_core::vm::command;
-use tracing::warn;
+use super::prelude::*;
 
 pub struct MSGSET {
     #[allow(unused)]
@@ -10,6 +7,10 @@ pub struct MSGSET {
 
 impl super::Command<command::runtime::MSGSET> for MSGSET {
     type Result = CommandYield<MSGSET>;
+
+    fn apply_state(command: &command::runtime::MSGSET, state: &mut VmState) {
+        todo!()
+    }
 
     fn start(command: command::runtime::MSGSET, _vm: &mut Vm) -> Self::Result {
         warn!("TODO: MSGSET: {:?}", command);

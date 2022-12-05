@@ -1,13 +1,14 @@
+use super::prelude::*;
 use crate::vm::state::LayerbankInfo;
-use crate::vm::Vm;
-use shin_core::vm::command;
-use shin_core::vm::command::layer::VLayerIdRepr;
-use shin_core::vm::command::CommandResult;
 
 pub struct LAYERLOAD;
 
 impl super::Command<command::runtime::LAYERLOAD> for LAYERLOAD {
     type Result = CommandResult;
+
+    fn apply_state(command: &command::runtime::LAYERLOAD, state: &mut VmState) {
+        todo!()
+    }
 
     fn start(command: command::runtime::LAYERLOAD, vm: &mut Vm) -> Self::Result {
         // TODO: handle the delay?

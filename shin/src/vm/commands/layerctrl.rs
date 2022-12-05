@@ -1,12 +1,13 @@
-use crate::vm::Vm;
-use shin_core::vm::command;
-use shin_core::vm::command::layer::VLayerIdRepr;
-use shin_core::vm::command::CommandResult;
+use super::prelude::*;
 
 pub struct LAYERCTRL;
 
 impl super::Command<command::runtime::LAYERCTRL> for LAYERCTRL {
     type Result = CommandResult;
+
+    fn apply_state(command: &command::runtime::LAYERCTRL, state: &mut VmState) {
+        todo!()
+    }
 
     fn start(command: command::runtime::LAYERCTRL, vm: &mut Vm) -> Self::Result {
         // TODO: handle the delay?

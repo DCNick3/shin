@@ -1,12 +1,13 @@
-use crate::vm::Vm;
-use shin_core::vm::command;
-use shin_core::vm::command::CommandResult;
-use tracing::warn;
+use super::prelude::*;
 
 pub struct SEPLAY;
 
 impl super::Command<command::runtime::SEPLAY> for SEPLAY {
     type Result = CommandResult;
+
+    fn apply_state(command: &command::runtime::SEPLAY, state: &mut VmState) {
+        todo!()
+    }
 
     fn start(command: command::runtime::SEPLAY, _vm: &mut Vm) -> Self::Result {
         warn!("TODO: SEPLAY: {:?}", command);
