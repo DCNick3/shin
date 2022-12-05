@@ -1,9 +1,8 @@
 use crate::vm::Vm;
-use bevy::prelude::*;
 use shin_core::vm::command;
 use shin_core::vm::command::CommandResult;
+use tracing::warn;
 
-#[derive(Component)]
 pub struct AUTOSAVE;
 
 impl super::Command<command::runtime::AUTOSAVE> for AUTOSAVE {

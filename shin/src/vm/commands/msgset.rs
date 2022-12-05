@@ -1,9 +1,8 @@
 use crate::vm::commands::CommandYield;
 use crate::vm::Vm;
-use bevy::prelude::*;
 use shin_core::vm::command;
+use tracing::warn;
 
-#[derive(Component)]
 pub struct MSGSET {
     #[allow(unused)]
     token: Option<command::token::MSGSET>,
@@ -20,8 +19,8 @@ impl super::Command<command::runtime::MSGSET> for MSGSET {
     }
 }
 
-pub fn system(mut _commands: Commands, mut query: Query<(Entity, &mut MSGSET)>) {
-    for (_entity, mut _wait) in query.iter_mut() {
-        // TODO: here we do not finish the command, making the VM wait forever
-    }
-}
+// pub fn system(mut _commands: Commands, mut query: Query<(Entity, &mut MSGSET)>) {
+//     for (_entity, mut _wait) in query.iter_mut() {
+//         // TODO: here we do not finish the command, making the VM wait forever
+//     }
+// }

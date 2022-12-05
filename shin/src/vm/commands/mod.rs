@@ -44,54 +44,35 @@ pub use wipe::WIPE;
 pub trait CommandStartResult {
     fn apply_result(
         self,
-        commands: &mut bevy::ecs::system::Commands,
-        entity: bevy::ecs::entity::Entity,
+        // commands: &mut bevy::ecs::system::Commands,
+        // entity: bevy::ecs::entity::Entity,
     ) -> ExecuteCommandResult;
 }
 
 impl CommandStartResult for CommandResult {
-    fn apply_result(
-        self,
-        _commands: &mut bevy::ecs::system::Commands,
-        _entity: bevy::ecs::entity::Entity,
-    ) -> ExecuteCommandResult {
+    fn apply_result(self) -> ExecuteCommandResult {
         ExecuteCommandResult::Continue(self)
     }
 }
 
-pub struct CommandYield<T: bevy::ecs::component::Component>(T);
+// TODO: add trait bound for T
+pub struct CommandYield<T>(T);
 
-impl<T: bevy::ecs::component::Component> CommandStartResult for CommandYield<T> {
-    fn apply_result(
-        self,
-        commands: &mut bevy::ecs::system::Commands,
-        entity: bevy::ecs::entity::Entity,
-    ) -> ExecuteCommandResult {
-        commands.entity(entity).insert(self.0);
-        ExecuteCommandResult::Yield
+impl<T> CommandStartResult for CommandYield<T> {
+    fn apply_result(self) -> ExecuteCommandResult {
+        // commands.entity(entity).insert(self.0);
+        todo!("CommandYield")
+        // ExecuteCommandResult::Yield
     }
 }
 
 pub struct CommandExit;
 impl CommandStartResult for CommandExit {
-    fn apply_result(
-        self,
-        _commands: &mut bevy::ecs::system::Commands,
-        _entity: bevy::ecs::entity::Entity,
-    ) -> ExecuteCommandResult {
+    fn apply_result(self) -> ExecuteCommandResult {
         ExecuteCommandResult::Exit
     }
 }
-
 pub trait Command<T> {
     type Result: CommandStartResult;
     fn start(command: T, vm: &mut crate::vm::Vm) -> Self::Result;
-}
-
-pub struct CommandsPlugin;
-
-impl bevy::app::Plugin for CommandsPlugin {
-    fn build(&self, app: &mut bevy::app::App) {
-        app.add_system(wait::system).add_system(msgset::system);
-    }
 }

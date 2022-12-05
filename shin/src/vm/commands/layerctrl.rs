@@ -1,10 +1,8 @@
 use crate::vm::Vm;
-use bevy::prelude::*;
 use shin_core::vm::command;
 use shin_core::vm::command::layer::VLayerIdRepr;
 use shin_core::vm::command::CommandResult;
 
-#[derive(Component)]
 pub struct LAYERCTRL;
 
 impl super::Command<command::runtime::LAYERCTRL> for LAYERCTRL {

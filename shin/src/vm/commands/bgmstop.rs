@@ -1,9 +1,8 @@
 use crate::vm::Vm;
-use bevy::prelude::*;
 use shin_core::vm::command;
 use shin_core::vm::command::CommandResult;
+use tracing::warn;
 
-#[derive(Component)]
 pub struct BGMSTOP;
 
 impl super::Command<command::runtime::BGMSTOP> for BGMSTOP {

@@ -1,9 +1,9 @@
 mod asset;
 // mod camera;
-mod layer;
-// mod vm;
 mod interpolator;
+mod layer;
 mod render;
+mod vm;
 
 fn main() {
     // old_main()
