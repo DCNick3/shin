@@ -1,6 +1,6 @@
 use crate::render::camera::{VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 use crate::render::pipelines::{DrawSource, PositionVertex};
-use crate::render::{pipelines, RenderContext};
+use crate::render::{pipelines, RenderContext, Renderable};
 use cgmath::{Vector3, Vector4};
 use wgpu::util::DeviceExt;
 
@@ -101,8 +101,10 @@ impl Pillarbox {
             num_indices: indices.len() as u32,
         }
     }
+}
 
-    pub fn render<'a>(&'a self, ctx: &mut RenderContext<'a, '_>) {
+impl Renderable for Pillarbox {
+    fn render<'a>(&'a self, ctx: &mut RenderContext<'a, '_>) {
         pipelines::fill::draw(
             ctx,
             DrawSource::VertexIndexBuffer {
@@ -113,5 +115,9 @@ impl Pillarbox {
             },
             Vector4::new(0.0, 0.0, 0.0, 1.0),
         );
+    }
+
+    fn resize(&mut self, _size: (u32, u32)) {
+        // No internal state to resize
     }
 }

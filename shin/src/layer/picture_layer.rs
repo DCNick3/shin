@@ -1,8 +1,10 @@
 use crate::asset::picture::GpuPicture;
-use crate::interpolator::{Easing, Interpolator};
+use crate::layer::{Layer, LayerProperties};
 use crate::render::pipelines::{DrawSource, SpriteVertex};
-use crate::render::{pipelines, RenderContext};
+use crate::render::{pipelines, RenderContext, Renderable};
+use crate::update::{Updatable, UpdateContext};
 use cgmath::{Matrix4, Vector2, Vector3, Vector4};
+use shin_core::vm::command::layer::LayerProperty;
 use wgpu::util::DeviceExt;
 
 pub struct PictureLayer {
@@ -11,7 +13,7 @@ pub struct PictureLayer {
     index_buffer: wgpu::Buffer,
     num_indices: u32,
 
-    rotation: Interpolator,
+    props: LayerProperties,
 }
 
 impl PictureLayer {
@@ -62,25 +64,18 @@ impl PictureLayer {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let mut interpolator = Interpolator::new(0.0);
-        interpolator.enqueue(400.0, 6.0, Easing::EaseIn);
-        interpolator.enqueue(-400.0, 8.0, Easing::Identity);
-        interpolator.enqueue(0.0, 6.0, Easing::EaseOut);
-
         Self {
             picture,
             vertex_buffer,
             index_buffer,
             num_indices: indices.len() as u32,
-            rotation: interpolator,
+            props: LayerProperties::new(),
         }
     }
+}
 
-    pub fn update(&mut self, delta_time: f32) {
-        self.rotation.update(delta_time);
-    }
-
-    pub fn render<'a>(&'a self, ctx: &mut RenderContext<'a, '_>) {
+impl Renderable for PictureLayer {
+    fn render<'a>(&'a self, ctx: &mut RenderContext<'a, '_>) {
         pipelines::sprite::draw(
             ctx,
             DrawSource::VertexIndexBuffer {
@@ -90,7 +85,31 @@ impl PictureLayer {
                 instances: 0..1,
             },
             &self.picture,
-            Matrix4::from_angle_z(cgmath::Deg(self.rotation.value())),
+            // TODO: actually use all the properties
+            // TODO: move the transformation matrix calculation to the LayerProperties struct
+            Matrix4::from_angle_z(cgmath::Deg(
+                self.props.get_property(LayerProperty::Rotation),
+            )),
         );
+    }
+
+    fn resize(&mut self, _size: (u32, u32)) {
+        // no internal buffers to resize
+    }
+}
+
+impl Updatable for PictureLayer {
+    fn update(&mut self, ctx: &UpdateContext) {
+        self.props.update(ctx);
+    }
+}
+
+impl Layer for PictureLayer {
+    fn properties(&self) -> &LayerProperties {
+        &self.props
+    }
+
+    fn properties_mut(&mut self) -> &mut LayerProperties {
+        &mut self.props
     }
 }

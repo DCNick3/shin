@@ -157,7 +157,8 @@ pub enum LayerProperty {
     Prop13 = 13,
     Prop14 = 14,
     Prop15 = 15,
-    Prop16 = 16,
+    /// Rotation in degrees
+    Rotation = 16,
     Prop17 = 17,
     Prop18 = 18,
     Prop19 = 19,
@@ -232,6 +233,38 @@ pub enum LayerProperty {
     Prop88 = 88,
     Prop89 = 89,
     Prop90 = 90,
+}
+
+impl LayerProperty {
+    pub const COUNT: usize = <LayerProperty as Enum>::LENGTH;
+
+    pub fn initial_value(self) -> f32 {
+        match self {
+            LayerProperty::Prop2 => 1000.0,
+            LayerProperty::Prop5 => 1000.0,
+            LayerProperty::Prop6 => 1000.0,
+            LayerProperty::Prop7 => 1000.0,
+            LayerProperty::Prop8 => 1000.0,
+            LayerProperty::Prop9 => 1000.0,
+            LayerProperty::Prop12 => 1000.0,
+            LayerProperty::Prop13 => 1000.0,
+            LayerProperty::Prop14 => 1000.0,
+            LayerProperty::Prop15 => 1000.0,
+            LayerProperty::Prop22 => 1.0,
+            LayerProperty::Prop27 => 1.0,
+            LayerProperty::Prop28 => 1000.0,
+            LayerProperty::Prop29 => 1000.0,
+            LayerProperty::Prop30 => 1000.0,
+            LayerProperty::Prop31 => 1000.0,
+            LayerProperty::Prop43 => 1000.0,
+            LayerProperty::Prop51 => 1000.0,
+            LayerProperty::Prop55 => 1000.0,
+            LayerProperty::Prop57 => 1000.0,
+            LayerProperty::Prop73 => 1000.0,
+            LayerProperty::Prop75 => 1000.0,
+            _ => 0.0,
+        }
+    }
 }
 
 impl FromVmCtx<NumberSpec> for LayerProperty {

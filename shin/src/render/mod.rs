@@ -1,8 +1,7 @@
 pub mod bind_group_layouts;
 mod camera;
-mod picture_layer;
 mod pillarbox;
-mod pipelines;
+pub mod pipelines;
 mod window;
 
 use crate::render::bind_group_layouts::BindGroupLayouts;
@@ -56,9 +55,9 @@ impl<'cmd, 'pass> RenderContext<'cmd, 'pass> {
         self.queue.submit(std::iter::once(encoder.finish()));
     }
 
-    pub fn render(&mut self, renderable: &impl Renderable) {
-        renderable.render(self);
-    }
+    // pub fn render(&mut self, renderable: &'cmd impl Renderable) {
+    //     renderable.render(self);
+    // }
 }
 
 pub struct RenderTarget {
@@ -142,6 +141,6 @@ impl RenderTarget {
 }
 
 pub trait Renderable {
-    fn render(&self, context: &mut RenderContext);
+    fn render<'a>(&'a self, context: &mut RenderContext<'a, '_>);
     fn resize(&mut self, size: (u32, u32));
 }

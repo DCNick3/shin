@@ -1,12 +1,15 @@
+use crate::update::{Ticks, UpdateContext};
 use std::collections::VecDeque;
 use std::f32::consts::PI;
 use tracing::debug;
 
 const HALF_PI: f32 = PI / 2.0;
 
+// TODO: custom Debug
+#[derive(Debug, Clone)]
 pub struct Interpolator {
-    t_now: f32,
-    t_final: f32,
+    t_now: Ticks,
+    t_final: Ticks,
     y_0: f32,
     y_1: f32,
     y_current: f32,
@@ -50,11 +53,11 @@ fn ease(easing: Easing, p: f32) -> f32 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum InterpolatorEvent {
     QueueNext {
         value: f32,
-        time: f32,
+        time: Ticks,
         easing: Easing,
     },
 }
@@ -62,8 +65,8 @@ enum InterpolatorEvent {
 impl Interpolator {
     pub fn new(value: f32) -> Self {
         Self {
-            t_now: 0.0,
-            t_final: 0.0,
+            t_now: Ticks::ZERO,
+            t_final: Ticks::ZERO,
             y_0: value,
             y_1: value,
             y_current: value,
@@ -72,8 +75,8 @@ impl Interpolator {
         }
     }
 
-    pub fn update(&mut self, dt: f32) {
-        self.t_now += dt;
+    pub fn update(&mut self, context: &UpdateContext) {
+        self.t_now += context.delta_ticks();
         if self.t_now >= self.t_final {
             if let Some(event) = self.queue.pop_back() {
                 debug!("Switch: {:?}", event);
@@ -84,7 +87,7 @@ impl Interpolator {
                         easing,
                     } => {
                         self.easing = easing;
-                        self.t_now = 0.0;
+                        self.t_now = Ticks::ZERO;
                         self.t_final = time;
                         self.y_0 = self.y_1;
                         self.y_1 = value;
@@ -95,7 +98,7 @@ impl Interpolator {
             }
         }
 
-        let x = if self.t_final != 0.0 {
+        let x = if self.t_final != Ticks::ZERO {
             self.t_now / self.t_final
         } else {
             0.0
@@ -107,7 +110,7 @@ impl Interpolator {
         self.y_current = y;
     }
 
-    pub fn enqueue(&mut self, value: f32, time: f32, easing: Easing) {
+    pub fn enqueue(&mut self, value: f32, time: Ticks, easing: Easing) {
         self.queue.push_front(InterpolatorEvent::QueueNext {
             value,
             time,

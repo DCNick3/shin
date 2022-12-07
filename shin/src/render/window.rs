@@ -1,6 +1,7 @@
 use std::iter;
 use tracing::warn;
 
+use shin_core::vm::command::layer::LayerProperty;
 use winit::dpi::LogicalSize;
 use winit::window::Fullscreen;
 use winit::{
@@ -12,12 +13,14 @@ use winit::{
 use super::pipelines::Pipelines;
 
 use crate::asset::picture::GpuPicture;
+use crate::interpolator::Easing;
+use crate::layer::{Layer, PictureLayer};
 use crate::render::bind_group_layouts::BindGroupLayouts;
 use crate::render::camera::Camera;
-use crate::render::picture_layer::PictureLayer;
 use crate::render::pillarbox::Pillarbox;
 use crate::render::pipelines::CommonBinds;
-use crate::render::RenderContext;
+use crate::render::{RenderContext, Renderable};
+use crate::update::{Ticks, Updatable, UpdateContext};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -98,7 +101,18 @@ impl State {
         let bg_pic = std::fs::read("assets/ship_p1a.pic").unwrap();
         let bg_pic = crate::asset::picture::load_picture(&bg_pic).unwrap();
         let bg_pic = GpuPicture::load(&device, &bind_group_layouts, &mut queue, bg_pic);
-        let bg_pic = PictureLayer::new(&device, bg_pic);
+        let mut bg_pic = PictureLayer::new(&device, bg_pic);
+
+        // test the interpolators
+        let props = bg_pic.properties_mut();
+        props.set_property(LayerProperty::Rotation, 400.0, Ticks(180.0), Easing::EaseIn);
+        props.set_property(
+            LayerProperty::Rotation,
+            -400.0,
+            Ticks(240.0),
+            Easing::Identity,
+        );
+        props.set_property(LayerProperty::Rotation, 0.0, Ticks(180.0), Easing::EaseOut);
 
         Self {
             surface,
@@ -121,11 +135,13 @@ impl State {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
-            self.camera.resize(
-                &self.device,
-                &mut self.queue,
-                (new_size.width, new_size.height),
-            );
+
+            let new_size = (new_size.width, new_size.height);
+
+            self.camera.resize(&self.device, &mut self.queue, new_size);
+
+            self.pillarbox.resize(new_size);
+            self.bg_pic.resize(new_size);
         }
     }
 
@@ -136,8 +152,10 @@ impl State {
 
     fn update(&mut self) {
         self.time.update();
-        let delta_time = self.time.delta_seconds();
-        self.bg_pic.update(delta_time);
+
+        let update_context = UpdateContext::new(&self.time);
+
+        self.bg_pic.update(&update_context);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -185,7 +203,6 @@ impl State {
             };
 
             self.bg_pic.render(&mut render_context);
-
             self.pillarbox.render(&mut render_context);
         }
 
