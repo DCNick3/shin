@@ -10,7 +10,7 @@ impl super::Command<command::runtime::SGET> for SGET {
     }
 
     fn start(command: command::runtime::SGET, vm: &mut Vm) -> Self::Result {
-        let value = vm.state.globals_info.get(command.slot_number);
+        let value = vm.state.globals.get(command.slot_number);
         command.token.finish(value)
     }
 }

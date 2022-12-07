@@ -87,5 +87,6 @@ pub trait Command<T> {
     type Result: CommandStartResult;
 
     fn apply_state(command: &T, state: &mut crate::vm::VmState);
+    // TODO: this should have a constant access to the VmState, but mutable access to layers, music players, etc.
     fn start(command: T, vm: &mut crate::vm::Vm) -> Self::Result;
 }

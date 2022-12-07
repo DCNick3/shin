@@ -1,7 +1,7 @@
-use arrayvec::ArrayVec;
-use shin_core::vm::command::layer::{
-    LayerId, LayerIdOpt, LayerType, LayerbankId, LayerbankIdOpt, LAYERBANKS_COUNT, LAYERS_COUNT,
-};
+use crate::layer::LayerPropertiesSnapshot;
+use bevy_utils::hashbrown::hash_map::Entry;
+use bevy_utils::StableHashMap;
+use shin_core::vm::command::layer::{LayerId, LayerType, VLayerId, PLANES_COUNT};
 
 pub struct SaveInfo {
     pub info: [String; 4],
@@ -18,15 +18,15 @@ impl SaveInfo {
     }
 }
 
-pub struct MsgInfo {
+pub struct MessageboxState {
     pub msginit: Option<i32>,
 }
 
-pub struct GlobalsInfo {
+pub struct Globals {
     globals: [i32; 0x100],
 }
 
-impl GlobalsInfo {
+impl Globals {
     pub fn new() -> Self {
         Self {
             globals: [0; 0x100],
@@ -50,67 +50,122 @@ impl GlobalsInfo {
     }
 }
 
-/// Manages mapping between layer IDs and layer bank IDs, as well as allocation
-pub struct LayerbankAllocator {
-    free_layerbanks: ArrayVec<LayerbankId, { LAYERBANKS_COUNT as usize }>,
-
-    // TODO: handle layer planes
-    layerbank_id_to_layer_id: [LayerIdOpt; LAYERBANKS_COUNT as usize],
-    layer_id_to_layerbank_id: [LayerbankIdOpt; 0x100],
-}
-
-impl LayerbankAllocator {
-    pub fn new() -> Self {
-        Self {
-            free_layerbanks: (0..LAYERBANKS_COUNT).map(LayerbankId::new).collect(),
-            layerbank_id_to_layer_id: [LayerIdOpt::none(); LAYERBANKS_COUNT as usize],
-            layer_id_to_layerbank_id: [LayerbankIdOpt::none(); LAYERS_COUNT as usize],
-        }
-    }
-
-    pub fn get_layerbank_id(&self, layer_id: LayerId) -> Option<LayerbankId> {
-        self.layer_id_to_layerbank_id[layer_id.raw() as usize].opt()
-    }
-
-    fn alloc_layerbank(&mut self) -> Option<LayerbankId> {
-        self.free_layerbanks.pop()
-    }
-
-    pub fn get_or_allocate_layerbank_id(&mut self, layer_id: LayerId) -> Option<LayerbankId> {
-        if let Some(id) = self.layer_id_to_layerbank_id[layer_id.raw() as usize].opt() {
-            Some(id)
-        } else if let Some(id) = self.alloc_layerbank() {
-            self.layer_id_to_layerbank_id[layer_id.raw() as usize] = LayerbankIdOpt::some(id);
-            self.layerbank_id_to_layer_id[id.raw() as usize] = LayerIdOpt::some(layer_id);
-            Some(id)
-        } else {
-            None
-        }
-    }
-
-    pub fn free_layerbank(&mut self, layer_id: LayerId) {
-        if let Some(id) = self.layer_id_to_layerbank_id[layer_id.raw() as usize].opt() {
-            self.layer_id_to_layerbank_id[layer_id.raw() as usize] = LayerbankIdOpt::none();
-            self.layerbank_id_to_layer_id[id.raw() as usize] = LayerIdOpt::none();
-            self.free_layerbanks.push(id);
-        }
-    }
+#[derive(Debug, Copy, Clone)]
+pub struct LayerSelection {
+    // TODO: enforce ordering?
+    pub low: LayerId,
+    pub high: LayerId,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct LayerbankInfo {
-    pub ty: LayerType,
-    pub layer_id: LayerId,
-    pub layerinit_params: [i32; 0x8],
-    pub properties: [i32; 90],
+pub struct LayerState {
+    pub layerinit_params: Option<(LayerType, [i32; 0x8])>,
+    pub properties: LayerPropertiesSnapshot,
+}
+
+#[derive(Debug, Clone)]
+pub struct PlaneState {
+    // TODO: allocations - bad?
+    pub layers: StableHashMap<LayerId, LayerState>,
+}
+
+impl PlaneState {
+    pub fn new() -> Self {
+        Self {
+            layers: StableHashMap::default(),
+        }
+    }
+
+    pub fn get_layer(&self, layer_id: LayerId) -> Option<&LayerState> {
+        self.layers.get(&layer_id)
+    }
+
+    pub fn get_layer_mut(&mut self, layer_id: LayerId) -> Option<&mut LayerState> {
+        self.layers.get_mut(&layer_id)
+    }
+
+    pub fn alloc(&mut self, layer_id: LayerId) -> &mut LayerState {
+        match self.layers.entry(layer_id) {
+            // TODO: downgrade to a warning?
+            Entry::Occupied(_) => panic!("LayerState::alloc: layer already allocated"),
+            Entry::Vacant(v) => v.insert(LayerState {
+                layerinit_params: None,
+                properties: LayerPropertiesSnapshot::new(),
+            }),
+        }
+    }
+
+    pub fn free(&mut self, layer_id: LayerId) {
+        self.layers
+            .remove(&layer_id)
+            // TODO: downgrade to a warning?
+            .expect("LayerState::free: layer not allocated");
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LayersState {
+    pub current_plane: u32,
+    pub layer_selection: Option<LayerSelection>,
+    pub planes: [PlaneState; PLANES_COUNT],
+}
+
+impl LayersState {
+    pub fn new() -> Self {
+        Self {
+            current_plane: 0,
+            layer_selection: None,
+            planes: [
+                PlaneState::new(),
+                PlaneState::new(),
+                PlaneState::new(),
+                PlaneState::new(),
+            ],
+        }
+    }
+
+    /// Get user layer by id
+    pub fn get_layer(&self, layer_id: LayerId) -> Option<&LayerState> {
+        self.planes[self.current_plane as usize].get_layer(layer_id)
+    }
+
+    /// Get user layer by id (mutable)
+    pub fn get_layer_mut(&mut self, layer_id: LayerId) -> Option<&mut LayerState> {
+        self.planes[self.current_plane as usize].get_layer_mut(layer_id)
+    }
+
+    /// Get layer by id, handling the special layers & selection
+    pub fn get_vlayer(&self, _vlayer_id: VLayerId) -> impl Iterator<Item = &LayerState> {
+        // TODO: implement
+        // if a special layer - return a single layer
+        // if a normal layer id - return it if exists, otherwise print a warning and return an empty iterator
+        // if a selection - return all layers in the selection and warn if the selection is empty
+        std::iter::once(todo!())
+    }
+
+    /// Get layer by id, handling the special layers & selection (mutable)
+    pub fn get_vlayer_mut(
+        &mut self,
+        _vlayer_id: VLayerId,
+    ) -> impl Iterator<Item = &mut LayerState> {
+        // TODO: same as get_many, but mutable
+        std::iter::once(todo!())
+    }
+
+    pub fn alloc(&mut self, layer_id: LayerId) -> &mut LayerState {
+        self.planes[self.current_plane as usize].alloc(layer_id)
+    }
+
+    pub fn free(&mut self, layer_id: LayerId) {
+        self.planes[self.current_plane as usize].free(layer_id)
+    }
 }
 
 pub struct VmState {
     pub save_info: SaveInfo,
-    pub msg_info: MsgInfo,
-    pub globals_info: GlobalsInfo,
-    pub layerbank_allocator: LayerbankAllocator,
-    pub layerbank_info: [Option<LayerbankInfo>; LAYERBANKS_COUNT as usize],
+    pub messagebox_state: MessageboxState,
+    pub globals: Globals,
+    pub layers: LayersState,
 }
 
 impl VmState {
@@ -119,10 +174,9 @@ impl VmState {
             save_info: SaveInfo {
                 info: ["", "", "", ""].map(|v| v.to_string()),
             },
-            msg_info: MsgInfo { msginit: None },
-            globals_info: GlobalsInfo::new(),
-            layerbank_allocator: LayerbankAllocator::new(),
-            layerbank_info: [None; LAYERBANKS_COUNT as usize],
+            messagebox_state: MessageboxState { msginit: None },
+            globals: Globals::new(),
+            layers: LayersState::new(),
         }
     }
 }

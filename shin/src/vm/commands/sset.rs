@@ -10,9 +10,7 @@ impl super::Command<command::runtime::SSET> for SSET {
     }
 
     fn start(command: command::runtime::SSET, vm: &mut Vm) -> Self::Result {
-        vm.state
-            .globals_info
-            .set(command.slot_number, command.value);
+        vm.state.globals.set(command.slot_number, command.value);
         command.token.finish()
     }
 }

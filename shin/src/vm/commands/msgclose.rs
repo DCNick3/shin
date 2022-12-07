@@ -6,6 +6,7 @@ impl super::Command<command::runtime::MSGCLOSE> for MSGCLOSE {
     type Result = CommandResult;
 
     fn apply_state(command: &command::runtime::MSGCLOSE, state: &mut VmState) {
+        // TODO: how to mark the closed messagebox in the state>
         todo!()
     }
 

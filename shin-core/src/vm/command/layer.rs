@@ -5,7 +5,7 @@ use num_derive::FromPrimitive;
 
 pub const LAYERBANKS_COUNT: u8 = 0x30;
 pub const LAYERS_COUNT: u32 = 0x100;
-pub const PLANES_COUNT: u32 = 4;
+pub const PLANES_COUNT: usize = 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: u32>(T);
@@ -60,9 +60,6 @@ impl<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: 
 pub type LayerId = Id<u32, { LAYERS_COUNT as u32 }>;
 /// Layer id, but allowing only "real" layers and a "none" value
 pub type LayerIdOpt = IdOpt<u32, { LAYERS_COUNT as u32 }>;
-
-pub type LayerbankId = Id<u8, { LAYERBANKS_COUNT as u32 }>;
-pub type LayerbankIdOpt = IdOpt<u8, { LAYERBANKS_COUNT as u32 }>;
 
 /// Layer id, allowing for the special values -1, -2, -3, -4, -5
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -157,7 +154,7 @@ pub enum LayerProperty {
     Prop13 = 13,
     Prop14 = 14,
     Prop15 = 15,
-    /// Rotation in degrees
+    /// Rotation of the layer in degrees
     Rotation = 16,
     Prop17 = 17,
     Prop18 = 18,
@@ -238,33 +235,36 @@ pub enum LayerProperty {
 impl LayerProperty {
     pub const COUNT: usize = <LayerProperty as Enum>::LENGTH;
 
-    pub fn initial_value(self) -> f32 {
+    pub fn initial_value(self) -> i32 {
         match self {
-            LayerProperty::Prop2 => 1000.0,
-            LayerProperty::Prop5 => 1000.0,
-            LayerProperty::Prop6 => 1000.0,
-            LayerProperty::Prop7 => 1000.0,
-            LayerProperty::Prop8 => 1000.0,
-            LayerProperty::Prop9 => 1000.0,
-            LayerProperty::Prop12 => 1000.0,
-            LayerProperty::Prop13 => 1000.0,
-            LayerProperty::Prop14 => 1000.0,
-            LayerProperty::Prop15 => 1000.0,
-            LayerProperty::Prop22 => 1.0,
-            LayerProperty::Prop27 => 1.0,
-            LayerProperty::Prop28 => 1000.0,
-            LayerProperty::Prop29 => 1000.0,
-            LayerProperty::Prop30 => 1000.0,
-            LayerProperty::Prop31 => 1000.0,
-            LayerProperty::Prop43 => 1000.0,
-            LayerProperty::Prop51 => 1000.0,
-            LayerProperty::Prop55 => 1000.0,
-            LayerProperty::Prop57 => 1000.0,
-            LayerProperty::Prop73 => 1000.0,
-            LayerProperty::Prop75 => 1000.0,
-            _ => 0.0,
+            LayerProperty::Prop2 => 1000,
+            LayerProperty::Prop5 => 1000,
+            LayerProperty::Prop6 => 1000,
+            LayerProperty::Prop7 => 1000,
+            LayerProperty::Prop8 => 1000,
+            LayerProperty::Prop9 => 1000,
+            LayerProperty::Prop12 => 1000,
+            LayerProperty::Prop13 => 1000,
+            LayerProperty::Prop14 => 1000,
+            LayerProperty::Prop15 => 1000,
+            LayerProperty::Prop22 => 1,
+            LayerProperty::Prop27 => 1,
+            LayerProperty::Prop28 => 1000,
+            LayerProperty::Prop29 => 1000,
+            LayerProperty::Prop30 => 1000,
+            LayerProperty::Prop31 => 1000,
+            LayerProperty::Prop43 => 1000,
+            LayerProperty::Prop51 => 1000,
+            LayerProperty::Prop55 => 1000,
+            LayerProperty::Prop57 => 1000,
+            LayerProperty::Prop73 => 1000,
+            LayerProperty::Prop75 => 1000,
+            _ => 0,
         }
     }
+
+    // TODO: add a function to check whether the property is supported
+    // we can print a warning or smth if it's not
 }
 
 impl FromVmCtx<NumberSpec> for LayerProperty {

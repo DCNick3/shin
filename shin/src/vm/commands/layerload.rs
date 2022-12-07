@@ -1,5 +1,4 @@
 use super::prelude::*;
-use crate::vm::state::LayerbankInfo;
 
 pub struct LAYERLOAD;
 
@@ -7,47 +6,29 @@ impl super::Command<command::runtime::LAYERLOAD> for LAYERLOAD {
     type Result = CommandResult;
 
     fn apply_state(command: &command::runtime::LAYERLOAD, state: &mut VmState) {
-        todo!()
-    }
+        assert_eq!(command.leave_uninitialized, 0); // I __think__ this has to do with init props/leave them be, but I'm not sure
 
-    fn start(command: command::runtime::LAYERLOAD, vm: &mut Vm) -> Self::Result {
-        // TODO: handle the delay?
         match command.layer_id.repr() {
             VLayerIdRepr::Neg1 | VLayerIdRepr::Neg2 | VLayerIdRepr::Neg3 | VLayerIdRepr::Neg4 => {
-                unreachable!()
+                unreachable!("You can't load special layers")
             }
             VLayerIdRepr::Selected => {
                 todo!("LAYERLOAD: selected");
             }
             VLayerIdRepr::Layer(id) => {
-                let layerbank = vm
-                    .state
-                    .layerbank_allocator
-                    .get_or_allocate_layerbank_id(id)
-                    .expect("layerbank allocation failed");
-                let info = &mut vm.state.layerbank_info[layerbank.raw() as usize];
-                if let Some(old) = info {
-                    if old.ty == command.layer_type && old.layerinit_params == command.params {
-                        // nothing to do (yet)
-                        // TODO: the game has slightly different logic, setting some flags? resetting the properties?
-                    } else {
-                        *old = LayerbankInfo {
-                            ty: command.layer_type,
-                            layer_id: id,
-                            layerinit_params: command.params,
-                            properties: [0; 90],
-                        };
-                    }
-                } else {
-                    *info = Some(LayerbankInfo {
-                        ty: command.layer_type,
-                        layer_id: id,
-                        layerinit_params: command.params,
-                        properties: [0; 90], // TODO: use proper values
-                    });
-                }
+                // unwrap_or_else is unusable because of borrow checker
+                let layer = match state.layers.get_layer_mut(id) {
+                    None => state.layers.alloc(id),
+                    Some(v) => v,
+                };
+
+                layer.layerinit_params = Some((command.layer_type, command.params));
             }
         }
-        command.token.finish()
+    }
+
+    fn start(command: command::runtime::LAYERLOAD, vm: &mut Vm) -> Self::Result {
+        todo!("LAYERLOAD")
+        // command.token.finish()
     }
 }

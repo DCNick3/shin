@@ -9,7 +9,7 @@ impl super::Command<command::runtime::MSGSET> for MSGSET {
     type Result = CommandYield<MSGSET>;
 
     fn apply_state(command: &command::runtime::MSGSET, state: &mut VmState) {
-        todo!()
+        todo!("Add MSGSET")
     }
 
     fn start(command: command::runtime::MSGSET, _vm: &mut Vm) -> Self::Result {

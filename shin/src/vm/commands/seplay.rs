@@ -6,7 +6,7 @@ impl super::Command<command::runtime::SEPLAY> for SEPLAY {
     type Result = CommandResult;
 
     fn apply_state(command: &command::runtime::SEPLAY, state: &mut VmState) {
-        todo!()
+        warn!("TODO: SEPLAY state: {:?}", command);
     }
 
     fn start(command: command::runtime::SEPLAY, _vm: &mut Vm) -> Self::Result {

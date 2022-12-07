@@ -9,8 +9,8 @@ pub struct WAIT {
 impl super::Command<command::runtime::WAIT> for WAIT {
     type Result = CommandYield<WAIT>;
 
-    fn apply_state(command: &command::runtime::WAIT, state: &mut VmState) {
-        todo!()
+    fn apply_state(_command: &command::runtime::WAIT, _state: &mut VmState) {
+        // nothing to do
     }
 
     fn start(command: command::runtime::WAIT, _vm: &mut Vm) -> Self::Result {
