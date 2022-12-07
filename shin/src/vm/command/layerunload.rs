@@ -15,7 +15,7 @@ impl super::StartableCommand for command::runtime::LAYERUNLOAD {
         }
     }
 
-    fn start(self, _vm: &mut Vm) -> CommandStartResult {
+    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
         todo!("LAYERUNLOAD")
     }
 }

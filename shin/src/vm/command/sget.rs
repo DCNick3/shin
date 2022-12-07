@@ -1,12 +1,12 @@
 use super::prelude::*;
 
 impl super::StartableCommand for command::runtime::SGET {
-    fn apply_state(&self, state: &mut VmState) {
-        todo!()
+    fn apply_state(&self, _state: &mut VmState) {
+        // nothing to do
     }
 
-    fn start(self, vm: &mut Vm) -> CommandStartResult {
-        let value = vm.state.globals.get(self.slot_number);
+    fn start(self, vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
+        let value = vm_state.globals.get(self.slot_number);
         self.token.finish(value).into()
     }
 }

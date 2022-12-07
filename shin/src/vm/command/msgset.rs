@@ -6,11 +6,11 @@ pub struct MSGSET {
 }
 
 impl super::StartableCommand for command::runtime::MSGSET {
-    fn apply_state(&self, state: &mut VmState) {
+    fn apply_state(&self, _state: &mut VmState) {
         todo!("Add MSGSET")
     }
 
-    fn start(self, _vm: &mut Vm) -> CommandStartResult {
+    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
         warn!("TODO: MSGSET: {:?}", self);
 
         todo!("Make a enum variant in ExecutingCommand for MSGSET")
@@ -20,6 +20,17 @@ impl super::StartableCommand for command::runtime::MSGSET {
         //     }
         //     .into(),
         // )
+    }
+}
+
+impl super::UpdatableCommand for MSGSET {
+    fn update(
+        &mut self,
+        _context: &UpdateContext,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> Option<CommandResult> {
+        todo!()
     }
 }
 

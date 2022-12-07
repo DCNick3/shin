@@ -5,7 +5,7 @@ impl super::StartableCommand for command::runtime::SESTOPALL {
         warn!("TODO: SESTOPALL state: {:?}", self);
     }
 
-    fn start(self, _vm: &mut Vm) -> CommandStartResult {
+    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
         warn!("TODO: SESTOPALL: {:?}", self);
         self.token.finish().into()
     }

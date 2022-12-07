@@ -1,9 +1,10 @@
 #![allow(clippy::upper_case_acronyms)]
 
 mod prelude {
+    pub use crate::adv::AdvState;
+    pub use crate::update::UpdateContext;
     pub use crate::vm::command::CommandStartResult;
-    pub use crate::vm::state::VmState;
-    pub use crate::vm::Vm;
+    pub use crate::vm::VmState;
     pub use shin_core::vm::command;
     pub use shin_core::vm::command::layer::VLayerIdRepr;
     pub use shin_core::vm::command::CommandResult;
@@ -29,20 +30,26 @@ mod sset;
 mod wait;
 mod wipe;
 
-use crate::update::UpdateContext;
-use shin_core::vm::command::{CommandResult, RuntimeCommand};
+use msgset::MSGSET;
+use wait::WAIT;
 
 use enum_dispatch::enum_dispatch;
 
-use crate::vm::state::VmState;
-use crate::vm::Vm;
-pub use msgset::MSGSET;
-pub use wait::WAIT;
+use shin_core::vm::command::{CommandResult, RuntimeCommand};
+
+use crate::adv::AdvState;
+use crate::update::UpdateContext;
+use crate::vm::VmState;
 
 #[enum_dispatch]
 pub trait UpdatableCommand {
     // TODO: provide mutable access to Adv Scene state
-    fn update(&mut self, _context: &UpdateContext) -> Option<CommandResult>;
+    fn update(
+        &mut self,
+        context: &UpdateContext,
+        vm_state: &VmState,
+        adv_state: &mut AdvState,
+    ) -> Option<CommandResult>;
 }
 
 // all commands that yield to the game loop should have:
@@ -51,6 +58,7 @@ pub trait UpdatableCommand {
 #[enum_dispatch(UpdatableCommand)]
 pub enum ExecutingCommand {
     WAIT(WAIT),
+    MSGSET(MSGSET),
 }
 
 impl StartableCommand for RuntimeCommand {
@@ -119,10 +127,10 @@ impl StartableCommand for RuntimeCommand {
         }
     }
 
-    fn start(self, vm: &mut Vm) -> CommandStartResult {
+    fn start(self, vm_state: &VmState, adv_state: &mut AdvState) -> CommandStartResult {
         match self {
             // RuntimeCommand::EXIT(v) => v.start(vm),
-            RuntimeCommand::SGET(v) => v.start(vm),
+            RuntimeCommand::SGET(v) => v.start(vm_state, adv_state),
             _ => todo!(),
         }
     }
@@ -151,5 +159,5 @@ impl From<ExecutingCommand> for CommandStartResult {
 pub trait StartableCommand {
     fn apply_state(&self, state: &mut VmState);
     // TODO: this should have a constant access to the VmState, but mutable access to layers, music players, etc.
-    fn start(self, vm: &mut Vm) -> CommandStartResult;
+    fn start(self, vm_state: &VmState, adv_state: &mut AdvState) -> CommandStartResult;
 }

@@ -5,7 +5,7 @@ impl super::StartableCommand for command::runtime::SAVEINFO {
         state.save_info.set_save_info(self.level, self.info.clone());
     }
 
-    fn start(self, _vm: &mut Vm) -> CommandStartResult {
+    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
         self.token.finish().into()
     }
 }

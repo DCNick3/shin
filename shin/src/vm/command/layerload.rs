@@ -23,7 +23,7 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
         }
     }
 
-    fn start(self, vm: &mut Vm) -> CommandStartResult {
+    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
         todo!("LAYERLOAD")
         // command.token.finish().into()
     }

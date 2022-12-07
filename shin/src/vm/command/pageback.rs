@@ -8,7 +8,7 @@ impl super::StartableCommand for command::runtime::PAGEBACK {
         // ignore for now (along with WIPE)
     }
 
-    fn start(self, _vm: &mut Vm) -> CommandStartResult {
+    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
         warn!("TODO: PAGEBACK: {:?}", self);
         self.token.finish().into()
     }

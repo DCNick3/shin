@@ -1,6 +1,5 @@
 use super::prelude::*;
 use crate::update::{Ticks, UpdateContext};
-use crate::vm::command::UpdatableCommand;
 use std::time::Duration;
 use tracing::{debug, trace};
 
@@ -14,7 +13,7 @@ impl super::StartableCommand for command::runtime::WAIT {
         // nothing to do
     }
 
-    fn start(self, _vm: &mut Vm) -> CommandStartResult {
+    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
         assert_eq!(self.allow_interrupt, 0);
         CommandStartResult::Yield(
             WAIT {
@@ -26,8 +25,13 @@ impl super::StartableCommand for command::runtime::WAIT {
     }
 }
 
-impl UpdatableCommand for WAIT {
-    fn update(&mut self, context: &UpdateContext) -> Option<CommandResult> {
+impl super::UpdatableCommand for WAIT {
+    fn update(
+        &mut self,
+        context: &UpdateContext,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> Option<CommandResult> {
         trace!("WAIT: {:?} {:?}", self.waiting_left, context.delta());
         self.waiting_left = self.waiting_left.saturating_sub(context.delta());
         if self.waiting_left <= Duration::ZERO {
