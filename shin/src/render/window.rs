@@ -2,6 +2,7 @@ use std::iter;
 use tracing::warn;
 
 use winit::dpi::LogicalSize;
+use winit::window::Fullscreen;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -209,6 +210,7 @@ pub async fn run() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_inner_size(LogicalSize::new(1920, 1080))
+        .with_maximized(true)
         .build(&event_loop)
         .unwrap();
 
@@ -248,11 +250,27 @@ pub async fn run() {
                             input:
                                 KeyboardInput {
                                     state: ElementState::Pressed,
-                                    virtual_keycode: Some(VirtualKeyCode::Escape),
+                                    virtual_keycode:
+                                        Some(VirtualKeyCode::Escape | VirtualKeyCode::Q),
                                     ..
                                 },
                             ..
                         } => *control_flow = ControlFlow::Exit,
+                        WindowEvent::KeyboardInput {
+                            input:
+                                KeyboardInput {
+                                    state: ElementState::Pressed,
+                                    virtual_keycode: Some(VirtualKeyCode::F11),
+                                    ..
+                                },
+                            ..
+                        } => {
+                            window.set_fullscreen(
+                                window
+                                    .fullscreen()
+                                    .map_or_else(|| Some(Fullscreen::Borderless(None)), |_| None),
+                            );
+                        }
                         WindowEvent::Resized(physical_size) => {
                             state.resize(*physical_size);
                         }

@@ -63,9 +63,9 @@ impl PictureLayer {
         });
 
         let mut interpolator = Interpolator::new(0.0);
-        interpolator.enqueue(400.0, 1.5, Easing::EaseIn);
-        interpolator.enqueue(-400.0, 2.0, Easing::Identity);
-        interpolator.enqueue(0.0, 1.5, Easing::EaseOut);
+        interpolator.enqueue(400.0, 6.0, Easing::EaseIn);
+        interpolator.enqueue(-400.0, 8.0, Easing::Identity);
+        interpolator.enqueue(0.0, 6.0, Easing::EaseOut);
 
         Self {
             picture,

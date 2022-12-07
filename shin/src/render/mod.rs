@@ -68,12 +68,9 @@ pub struct RenderTarget {
 }
 
 impl RenderTarget {
-    pub fn new(
-        device: &wgpu::Device,
-        size: (u32, u32),
-        format: wgpu::TextureFormat,
-        label: Option<&str>,
-    ) -> Self {
+    const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+
+    pub fn new(device: &wgpu::Device, size: (u32, u32), label: Option<&str>) -> Self {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label,
             size: wgpu::Extent3d {
@@ -84,7 +81,7 @@ impl RenderTarget {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format,
+            format: Self::FORMAT,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         });
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -103,6 +100,25 @@ impl RenderTarget {
             view,
             sampler,
         }
+    }
+
+    pub fn resize(&mut self, device: &wgpu::Device, size: (u32, u32)) {
+        self.texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("RenderTarget texture"),
+            size: wgpu::Extent3d {
+                width: size.0,
+                height: size.1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: Self::FORMAT,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        });
+        self.view = self
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
     }
 
     pub fn create_render_pass<'a>(
@@ -127,4 +143,5 @@ impl RenderTarget {
 
 pub trait Renderable {
     fn render(&self, context: &mut RenderContext);
+    fn resize(&mut self, size: (u32, u32));
 }
