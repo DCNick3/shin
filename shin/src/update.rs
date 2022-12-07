@@ -1,5 +1,6 @@
 use derive_more::{Add, AddAssign, Sub, SubAssign};
 use std::ops::Div;
+use std::time::Duration;
 
 #[derive(Debug, Copy, Clone, Add, AddAssign, Sub, SubAssign, PartialEq, PartialOrd)]
 pub struct Ticks(pub f32);
@@ -13,8 +14,16 @@ impl Ticks {
         Self(seconds * TICKS_PER_SECOND)
     }
 
+    pub fn from_duration(duration: Duration) -> Self {
+        Self::from_seconds(duration.as_secs_f32())
+    }
+
     pub fn as_seconds(&self) -> f32 {
         self.0 / TICKS_PER_SECOND
+    }
+
+    pub fn as_duration(&self) -> Duration {
+        Duration::from_secs_f32(self.as_seconds())
     }
 }
 
@@ -35,6 +44,9 @@ impl<'a> UpdateContext<'a> {
         Self { time }
     }
 
+    pub fn delta(&self) -> Duration {
+        self.time.delta()
+    }
     pub fn delta_ticks(&self) -> Ticks {
         Ticks::from_seconds(self.time.delta_seconds())
     }

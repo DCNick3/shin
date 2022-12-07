@@ -1,99 +1,26 @@
-use crate::vm::commands::{Command, CommandStartResult};
 use shin_core::format::scenario::Scenario;
-use shin_core::vm::command::{CommandResult, RuntimeCommand};
-use shin_core::vm::AdvVm;
+use shin_core::vm::Scripter;
 use state::VmState;
 use std::sync::Arc;
 
-mod commands;
+mod command;
 mod state;
+
+pub use command::ExecutingCommand;
 
 pub struct Vm {
     scenario: Arc<Scenario>,
-    vm: AdvVm,
+    scripter: Scripter,
     state: VmState,
 }
 
 impl Vm {
     pub fn new(scenario: Arc<Scenario>, init_val: i32, random_seed: u32) -> Self {
         Self {
-            vm: AdvVm::new(&scenario, init_val, random_seed),
+            scripter: Scripter::new(&scenario, init_val, random_seed),
             state: VmState::new(),
             scenario,
         }
-    }
-}
-
-pub enum ExecuteCommandResult {
-    Continue(CommandResult),
-    Yield,
-    Exit,
-}
-
-// TODO: make this & also a yielded value enum into a macro over command types
-// prolly even generate the cmd names in shin-core?
-#[allow(clippy::unit_arg)]
-fn execute_command(vm: &mut Vm, command: RuntimeCommand) -> ExecuteCommandResult {
-    match command {
-        RuntimeCommand::EXIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SGET(cmd) => commands::SGET::start(cmd, vm).apply_result(),
-        RuntimeCommand::SSET(cmd) => commands::SSET::start(cmd, vm).apply_result(),
-        RuntimeCommand::WAIT(cmd) => commands::WAIT::start(cmd, vm).apply_result(),
-        RuntimeCommand::MSGINIT(cmd) => commands::MSGINIT::start(cmd, vm).apply_result(),
-        RuntimeCommand::MSGSET(cmd) => commands::MSGSET::start(cmd, vm).apply_result(),
-        RuntimeCommand::MSGWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::MSGSIGNAL(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::MSGSYNC(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::MSGCLOSE(cmd) => commands::MSGCLOSE::start(cmd, vm).apply_result(),
-        RuntimeCommand::SELECT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::WIPE(cmd) => commands::WIPE::start(cmd, vm).apply_result(),
-        RuntimeCommand::WIPEWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::BGMPLAY(cmd) => commands::BGMPLAY::start(cmd, vm).apply_result(),
-        RuntimeCommand::BGMSTOP(cmd) => commands::BGMSTOP::start(cmd, vm).apply_result(),
-        RuntimeCommand::BGMVOL(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::BGMWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::BGMSYNC(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SEPLAY(cmd) => commands::SEPLAY::start(cmd, vm).apply_result(),
-        RuntimeCommand::SESTOP(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SESTOPALL(cmd) => commands::SESTOPALL::start(cmd, vm).apply_result(),
-        RuntimeCommand::SEVOL(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SEPAN(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SEWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SEONCE(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::VOICEPLAY(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::VOICESTOP(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::VOICEWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SYSSE(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SAVEINFO(cmd) => commands::SAVEINFO::start(cmd, vm).apply_result(),
-        RuntimeCommand::AUTOSAVE(cmd) => commands::AUTOSAVE::start(cmd, vm).apply_result(),
-        RuntimeCommand::EVBEGIN(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::EVEND(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::RESUMESET(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::RESUME(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SYSCALL(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::TROPHY(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::UNLOCK(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::LAYERINIT(cmd) => commands::LAYERINIT::start(cmd, vm).apply_result(),
-        RuntimeCommand::LAYERLOAD(cmd) => commands::LAYERLOAD::start(cmd, vm).apply_result(),
-        RuntimeCommand::LAYERUNLOAD(cmd) => commands::LAYERUNLOAD::start(cmd, vm).apply_result(),
-        RuntimeCommand::LAYERCTRL(cmd) => commands::LAYERCTRL::start(cmd, vm).apply_result(),
-        RuntimeCommand::LAYERWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::LAYERSWAP(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::LAYERSELECT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::MOVIEWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::TRANSSET(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::TRANSWAIT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::PAGEBACK(cmd) => commands::PAGEBACK::start(cmd, vm).apply_result(),
-        RuntimeCommand::PLANESELECT(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::PLANECLEAR(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::MASKLOAD(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::MASKUNLOAD(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::CHARS(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::TIPSGET(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::QUIZ(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::SHOWCHARS(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::NOTIFYSET(cmd) => todo!("Execute command {:?}", cmd),
-        RuntimeCommand::DEBUGOUT(cmd) => todo!("Execute command {:?}", cmd),
     }
 }
 

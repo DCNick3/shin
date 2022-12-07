@@ -1,14 +1,10 @@
 use super::prelude::*;
 
-pub struct LAYERLOAD;
+impl super::StartableCommand for command::runtime::LAYERLOAD {
+    fn apply_state(&self, state: &mut VmState) {
+        assert_eq!(self.leave_uninitialized, 0); // I __think__ this has to do with init props/leave them be, but I'm not sure
 
-impl super::Command<command::runtime::LAYERLOAD> for LAYERLOAD {
-    type Result = CommandResult;
-
-    fn apply_state(command: &command::runtime::LAYERLOAD, state: &mut VmState) {
-        assert_eq!(command.leave_uninitialized, 0); // I __think__ this has to do with init props/leave them be, but I'm not sure
-
-        match command.layer_id.repr() {
+        match self.layer_id.repr() {
             VLayerIdRepr::Neg1 | VLayerIdRepr::Neg2 | VLayerIdRepr::Neg3 | VLayerIdRepr::Neg4 => {
                 unreachable!("You can't load special layers")
             }
@@ -22,13 +18,13 @@ impl super::Command<command::runtime::LAYERLOAD> for LAYERLOAD {
                     Some(v) => v,
                 };
 
-                layer.layerinit_params = Some((command.layer_type, command.params));
+                layer.layerinit_params = Some((self.layer_type, self.params));
             }
         }
     }
 
-    fn start(command: command::runtime::LAYERLOAD, vm: &mut Vm) -> Self::Result {
+    fn start(self, vm: &mut Vm) -> CommandStartResult {
         todo!("LAYERLOAD")
-        // command.token.finish()
+        // command.token.finish().into()
     }
 }

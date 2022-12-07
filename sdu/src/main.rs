@@ -101,7 +101,7 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             let scenario = Bytes::from(scenario);
             let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
 
-            let mut vm = shin_core::vm::AdvVm::new(&scenario, init_val, 42);
+            let mut vm = shin_core::vm::Scripter::new(&scenario, init_val, 42);
             let mut result = CommandResult::None;
             loop {
                 // NOTE: usually you would want to do something when the VM has returned "Pending"

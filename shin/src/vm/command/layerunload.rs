@@ -1,12 +1,8 @@
 use super::prelude::*;
 
-pub struct LAYERUNLOAD;
-
-impl super::Command<command::runtime::LAYERUNLOAD> for LAYERUNLOAD {
-    type Result = CommandResult;
-
-    fn apply_state(command: &command::runtime::LAYERUNLOAD, state: &mut VmState) {
-        match command.layer_id.repr() {
+impl super::StartableCommand for command::runtime::LAYERUNLOAD {
+    fn apply_state(&self, state: &mut VmState) {
+        match self.layer_id.repr() {
             VLayerIdRepr::Neg1 | VLayerIdRepr::Neg2 | VLayerIdRepr::Neg3 | VLayerIdRepr::Neg4 => {
                 unreachable!("You can't unload special layers")
             }
@@ -19,7 +15,7 @@ impl super::Command<command::runtime::LAYERUNLOAD> for LAYERUNLOAD {
         }
     }
 
-    fn start(command: command::runtime::LAYERUNLOAD, vm: &mut Vm) -> Self::Result {
+    fn start(self, _vm: &mut Vm) -> CommandStartResult {
         todo!("LAYERUNLOAD")
     }
 }

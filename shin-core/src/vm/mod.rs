@@ -14,14 +14,16 @@ use smallvec::SmallVec;
 use tracing::{instrument, trace};
 
 // TODO: add a listener trait that can be used to get notified of commands
-pub struct AdvVm {
+/// The scripter reads scenarios and issues commands.
+/// Those are usually handled by the Adv scene in the game (but you can do other stuff if you want to).
+pub struct Scripter {
     /// Vm execution context
     ctx: VmCtx,
     instruction_reader: InstructionReader,
     position: CodeAddress,
 }
 
-impl AdvVm {
+impl Scripter {
     pub fn new(scenario: &Scenario, init_val: i32, random_seed: u32) -> Self {
         Self {
             ctx: VmCtx::new(init_val, random_seed),

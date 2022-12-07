@@ -37,6 +37,7 @@ num-derive = "0.3.3"
 num-traits = "0.2.15"
 enum-map = "2.4.1"
 derive_more = "0.99.17"
+enum_dispatch = "0.3.8"
 
 [features]
 default = []
