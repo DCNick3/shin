@@ -1,5 +1,8 @@
+mod layer_group;
 mod picture_layer;
 
+use cgmath::Matrix4;
+use enum_dispatch::enum_dispatch;
 pub use picture_layer::PictureLayer;
 
 use crate::interpolator::{Easing, Interpolator};
@@ -42,6 +45,11 @@ impl LayerProperties {
     ) {
         self.properties[property].enqueue(value, time, easing);
     }
+
+    pub fn calculate_transform(&self) -> Matrix4<f32> {
+        // TODO: actually use all the properties
+        Matrix4::from_angle_z(cgmath::Deg(self.get_property(LayerProperty::Rotation)))
+    }
 }
 
 impl Updatable for LayerProperties {
@@ -81,7 +89,13 @@ impl LayerPropertiesSnapshot {
     }
 }
 
+#[enum_dispatch]
 pub trait Layer: Renderable + Updatable {
     fn properties(&self) -> &LayerProperties;
     fn properties_mut(&mut self) -> &mut LayerProperties;
+}
+
+#[enum_dispatch(Layer, Renderable, Updatable)]
+pub enum UserLayer {
+    PictureLayer,
 }

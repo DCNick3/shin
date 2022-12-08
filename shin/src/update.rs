@@ -1,6 +1,10 @@
 use derive_more::{Add, AddAssign, Sub, SubAssign};
+use enum_dispatch::enum_dispatch;
 use std::ops::Div;
 use std::time::Duration;
+
+use crate::layer::UserLayer;
+use crate::render::GpuCommonResources;
 
 #[derive(Debug, Copy, Clone, Add, AddAssign, Sub, SubAssign, PartialEq, PartialOrd)]
 pub struct Ticks(pub f32);
@@ -36,22 +40,20 @@ impl Div for Ticks {
 }
 
 pub struct UpdateContext<'a> {
-    time: &'a bevy_time::Time,
+    pub time: &'a bevy_time::Time,
+    pub gpu_resources: &'a GpuCommonResources,
 }
 
 impl<'a> UpdateContext<'a> {
-    pub fn new(time: &'a bevy_time::Time) -> Self {
-        Self { time }
-    }
-
-    pub fn delta(&self) -> Duration {
+    pub fn time_delta(&self) -> Duration {
         self.time.delta()
     }
-    pub fn delta_ticks(&self) -> Ticks {
+    pub fn time_delta_ticks(&self) -> Ticks {
         Ticks::from_seconds(self.time.delta_seconds())
     }
 }
 
+#[enum_dispatch]
 pub trait Updatable {
     fn update(&mut self, context: &UpdateContext);
 }

@@ -1,4 +1,7 @@
-use crate::render::{RenderContext, Renderable};
+mod layers;
+
+use crate::render::GpuCommonResources;
+use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
 use crate::vm::{ExecutingCommand, UpdatableCommand, VmState};
 use shin_core::format::scenario::Scenario;
@@ -23,29 +26,37 @@ impl Updatable for Adv {
 }
 
 impl Renderable for Adv {
-    fn render<'a>(&'a self, context: &mut RenderContext<'a, '_>) {
-        self.adv_state.render(context);
+    fn render<'enc>(
+        &'enc self,
+        resources: &'enc GpuCommonResources,
+        render_pass: &mut wgpu::RenderPass<'enc>,
+    ) {
+        self.adv_state.render(resources, render_pass);
     }
 
-    fn resize(&mut self, size: (u32, u32)) {
-        self.adv_state.resize(size);
+    fn resize(&mut self, resources: &GpuCommonResources, size: (u32, u32)) {
+        self.adv_state.resize(resources, size);
     }
 }
 
 pub struct AdvState {}
 
 impl Updatable for AdvState {
-    fn update(&mut self, context: &UpdateContext) {
+    fn update(&mut self, _context: &UpdateContext) {
         todo!()
     }
 }
 
 impl Renderable for AdvState {
-    fn render<'a>(&'a self, context: &mut RenderContext<'a, '_>) {
+    fn render<'enc>(
+        &'enc self,
+        _resources: &'enc GpuCommonResources,
+        _render_pass: &mut wgpu::RenderPass<'enc>,
+    ) {
         todo!()
     }
 
-    fn resize(&mut self, size: (u32, u32)) {
+    fn resize(&mut self, _resources: &GpuCommonResources, _size: (u32, u32)) {
         todo!()
     }
 }

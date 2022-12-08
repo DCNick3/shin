@@ -2176,6 +2176,7 @@ dependencies = [
  "enum_dispatch",
  "futures",
  "image",
+ "itertools",
  "num-derive",
  "num-traits",
  "pollster",

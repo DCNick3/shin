@@ -1,5 +1,6 @@
-use crate::render::bind_group_layouts::BindGroupLayouts;
+use crate::render::bind_groups::{BindGroupLayouts, CameraBindGroup};
 use cgmath::{Matrix4, SquareMatrix};
+use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 #[repr(C)]
@@ -8,29 +9,13 @@ struct CameraParams {
     pub projection_matrix: Matrix4<f32>,
 }
 
-pub fn make_camera_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("camera_bind_group_layout"),
-        entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: None, // TODO: specify this
-            },
-            count: None,
-        }],
-    })
-}
-
 pub const VIRTUAL_WIDTH: f32 = 1920.0;
 pub const VIRTUAL_HEIGHT: f32 = 1080.0;
 
 pub struct Camera {
     projection_matrix: Matrix4<f32>,
     buffer: wgpu::Buffer,
-    bind_group: wgpu::BindGroup,
+    bind_group: Arc<CameraBindGroup>,
 }
 
 impl Camera {
@@ -69,19 +54,19 @@ impl Camera {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let bind_group = CameraBindGroup(device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("camera_bind_group"),
             layout: &bind_group_layouts.camera,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: buffer.as_entire_binding(),
             }],
-        });
+        }));
 
         Self {
             projection_matrix,
             buffer,
-            bind_group,
+            bind_group: Arc::new(bind_group),
         }
     }
 
@@ -92,7 +77,7 @@ impl Camera {
         queue.write_buffer(&self.buffer, 0, contents);
     }
 
-    pub fn bind_group(&self) -> &wgpu::BindGroup {
+    pub fn bind_group(&self) -> &Arc<CameraBindGroup> {
         &self.bind_group
     }
 }

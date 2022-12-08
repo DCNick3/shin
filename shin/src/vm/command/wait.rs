@@ -32,8 +32,8 @@ impl super::UpdatableCommand for WAIT {
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> Option<CommandResult> {
-        trace!("WAIT: {:?} {:?}", self.waiting_left, context.delta());
-        self.waiting_left = self.waiting_left.saturating_sub(context.delta());
+        trace!("WAIT: {:?} {:?}", self.waiting_left, context.time_delta());
+        self.waiting_left = self.waiting_left.saturating_sub(context.time_delta());
         if self.waiting_left <= Duration::ZERO {
             debug!("WAIT: done");
             // TODO: this is kinda boilerplaty, maybe we want to have a TokenCell type?

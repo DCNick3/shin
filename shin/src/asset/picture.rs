@@ -1,4 +1,4 @@
-use crate::render::bind_group_layouts::BindGroupLayouts;
+use crate::render::{GpuCommonResources, TextureBindGroup};
 use anyhow::Result;
 use shin_core::format::picture::SimpleMergedPicture;
 use std::num::NonZeroU32;
@@ -30,7 +30,7 @@ fn make_texture(device: &wgpu::Device, picture: &Picture) -> wgpu::Texture {
 pub struct GpuPicture {
     pub texture: wgpu::Texture,
     pub sampler: wgpu::Sampler,
-    pub bind_group: wgpu::BindGroup,
+    pub bind_group: TextureBindGroup,
     pub width: u32,
     pub height: u32,
     pub origin_x: f32,
@@ -39,14 +39,9 @@ pub struct GpuPicture {
 }
 
 impl GpuPicture {
-    pub fn load(
-        device: &wgpu::Device,
-        bind_group_layouts: &BindGroupLayouts,
-        queue: &mut wgpu::Queue,
-        picture: Picture,
-    ) -> GpuPicture {
-        let texture = make_texture(device, &picture);
-        queue.write_texture(
+    pub fn load(resources: &GpuCommonResources, picture: Picture) -> GpuPicture {
+        let texture = make_texture(&resources.device, &picture);
+        resources.queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &texture,
                 mip_level: 0,
@@ -66,7 +61,7 @@ impl GpuPicture {
             },
         );
 
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        let sampler = resources.device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some(&format!("picture_sampler_{:08x}", picture.picture_id)),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -77,22 +72,14 @@ impl GpuPicture {
             ..Default::default()
         });
 
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some(&format!("picture_bind_group_{:08x}", picture.picture_id)),
-            layout: &bind_group_layouts.picture,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(
-                        &texture.create_view(&Default::default()),
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-        });
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let bind_group = TextureBindGroup::new(
+            &resources,
+            &texture_view,
+            &sampler,
+            Some(&format!("picture_bind_group_{:08x}", picture.picture_id)),
+        );
 
         GpuPicture {
             texture,
@@ -113,28 +100,4 @@ impl GpuPicture {
     pub fn height(&self) -> u32 {
         self.height
     }
-}
-
-pub fn make_picture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("picture_bind_group_layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                count: None,
-            },
-        ],
-    })
 }

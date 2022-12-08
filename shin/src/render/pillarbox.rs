@@ -1,6 +1,6 @@
-use crate::render::camera::{VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
-use crate::render::pipelines::{DrawSource, PositionVertex};
-use crate::render::{pipelines, RenderContext, Renderable};
+use crate::render::{
+    GpuCommonResources, PosVertex, Renderable, VertexSource, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
+};
 use cgmath::{Vector3, Vector4};
 use wgpu::util::DeviceExt;
 
@@ -11,7 +11,7 @@ pub struct Pillarbox {
 }
 
 impl Pillarbox {
-    pub fn new(device: &wgpu::Device) -> Self {
+    pub fn new(resources: &GpuCommonResources) -> Self {
         let letterbox_size = 10000000.0;
         let left = -VIRTUAL_WIDTH / 2.0;
         let ultra_left = left - letterbox_size;
@@ -26,52 +26,52 @@ impl Pillarbox {
         // those will paint over with black everything that should not be seen
         let vertices = [
             // 0
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(left, top, 0.0),
             },
             // 1
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(left, bottom, 0.0),
             },
             // 2
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(right, top, 0.0),
             },
             // 3
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(right, bottom, 0.0),
             },
             // ====
             // 4
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(ultra_left, top, 0.0),
             },
             // 5
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(ultra_left, bottom, 0.0),
             },
             // 6
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(ultra_right, top, 0.0),
             },
             // 7
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(ultra_right, bottom, 0.0),
             },
             // 8
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(left, ultra_top, 0.0),
             },
             // 9
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(right, ultra_top, 0.0),
             },
             // 10
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(left, ultra_bottom, 0.0),
             },
             // 11
-            PositionVertex {
+            PosVertex {
                 position: Vector3::new(right, ultra_bottom, 0.0),
             },
         ];
@@ -83,17 +83,22 @@ impl Pillarbox {
             1, 3, 11, 1, 10, 11, // bottom
         ];
 
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("pillarbox_vertex_buffer"),
-            contents: bytemuck::cast_slice(&vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
+        let vertex_buffer =
+            resources
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("pillarbox_vertex_buffer"),
+                    contents: bytemuck::cast_slice(&vertices),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
 
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("pillarbox_index_buffer"),
-            contents: bytemuck::cast_slice(&indices),
-            usage: wgpu::BufferUsages::INDEX,
-        });
+        let index_buffer = resources
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("pillarbox_index_buffer"),
+                contents: bytemuck::cast_slice(&indices),
+                usage: wgpu::BufferUsages::INDEX,
+            });
 
         Self {
             vertex_buffer,
@@ -104,10 +109,14 @@ impl Pillarbox {
 }
 
 impl Renderable for Pillarbox {
-    fn render<'a>(&'a self, ctx: &mut RenderContext<'a, '_>) {
-        pipelines::fill::draw(
-            ctx,
-            DrawSource::VertexIndexBuffer {
+    fn render<'enc>(
+        &'enc self,
+        resources: &'enc GpuCommonResources,
+        render_pass: &mut wgpu::RenderPass<'enc>,
+    ) {
+        resources.draw_fill(
+            render_pass,
+            VertexSource::VertexIndexBuffer {
                 vertex_buffer: &self.vertex_buffer,
                 index_buffer: &self.index_buffer,
                 indices: 0..self.num_indices,
@@ -117,7 +126,7 @@ impl Renderable for Pillarbox {
         );
     }
 
-    fn resize(&mut self, _size: (u32, u32)) {
+    fn resize(&mut self, _resources: &GpuCommonResources, _size: (u32, u32)) {
         // No internal state to resize
     }
 }

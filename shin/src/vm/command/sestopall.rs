@@ -1,7 +1,7 @@
 use super::prelude::*;
 
 impl super::StartableCommand for command::runtime::SESTOPALL {
-    fn apply_state(&self, state: &mut VmState) {
+    fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: SESTOPALL state: {:?}", self);
     }
 

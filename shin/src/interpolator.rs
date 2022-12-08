@@ -76,7 +76,7 @@ impl Interpolator {
     }
 
     pub fn update(&mut self, context: &UpdateContext) {
-        self.t_now += context.delta_ticks();
+        self.t_now += context.time_delta_ticks();
         if self.t_now >= self.t_final {
             if let Some(event) = self.queue.pop_back() {
                 debug!("Switch: {:?}", event);

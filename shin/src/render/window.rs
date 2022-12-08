@@ -1,4 +1,3 @@
-use std::iter;
 use tracing::warn;
 
 use shin_core::vm::command::layer::LayerProperty;
@@ -15,25 +14,23 @@ use super::pipelines::Pipelines;
 use crate::asset::picture::GpuPicture;
 use crate::interpolator::Easing;
 use crate::layer::{Layer, PictureLayer};
-use crate::render::bind_group_layouts::BindGroupLayouts;
+use crate::render::bind_groups::BindGroupLayouts;
 use crate::render::camera::Camera;
+use crate::render::common_resources::GpuCommonResources;
 use crate::render::pillarbox::Pillarbox;
 use crate::render::pipelines::CommonBinds;
-use crate::render::{RenderContext, Renderable};
+use crate::render::Renderable;
 use crate::update::{Ticks, Updatable, UpdateContext};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 struct State {
     surface: wgpu::Surface,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
-    bind_group_layouts: BindGroupLayouts,
+    resources: GpuCommonResources,
     // TODO: do we want to pull the bevy deps?
     time: bevy_time::Time,
-    pipelines: Pipelines,
     camera: Camera,
     pillarbox: Pillarbox,
     bg_pic: PictureLayer,
@@ -56,7 +53,7 @@ impl State {
             .await
             .unwrap();
 
-        let (device, mut queue) = adapter
+        let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
@@ -76,9 +73,12 @@ impl State {
             .await
             .unwrap();
 
+        // TODO: make a better selection?
+        let texture_format = surface.get_supported_formats(&adapter)[0];
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_supported_formats(&adapter)[0],
+            format: texture_format,
             width: size.width,
             height: size.height,
             present_mode: wgpu::PresentMode::Fifo,
@@ -87,7 +87,7 @@ impl State {
         surface.configure(&device, &config);
 
         let bind_group_layouts = BindGroupLayouts::new(&device);
-        let pipelines = Pipelines::new(&device, &bind_group_layouts, config.format);
+        let pipelines = Pipelines::new(&device, &bind_group_layouts, texture_format);
 
         let window_size = window.inner_size();
         let camera = Camera::new(
@@ -96,12 +96,23 @@ impl State {
             (window_size.width, window_size.height),
         );
 
-        let pillarbox = Pillarbox::new(&device);
+        let resources = GpuCommonResources {
+            device,
+            queue,
+            texture_format,
+            bind_group_layouts,
+            pipelines,
+            common_binds: CommonBinds {
+                camera: camera.bind_group().clone(),
+            },
+        };
+
+        let pillarbox = Pillarbox::new(&resources);
 
         let bg_pic = std::fs::read("assets/ship_p1a.pic").unwrap();
         let bg_pic = crate::asset::picture::load_picture(&bg_pic).unwrap();
-        let bg_pic = GpuPicture::load(&device, &bind_group_layouts, &mut queue, bg_pic);
-        let mut bg_pic = PictureLayer::new(&device, bg_pic);
+        let bg_pic = GpuPicture::load(&resources, bg_pic);
+        let mut bg_pic = PictureLayer::new(&resources, bg_pic);
 
         // test the interpolators
         let props = bg_pic.properties_mut();
@@ -116,13 +127,10 @@ impl State {
 
         Self {
             surface,
-            device,
-            queue,
             config,
             size,
-            bind_group_layouts,
+            resources,
             time: bevy_time::Time::default(),
-            pipelines,
             camera,
             pillarbox,
             bg_pic,
@@ -134,14 +142,15 @@ impl State {
             self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
-            self.surface.configure(&self.device, &self.config);
+            self.surface.configure(&self.resources.device, &self.config);
 
             let new_size = (new_size.width, new_size.height);
 
-            self.camera.resize(&self.device, &mut self.queue, new_size);
+            self.camera
+                .resize(&self.resources.device, &mut self.resources.queue, new_size);
 
-            self.pillarbox.resize(new_size);
-            self.bg_pic.resize(new_size);
+            // self.pillarbox.resize(&gpu_resources, new_size);
+            self.bg_pic.resize(&self.resources, new_size);
         }
     }
 
@@ -153,7 +162,10 @@ impl State {
     fn update(&mut self) {
         self.time.update();
 
-        let update_context = UpdateContext::new(&self.time);
+        let update_context = UpdateContext {
+            time: &self.time,
+            gpu_resources: &self.resources,
+        };
 
         self.bg_pic.update(&update_context);
     }
@@ -164,18 +176,9 @@ impl State {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Render Encoder"),
-            });
-
-        let common_binds = CommonBinds {
-            camera: self.camera.bind_group(),
-        };
+        let mut encoder = self.resources.start_encoder();
 
         {
-            // TODO:
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Root Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -193,20 +196,13 @@ impl State {
                 })],
                 depth_stencil_attachment: None,
             });
-            let mut render_context = RenderContext {
-                device: &self.device,
-                queue: &mut self.queue,
-                render_pass: &mut render_pass,
-                pipelines: &self.pipelines,
-                common_binds: &common_binds,
-                bind_group_layouts: &self.bind_group_layouts,
-            };
 
-            self.bg_pic.render(&mut render_context);
-            self.pillarbox.render(&mut render_context);
+            self.bg_pic.render(&self.resources, &mut render_pass);
+            // self.pillarbox.render(&mut render_context);
         }
 
-        self.queue.submit(iter::once(encoder.finish()));
+        drop(encoder);
+
         output.present();
 
         Ok(())

@@ -57,8 +57,8 @@ pub trait UpdatableCommand {
 // - a enum variant for that type here
 #[enum_dispatch(UpdatableCommand)]
 pub enum ExecutingCommand {
-    WAIT(WAIT),
-    MSGSET(MSGSET),
+    WAIT,
+    MSGSET,
 }
 
 impl StartableCommand for RuntimeCommand {
