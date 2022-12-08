@@ -48,11 +48,11 @@ impl Renderable for PictureLayer {
             render_pass,
             self.vertices.vertex_source(),
             &self.picture.bind_group,
-            self.props.calculate_transform(),
+            self.props.compute_transform(resources.projection_matrix()),
         );
     }
 
-    fn resize(&mut self, _resources: &GpuCommonResources, _size: (u32, u32)) {
+    fn resize(&mut self, _resources: &GpuCommonResources) {
         // no internal buffers to resize
     }
 }

@@ -1,6 +1,6 @@
-use tracing::warn;
+use tracing::{debug, warn};
 
-use shin_core::vm::command::layer::LayerProperty;
+use shin_core::vm::command::layer::{LayerId, LayerProperty};
 use winit::dpi::LogicalSize;
 use winit::window::Fullscreen;
 use winit::{
@@ -13,32 +13,33 @@ use super::pipelines::Pipelines;
 
 use crate::asset::picture::GpuPicture;
 use crate::interpolator::Easing;
-use crate::layer::{Layer, PictureLayer};
+use crate::layer::{Layer, LayerGroup, PictureLayer};
 use crate::render::bind_groups::BindGroupLayouts;
 use crate::render::camera::Camera;
 use crate::render::common_resources::GpuCommonResources;
 use crate::render::pillarbox::Pillarbox;
-use crate::render::pipelines::CommonBinds;
-use crate::render::Renderable;
+use crate::render::{RenderTarget, Renderable, SpriteVertexBuffer};
 use crate::update::{Ticks, Updatable, UpdateContext};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 struct State {
     surface: wgpu::Surface,
-    config: wgpu::SurfaceConfiguration,
-    size: winit::dpi::PhysicalSize<u32>,
+    surface_config: wgpu::SurfaceConfiguration,
+    window_size: (u32, u32),
     resources: GpuCommonResources,
     // TODO: do we want to pull the bevy deps?
     time: bevy_time::Time,
-    camera: Camera,
+    vertices: SpriteVertexBuffer,
+    render_target: RenderTarget,
     pillarbox: Pillarbox,
-    bg_pic: PictureLayer,
+    layer_group: LayerGroup,
 }
 
 impl State {
     async fn new(window: &Window) -> Self {
-        let size = window.inner_size();
+        let window_size = window.inner_size();
+        let window_size = (window_size.width, window_size.height);
 
         // The instance is a handle to our GPU
         // BackendBit::PRIMARY => Vulkan + Metal + DX12 + Browser WebGPU
@@ -62,7 +63,8 @@ impl State {
                     // we're building for the web we'll have to disable some.
                     limits: wgpu::Limits {
                         max_texture_dimension_2d: 4096,
-                        max_push_constant_size: 64,
+                        // TODO: maybe we should use uniform buffers more...
+                        max_push_constant_size: 256,
 
                         ..wgpu::Limits::downlevel_webgl2_defaults()
                     },
@@ -74,38 +76,40 @@ impl State {
             .unwrap();
 
         // TODO: make a better selection?
-        let texture_format = surface.get_supported_formats(&adapter)[0];
+        // TODO: rn we don't really support switching this
+        // it may be worth to add one more pass to convert from internal (Rgba8) to the preferred output format
+        // or support having everything in the preferred format? (sounds hard)
+        let surface_texture_format = surface.get_supported_formats(&adapter)[0];
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: texture_format,
-            width: size.width,
-            height: size.height,
+            format: surface_texture_format,
+            width: window_size.0,
+            height: window_size.1,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
         };
         surface.configure(&device, &config);
 
         let bind_group_layouts = BindGroupLayouts::new(&device);
-        let pipelines = Pipelines::new(&device, &bind_group_layouts, texture_format);
+        let pipelines = Pipelines::new(&device, &bind_group_layouts, surface_texture_format);
 
-        let window_size = window.inner_size();
-        let camera = Camera::new(
-            &device,
-            &bind_group_layouts,
-            (window_size.width, window_size.height),
-        );
+        let camera = Camera::new(window_size);
 
         let resources = GpuCommonResources {
             device,
             queue,
-            texture_format,
             bind_group_layouts,
             pipelines,
-            common_binds: CommonBinds {
-                camera: camera.bind_group().clone(),
-            },
+            camera,
         };
+
+        let vertices = SpriteVertexBuffer::new_fullscreen(&resources);
+        let render_target = RenderTarget::new(
+            &resources,
+            resources.current_render_buffer_size(),
+            Some("Window RenderTarget"),
+        );
 
         let pillarbox = Pillarbox::new(&resources);
 
@@ -125,32 +129,67 @@ impl State {
         );
         props.set_property(LayerProperty::Rotation, 0.0, Ticks(180.0), Easing::EaseOut);
 
+        let mut layer_group = LayerGroup::new(&resources);
+        layer_group.add_layer(LayerId::new(1), bg_pic.into());
+
+        let props = layer_group.properties_mut();
+        props.set_property(
+            LayerProperty::TranslateY,
+            400.0,
+            Ticks(180.0),
+            Easing::EaseIn,
+        );
+        props.set_property(
+            LayerProperty::TranslateY,
+            -400.0,
+            Ticks(240.0),
+            Easing::Identity,
+        );
+        props.set_property(
+            LayerProperty::TranslateY,
+            0.0,
+            Ticks(180.0),
+            Easing::EaseOut,
+        );
+
         Self {
             surface,
-            config,
-            size,
+            surface_config: config,
+            window_size,
             resources,
             time: bevy_time::Time::default(),
-            camera,
+            vertices,
+            render_target,
             pillarbox,
-            bg_pic,
+            layer_group,
         }
     }
 
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
-            self.config.width = new_size.width;
-            self.config.height = new_size.height;
-            self.surface.configure(&self.resources.device, &self.config);
+    fn reconfigure_surface(&mut self) {
+        self.surface
+            .configure(&self.resources.device, &self.surface_config);
+    }
 
-            let new_size = (new_size.width, new_size.height);
+    pub fn resize(&mut self, new_size: (u32, u32)) {
+        if new_size.0 > 0 && new_size.1 > 0 {
+            self.window_size = new_size;
+            self.surface_config.width = new_size.0;
+            self.surface_config.height = new_size.1;
+            self.surface
+                .configure(&self.resources.device, &self.surface_config);
 
-            self.camera
-                .resize(&self.resources.device, &mut self.resources.queue, new_size);
+            self.resources.camera.resize(new_size);
+            self.render_target
+                .resize(&self.resources, self.resources.current_render_buffer_size());
 
-            // self.pillarbox.resize(&gpu_resources, new_size);
-            self.bg_pic.resize(&self.resources, new_size);
+            debug!(
+                "Window resized to {:?}, new render buffer size is {:?}",
+                new_size,
+                self.resources.current_render_buffer_size()
+            );
+
+            self.pillarbox.resize(&self.resources);
+            self.layer_group.resize(&self.resources);
         }
     }
 
@@ -167,41 +206,48 @@ impl State {
             gpu_resources: &self.resources,
         };
 
-        self.bg_pic.update(&update_context);
+        self.layer_group.update(&update_context);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        // render everything to the render target
+        {
+            let mut encoder = self.resources.start_encoder();
+            let mut render_pass = self
+                .render_target
+                .begin_render_pass(&mut encoder, Some("Screen RenderPass"));
+
+            self.layer_group.render(&self.resources, &mut render_pass);
+        }
+
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.resources.start_encoder();
-
         {
+            let mut encoder = self.resources.start_encoder();
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Root Render Pass"),
+                label: Some("Final RenderPass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
-                        }),
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLUE),
                         store: true,
                     },
                 })],
                 depth_stencil_attachment: None,
             });
 
-            self.bg_pic.render(&self.resources, &mut render_pass);
-            // self.pillarbox.render(&mut render_context);
+            self.resources.pipelines.sprite_surface.draw(
+                &mut render_pass,
+                self.vertices.vertex_source(),
+                self.render_target.bind_group(),
+                self.resources.camera.screen_projection_matrix(),
+            );
+            self.pillarbox.render(&self.resources, &mut render_pass);
         }
-
-        drop(encoder);
 
         output.present();
 
@@ -285,11 +331,11 @@ pub async fn run() {
                             );
                         }
                         WindowEvent::Resized(physical_size) => {
-                            state.resize(*physical_size);
+                            state.resize((*physical_size).into());
                         }
                         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                             // new_inner_size is &&mut so w have to dereference it twice
-                            state.resize(**new_inner_size);
+                            state.resize((**new_inner_size).into());
                         }
                         _ => {}
                     }
@@ -301,7 +347,7 @@ pub async fn run() {
                     Ok(_) => {}
                     // Reconfigure the surface if it's lost or outdated
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                        state.resize(state.size)
+                        state.reconfigure_surface();
                     }
                     // The system is out of memory, we should probably quit
                     Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,

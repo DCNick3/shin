@@ -138,9 +138,10 @@ impl FromVmCtx<NumberSpec> for LayerType {
 
 #[derive(FromPrimitive, Enum, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LayerProperty {
-    Prop0 = 0,
-    Prop1 = 1,
-    Prop2 = 2,
+    TranslateX = 0,
+    TranslateY = 1,
+    /// Unused by the game (TODO: machine-readable annotations for this)
+    TranslateZ = 2,
     Prop3 = 3,
     Prop4 = 4,
     Prop5 = 5,
@@ -237,7 +238,7 @@ impl LayerProperty {
 
     pub fn initial_value(self) -> i32 {
         match self {
-            LayerProperty::Prop2 => 1000,
+            LayerProperty::TranslateZ => 1000,
             LayerProperty::Prop5 => 1000,
             LayerProperty::Prop6 => 1000,
             LayerProperty::Prop7 => 1000,

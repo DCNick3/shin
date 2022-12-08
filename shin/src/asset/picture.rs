@@ -1,4 +1,4 @@
-use crate::render::{GpuCommonResources, TextureBindGroup};
+use crate::render::{self, GpuCommonResources, TextureBindGroup};
 use anyhow::Result;
 use shin_core::format::picture::SimpleMergedPicture;
 use std::num::NonZeroU32;
@@ -15,13 +15,20 @@ fn make_texture(device: &wgpu::Device, picture: &Picture) -> wgpu::Texture {
         height: picture.image.height(),
         depth_or_array_layers: 1,
     };
+
+    assert_eq!(
+        render::TEXTURE_FORMAT,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+        "Only Rgba8UnormSrgb is supported for now"
+    );
+
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some(&format!("picture_texture_{:08x}", picture.picture_id)),
         size,
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        format: render::TEXTURE_FORMAT,
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
     });
     texture

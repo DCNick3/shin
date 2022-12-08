@@ -34,8 +34,8 @@ impl Renderable for Adv {
         self.adv_state.render(resources, render_pass);
     }
 
-    fn resize(&mut self, resources: &GpuCommonResources, size: (u32, u32)) {
-        self.adv_state.resize(resources, size);
+    fn resize(&mut self, resources: &GpuCommonResources) {
+        self.adv_state.resize(resources);
     }
 }
 
@@ -56,7 +56,7 @@ impl Renderable for AdvState {
         todo!()
     }
 
-    fn resize(&mut self, _resources: &GpuCommonResources, _size: (u32, u32)) {
+    fn resize(&mut self, _resources: &GpuCommonResources) {
         todo!()
     }
 }

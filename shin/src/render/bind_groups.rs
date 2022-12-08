@@ -2,28 +2,14 @@ use crate::render::common_resources::GpuCommonResources;
 use std::ops::Deref;
 
 pub struct BindGroupLayouts {
-    pub camera: wgpu::BindGroupLayout,
     pub texture: wgpu::BindGroupLayout,
 }
 
 impl BindGroupLayouts {
     pub fn new(device: &wgpu::Device) -> Self {
         Self {
-            camera: device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("camera_bind_group_layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None, // TODO: should I specify this?
-                    },
-                    count: None,
-                }],
-            }),
             texture: device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("texture_bind_group_layout"),
+                label: Some("TextureBindGroup layout"),
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
@@ -44,31 +30,6 @@ impl BindGroupLayouts {
                 ],
             }),
         }
-    }
-}
-
-pub struct CameraBindGroup(pub wgpu::BindGroup);
-impl CameraBindGroup {
-    // CameraBindGroup is actually part of GpuCommonResources...
-    // pub fn new(resources: &GpuCommonResources, camera: BindingResource) -> Self {
-    //     Self(
-    //         resources
-    //             .device
-    //             .create_bind_group(&wgpu::BindGroupDescriptor {
-    //                 label: Some("camera_bind_group"),
-    //                 layout: &resources.bind_group_layouts.camera,
-    //                 entries: &[wgpu::BindGroupEntry {
-    //                     binding: 0,
-    //                     resource: camera,
-    //                 }],
-    //             }),
-    //     )
-    // }
-}
-impl Deref for CameraBindGroup {
-    type Target = wgpu::BindGroup;
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 

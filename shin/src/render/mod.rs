@@ -7,7 +7,7 @@ mod render_target;
 mod vertex_buffer;
 mod window;
 
-pub use bind_groups::{BindGroupLayouts, CameraBindGroup, TextureBindGroup};
+pub use bind_groups::{BindGroupLayouts, TextureBindGroup};
 pub use camera::{VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 pub use common_resources::GpuCommonResources;
 pub use pipelines::{PosColTexVertex, PosVertex, VertexSource};
@@ -20,6 +20,8 @@ use std::ops::{Deref, DerefMut};
 use crate::layer::UserLayer;
 
 pub use window::run;
+
+pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
 
 pub struct SubmittingEncoder<'q> {
     encoder: Option<wgpu::CommandEncoder>,
@@ -54,5 +56,5 @@ pub trait Renderable {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
     );
-    fn resize(&mut self, resources: &GpuCommonResources, size: (u32, u32));
+    fn resize(&mut self, resources: &GpuCommonResources);
 }

@@ -114,7 +114,8 @@ impl Renderable for Pillarbox {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
     ) {
-        resources.draw_fill(
+        render_pass.push_debug_group("Pillarbox");
+        resources.pipelines.fill_surface.draw(
             render_pass,
             VertexSource::VertexIndexBuffer {
                 vertex_buffer: &self.vertex_buffer,
@@ -122,11 +123,13 @@ impl Renderable for Pillarbox {
                 indices: 0..self.num_indices,
                 instances: 0..1,
             },
+            resources.camera.screen_projection_matrix(),
             Vector4::new(0.0, 0.0, 0.0, 1.0),
         );
+        render_pass.pop_debug_group();
     }
 
-    fn resize(&mut self, _resources: &GpuCommonResources, _size: (u32, u32)) {
+    fn resize(&mut self, _resources: &GpuCommonResources) {
         // No internal state to resize
     }
 }

@@ -1,8 +1,9 @@
 mod layer_group;
 mod picture_layer;
 
-use cgmath::Matrix4;
+use cgmath::{Matrix4, SquareMatrix, Vector3};
 use enum_dispatch::enum_dispatch;
+pub use layer_group::LayerGroup;
 pub use picture_layer::PictureLayer;
 
 use crate::interpolator::{Easing, Interpolator};
@@ -46,9 +47,30 @@ impl LayerProperties {
         self.properties[property].enqueue(value, time, easing);
     }
 
-    pub fn calculate_transform(&self) -> Matrix4<f32> {
+    pub fn compute_transform(&self, projection: Matrix4<f32>) -> Matrix4<f32> {
+        macro_rules! get {
+            (Zero) => {
+                0.0
+            };
+            ($property:ident) => {
+                self.get_property(LayerProperty::$property)
+            };
+            ($x_property:ident, $y_property:ident, $z_property:ident) => {
+                Vector3::new(get!($x_property), get!($y_property), get!($z_property))
+            };
+        }
+
         // TODO: actually use all the properties
-        Matrix4::from_angle_z(cgmath::Deg(self.get_property(LayerProperty::Rotation)))
+
+        let transforms = [
+            Matrix4::from_translation(get!(TranslateX, TranslateY, Zero)),
+            Matrix4::from_angle_z(cgmath::Deg(get!(Rotation))), // TODO: handle rotation origin
+            projection,
+        ];
+
+        transforms
+            .into_iter()
+            .fold(Matrix4::identity(), |acc, t| t * acc)
     }
 }
 

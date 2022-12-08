@@ -1,9 +1,9 @@
-use crate::render::bind_groups::{BindGroupLayouts, CameraBindGroup, TextureBindGroup};
+use crate::render;
+use crate::render::bind_groups::{BindGroupLayouts, TextureBindGroup};
 use bytemuck::{Pod, Zeroable};
 use cgmath::{Matrix4, Vector2, Vector3, Vector4};
 use std::mem;
 use std::ops::Range;
-use std::sync::Arc;
 use wgpu::include_wgsl;
 
 #[repr(C)]
@@ -22,11 +22,6 @@ pub struct PosColTexVertex {
 pub struct PosVertex {
     #[f32x3(0)]
     pub position: Vector3<f32>,
-}
-
-pub struct CommonBinds {
-    // TODO: get rid of arc?
-    pub camera: Arc<CameraBindGroup>,
 }
 
 pub enum VertexSource<'a, T> {
@@ -161,9 +156,9 @@ impl SpritePipeline {
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("sprite_pipeline_layout"),
-            bind_group_layouts: &[&bind_group_layouts.camera, &bind_group_layouts.texture],
+            bind_group_layouts: &[&bind_group_layouts.texture],
             push_constant_ranges: &[wgpu::PushConstantRange {
-                stages: wgpu::ShaderStages::all(),
+                stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
                 range: 0..(mem::size_of::<SpriteParams>() as u32),
             }],
         });
@@ -181,17 +176,15 @@ impl SpritePipeline {
 
     pub fn draw<'a>(
         &'a self,
-        common_binds: &'a CommonBinds,
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, PosColTexVertex>,
         texture: &'a TextureBindGroup,
         transform: Matrix4<f32>,
     ) {
         render_pass.set_pipeline(&self.0);
-        render_pass.set_bind_group(0, &common_binds.camera, &[]);
-        render_pass.set_bind_group(1, &texture.0, &[]);
+        render_pass.set_bind_group(0, &texture.0, &[]);
         render_pass.set_push_constants(
-            wgpu::ShaderStages::all(),
+            wgpu::ShaderStages::VERTEX_FRAGMENT,
             0,
             bytemuck::cast_slice(&[SpriteParams { transform }]),
         );
@@ -199,21 +192,28 @@ impl SpritePipeline {
     }
 }
 
+#[derive(Pod, Zeroable, Copy, Clone, Debug)]
+#[repr(C)]
+struct FillParams {
+    pub transform: Matrix4<f32>,
+    pub color: Vector4<f32>,
+}
+
 pub struct FillPipeline(wgpu::RenderPipeline);
 impl FillPipeline {
     pub fn new(
         device: &wgpu::Device,
-        bind_group_layouts: &BindGroupLayouts,
+        _bind_group_layouts: &BindGroupLayouts,
         texture_format: wgpu::TextureFormat,
     ) -> Self {
         let shader_module = device.create_shader_module(include_wgsl!("fill.wgsl"));
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("fill_pipeline_layout"),
-            bind_group_layouts: &[&bind_group_layouts.camera],
+            bind_group_layouts: &[],
             push_constant_ranges: &[wgpu::PushConstantRange {
-                stages: wgpu::ShaderStages::FRAGMENT,
-                range: 0..mem::size_of::<Vector4<f32>>() as u32,
+                stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                range: 0..mem::size_of::<FillParams>() as u32,
             }],
         });
 
@@ -230,17 +230,16 @@ impl FillPipeline {
 
     pub fn draw<'a>(
         &'a self,
-        common_binds: &'a CommonBinds,
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, PosVertex>,
+        transform: Matrix4<f32>,
         color: Vector4<f32>,
     ) {
         render_pass.set_pipeline(&self.0);
-        render_pass.set_bind_group(0, &common_binds.camera, &[]);
         render_pass.set_push_constants(
-            wgpu::ShaderStages::FRAGMENT,
+            wgpu::ShaderStages::VERTEX_FRAGMENT,
             0,
-            bytemuck::cast_slice(&[color]),
+            bytemuck::cast_slice(&[FillParams { transform, color }]),
         );
         source.draw(render_pass);
     }
@@ -248,18 +247,22 @@ impl FillPipeline {
 
 pub struct Pipelines {
     pub sprite: SpritePipeline,
+    pub sprite_surface: SpritePipeline,
     pub fill: FillPipeline,
+    pub fill_surface: FillPipeline,
 }
 
 impl Pipelines {
     pub fn new(
         device: &wgpu::Device,
         bind_group_layouts: &BindGroupLayouts,
-        texture_format: wgpu::TextureFormat,
+        surface_texture_format: wgpu::TextureFormat,
     ) -> Pipelines {
         Pipelines {
-            sprite: SpritePipeline::new(device, bind_group_layouts, texture_format),
-            fill: FillPipeline::new(device, bind_group_layouts, texture_format),
+            sprite: SpritePipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
+            sprite_surface: SpritePipeline::new(device, bind_group_layouts, surface_texture_format),
+            fill: FillPipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
+            fill_surface: FillPipeline::new(device, bind_group_layouts, surface_texture_format),
         }
     }
 }
