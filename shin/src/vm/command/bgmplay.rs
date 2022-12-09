@@ -5,7 +5,12 @@ impl super::StartableCommand for command::runtime::BGMPLAY {
         warn!("TODO: BGMPLAY state: {:?}", self);
     }
 
-    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
+    fn start(
+        self,
+        _context: &UpdateContext,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> CommandStartResult {
         warn!("TODO: BGMPLAY: {:?}", self);
         self.token.finish().into()
     }

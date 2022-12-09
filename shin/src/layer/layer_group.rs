@@ -1,7 +1,7 @@
 use bevy_utils::hashbrown::HashMap;
 use cgmath::Matrix4;
 use itertools::Itertools;
-use shin_core::vm::command::layer::LayerId;
+use shin_core::vm::command::layer::{LayerId, VLayerId};
 
 use crate::layer::{Layer, LayerProperties, UserLayer};
 use crate::render::{GpuCommonResources, SpriteVertexBuffer};
@@ -46,6 +46,20 @@ impl LayerGroup {
 
     pub fn get_layer_mut(&mut self, id: LayerId) -> Option<&mut UserLayer> {
         self.layers.get_mut(&id)
+    }
+
+    pub fn get_vlayer(&self, id: VLayerId) -> impl Iterator<Item = &UserLayer> {
+        std::iter::once(todo!())
+        // self.layers
+        //     .iter()
+        //     .filter(move |(_, layer)| layer.properties().vlayer_id() == id)
+    }
+
+    pub fn get_vlayer_mut(&mut self, id: VLayerId) -> impl Iterator<Item = &mut UserLayer> {
+        std::iter::once(todo!())
+        // self.layers
+        //     .iter_mut()
+        //     .filter(move |(_, layer)| layer.properties().vlayer_id() == id)
     }
 }
 

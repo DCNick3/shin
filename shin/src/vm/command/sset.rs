@@ -5,7 +5,12 @@ impl super::StartableCommand for command::runtime::SSET {
         state.globals.set(self.slot_number, self.value);
     }
 
-    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
+    fn start(
+        self,
+        _context: &UpdateContext,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> CommandStartResult {
         self.token.finish().into()
     }
 }

@@ -1,5 +1,6 @@
 use tracing::{debug, warn};
 
+use shin_core::format::scenario::Scenario;
 use shin_core::vm::command::layer::{LayerId, LayerProperty};
 use winit::dpi::LogicalSize;
 use winit::window::Fullscreen;
@@ -11,6 +12,7 @@ use winit::{
 
 use super::pipelines::Pipelines;
 
+use crate::adv::Adv;
 use crate::asset::picture::GpuPicture;
 use crate::interpolator::Easing;
 use crate::layer::{Layer, LayerGroup, PictureLayer};
@@ -33,7 +35,7 @@ struct State {
     vertices: SpriteVertexBuffer,
     render_target: RenderTarget,
     pillarbox: Pillarbox,
-    layer_group: LayerGroup,
+    adv: Adv,
 }
 
 impl State {
@@ -113,44 +115,48 @@ impl State {
 
         let pillarbox = Pillarbox::new(&resources);
 
-        let bg_pic = std::fs::read("assets/ship_p1a.pic").unwrap();
-        let bg_pic = crate::asset::picture::load_picture(&bg_pic).unwrap();
-        let bg_pic = GpuPicture::load(&resources, bg_pic);
-        let mut bg_pic = PictureLayer::new(&resources, bg_pic);
+        // let bg_pic = std::fs::read("assets/ship_p1a.pic").unwrap();
+        // let bg_pic = crate::asset::picture::load_picture(&bg_pic).unwrap();
+        // let bg_pic = GpuPicture::load(&resources, bg_pic);
+        // let mut bg_pic = PictureLayer::new(&resources, bg_pic);
+        //
+        // // test the interpolators
+        // let props = bg_pic.properties_mut();
+        // props.set_property(LayerProperty::Rotation, 400.0, Ticks(180.0), Easing::EaseIn);
+        // props.set_property(
+        //     LayerProperty::Rotation,
+        //     -400.0,
+        //     Ticks(240.0),
+        //     Easing::Identity,
+        // );
+        // props.set_property(LayerProperty::Rotation, 0.0, Ticks(180.0), Easing::EaseOut);
+        //
+        // let mut layer_group = LayerGroup::new(&resources);
+        // layer_group.add_layer(LayerId::new(1), bg_pic.into());
+        //
+        // let props = layer_group.properties_mut();
+        // props.set_property(
+        //     LayerProperty::TranslateY,
+        //     400.0,
+        //     Ticks(180.0),
+        //     Easing::EaseIn,
+        // );
+        // props.set_property(
+        //     LayerProperty::TranslateY,
+        //     -400.0,
+        //     Ticks(240.0),
+        //     Easing::Identity,
+        // );
+        // props.set_property(
+        //     LayerProperty::TranslateY,
+        //     0.0,
+        //     Ticks(180.0),
+        //     Easing::EaseOut,
+        // );
 
-        // test the interpolators
-        let props = bg_pic.properties_mut();
-        props.set_property(LayerProperty::Rotation, 400.0, Ticks(180.0), Easing::EaseIn);
-        props.set_property(
-            LayerProperty::Rotation,
-            -400.0,
-            Ticks(240.0),
-            Easing::Identity,
-        );
-        props.set_property(LayerProperty::Rotation, 0.0, Ticks(180.0), Easing::EaseOut);
-
-        let mut layer_group = LayerGroup::new(&resources);
-        layer_group.add_layer(LayerId::new(1), bg_pic.into());
-
-        let props = layer_group.properties_mut();
-        props.set_property(
-            LayerProperty::TranslateY,
-            400.0,
-            Ticks(180.0),
-            Easing::EaseIn,
-        );
-        props.set_property(
-            LayerProperty::TranslateY,
-            -400.0,
-            Ticks(240.0),
-            Easing::Identity,
-        );
-        props.set_property(
-            LayerProperty::TranslateY,
-            0.0,
-            Ticks(180.0),
-            Easing::EaseOut,
-        );
+        let scenario = std::fs::read("assets/main.snr").expect("Reading scenario");
+        let scenario = Scenario::new(scenario.into()).expect("Parsing scenario");
+        let adv = Adv::new(&resources, scenario, 0, 42);
 
         Self {
             surface,
@@ -161,7 +167,7 @@ impl State {
             vertices,
             render_target,
             pillarbox,
-            layer_group,
+            adv,
         }
     }
 
@@ -189,7 +195,7 @@ impl State {
             );
 
             self.pillarbox.resize(&self.resources);
-            self.layer_group.resize(&self.resources);
+            self.adv.resize(&self.resources);
         }
     }
 
@@ -206,7 +212,7 @@ impl State {
             gpu_resources: &self.resources,
         };
 
-        self.layer_group.update(&update_context);
+        self.adv.update(&update_context);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -217,7 +223,7 @@ impl State {
                 .render_target
                 .begin_render_pass(&mut encoder, Some("Screen RenderPass"));
 
-            self.layer_group.render(
+            self.adv.render(
                 &self.resources,
                 &mut render_pass,
                 self.resources.projection_matrix(),

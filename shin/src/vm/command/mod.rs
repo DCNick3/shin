@@ -2,6 +2,7 @@
 
 mod prelude {
     pub use crate::adv::AdvState;
+    pub use crate::layer::Layer;
     pub use crate::update::UpdateContext;
     pub use crate::vm::command::CommandStartResult;
     pub use crate::vm::VmState;
@@ -81,56 +82,108 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::BGMSTOP(v) => v.apply_state(state),
             // RuntimeCommand::BGMVOL(v) => v.apply_state(state),
             // RuntimeCommand::BGMWAIT(v) => v.apply_state(state),
+            // RuntimeCommand::BGMSYNC(v) => {}
+            // RuntimeCommand::SEPLAY(v) => {}
+            // RuntimeCommand::SESTOP(v) => {}
+            // RuntimeCommand::SESTOPALL(v) => {}
+            // RuntimeCommand::SEVOL(v) => {}
+            // RuntimeCommand::SEPAN(v) => {}
+            // RuntimeCommand::SEWAIT(v) => {}
+            // RuntimeCommand::SEONCE(v) => {}
+            // RuntimeCommand::VOICEPLAY(v) => {}
+            // RuntimeCommand::VOICESTOP(v) => {}
+            // RuntimeCommand::VOICEWAIT(v) => {}
+            // RuntimeCommand::SYSSE(v) => {}
+            // RuntimeCommand::SAVEINFO(v) => {}
+            // RuntimeCommand::AUTOSAVE(v) => {}
+            // RuntimeCommand::EVBEGIN(v) => {}
+            // RuntimeCommand::EVEND(v) => {}
+            // RuntimeCommand::RESUMESET(v) => {}
+            // RuntimeCommand::RESUME(v) => {}
+            // RuntimeCommand::SYSCALL(v) => {}
+            // RuntimeCommand::TROPHY(v) => {}
+            // RuntimeCommand::UNLOCK(v) => {}
+            RuntimeCommand::LAYERINIT(v) => v.apply_state(state),
+            RuntimeCommand::LAYERLOAD(v) => v.apply_state(state),
+            RuntimeCommand::LAYERUNLOAD(v) => v.apply_state(state),
+            RuntimeCommand::LAYERCTRL(v) => v.apply_state(state),
+            // RuntimeCommand::LAYERWAIT(v) => {}
+            // RuntimeCommand::LAYERSWAP(v) => {}
+            // RuntimeCommand::LAYERSELECT(v) => {}
+            // RuntimeCommand::MOVIEWAIT(v) => {}
+            // RuntimeCommand::TRANSSET(v) => {}
+            // RuntimeCommand::TRANSWAIT(v) => {}
+            // RuntimeCommand::PAGEBACK(v) => {}
+            // RuntimeCommand::PLANESELECT(v) => {}
+            // RuntimeCommand::PLANECLEAR(v) => {}
+            // RuntimeCommand::MASKLOAD(v) => {}
+            // RuntimeCommand::MASKUNLOAD(v) => {}
+            // RuntimeCommand::CHARS(v) => {}
+            // RuntimeCommand::TIPSGET(v) => {}
+            // RuntimeCommand::QUIZ(v) => {}
+            // RuntimeCommand::SHOWCHARS(v) => {}
+            // RuntimeCommand::NOTIFYSET(v) => {}
+            // RuntimeCommand::DEBUGOUT(v) => {}
             _ => todo!(),
-            // RuntimeCommand::BGMSYNC(_) => {}
-            // RuntimeCommand::SEPLAY(_) => {}
-            // RuntimeCommand::SESTOP(_) => {}
-            // RuntimeCommand::SESTOPALL(_) => {}
-            // RuntimeCommand::SEVOL(_) => {}
-            // RuntimeCommand::SEPAN(_) => {}
-            // RuntimeCommand::SEWAIT(_) => {}
-            // RuntimeCommand::SEONCE(_) => {}
-            // RuntimeCommand::VOICEPLAY(_) => {}
-            // RuntimeCommand::VOICESTOP(_) => {}
-            // RuntimeCommand::VOICEWAIT(_) => {}
-            // RuntimeCommand::SYSSE(_) => {}
-            // RuntimeCommand::SAVEINFO(_) => {}
-            // RuntimeCommand::AUTOSAVE(_) => {}
-            // RuntimeCommand::EVBEGIN(_) => {}
-            // RuntimeCommand::EVEND(_) => {}
-            // RuntimeCommand::RESUMESET(_) => {}
-            // RuntimeCommand::RESUME(_) => {}
-            // RuntimeCommand::SYSCALL(_) => {}
-            // RuntimeCommand::TROPHY(_) => {}
-            // RuntimeCommand::UNLOCK(_) => {}
-            // RuntimeCommand::LAYERINIT(_) => {}
-            // RuntimeCommand::LAYERLOAD(_) => {}
-            // RuntimeCommand::LAYERUNLOAD(_) => {}
-            // RuntimeCommand::LAYERCTRL(_) => {}
-            // RuntimeCommand::LAYERWAIT(_) => {}
-            // RuntimeCommand::LAYERSWAP(_) => {}
-            // RuntimeCommand::LAYERSELECT(_) => {}
-            // RuntimeCommand::MOVIEWAIT(_) => {}
-            // RuntimeCommand::TRANSSET(_) => {}
-            // RuntimeCommand::TRANSWAIT(_) => {}
-            // RuntimeCommand::PAGEBACK(_) => {}
-            // RuntimeCommand::PLANESELECT(_) => {}
-            // RuntimeCommand::PLANECLEAR(_) => {}
-            // RuntimeCommand::MASKLOAD(_) => {}
-            // RuntimeCommand::MASKUNLOAD(_) => {}
-            // RuntimeCommand::CHARS(_) => {}
-            // RuntimeCommand::TIPSGET(_) => {}
-            // RuntimeCommand::QUIZ(_) => {}
-            // RuntimeCommand::SHOWCHARS(_) => {}
-            // RuntimeCommand::NOTIFYSET(_) => {}
-            // RuntimeCommand::DEBUGOUT(_) => {}
         }
     }
 
-    fn start(self, vm_state: &VmState, adv_state: &mut AdvState) -> CommandStartResult {
+    fn start(
+        self,
+        context: &UpdateContext,
+        vm_state: &VmState,
+        adv_state: &mut AdvState,
+    ) -> CommandStartResult {
         match self {
             // RuntimeCommand::EXIT(v) => v.start(vm),
-            RuntimeCommand::SGET(v) => v.start(vm_state, adv_state),
+            RuntimeCommand::SGET(v) => v.start(context, vm_state, adv_state),
+            RuntimeCommand::SSET(v) => v.start(context, vm_state, adv_state),
+            RuntimeCommand::WAIT(v) => v.start(context, vm_state, adv_state),
+            RuntimeCommand::MSGINIT(v) => v.start(context, vm_state, adv_state),
+            RuntimeCommand::MSGSET(v) => v.start(context, vm_state, adv_state),
+            // ---
+            // RuntimeCommand::BGMSYNC(v) => {}
+            // RuntimeCommand::SEPLAY(v) => {}
+            // RuntimeCommand::SESTOP(v) => {}
+            // RuntimeCommand::SESTOPALL(v) => {}
+            // RuntimeCommand::SEVOL(v) => {}
+            // RuntimeCommand::SEPAN(v) => {}
+            // RuntimeCommand::SEWAIT(v) => {}
+            // RuntimeCommand::SEONCE(v) => {}
+            // RuntimeCommand::VOICEPLAY(v) => {}
+            // RuntimeCommand::VOICESTOP(v) => {}
+            // RuntimeCommand::VOICEWAIT(v) => {}
+            // RuntimeCommand::SYSSE(v) => {}
+            // RuntimeCommand::SAVEINFO(v) => {}
+            // RuntimeCommand::AUTOSAVE(v) => {}
+            // RuntimeCommand::EVBEGIN(v) => {}
+            // RuntimeCommand::EVEND(v) => {}
+            // RuntimeCommand::RESUMESET(v) => {}
+            // RuntimeCommand::RESUME(v) => {}
+            // RuntimeCommand::SYSCALL(v) => {}
+            // RuntimeCommand::TROPHY(v) => {}
+            // RuntimeCommand::UNLOCK(v) => {}
+            RuntimeCommand::LAYERINIT(v) => v.start(context, vm_state, adv_state),
+            RuntimeCommand::LAYERLOAD(v) => v.start(context, vm_state, adv_state),
+            RuntimeCommand::LAYERUNLOAD(v) => v.start(context, vm_state, adv_state),
+            RuntimeCommand::LAYERCTRL(v) => v.start(context, vm_state, adv_state),
+            // RuntimeCommand::LAYERWAIT(v) => {}
+            // RuntimeCommand::LAYERSWAP(v) => {}
+            // RuntimeCommand::LAYERSELECT(v) => {}
+            // RuntimeCommand::MOVIEWAIT(v) => {}
+            // RuntimeCommand::TRANSSET(v) => {}
+            // RuntimeCommand::TRANSWAIT(v) => {}
+            // RuntimeCommand::PAGEBACK(v) => {}
+            // RuntimeCommand::PLANESELECT(v) => {}
+            // RuntimeCommand::PLANECLEAR(v) => {}
+            // RuntimeCommand::MASKLOAD(v) => {}
+            // RuntimeCommand::MASKUNLOAD(v) => {}
+            // RuntimeCommand::CHARS(v) => {}
+            // RuntimeCommand::TIPSGET(v) => {}
+            // RuntimeCommand::QUIZ(v) => {}
+            // RuntimeCommand::SHOWCHARS(v) => {}
+            // RuntimeCommand::NOTIFYSET(v) => {}
+            // RuntimeCommand::DEBUGOUT(v) => {}
             _ => todo!(),
         }
     }
@@ -158,6 +211,10 @@ impl From<ExecutingCommand> for CommandStartResult {
 
 pub trait StartableCommand {
     fn apply_state(&self, state: &mut VmState);
-    // TODO: this should have a constant access to the VmState, but mutable access to layers, music players, etc.
-    fn start(self, vm_state: &VmState, adv_state: &mut AdvState) -> CommandStartResult;
+    fn start(
+        self,
+        context: &UpdateContext,
+        vm_state: &VmState,
+        adv_state: &mut AdvState,
+    ) -> CommandStartResult;
 }

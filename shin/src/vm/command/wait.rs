@@ -13,7 +13,12 @@ impl super::StartableCommand for command::runtime::WAIT {
         // nothing to do
     }
 
-    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
+    fn start(
+        self,
+        _context: &UpdateContext,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> CommandStartResult {
         assert_eq!(self.allow_interrupt, 0);
         CommandStartResult::Yield(
             WAIT {

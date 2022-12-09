@@ -10,7 +10,12 @@ impl super::StartableCommand for command::runtime::MSGSET {
         todo!("Add MSGSET")
     }
 
-    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
+    fn start(
+        self,
+        _context: &UpdateContext,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> CommandStartResult {
         warn!("TODO: MSGSET: {:?}", self);
 
         todo!("Make a enum variant in ExecutingCommand for MSGSET")

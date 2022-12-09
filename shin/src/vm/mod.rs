@@ -1,7 +1,7 @@
 mod command;
 mod state;
 
-pub use command::{ExecutingCommand, UpdatableCommand};
+pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
 pub use state::VmState;
 
 // fn adv_vm_system(mut commands: Commands, mut q: Query<(Entity, &mut Vm, &VmContinuation)>) {

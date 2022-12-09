@@ -278,7 +278,7 @@ pub enum Command {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum CommandResult {
     None,
     WriteMemory(MemoryAddress, i32),

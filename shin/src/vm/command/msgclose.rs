@@ -6,7 +6,12 @@ impl super::StartableCommand for command::runtime::MSGCLOSE {
         todo!()
     }
 
-    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
+    fn start(
+        self,
+        _context: &UpdateContext,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> CommandStartResult {
         assert_eq!(self.wait_for_close, 0);
         self.token.finish().into()
     }

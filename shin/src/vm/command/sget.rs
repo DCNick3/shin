@@ -5,7 +5,12 @@ impl super::StartableCommand for command::runtime::SGET {
         // nothing to do
     }
 
-    fn start(self, vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
+    fn start(
+        self,
+        _context: &UpdateContext,
+        vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> CommandStartResult {
         let value = vm_state.globals.get(self.slot_number);
         self.token.finish(value).into()
     }

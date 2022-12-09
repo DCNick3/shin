@@ -6,7 +6,12 @@ impl super::StartableCommand for command::runtime::WIPE {
         // we don't track wipes yet
     }
 
-    fn start(self, _vm_state: &VmState, _adv_state: &mut AdvState) -> CommandStartResult {
+    fn start(
+        self,
+        _context: &UpdateContext,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
+    ) -> CommandStartResult {
         warn!("TODO: WIPE: {:?}", self);
         self.token.finish().into()
     }

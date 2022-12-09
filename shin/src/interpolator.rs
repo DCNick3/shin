@@ -110,6 +110,15 @@ impl Interpolator {
         self.y_current = y;
     }
 
+    pub fn enqueue_force(&mut self, value: f32) {
+        self.queue.clear();
+        self.y_0 = value;
+        self.y_1 = value;
+        self.y_current = value;
+        self.t_now = Ticks::ZERO;
+        self.t_final = Ticks::ZERO;
+    }
+
     pub fn enqueue(&mut self, value: f32, time: Ticks, easing: Easing) {
         self.queue.push_front(InterpolatorEvent::QueueNext {
             value,

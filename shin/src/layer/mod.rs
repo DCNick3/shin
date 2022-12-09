@@ -47,6 +47,12 @@ impl LayerProperties {
         self.properties[property].enqueue(value, time, easing);
     }
 
+    pub fn init(&mut self) {
+        for (prop, val) in initial_values() {
+            self.properties[prop].enqueue_force(val as f32);
+        }
+    }
+
     pub fn compute_transform(&self, base_transform: Matrix4<f32>) -> Matrix4<f32> {
         macro_rules! get {
             (Zero) => {
@@ -121,3 +127,5 @@ pub trait Layer: Renderable + Updatable {
 pub enum UserLayer {
     PictureLayer,
 }
+
+impl UserLayer {}
