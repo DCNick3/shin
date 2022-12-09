@@ -1,13 +1,18 @@
 mod layer_group;
+mod message_layer;
 mod null_layer;
 mod picture_layer;
+mod root_layer_group;
 
 use cgmath::{Matrix4, SquareMatrix, Vector3};
+use derive_more::From;
 use enum_dispatch::enum_dispatch;
 
 pub use layer_group::LayerGroup;
+pub use message_layer::MessageLayer;
 pub use null_layer::NullLayer;
 pub use picture_layer::PictureLayer;
+pub use root_layer_group::RootLayerGroup;
 
 use crate::asset;
 use crate::asset::picture::GpuPicture;
@@ -170,10 +175,10 @@ impl UserLayer {
                     "Load bustup: {} -> {} {} {}",
                     bup_id, bup_name, bup_emotion, v1
                 );
-                let bup_path = format!("/bustup/{}.bup", bup_name.to_ascii_lowercase());
-                todo!()
-                // warn!("Loading NullLayer instead of BustupLayer");
-                // NullLayer::new().into()
+                let _bup_path = format!("/bustup/{}.bup", bup_name.to_ascii_lowercase());
+                // todo!()
+                warn!("Loading NullLayer instead of BustupLayer");
+                NullLayer::new().into()
             }
             _ => {
                 todo!("Layer type not implemented: {:?}", layer_ty);
@@ -182,8 +187,30 @@ impl UserLayer {
     }
 }
 
+#[derive(From)]
+pub enum AnyLayer<'a> {
+    UserLayer(&'a UserLayer),
+    RootLayerGroup(&'a RootLayerGroup),
+    MessageLayer(&'a MessageLayer),
+    LayerGroup(&'a LayerGroup),
+}
+
+impl<'a> AnyLayer<'a> {
+    pub fn properties(&self) -> &LayerProperties {
+        match self {
+            Self::UserLayer(layer) => layer.properties(),
+            Self::RootLayerGroup(layer) => layer.properties(),
+            Self::MessageLayer(layer) => layer.properties(),
+            Self::LayerGroup(layer) => layer.properties(),
+        }
+    }
+}
+
+#[derive(From)]
 pub enum AnyLayerMut<'a> {
     UserLayer(&'a mut UserLayer),
+    RootLayerGroup(&'a mut RootLayerGroup),
+    MessageLayer(&'a mut MessageLayer),
     LayerGroup(&'a mut LayerGroup),
 }
 
@@ -191,6 +218,8 @@ impl<'a> AnyLayerMut<'a> {
     pub fn properties(&self) -> &LayerProperties {
         match self {
             Self::UserLayer(layer) => layer.properties(),
+            Self::RootLayerGroup(layer) => layer.properties(),
+            Self::MessageLayer(layer) => layer.properties(),
             Self::LayerGroup(layer) => layer.properties(),
         }
     }
@@ -198,19 +227,9 @@ impl<'a> AnyLayerMut<'a> {
     pub fn properties_mut(&mut self) -> &mut LayerProperties {
         match self {
             Self::UserLayer(layer) => layer.properties_mut(),
+            Self::RootLayerGroup(layer) => layer.properties_mut(),
+            Self::MessageLayer(layer) => layer.properties_mut(),
             Self::LayerGroup(layer) => layer.properties_mut(),
         }
-    }
-}
-
-impl<'a> From<&'a mut UserLayer> for AnyLayerMut<'a> {
-    fn from(layer: &'a mut UserLayer) -> Self {
-        Self::UserLayer(layer)
-    }
-}
-
-impl<'a> From<&'a mut LayerGroup> for AnyLayerMut<'a> {
-    fn from(layer: &'a mut LayerGroup) -> Self {
-        Self::LayerGroup(layer)
     }
 }

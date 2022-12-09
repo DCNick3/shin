@@ -281,3 +281,51 @@ impl FromVmCtx<NumberSpec> for LayerProperty {
             .unwrap_or_else(|| panic!("LayerProperty::from_vm_ctx: invalid layer type: {}", num))
     }
 }
+
+#[derive(FromPrimitive, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Hash)]
+pub enum MessageboxType {
+    Neutral = 0,
+    WitchSpace = 1,
+    Ushinomiya = 2,
+    Transparent = 3,
+    Novel = 4,
+    NoText = 5,
+}
+
+#[derive(FromPrimitive, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Hash)]
+pub enum MessageTextLayout {
+    Left = 0,
+    Center = 2,
+    Right = 3,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Hash)]
+pub struct MessageboxStyle {
+    pub messagebox_type: MessageboxType,
+    pub text_layout: MessageTextLayout,
+}
+
+impl Default for MessageboxStyle {
+    fn default() -> Self {
+        Self {
+            messagebox_type: MessageboxType::Neutral,
+            text_layout: MessageTextLayout::Left,
+        }
+    }
+}
+
+impl FromVmCtx<NumberSpec> for MessageboxStyle {
+    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
+        let v = ctx.get_number(input);
+        assert!(v >= 0);
+        let msgbox_type = v & 0xf;
+        let text_layout = (v >> 4) & 0xf;
+        Self {
+            messagebox_type: num_traits::FromPrimitive::from_i32(msgbox_type).unwrap_or_else(
+                || panic!("MsgInit::from: unknown messagebox type: {}", msgbox_type),
+            ),
+            text_layout: num_traits::FromPrimitive::from_i32(text_layout)
+                .unwrap_or_else(|| panic!("MsgInit::from: unknown text layout: {}", text_layout)),
+        }
+    }
+}

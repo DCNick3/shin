@@ -1,7 +1,7 @@
 use super::prelude::*;
 use crate::update::{Ticks, UpdateContext};
 use std::time::Duration;
-use tracing::{debug, trace};
+use tracing::debug;
 
 pub struct WAIT {
     token: Option<command::token::WAIT>,
@@ -39,7 +39,7 @@ impl super::UpdatableCommand for WAIT {
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> Option<CommandResult> {
-        trace!("WAIT: {:?} {:?}", self.waiting_left, context.time_delta());
+        // trace!("WAIT: {:?} {:?}", self.waiting_left, context.time_delta());
         self.waiting_left = self.waiting_left.saturating_sub(context.time_delta());
         // TODO: short circuit the wait for now
         if self.waiting_left <= Duration::ZERO {

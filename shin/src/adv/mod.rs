@@ -1,4 +1,4 @@
-use crate::layer::{AnyLayerMut, LayerGroup, UserLayer};
+use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup};
 use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
@@ -96,21 +96,26 @@ impl Renderable for Adv {
 }
 
 pub struct AdvState {
-    pub root_layer_group: LayerGroup,
+    pub root_layer_group: RootLayerGroup,
 }
 
 impl AdvState {
     pub fn new(resources: &GpuCommonResources) -> Self {
         Self {
-            root_layer_group: LayerGroup::new(resources),
+            root_layer_group: RootLayerGroup::new(
+                resources,
+                LayerGroup::new(resources),
+                MessageLayer::new(resources),
+            ),
         }
     }
 
-    pub fn get_vlayer(&self, vm_state: &VmState, id: VLayerId) -> impl Iterator<Item = &UserLayer> {
-        std::iter::once(todo!())
-        // self.layers
-        //     .iter()
-        //     .filter(move |(_, layer)| layer.properties().vlayer_id() == id)
+    pub fn current_layer_group_mut(&mut self, _vm_state: &VmState) -> &mut LayerGroup {
+        self.root_layer_group.screen_layer_mut()
+    }
+
+    pub fn get_vlayer(&self, _vm_state: &VmState, _id: VLayerId) -> impl Iterator<Item = AnyLayer> {
+        todo!() as std::iter::Once<_>
     }
 
     pub fn for_each_vlayer_mut(
@@ -121,22 +126,21 @@ impl AdvState {
     ) {
         match id.repr() {
             VLayerIdRepr::RootLayerGroup => f((&mut self.root_layer_group).into()),
-            VLayerIdRepr::ScreenLayer => {
-                warn!("Returning RootLayerGroup for ScreenLayer");
-                f((&mut self.root_layer_group).into())
-            }
+            VLayerIdRepr::ScreenLayer => f(self.root_layer_group.screen_layer_mut().into()),
             VLayerIdRepr::PageLayer => {
-                warn!("Returning RootLayerGroup for PageLayer");
+                warn!("Returning ScreenLayer for PageLayer");
                 f((&mut self.root_layer_group).into())
             }
             VLayerIdRepr::PlaneLayerGroup => {
-                warn!("Returning RootLayerGroup for PlaneLayerGroup");
-                f((&mut self.root_layer_group).into())
+                warn!("Returning ScreenLayer for PlaneLayerGroup");
+                f(self.root_layer_group.screen_layer_mut().into())
             }
             VLayerIdRepr::Selected => {
                 if let Some(selection) = vm_state.layers.layer_selection {
                     for id in selection.iter() {
-                        if let Some(layer) = self.root_layer_group.get_layer_mut(id) {
+                        if let Some(layer) =
+                            self.current_layer_group_mut(vm_state).get_layer_mut(id)
+                        {
                             f(layer.into());
                         }
                     }
@@ -145,7 +149,7 @@ impl AdvState {
                 }
             }
             VLayerIdRepr::Layer(l) => {
-                let layer = self.root_layer_group.get_layer_mut(l);
+                let layer = self.current_layer_group_mut(vm_state).get_layer_mut(l);
                 if let Some(layer) = layer {
                     f(layer.into());
                 } else {

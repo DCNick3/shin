@@ -31,7 +31,7 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
         self,
         context: &UpdateContext,
         scenario: &Scenario,
-        _vm_state: &VmState,
+        vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         // TODO: loading should be done async
@@ -53,7 +53,9 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
             VLayerIdRepr::Selected => {
                 todo!("LAYERLOAD: selected");
             }
-            VLayerIdRepr::Layer(id) => adv_state.root_layer_group.add_layer(id, layer),
+            VLayerIdRepr::Layer(id) => adv_state
+                .current_layer_group_mut(vm_state)
+                .add_layer(id, layer),
         }
 
         self.token.finish().into()

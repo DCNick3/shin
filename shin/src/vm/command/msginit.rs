@@ -2,7 +2,7 @@ use super::prelude::*;
 
 impl super::StartableCommand for command::runtime::MSGINIT {
     fn apply_state(&self, state: &mut VmState) {
-        state.messagebox_state.msginit = Some(self.messagebox_param);
+        state.messagebox_state.msginit = self.messagebox_style;
     }
 
     fn start(
@@ -10,8 +10,12 @@ impl super::StartableCommand for command::runtime::MSGINIT {
         _context: &UpdateContext,
         _scenario: &Scenario,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
+        adv_state
+            .root_layer_group
+            .message_layer_mut()
+            .set_style(self.messagebox_style);
         self.token.finish().into()
     }
 }

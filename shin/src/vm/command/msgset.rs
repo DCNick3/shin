@@ -1,4 +1,5 @@
 use super::prelude::*;
+use std::time::Duration;
 
 pub struct MSGSET {
     #[allow(unused)]
@@ -6,8 +7,10 @@ pub struct MSGSET {
 }
 
 impl super::StartableCommand for command::runtime::MSGSET {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: MSGSET state: {:?}", self)
+    fn apply_state(&self, state: &mut VmState) {
+        // TODO: think about async messages (those where you would use MSGWAIT)
+        state.messagebox_state.text = Some(self.text.clone());
+        state.messagebox_state.messagebox_shown = true;
     }
 
     fn start(
@@ -15,8 +18,13 @@ impl super::StartableCommand for command::runtime::MSGSET {
         _context: &UpdateContext,
         _scenario: &Scenario,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
+        adv_state
+            .root_layer_group
+            .message_layer_mut()
+            .set_message(&self.text);
+
         Yield(
             MSGSET {
                 token: Some(self.token),
@@ -32,11 +40,13 @@ impl super::UpdatableCommand for MSGSET {
         _context: &UpdateContext,
         _scenario: &Scenario,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> Option<CommandResult> {
-        // TODO: do something
-        // Some(self.token.take().unwrap().finish())
-        None
+        if adv_state.root_layer_group.message_layer().is_finished() {
+            Some(self.token.take().unwrap().finish())
+        } else {
+            None
+        }
     }
 }
 

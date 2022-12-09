@@ -8,7 +8,7 @@ use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
-use layer::{LayerProperty, LayerType, VLayerId};
+use layer::{LayerProperty, LayerType, MessageboxStyle, VLayerId};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Command, Debug)]
@@ -51,7 +51,10 @@ pub enum Command {
     },
     // 0x84 is unused
     #[cmd(opcode = 0x85u8)]
-    MSGINIT { messagebox_param: NumberSpec },
+    MSGINIT {
+        #[cmd(rty = "MessageboxStyle")]
+        messagebox_style: NumberSpec,
+    },
     #[cmd(opcode = 0x86u8)]
     MSGSET { msg_id: u32, text: U16String }, // TODO: this string needs a fixup (see ShinDataUtil's OpcodeDefinitions.NeedsStringFixup)
     #[cmd(opcode = 0x87u8)]

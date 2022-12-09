@@ -1,9 +1,8 @@
-use crate::asset::picture::GpuPicture;
 use crate::layer::{Layer, LayerProperties};
+use crate::render::GpuCommonResources;
 use crate::render::Renderable;
-use crate::render::{GpuCommonResources, SpriteVertexBuffer};
 use crate::update::{Updatable, UpdateContext};
-use cgmath::{Matrix4, Vector3, Vector4};
+use cgmath::Matrix4;
 
 pub struct NullLayer {
     props: LayerProperties,

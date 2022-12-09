@@ -25,6 +25,8 @@ mod layerunload;
 mod msgclose;
 mod msginit;
 mod msgset;
+mod msgsignal;
+mod msgwait;
 mod pageback;
 mod saveinfo;
 mod seplay;
@@ -76,8 +78,8 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::WAIT(v) => v.apply_state(state),
             RuntimeCommand::MSGINIT(v) => v.apply_state(state),
             RuntimeCommand::MSGSET(v) => v.apply_state(state),
-            // RuntimeCommand::MSGWAIT(v) => v.apply_state(state),
-            // RuntimeCommand::MSGSIGNAL(v) => v.apply_state(state),
+            RuntimeCommand::MSGWAIT(v) => v.apply_state(state),
+            RuntimeCommand::MSGSIGNAL(v) => v.apply_state(state),
             // RuntimeCommand::MSGSYNC(v) => v.apply_state(state),
             RuntimeCommand::MSGCLOSE(v) => v.apply_state(state),
             // RuntimeCommand::SELECT(v) => v.apply_state(state),
@@ -147,8 +149,8 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::WAIT(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::MSGINIT(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::MSGSET(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::MSGWAIT(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::MSGSIGNAL(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::MSGWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::MSGSIGNAL(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::MSGSYNC(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::MSGCLOSE(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SELECT(v) => v.start(context, scenario, vm_state, adv_state),

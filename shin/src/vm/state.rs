@@ -2,7 +2,7 @@ use crate::layer::LayerPropertiesSnapshot;
 use bevy_utils::hashbrown::hash_map::Entry;
 use bevy_utils::StableHashMap;
 use shin_core::vm::command::layer::{
-    LayerId, LayerIdOpt, LayerType, VLayerId, VLayerIdRepr, PLANES_COUNT,
+    LayerId, LayerIdOpt, LayerType, MessageboxStyle, VLayerId, VLayerIdRepr, PLANES_COUNT,
 };
 use tracing::warn;
 
@@ -21,8 +21,21 @@ impl SaveInfo {
     }
 }
 
-pub struct MessageboxState {
-    pub msginit: Option<i32>,
+#[derive(Debug)]
+pub struct MessageState {
+    pub msginit: MessageboxStyle,
+    pub messagebox_shown: bool,
+    pub text: Option<String>,
+}
+
+impl MessageState {
+    pub fn new() -> Self {
+        Self {
+            msginit: MessageboxStyle::default(),
+            messagebox_shown: false,
+            text: None,
+        }
+    }
 }
 
 pub struct Globals {
@@ -303,7 +316,7 @@ impl LayersState {
 
 pub struct VmState {
     pub save_info: SaveInfo,
-    pub messagebox_state: MessageboxState,
+    pub messagebox_state: MessageState,
     pub globals: Globals,
     pub layers: LayersState,
 }
@@ -314,7 +327,7 @@ impl VmState {
             save_info: SaveInfo {
                 info: ["", "", "", ""].map(|v| v.to_string()),
             },
-            messagebox_state: MessageboxState { msginit: None },
+            messagebox_state: MessageState::new(),
             globals: Globals::new(),
             layers: LayersState::new(),
         }

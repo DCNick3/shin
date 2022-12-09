@@ -23,7 +23,7 @@ impl super::StartableCommand for command::runtime::LAYERUNLOAD {
         self,
         _context: &UpdateContext,
         _scenario: &Scenario,
-        _vm_state: &VmState,
+        vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         match self.layer_id.repr() {
@@ -37,7 +37,7 @@ impl super::StartableCommand for command::runtime::LAYERUNLOAD {
                 todo!("LAYERUNLOAD: selected");
             }
             VLayerIdRepr::Layer(id) => {
-                adv_state.root_layer_group.remove_layer(id);
+                adv_state.current_layer_group_mut(vm_state).remove_layer(id);
             }
         }
         self.token.finish().into()

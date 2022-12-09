@@ -1,7 +1,6 @@
 use super::prelude::*;
-use shin_core::format::scenario::Scenario;
 
-impl super::StartableCommand for command::runtime::SGET {
+impl super::StartableCommand for command::runtime::MSGSIGNAL {
     fn apply_state(&self, _state: &mut VmState) {
         // nothing to do
     }
@@ -10,10 +9,10 @@ impl super::StartableCommand for command::runtime::SGET {
         self,
         _context: &UpdateContext,
         _scenario: &Scenario,
-        vm_state: &VmState,
+        _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        let value = vm_state.globals.get(self.slot_number);
-        self.token.finish(value).into()
+        warn!("TODO: MSGSIGNAL {:?}", self);
+        self.token.finish().into()
     }
 }

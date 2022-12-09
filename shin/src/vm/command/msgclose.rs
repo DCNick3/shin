@@ -1,9 +1,9 @@
 use super::prelude::*;
 
 impl super::StartableCommand for command::runtime::MSGCLOSE {
-    fn apply_state(&self, _state: &mut VmState) {
-        // TODO: how to mark the closed messagebox in the state>
-        warn!("TODO: MSGCLOSE state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        state.messagebox_state.messagebox_shown = false;
+        state.messagebox_state.text = None;
     }
 
     fn start(

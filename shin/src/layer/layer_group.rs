@@ -1,7 +1,7 @@
 use bevy_utils::hashbrown::HashMap;
 use cgmath::Matrix4;
 use itertools::Itertools;
-use shin_core::vm::command::layer::{LayerId, VLayerId, VLayerIdRepr};
+use shin_core::vm::command::layer::LayerId;
 use tracing::warn;
 
 use crate::layer::{Layer, LayerProperties, UserLayer};
