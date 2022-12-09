@@ -16,6 +16,7 @@ impl super::StartableCommand for command::runtime::WAIT {
     fn start(
         self,
         _context: &UpdateContext,
+        _scenario: &Scenario,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
@@ -34,6 +35,7 @@ impl super::UpdatableCommand for WAIT {
     fn update(
         &mut self,
         context: &UpdateContext,
+        _scenario: &Scenario,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> Option<CommandResult> {

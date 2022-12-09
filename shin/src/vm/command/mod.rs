@@ -3,9 +3,11 @@
 mod prelude {
     pub use crate::adv::AdvState;
     pub use crate::layer::Layer;
+    pub use crate::update::Ticks;
     pub use crate::update::UpdateContext;
     pub use crate::vm::command::CommandStartResult;
     pub use crate::vm::VmState;
+    pub use shin_core::format::scenario::Scenario;
     pub use shin_core::vm::command;
     pub use shin_core::vm::command::layer::VLayerIdRepr;
     pub use shin_core::vm::command::CommandResult;
@@ -35,6 +37,7 @@ use msgset::MSGSET;
 use wait::WAIT;
 
 use enum_dispatch::enum_dispatch;
+use shin_core::format::scenario::Scenario;
 
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 
@@ -47,8 +50,9 @@ pub trait UpdatableCommand {
     // TODO: provide mutable access to Adv Scene state
     fn update(
         &mut self,
-        context: &UpdateContext,
-        vm_state: &VmState,
+        _context: &UpdateContext,
+        _scenario: &Scenario,
+        _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> Option<CommandResult>;
 }
@@ -83,9 +87,9 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::BGMVOL(v) => v.apply_state(state),
             // RuntimeCommand::BGMWAIT(v) => v.apply_state(state),
             // RuntimeCommand::BGMSYNC(v) => {}
-            // RuntimeCommand::SEPLAY(v) => {}
+            RuntimeCommand::SEPLAY(v) => v.apply_state(state),
             // RuntimeCommand::SESTOP(v) => {}
-            // RuntimeCommand::SESTOPALL(v) => {}
+            RuntimeCommand::SESTOPALL(v) => v.apply_state(state),
             // RuntimeCommand::SEVOL(v) => {}
             // RuntimeCommand::SEPAN(v) => {}
             // RuntimeCommand::SEWAIT(v) => {}
@@ -131,69 +135,70 @@ impl StartableCommand for RuntimeCommand {
     fn start(
         self,
         context: &UpdateContext,
+        scenario: &Scenario,
         vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         match self {
-            // RuntimeCommand::EXIT(v) => v.start(vm),
-            RuntimeCommand::SGET(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::SSET(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::WAIT(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::MSGINIT(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::MSGSET(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::MSGWAIT(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::MSGSIGNAL(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::MSGSYNC(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::MSGCLOSE(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SELECT(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::WIPE(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::WIPEWAIT(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::BGMPLAY(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::BGMSTOP(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::BGMVOL(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::BGMWAIT(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::BGMSYNC(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SEPLAY(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SESTOP(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SESTOPALL(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SEVOL(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SEPAN(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SEWAIT(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SEONCE(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::VOICEPLAY(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::VOICESTOP(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::VOICEWAIT(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SYSSE(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::SAVEINFO(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::AUTOSAVE(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::EVBEGIN(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::EVEND(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::RESUMESET(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::RESUME(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SYSCALL(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::TROPHY(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::UNLOCK(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::LAYERINIT(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::LAYERLOAD(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::LAYERUNLOAD(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::LAYERCTRL(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::LAYERWAIT(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::LAYERSWAP(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::LAYERSELECT(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::MOVIEWAIT(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::TRANSSET(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::TRANSWAIT(v) => v.start(context, vm_state, adv_state),
-            RuntimeCommand::PAGEBACK(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::PLANESELECT(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::PLANECLEAR(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::MASKLOAD(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::MASKUNLOAD(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::CHARS(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::TIPSGET(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::QUIZ(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::SHOWCHARS(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::NOTIFYSET(v) => v.start(context, vm_state, adv_state),
-            // RuntimeCommand::DEBUGOUT(v) => v.start(context, vm_state, adv_state),
+            // RuntimeCommand::EXIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SGET(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SSET(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::WAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::MSGINIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::MSGSET(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::MSGWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::MSGSIGNAL(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::MSGSYNC(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::MSGCLOSE(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SELECT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::WIPE(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::WIPEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::BGMPLAY(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::BGMSTOP(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::BGMVOL(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::BGMWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::BGMSYNC(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SEPLAY(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SESTOP(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SESTOPALL(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SEVOL(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SEPAN(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SEONCE(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::VOICEPLAY(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::VOICESTOP(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::VOICEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SYSSE(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SAVEINFO(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::AUTOSAVE(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::EVBEGIN(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::EVEND(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::RESUMESET(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::RESUME(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SYSCALL(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::TROPHY(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::UNLOCK(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::LAYERINIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::LAYERLOAD(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::LAYERUNLOAD(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::LAYERCTRL(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::LAYERWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::LAYERSWAP(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::LAYERSELECT(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::MOVIEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::TRANSSET(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::TRANSWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::PAGEBACK(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::PLANESELECT(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::PLANECLEAR(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::MASKLOAD(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::MASKUNLOAD(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::CHARS(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::TIPSGET(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::QUIZ(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::SHOWCHARS(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::NOTIFYSET(v) => v.start(context, scenario, vm_state, adv_state),
+            // RuntimeCommand::DEBUGOUT(v) => v.start(context, scenario, vm_state, adv_state),
             _ => todo!(),
         }
     }
@@ -224,6 +229,7 @@ pub trait StartableCommand {
     fn start(
         self,
         context: &UpdateContext,
+        scenario: &Scenario,
         vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult;

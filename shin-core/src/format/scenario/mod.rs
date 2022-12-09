@@ -252,7 +252,7 @@ struct ScenarioHeader {
 #[allow(unused)]
 pub struct Scenario {
     mask_data: Vec<U16String>,
-    pic_data: Vec<(U16String, u16)>,
+    pic_data: Vec<(U16String, i16)>,
     bup_data: Vec<(U16String, U16String, u16)>,
     bgm_data: Vec<(U16String, U16String, u16)>,
     se_data: Vec<U16String>,
@@ -272,12 +272,12 @@ impl Scenario {
 
         // looks like mask names
         cur.set_position(header.offset_36 as u64);
-        let mask_data = parse_section::<U16String, _>(&mut cur)?;
+        let mask_data = parse_section(&mut cur)?;
 
         // looks like CG names
         // not sure when the piggypacked number means
         cur.set_position(header.offset_40 as u64);
-        let pic_data = parse_section::<(U16String, u16), _>(&mut cur)?;
+        let pic_data = parse_section(&mut cur)?;
 
         // these are names of character sprites
         // the first string is the bup filename
@@ -351,6 +351,11 @@ impl Scenario {
             entrypoint_address: CodeAddress(header.code_offset),
             raw_data: data,
         })
+    }
+
+    pub fn get_picture_data(&self, pic_id: i32) -> (&str, i16) {
+        let (pic_name, pic_index) = &self.pic_data[pic_id as usize];
+        (pic_name.as_str(), *pic_index)
     }
 
     pub fn raw(&self) -> &[u8] {

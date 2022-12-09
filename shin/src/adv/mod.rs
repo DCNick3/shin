@@ -47,7 +47,7 @@ impl Updatable for Adv {
         loop {
             // TODO: maybe yield if spent too much time in this loop?
             let runtime_command = if let Some(command) = &mut self.current_command {
-                match command.update(context, &self.vm_state, &mut self.adv_state) {
+                match command.update(context, &self.scenario, &self.vm_state, &mut self.adv_state) {
                     None => break,
                     Some(result) => {
                         self.current_command = None;
@@ -60,7 +60,12 @@ impl Updatable for Adv {
 
             runtime_command.apply_state(&mut self.vm_state);
 
-            match runtime_command.start(context, &self.vm_state, &mut self.adv_state) {
+            match runtime_command.start(
+                context,
+                &self.scenario,
+                &self.vm_state,
+                &mut self.adv_state,
+            ) {
                 CommandStartResult::Continue(r) => result = r,
                 CommandStartResult::Yield(executing_command) => {
                     self.current_command = Some(executing_command);

@@ -13,6 +13,7 @@ impl super::StartableCommand for command::runtime::MSGSET {
     fn start(
         self,
         _context: &UpdateContext,
+        _scenario: &Scenario,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
@@ -32,6 +33,7 @@ impl super::UpdatableCommand for MSGSET {
     fn update(
         &mut self,
         _context: &UpdateContext,
+        _scenario: &Scenario,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> Option<CommandResult> {

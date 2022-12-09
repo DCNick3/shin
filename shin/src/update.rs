@@ -3,9 +3,10 @@ use enum_dispatch::enum_dispatch;
 use std::ops::Div;
 use std::time::Duration;
 
-use crate::layer::{AnyLayerMut, UserLayer};
+use crate::layer::UserLayer;
 use crate::render::GpuCommonResources;
 
+// TODO: move to shin_core
 #[derive(Debug, Copy, Clone, Add, AddAssign, Sub, SubAssign, PartialEq, PartialOrd)]
 pub struct Ticks(pub f32);
 

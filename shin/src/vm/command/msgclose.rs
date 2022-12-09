@@ -9,6 +9,7 @@ impl super::StartableCommand for command::runtime::MSGCLOSE {
     fn start(
         self,
         _context: &UpdateContext,
+        _scenario: &Scenario,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {

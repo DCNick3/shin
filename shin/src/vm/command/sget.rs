@@ -1,4 +1,5 @@
 use super::prelude::*;
+use shin_core::format::scenario::Scenario;
 
 impl super::StartableCommand for command::runtime::SGET {
     fn apply_state(&self, _state: &mut VmState) {
@@ -8,6 +9,7 @@ impl super::StartableCommand for command::runtime::SGET {
     fn start(
         self,
         _context: &UpdateContext,
+        scenario: &Scenario,
         vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {

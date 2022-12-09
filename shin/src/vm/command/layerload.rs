@@ -1,4 +1,5 @@
 use super::prelude::*;
+use crate::layer::UserLayer;
 
 impl super::StartableCommand for command::runtime::LAYERLOAD {
     fn apply_state(&self, state: &mut VmState) {
@@ -28,12 +29,32 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        context: &UpdateContext,
+        scenario: &Scenario,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
         // TODO: loading should be done async
-        todo!("LAYERLOAD")
-        // command.token.finish().into()
+        let layer = UserLayer::load(
+            context.gpu_resources,
+            scenario,
+            self.layer_type,
+            self.params,
+        );
+
+        match self.layer_id.repr() {
+            VLayerIdRepr::RootLayerGroup
+            | VLayerIdRepr::ScreenLayer
+            | VLayerIdRepr::PageLayer
+            | VLayerIdRepr::PlaneLayerGroup => {
+                unreachable!("You can't load special layers")
+            }
+            VLayerIdRepr::Selected => {
+                todo!("LAYERLOAD: selected");
+            }
+            VLayerIdRepr::Layer(id) => adv_state.root_layer_group.add_layer(id, layer),
+        }
+
+        self.token.finish().into()
     }
 }

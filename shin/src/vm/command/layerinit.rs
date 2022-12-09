@@ -10,6 +10,7 @@ impl super::StartableCommand for command::runtime::LAYERINIT {
     fn start(
         self,
         _context: &UpdateContext,
+        _scenario: &Scenario,
         vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {

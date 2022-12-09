@@ -1,16 +1,21 @@
 mod layer_group;
+mod null_layer;
 mod picture_layer;
 
 use cgmath::{Matrix4, SquareMatrix, Vector3};
 use enum_dispatch::enum_dispatch;
+
 pub use layer_group::LayerGroup;
+pub use null_layer::NullLayer;
 pub use picture_layer::PictureLayer;
 
 use crate::interpolator::{Easing, Interpolator};
-use crate::render::Renderable;
+use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Ticks, Updatable, UpdateContext};
 use enum_map::{Enum, EnumMap};
-use shin_core::vm::command::layer::LayerProperty;
+use shin_core::format::scenario::Scenario;
+use shin_core::vm::command::layer::{LayerProperty, LayerType};
+use tracing::{debug, warn};
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
     EnumMap::from_array(
@@ -125,7 +130,37 @@ pub trait Layer: Renderable + Updatable {
 
 #[enum_dispatch(Layer, Renderable, Updatable)]
 pub enum UserLayer {
+    NullLayer,
     PictureLayer,
+}
+
+impl UserLayer {
+    pub fn load(
+        resources: &GpuCommonResources,
+        scenario: &Scenario,
+        layer_ty: LayerType,
+        params: [i32; 8],
+    ) -> Self {
+        // TODO: this API is not ideal, as we are blocking the main thread for layer loading
+        // ideally we want to mimic the API of LayerLoader in the original game
+        match layer_ty {
+            LayerType::Null => NullLayer::new().into(),
+            LayerType::Tile => {
+                warn!("Loading NullLayer instead of TileLayer");
+                NullLayer::new().into()
+            }
+            LayerType::Picture => {
+                let [pic_id, _, _, _, _, _, _, _] = params;
+                let (pic_name, v1) = scenario.get_picture_data(pic_id);
+                debug!("Load picture: {} -> {} {}", pic_id, pic_name, v1);
+                let pic_path = format!("/picture/{}.pic", pic_name);
+                todo!()
+            }
+            _ => {
+                todo!("Layer type not implemented: {:?}", layer_ty);
+            }
+        }
+    }
 }
 
 pub enum AnyLayerMut<'a> {
