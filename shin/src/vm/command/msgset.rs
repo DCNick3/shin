@@ -7,7 +7,7 @@ pub struct MSGSET {
 
 impl super::StartableCommand for command::runtime::MSGSET {
     fn apply_state(&self, _state: &mut VmState) {
-        todo!("Add MSGSET")
+        // todo!("Add MSGSET")
     }
 
     fn start(

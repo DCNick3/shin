@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use tracing::{debug, warn};
 
 use shin_core::format::scenario::Scenario;
@@ -12,6 +13,7 @@ use winit::{
 use super::pipelines::Pipelines;
 
 use crate::adv::Adv;
+use crate::game_data::GameData;
 use crate::render::bind_groups::BindGroupLayouts;
 use crate::render::camera::Camera;
 use crate::render::common_resources::GpuCommonResources;
@@ -31,6 +33,7 @@ struct State {
     vertices: SpriteVertexBuffer,
     render_target: RenderTarget,
     pillarbox: Pillarbox,
+    game_data: GameData,
     adv: Adv,
 }
 
@@ -150,6 +153,8 @@ impl State {
         //     Easing::EaseOut,
         // );
 
+        let game_data = GameData::new(PathBuf::from("assets/data"));
+
         let scenario = std::fs::read("assets/main.snr").expect("Reading scenario");
         let scenario = Scenario::new(scenario.into()).expect("Parsing scenario");
         let adv = Adv::new(&resources, scenario, 0, 42);
@@ -163,6 +168,7 @@ impl State {
             vertices,
             render_target,
             pillarbox,
+            game_data,
             adv,
         }
     }
@@ -206,6 +212,7 @@ impl State {
         let update_context = UpdateContext {
             time: &self.time,
             gpu_resources: &self.resources,
+            game_data: &self.game_data,
         };
 
         self.adv.update(&update_context);

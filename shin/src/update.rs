@@ -1,3 +1,4 @@
+use crate::game_data::GameData;
 use derive_more::{Add, AddAssign, Sub, SubAssign};
 use enum_dispatch::enum_dispatch;
 use std::ops::Div;
@@ -43,6 +44,7 @@ impl Div for Ticks {
 pub struct UpdateContext<'a> {
     pub time: &'a bevy_time::Time,
     pub gpu_resources: &'a GpuCommonResources,
+    pub game_data: &'a GameData,
 }
 
 impl<'a> UpdateContext<'a> {

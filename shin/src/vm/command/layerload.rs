@@ -37,6 +37,7 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
         // TODO: loading should be done async
         let layer = UserLayer::load(
             context.gpu_resources,
+            context.game_data,
             scenario,
             self.layer_type,
             self.params,

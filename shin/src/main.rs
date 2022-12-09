@@ -1,6 +1,7 @@
 mod asset;
 // mod camera;
 mod adv;
+mod game_data;
 mod interpolator;
 mod layer;
 mod render;

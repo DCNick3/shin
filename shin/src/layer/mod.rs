@@ -9,6 +9,9 @@ pub use layer_group::LayerGroup;
 pub use null_layer::NullLayer;
 pub use picture_layer::PictureLayer;
 
+use crate::asset;
+use crate::asset::picture::GpuPicture;
+use crate::game_data::GameData;
 use crate::interpolator::{Easing, Interpolator};
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Ticks, Updatable, UpdateContext};
@@ -137,6 +140,7 @@ pub enum UserLayer {
 impl UserLayer {
     pub fn load(
         resources: &GpuCommonResources,
+        game_data: &GameData,
         scenario: &Scenario,
         layer_ty: LayerType,
         params: [i32; 8],
@@ -153,8 +157,15 @@ impl UserLayer {
                 let [pic_id, _, _, _, _, _, _, _] = params;
                 let (pic_name, v1) = scenario.get_picture_data(pic_id);
                 debug!("Load picture: {} -> {} {}", pic_id, pic_name, v1);
-                let pic_path = format!("/picture/{}.pic", pic_name);
-                todo!()
+                let pic_path = format!("/picture/{}.pic", pic_name.to_ascii_lowercase());
+                let pic_data = game_data.read_file(&pic_path);
+                let pic = asset::picture::load_picture(&pic_data).expect("Parsing picture");
+                let pic = GpuPicture::load(resources, pic);
+                PictureLayer::new(resources, pic).into()
+            }
+            LayerType::Bustup => {
+                warn!("Loading NullLayer instead of BustupLayer");
+                NullLayer::new().into()
             }
             _ => {
                 todo!("Layer type not implemented: {:?}", layer_ty);
