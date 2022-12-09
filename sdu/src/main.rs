@@ -3,7 +3,7 @@ use bytes::Bytes;
 use clap::Parser;
 use shin_core::format::picture::SimpleMergedPicture;
 use shin_core::format::rom::IndexEntry;
-use shin_core::vm::command::CommandResult;
+use shin_core::vm::command::{CommandResult, RuntimeCommand};
 use std::fs::File;
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
@@ -40,6 +40,11 @@ enum RomCommand {
 #[derive(clap::Subcommand, Debug)]
 enum ScenarioCommand {
     Dump {
+        scenario_path: PathBuf,
+        #[clap(short, long, default_value = "0")]
+        init_val: i32,
+    },
+    TestLayouter {
         scenario_path: PathBuf,
         #[clap(short, long, default_value = "0")]
         init_val: i32,
@@ -116,6 +121,36 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             }
 
             // println!("{:#?}", reader);
+            Ok(())
+        }
+        ScenarioCommand::TestLayouter {
+            scenario_path: path,
+            init_val,
+        } => {
+            let scenario = std::fs::read(path)?;
+            let scenario = Bytes::from(scenario);
+            let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
+
+            let mut vm = shin_core::vm::Scripter::new(&scenario, init_val, 42);
+            let mut result = CommandResult::None;
+            loop {
+                // NOTE: usually you would want to do something when the VM has returned "Pending"
+                // stuff like running game loop to let the command progress...
+                let command = vm.run(result)?;
+
+                if let RuntimeCommand::MSGSET(msgset) = &command {
+                    let layouter = shin_core::layout::LayouterParser::new(&msgset.text);
+                    let commands = layouter.collect::<Vec<_>>();
+                    println!("{:?}", commands);
+                }
+
+                if let Some(new_result) = command.execute_dummy() {
+                    result = new_result
+                } else {
+                    break;
+                }
+            }
+
             Ok(())
         }
         ScenarioCommand::Decompile { scenario_path: _ } => {
