@@ -247,9 +247,11 @@ impl FillPipeline {
 
 pub struct Pipelines {
     pub sprite: SpritePipeline,
-    pub sprite_surface: SpritePipeline,
     pub fill: FillPipeline,
-    pub fill_surface: FillPipeline,
+    // those are pipelines using screen's texture format (not our preferred RGBA format)
+    // they are only used for the final render pass
+    pub sprite_screen: SpritePipeline,
+    pub fill_screen: FillPipeline,
 }
 
 impl Pipelines {
@@ -260,9 +262,9 @@ impl Pipelines {
     ) -> Pipelines {
         Pipelines {
             sprite: SpritePipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
-            sprite_surface: SpritePipeline::new(device, bind_group_layouts, surface_texture_format),
             fill: FillPipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
-            fill_surface: FillPipeline::new(device, bind_group_layouts, surface_texture_format),
+            sprite_screen: SpritePipeline::new(device, bind_group_layouts, surface_texture_format),
+            fill_screen: FillPipeline::new(device, bind_group_layouts, surface_texture_format),
         }
     }
 }

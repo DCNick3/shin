@@ -217,7 +217,11 @@ impl State {
                 .render_target
                 .begin_render_pass(&mut encoder, Some("Screen RenderPass"));
 
-            self.layer_group.render(&self.resources, &mut render_pass);
+            self.layer_group.render(
+                &self.resources,
+                &mut render_pass,
+                self.resources.projection_matrix(),
+            );
         }
 
         let output = self.surface.get_current_texture()?;
@@ -240,13 +244,17 @@ impl State {
                 depth_stencil_attachment: None,
             });
 
-            self.resources.pipelines.sprite_surface.draw(
+            self.resources.pipelines.sprite_screen.draw(
                 &mut render_pass,
                 self.vertices.vertex_source(),
                 self.render_target.bind_group(),
                 self.resources.camera.screen_projection_matrix(),
             );
-            self.pillarbox.render(&self.resources, &mut render_pass);
+            self.pillarbox.render(
+                &self.resources,
+                &mut render_pass,
+                self.resources.camera.screen_projection_matrix(),
+            );
         }
 
         output.present();

@@ -3,7 +3,7 @@ use crate::layer::{Layer, LayerProperties};
 use crate::render::Renderable;
 use crate::render::{GpuCommonResources, SpriteVertexBuffer};
 use crate::update::{Updatable, UpdateContext};
-use cgmath::{Vector3, Vector4};
+use cgmath::{Matrix4, Vector3, Vector4};
 
 pub struct PictureLayer {
     picture: GpuPicture,
@@ -42,13 +42,14 @@ impl Renderable for PictureLayer {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
+        transform: Matrix4<f32>,
     ) {
         // TODO: there should be a generic function to render a layer (from texture?)
         resources.draw_sprite(
             render_pass,
             self.vertices.vertex_source(),
             &self.picture.bind_group,
-            self.props.compute_transform(resources.projection_matrix()),
+            self.props.compute_transform(transform),
         );
     }
 

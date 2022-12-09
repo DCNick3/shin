@@ -1,7 +1,7 @@
 use crate::render::{
     GpuCommonResources, PosVertex, Renderable, VertexSource, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
 };
-use cgmath::{Vector3, Vector4};
+use cgmath::{Matrix4, Vector3, Vector4};
 use wgpu::util::DeviceExt;
 
 pub struct Pillarbox {
@@ -113,9 +113,10 @@ impl Renderable for Pillarbox {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
+        transform: Matrix4<f32>,
     ) {
         render_pass.push_debug_group("Pillarbox");
-        resources.pipelines.fill_surface.draw(
+        resources.pipelines.fill_screen.draw(
             render_pass,
             VertexSource::VertexIndexBuffer {
                 vertex_buffer: &self.vertex_buffer,
@@ -123,7 +124,7 @@ impl Renderable for Pillarbox {
                 indices: 0..self.num_indices,
                 instances: 0..1,
             },
-            resources.camera.screen_projection_matrix(),
+            transform,
             Vector4::new(0.0, 0.0, 0.0, 1.0),
         );
         render_pass.pop_debug_group();

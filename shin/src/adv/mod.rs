@@ -4,6 +4,7 @@ use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
 use crate::vm::{ExecutingCommand, UpdatableCommand, VmState};
+use cgmath::Matrix4;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::Scripter;
 use std::sync::Arc;
@@ -30,8 +31,9 @@ impl Renderable for Adv {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
+        transform: Matrix4<f32>,
     ) {
-        self.adv_state.render(resources, render_pass);
+        self.adv_state.render(resources, render_pass, transform);
     }
 
     fn resize(&mut self, resources: &GpuCommonResources) {
@@ -52,6 +54,7 @@ impl Renderable for AdvState {
         &'enc self,
         _resources: &'enc GpuCommonResources,
         _render_pass: &mut wgpu::RenderPass<'enc>,
+        _transform: Matrix4<f32>,
     ) {
         todo!()
     }

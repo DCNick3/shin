@@ -9,6 +9,7 @@ mod window;
 
 pub use bind_groups::{BindGroupLayouts, TextureBindGroup};
 pub use camera::{VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
+use cgmath::Matrix4;
 pub use common_resources::GpuCommonResources;
 pub use pipelines::{PosColTexVertex, PosVertex, VertexSource};
 pub use render_target::RenderTarget;
@@ -55,6 +56,7 @@ pub trait Renderable {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
+        transform: Matrix4<f32>,
     );
     fn resize(&mut self, resources: &GpuCommonResources);
 }

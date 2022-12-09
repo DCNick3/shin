@@ -1,4 +1,5 @@
 use bevy_utils::hashbrown::HashMap;
+use cgmath::Matrix4;
 use itertools::Itertools;
 use shin_core::vm::command::layer::LayerId;
 
@@ -62,6 +63,7 @@ impl Renderable for LayerGroup {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
+        transform: Matrix4<f32>,
     ) {
         {
             let mut encoder = resources.start_encoder();
@@ -79,7 +81,11 @@ impl Renderable for LayerGroup {
                 .collect::<Vec<_>>();
             for (id, l) in ordered_layers {
                 render_pass.push_debug_group(&format!("Layer {:?}", id));
-                l.render(resources, &mut render_pass);
+                l.render(
+                    resources,
+                    &mut render_pass,
+                    self.properties.compute_transform(transform),
+                );
                 render_pass.pop_debug_group();
             }
         }
@@ -90,8 +96,7 @@ impl Renderable for LayerGroup {
             render_pass,
             self.vertices.vertex_source(),
             self.render_target.bind_group(),
-            self.properties
-                .compute_transform(resources.projection_matrix()),
+            transform,
         );
         render_pass.pop_debug_group();
     }

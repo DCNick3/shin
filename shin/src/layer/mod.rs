@@ -47,7 +47,7 @@ impl LayerProperties {
         self.properties[property].enqueue(value, time, easing);
     }
 
-    pub fn compute_transform(&self, projection: Matrix4<f32>) -> Matrix4<f32> {
+    pub fn compute_transform(&self, base_transform: Matrix4<f32>) -> Matrix4<f32> {
         macro_rules! get {
             (Zero) => {
                 0.0
@@ -65,7 +65,7 @@ impl LayerProperties {
         let transforms = [
             Matrix4::from_translation(get!(TranslateX, TranslateY, Zero)),
             Matrix4::from_angle_z(cgmath::Deg(get!(Rotation))), // TODO: handle rotation origin
-            projection,
+            base_transform,
         ];
 
         transforms
