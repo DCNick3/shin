@@ -155,7 +155,7 @@ impl State {
 
         let game_data = GameData::new(PathBuf::from("assets/data"));
 
-        let scenario = std::fs::read("assets/main.snr").expect("Reading scenario");
+        let scenario = game_data.read_file("/main.snr");
         let scenario = Scenario::new(scenario.into()).expect("Parsing scenario");
         let adv = Adv::new(&resources, scenario, 0, 42);
 
