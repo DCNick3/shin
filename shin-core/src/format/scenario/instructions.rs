@@ -79,11 +79,11 @@ impl BinRead for NumberSpec {
         _: (),
     ) -> BinResult<Self> {
         let t = u8::read_options(reader, options, ())?;
-        // TXXXXXXX
+        // t=TXXXXXXX
         // T=0 => XXXXXXX is a 7-bit signed constant
         // T=1 => futher processing needed
         Ok(if t & 0x80 != 0 {
-            // 1PPPKKKK
+            // t=1PPPKKKK
             let p = (t & 0x70) >> 4;
             let k = t & 0x0F;
             // does the sign extension of k, using bits [0:3] (4 bit number)
@@ -97,15 +97,17 @@ impl BinRead for NumberSpec {
             match p {
                 0 => Self::Constant(u8::read_options(reader, options, ())? as i32 | (k_sext << 8)),
                 1 => {
+                    // it's big endian......
                     let b1 = u8::read_options(reader, options, ())? as i32;
                     let b2 = u8::read_options(reader, options, ())? as i32;
-                    Self::Constant(b1 | (b2 << 8) | (k_sext << 16))
+                    Self::Constant(b2 | (b1 << 8) | (k_sext << 16))
                 }
                 2 => {
+                    // it's big endian......
                     let b1 = u8::read_options(reader, options, ())? as i32;
                     let b2 = u8::read_options(reader, options, ())? as i32;
                     let b3 = u8::read_options(reader, options, ())? as i32;
-                    Self::Constant(b1 | (b2 << 8) | (b3 << 16) | (k_sext << 24))
+                    Self::Constant(b3 | (b2 << 8) | (b1 << 16) | (k_sext << 24))
                 }
                 3 => Self::Memory(MemoryAddress::from_memory_addr(k as u16)),
                 4 => Self::Memory(MemoryAddress::from_memory_addr(

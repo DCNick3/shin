@@ -155,10 +155,10 @@ pub enum LayerProperty {
     Prop13 = 13,
     Prop14 = 14,
     Prop15 = 15,
-    /// Rotation of the layer in degrees
-    Rotation = 16,
+    Prop16 = 16,
     Prop17 = 17,
-    Prop18 = 18,
+    /// Rotation of the layer in degrees
+    Rotation = 18,
     Prop19 = 19,
     Prop20 = 20,
     Prop21 = 21,
