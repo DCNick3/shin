@@ -358,6 +358,11 @@ impl Scenario {
         (pic_name.as_str(), *pic_index)
     }
 
+    pub fn get_bustup_data(&self, bup_id: i32) -> (&str, &str, u16) {
+        let (bup_name, bup_emotion, bup_index) = &self.bup_data[bup_id as usize];
+        (bup_name.as_str(), bup_emotion.as_str(), *bup_index)
+    }
+
     pub fn raw(&self) -> &[u8] {
         &self.raw_data
     }

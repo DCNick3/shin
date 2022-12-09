@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use tracing::{debug, warn};
 
 use shin_core::format::scenario::Scenario;
-use winit::dpi::LogicalSize;
+use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::window::Fullscreen;
 use winit::{
     event::*,
@@ -286,7 +286,8 @@ pub async fn run() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_inner_size(LogicalSize::new(1920, 1080))
-        .with_maximized(true)
+        .with_maximized(false)
+        .with_position(LogicalPosition::new(1080, 0))
         .build(&event_loop)
         .unwrap();
 

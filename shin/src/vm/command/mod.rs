@@ -12,6 +12,7 @@ mod prelude {
     pub use shin_core::vm::command::layer::VLayerIdRepr;
     pub use shin_core::vm::command::CommandResult;
     pub use tracing::warn;
+    pub use CommandStartResult::Yield;
 }
 
 mod autosave;

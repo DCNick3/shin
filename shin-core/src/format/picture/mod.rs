@@ -109,7 +109,7 @@ pub struct PicVertexEntry {
     pub to_y: u16,
 }
 
-#[derive(Zeroable, Pod, Copy, Clone, Default, Debug)]
+#[derive(Zeroable, Pod, Copy, Clone, Default, Debug, Eq, PartialEq)]
 #[repr(C)]
 pub struct Rgba8 {
     pub r: u8,
@@ -411,7 +411,11 @@ fn read_picture_chunk<'a, L: PictureBuilder<'a>>(
         let dictionary = bytemuck::pod_read_unaligned::<[Rgba8; 0x100]>(dictionary);
 
         if !header.use_inline_alpha() {
-            debug_assert!(dictionary.iter().all(|v| v.a == 0xff));
+            debug_assert!(dictionary
+                .iter()
+                // if we have inline alpha we can't have any transparent pixels
+                // (the second case is for empty dictionary entries, where all the components are 0)
+                .all(|v| v.a == 0xff || v == &Rgba8::default()));
         }
 
         decode_dict(

@@ -164,8 +164,16 @@ impl UserLayer {
                 PictureLayer::new(resources, pic).into()
             }
             LayerType::Bustup => {
-                warn!("Loading NullLayer instead of BustupLayer");
-                NullLayer::new().into()
+                let [bup_id, _, _, _, _, _, _, _] = params;
+                let (bup_name, bup_emotion, v1) = scenario.get_bustup_data(bup_id);
+                debug!(
+                    "Load bustup: {} -> {} {} {}",
+                    bup_id, bup_name, bup_emotion, v1
+                );
+                let bup_path = format!("/bustup/{}.bup", bup_name.to_ascii_lowercase());
+                todo!()
+                // warn!("Loading NullLayer instead of BustupLayer");
+                // NullLayer::new().into()
             }
             _ => {
                 todo!("Layer type not implemented: {:?}", layer_ty);
