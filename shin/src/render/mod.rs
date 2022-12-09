@@ -18,7 +18,7 @@ pub use vertex_buffer::{IndexBuffer, SpriteVertexBuffer, Vertex, VertexBuffer};
 use enum_dispatch::enum_dispatch;
 use std::ops::{Deref, DerefMut};
 
-use crate::layer::UserLayer;
+use crate::layer::{AnyLayerMut, UserLayer};
 
 pub use window::run;
 

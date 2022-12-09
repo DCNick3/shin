@@ -4,14 +4,11 @@ impl super::StartableCommand for command::runtime::LAYERCTRL {
     fn apply_state(&self, state: &mut VmState) {
         let [target_value, _time, _flags, _, _, _, _, _] = self.params;
 
-        state
-            .layers
-            .get_vlayer_mut(self.layer_id)
-            .for_each(|layer| {
-                layer
-                    .properties
-                    .set_property(self.property_id, target_value);
-            });
+        state.layers.for_each_vlayer_mut(self.layer_id, |layer| {
+            layer
+                .properties
+                .set_property(self.property_id, target_value);
+        });
     }
 
     fn start(

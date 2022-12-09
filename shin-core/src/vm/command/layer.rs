@@ -26,6 +26,12 @@ impl<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: 
     pub fn raw(self) -> T {
         self.0
     }
+
+    pub fn next(self) -> Self {
+        let id = self.0 + T::one();
+        assert_ne!(id.into(), SENTINEL, "Id::next: id out of range");
+        Self::new(id)
+    }
 }
 
 impl<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: u32>
@@ -67,10 +73,10 @@ pub struct VLayerId(i32);
 #[derive(Debug)]
 pub enum VLayerIdRepr {
     // TODO: give these meaningful names
-    Neg1,
-    Neg2,
-    Neg3,
-    Neg4,
+    RootLayerGroup,
+    ScreenLayer,
+    PageLayer,
+    PlaneLayerGroup,
     Selected,
     Layer(LayerId),
 }
@@ -89,10 +95,10 @@ impl VLayerId {
     pub fn repr(self) -> VLayerIdRepr {
         if self.0 < 0 {
             match self.0 {
-                -1 => VLayerIdRepr::Neg1,
-                -2 => VLayerIdRepr::Neg2,
-                -3 => VLayerIdRepr::Neg3,
-                -4 => VLayerIdRepr::Neg4,
+                -1 => VLayerIdRepr::RootLayerGroup,
+                -2 => VLayerIdRepr::ScreenLayer,
+                -3 => VLayerIdRepr::PageLayer,
+                -4 => VLayerIdRepr::PlaneLayerGroup,
                 -5 => VLayerIdRepr::Selected,
                 _ => unreachable!(),
             }

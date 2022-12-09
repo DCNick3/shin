@@ -128,4 +128,35 @@ pub enum UserLayer {
     PictureLayer,
 }
 
-impl UserLayer {}
+pub enum AnyLayerMut<'a> {
+    UserLayer(&'a mut UserLayer),
+    LayerGroup(&'a mut LayerGroup),
+}
+
+impl<'a> AnyLayerMut<'a> {
+    pub fn properties(&self) -> &LayerProperties {
+        match self {
+            Self::UserLayer(layer) => layer.properties(),
+            Self::LayerGroup(layer) => layer.properties(),
+        }
+    }
+
+    pub fn properties_mut(&mut self) -> &mut LayerProperties {
+        match self {
+            Self::UserLayer(layer) => layer.properties_mut(),
+            Self::LayerGroup(layer) => layer.properties_mut(),
+        }
+    }
+}
+
+impl<'a> From<&'a mut UserLayer> for AnyLayerMut<'a> {
+    fn from(layer: &'a mut UserLayer) -> Self {
+        Self::UserLayer(layer)
+    }
+}
+
+impl<'a> From<&'a mut LayerGroup> for AnyLayerMut<'a> {
+    fn from(layer: &'a mut LayerGroup) -> Self {
+        Self::LayerGroup(layer)
+    }
+}

@@ -1,7 +1,10 @@
 use crate::layer::LayerPropertiesSnapshot;
 use bevy_utils::hashbrown::hash_map::Entry;
 use bevy_utils::StableHashMap;
-use shin_core::vm::command::layer::{LayerId, LayerType, VLayerId, PLANES_COUNT};
+use shin_core::vm::command::layer::{
+    LayerId, LayerIdOpt, LayerType, VLayerId, VLayerIdRepr, PLANES_COUNT,
+};
+use tracing::warn;
 
 pub struct SaveInfo {
     pub info: [String; 4],
@@ -57,10 +60,56 @@ pub struct LayerSelection {
     pub high: LayerId,
 }
 
+impl LayerSelection {
+    pub fn iter(&self) -> impl Iterator<Item = LayerId> {
+        LayerSelectionIter {
+            current: LayerIdOpt::some(self.low),
+            high: self.high,
+        }
+    }
+}
+
+struct LayerSelectionIter {
+    current: LayerIdOpt,
+    high: LayerId,
+}
+
+impl Iterator for LayerSelectionIter {
+    type Item = LayerId;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.current.opt() {
+            None => None,
+            Some(current) => {
+                if current > self.high {
+                    None
+                } else {
+                    if current == self.high {
+                        self.current = LayerIdOpt::none();
+                    } else {
+                        self.current = LayerIdOpt::some(current.next());
+                    }
+
+                    Some(current)
+                }
+            }
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct LayerState {
     pub layerinit_params: Option<(LayerType, [i32; 0x8])>,
     pub properties: LayerPropertiesSnapshot,
+}
+
+impl LayerState {
+    pub fn new() -> Self {
+        Self {
+            layerinit_params: None,
+            properties: LayerPropertiesSnapshot::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -96,10 +145,9 @@ impl PlaneState {
     }
 
     pub fn free(&mut self, layer_id: LayerId) {
-        self.layers
-            .remove(&layer_id)
-            // TODO: downgrade to a warning?
-            .expect("LayerState::free: layer not allocated");
+        if self.layers.remove(&layer_id).is_none() {
+            warn!("LayerState::free: layer not allocated");
+        }
     }
 }
 
@@ -108,6 +156,52 @@ pub struct LayersState {
     pub current_plane: u32,
     pub layer_selection: Option<LayerSelection>,
     pub planes: [PlaneState; PLANES_COUNT],
+
+    pub root_layer_group: LayerState,
+    pub screen_layer: LayerState,
+    pub page_layer: LayerState,
+    pub plane_layer_group: LayerState,
+}
+
+pub enum LayersIter<'a> {
+    Single(Option<&'a LayerState>),
+    Selection {
+        done: bool,
+        plane: &'a PlaneState,
+        low: LayerId,
+        high: LayerId,
+    },
+}
+
+impl<'a> Iterator for LayersIter<'a> {
+    type Item = &'a LayerState;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            LayersIter::Single(layer) => layer.take(),
+            LayersIter::Selection {
+                done,
+                plane,
+                low,
+                high,
+            } => loop {
+                if *done {
+                    return None;
+                }
+
+                let id = *low;
+                if *low == *high {
+                    *done = true;
+                } else {
+                    *low = low.next();
+                }
+
+                if let Some(l) = plane.layers.get(&id) {
+                    return Some(l);
+                }
+            },
+        }
+    }
 }
 
 impl LayersState {
@@ -121,6 +215,10 @@ impl LayersState {
                 PlaneState::new(),
                 PlaneState::new(),
             ],
+            root_layer_group: LayerState::new(),
+            screen_layer: LayerState::new(),
+            page_layer: LayerState::new(),
+            plane_layer_group: LayerState::new(),
         }
     }
 
@@ -135,21 +233,63 @@ impl LayersState {
     }
 
     /// Get layer by id, handling the special layers & selection
-    pub fn get_vlayer(&self, _vlayer_id: VLayerId) -> impl Iterator<Item = &LayerState> {
-        // TODO: implement
+    pub fn get_vlayer(&self, vlayer_id: VLayerId) -> LayersIter {
         // if a special layer - return a single layer
         // if a normal layer id - return it if exists, otherwise print a warning and return an empty iterator
         // if a selection - return all layers in the selection and warn if the selection is empty
-        std::iter::once(todo!())
+        match vlayer_id.repr() {
+            VLayerIdRepr::RootLayerGroup => LayersIter::Single(Some(&self.root_layer_group)),
+            VLayerIdRepr::ScreenLayer => LayersIter::Single(Some(&self.screen_layer)),
+            VLayerIdRepr::PageLayer => LayersIter::Single(Some(&self.page_layer)),
+            VLayerIdRepr::PlaneLayerGroup => LayersIter::Single(Some(&self.plane_layer_group)),
+            VLayerIdRepr::Selected => {
+                if let Some(selection) = self.layer_selection {
+                    LayersIter::Selection {
+                        done: false,
+                        plane: &self.planes[self.current_plane as usize],
+                        low: selection.low,
+                        high: selection.high,
+                    }
+                } else {
+                    warn!("LayersState::get_vlayer: no selection");
+                    LayersIter::Single(None)
+                }
+            }
+            VLayerIdRepr::Layer(l) => {
+                let v = self.get_layer(l);
+                if v.is_none() {
+                    warn!("get_vlayer: layer not found: {:?}", l);
+                }
+                LayersIter::Single(v)
+            }
+        }
     }
 
     /// Get layer by id, handling the special layers & selection (mutable)
-    pub fn get_vlayer_mut(
-        &mut self,
-        _vlayer_id: VLayerId,
-    ) -> impl Iterator<Item = &mut LayerState> {
-        // TODO: same as get_many, but mutable
-        std::iter::once(todo!())
+    pub fn for_each_vlayer_mut(&mut self, vlayer_id: VLayerId, mut f: impl FnMut(&mut LayerState)) {
+        // same as get_vlayer, but mutable
+        match vlayer_id.repr() {
+            VLayerIdRepr::RootLayerGroup => f(&mut self.root_layer_group),
+            VLayerIdRepr::ScreenLayer => f(&mut self.screen_layer),
+            VLayerIdRepr::PageLayer => f(&mut self.page_layer),
+            VLayerIdRepr::PlaneLayerGroup => f(&mut self.plane_layer_group),
+            VLayerIdRepr::Selected => {
+                if let Some(selection) = self.layer_selection {
+                    let plane = &mut self.planes[self.current_plane as usize];
+                    for id in selection.iter() {
+                        if let Some(l) = plane.layers.get_mut(&id) {
+                            f(l);
+                        }
+                    }
+                } else {
+                    warn!("LayersState::get_vlayer: no selection");
+                }
+            }
+            VLayerIdRepr::Layer(l) => match self.get_layer_mut(l) {
+                None => warn!("get_vlayer: layer not found: {:?}", l),
+                Some(l) => f(l),
+            },
+        }
     }
 
     pub fn alloc(&mut self, layer_id: LayerId) -> &mut LayerState {

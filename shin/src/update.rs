@@ -3,7 +3,7 @@ use enum_dispatch::enum_dispatch;
 use std::ops::Div;
 use std::time::Duration;
 
-use crate::layer::UserLayer;
+use crate::layer::{AnyLayerMut, UserLayer};
 use crate::render::GpuCommonResources;
 
 #[derive(Debug, Copy, Clone, Add, AddAssign, Sub, SubAssign, PartialEq, PartialOrd)]

@@ -1,7 +1,8 @@
 use bevy_utils::hashbrown::HashMap;
 use cgmath::Matrix4;
 use itertools::Itertools;
-use shin_core::vm::command::layer::{LayerId, VLayerId};
+use shin_core::vm::command::layer::{LayerId, VLayerId, VLayerIdRepr};
+use tracing::warn;
 
 use crate::layer::{Layer, LayerProperties, UserLayer};
 use crate::render::{GpuCommonResources, SpriteVertexBuffer};
@@ -37,7 +38,9 @@ impl LayerGroup {
     }
 
     pub fn remove_layer(&mut self, id: LayerId) {
-        self.layers.remove(&id);
+        if self.layers.remove(&id).is_none() {
+            warn!("LayerGroup::remove_layer: layer not found");
+        }
     }
 
     pub fn get_layer(&self, id: LayerId) -> Option<&UserLayer> {
@@ -46,20 +49,6 @@ impl LayerGroup {
 
     pub fn get_layer_mut(&mut self, id: LayerId) -> Option<&mut UserLayer> {
         self.layers.get_mut(&id)
-    }
-
-    pub fn get_vlayer(&self, id: VLayerId) -> impl Iterator<Item = &UserLayer> {
-        std::iter::once(todo!())
-        // self.layers
-        //     .iter()
-        //     .filter(move |(_, layer)| layer.properties().vlayer_id() == id)
-    }
-
-    pub fn get_vlayer_mut(&mut self, id: VLayerId) -> impl Iterator<Item = &mut UserLayer> {
-        std::iter::once(todo!())
-        // self.layers
-        //     .iter_mut()
-        //     .filter(move |(_, layer)| layer.properties().vlayer_id() == id)
     }
 }
 

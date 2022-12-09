@@ -5,7 +5,10 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
         assert_eq!(self.leave_uninitialized, 0); // I __think__ this has to do with init props/leave them be, but I'm not sure
 
         match self.layer_id.repr() {
-            VLayerIdRepr::Neg1 | VLayerIdRepr::Neg2 | VLayerIdRepr::Neg3 | VLayerIdRepr::Neg4 => {
+            VLayerIdRepr::RootLayerGroup
+            | VLayerIdRepr::ScreenLayer
+            | VLayerIdRepr::PageLayer
+            | VLayerIdRepr::PlaneLayerGroup => {
                 unreachable!("You can't load special layers")
             }
             VLayerIdRepr::Selected => {
@@ -29,7 +32,7 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        // TODO: this should be done async
+        // TODO: loading should be done async
         todo!("LAYERLOAD")
         // command.token.finish().into()
     }

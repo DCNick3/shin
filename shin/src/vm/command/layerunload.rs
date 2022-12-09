@@ -2,8 +2,12 @@ use super::prelude::*;
 
 impl super::StartableCommand for command::runtime::LAYERUNLOAD {
     fn apply_state(&self, state: &mut VmState) {
+        // TODO: make another utility function for this
         match self.layer_id.repr() {
-            VLayerIdRepr::Neg1 | VLayerIdRepr::Neg2 | VLayerIdRepr::Neg3 | VLayerIdRepr::Neg4 => {
+            VLayerIdRepr::RootLayerGroup
+            | VLayerIdRepr::ScreenLayer
+            | VLayerIdRepr::PageLayer
+            | VLayerIdRepr::PlaneLayerGroup => {
                 unreachable!("You can't unload special layers")
             }
             VLayerIdRepr::Selected => {
@@ -19,8 +23,22 @@ impl super::StartableCommand for command::runtime::LAYERUNLOAD {
         self,
         _context: &UpdateContext,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        todo!("LAYERUNLOAD")
+        match self.layer_id.repr() {
+            VLayerIdRepr::RootLayerGroup
+            | VLayerIdRepr::ScreenLayer
+            | VLayerIdRepr::PageLayer
+            | VLayerIdRepr::PlaneLayerGroup => {
+                unreachable!("You can't unload special layers")
+            }
+            VLayerIdRepr::Selected => {
+                todo!("LAYERUNLOAD: selected");
+            }
+            VLayerIdRepr::Layer(id) => {
+                adv_state.root_layer_group.remove_layer(id);
+            }
+        }
+        self.token.finish().into()
     }
 }

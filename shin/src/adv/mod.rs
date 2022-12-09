@@ -1,4 +1,4 @@
-use crate::layer::LayerGroup;
+use crate::layer::{AnyLayerMut, LayerGroup, UserLayer};
 use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
@@ -7,8 +7,10 @@ use crate::vm::{
 };
 use cgmath::Matrix4;
 use shin_core::format::scenario::Scenario;
+use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
 use shin_core::vm::command::CommandResult;
 use shin_core::vm::Scripter;
+use tracing::warn;
 
 pub struct Adv {
     scenario: Scenario,
@@ -96,6 +98,55 @@ impl AdvState {
     pub fn new(resources: &GpuCommonResources) -> Self {
         Self {
             root_layer_group: LayerGroup::new(resources),
+        }
+    }
+
+    pub fn get_vlayer(&self, vm_state: &VmState, id: VLayerId) -> impl Iterator<Item = &UserLayer> {
+        std::iter::once(todo!())
+        // self.layers
+        //     .iter()
+        //     .filter(move |(_, layer)| layer.properties().vlayer_id() == id)
+    }
+
+    pub fn for_each_vlayer_mut(
+        &mut self,
+        vm_state: &VmState,
+        id: VLayerId,
+        mut f: impl FnMut(AnyLayerMut),
+    ) {
+        match id.repr() {
+            VLayerIdRepr::RootLayerGroup => f((&mut self.root_layer_group).into()),
+            VLayerIdRepr::ScreenLayer => {
+                warn!("Returning RootLayerGroup for ScreenLayer");
+                f((&mut self.root_layer_group).into())
+            }
+            VLayerIdRepr::PageLayer => {
+                warn!("Returning RootLayerGroup for PageLayer");
+                f((&mut self.root_layer_group).into())
+            }
+            VLayerIdRepr::PlaneLayerGroup => {
+                warn!("Returning RootLayerGroup for PlaneLayerGroup");
+                f((&mut self.root_layer_group).into())
+            }
+            VLayerIdRepr::Selected => {
+                if let Some(selection) = vm_state.layers.layer_selection {
+                    for id in selection.iter() {
+                        if let Some(layer) = self.root_layer_group.get_layer_mut(id) {
+                            f(layer.into());
+                        }
+                    }
+                } else {
+                    warn!("AdvState::for_each_vlayer_mut: no layer selected");
+                }
+            }
+            VLayerIdRepr::Layer(l) => {
+                let layer = self.root_layer_group.get_layer_mut(l);
+                if let Some(layer) = layer {
+                    f(layer.into());
+                } else {
+                    warn!("AdvState::for_each_vlayer_mut: layer not found: {:?}", l);
+                }
+            }
         }
     }
 }
