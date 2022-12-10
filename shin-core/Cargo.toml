@@ -20,4 +20,5 @@ smallvec = "1.10.0"
 tracing = "0.1.37"
 enum-map = "2.4.1"
 shin-derive = { path = "../shin-derive" }
+byteorder = "1.4.3"
 

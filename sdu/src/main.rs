@@ -22,6 +22,8 @@ enum SduAction {
     Scenario(ScenarioCommand),
     #[clap(subcommand)]
     Picture(PictureCommand),
+    #[clap(subcommand)]
+    Font(FontCommand),
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -58,6 +60,14 @@ enum ScenarioCommand {
 enum PictureCommand {
     Decode {
         picture_path: PathBuf,
+        output_path: PathBuf,
+    },
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum FontCommand {
+    Decode {
+        font_path: PathBuf,
         output_path: PathBuf,
     },
 }
@@ -174,6 +184,41 @@ fn picture_command(command: PictureCommand) -> Result<()> {
     }
 }
 
+fn font_command(command: FontCommand) -> Result<()> {
+    match command {
+        FontCommand::Decode {
+            font_path: path,
+            output_path,
+        } => {
+            use std::fmt::Write;
+
+            let font = std::fs::read(path)?;
+            let font = shin_core::format::font::read_font(&font)?;
+            std::fs::create_dir_all(&output_path)?;
+
+            let (min_size, max_size) = font.get_size_range();
+
+            // first, write the metadata & grapheme mappings to a text file
+            let mut metadata = String::new();
+            writeln!(metadata, "min_size: {}", min_size)?;
+            writeln!(metadata, "max_size: {}", max_size)?;
+            writeln!(metadata, "graphemes: ")?;
+            for (grapheme, glyph) in font.get_grapheme_mapping().into_iter().enumerate() {
+                writeln!(metadata, "  {:04x}: {:04}", grapheme, glyph.0)?;
+            }
+            std::fs::write(output_path.join("metadata.txt"), metadata)?;
+
+            // then, write each glyph to a separate file
+            for (&glyph_id, glyph_data) in font.get_glyphs().iter() {
+                glyph_data
+                    .mip_level_0
+                    .save(output_path.join(format!("{:04}.png", glyph_id.0)))?;
+            }
+            Ok(())
+        }
+    }
+}
+
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -185,5 +230,6 @@ fn main() -> Result<()> {
         SduAction::Rom(cmd) => rom_command(cmd),
         SduAction::Scenario(cmd) => scenario_command(cmd),
         SduAction::Picture(cmd) => picture_command(cmd),
+        SduAction::Font(cmd) => font_command(cmd),
     }
 }

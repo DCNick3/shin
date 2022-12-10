@@ -1,3 +1,4 @@
+pub mod font;
 pub mod lz77;
 pub mod picture;
 pub mod rom;
