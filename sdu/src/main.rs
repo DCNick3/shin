@@ -1,6 +1,9 @@
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use clap::Parser;
+use image::{GenericImageView, Rgba, RgbaImage};
+use itertools::Itertools;
+use shin_core::format::font::GlyphMipLevel;
 use shin_core::format::picture::SimpleMergedPicture;
 use shin_core::format::rom::IndexEntry;
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
@@ -202,17 +205,37 @@ fn font_command(command: FontCommand) -> Result<()> {
             let mut metadata = String::new();
             writeln!(metadata, "min_size: {}", min_size)?;
             writeln!(metadata, "max_size: {}", max_size)?;
-            writeln!(metadata, "graphemes: ")?;
+            writeln!(metadata, "graphemes:")?;
             for (grapheme, glyph) in font.get_grapheme_mapping().into_iter().enumerate() {
                 writeln!(metadata, "  {:04x}: {:04}", grapheme, glyph.0)?;
+            }
+            // finally, write the glyph metadata
+            writeln!(metadata, "glyphs:")?;
+            for (glyph, glyph_data) in font.get_glyphs().into_iter().sorted_by_key(|v| v.0) {
+                let info = glyph_data.get_info();
+                writeln!(metadata, "  {:04}", glyph.0)?;
+                writeln!(metadata, "    bearing_y: {}", info.bearing_y)?;
+                writeln!(metadata, "    bearing_x: {}", info.bearing_x)?;
+                writeln!(metadata, "    advance  : {}", info.advance_width)?;
             }
             std::fs::write(output_path.join("metadata.txt"), metadata)?;
 
             // then, write each glyph to a separate file
             for (&glyph_id, glyph_data) in font.get_glyphs().iter() {
-                glyph_data
-                    .mip_level_0
-                    .save(output_path.join(format!("{:04}.png", glyph_id.0)))?;
+                let size = glyph_data.get_info().size();
+                let glyph_pic = glyph_data
+                    .get_image(GlyphMipLevel::Level0)
+                    .view(0, 0, size.0, size.1);
+
+                let mut new_glyph_pic = RgbaImage::new(size.0, size.1);
+
+                for (x, y, pixel) in glyph_pic.pixels() {
+                    let new_pixel = Rgba([0, 0, 0, pixel[0]]);
+
+                    new_glyph_pic.put_pixel(x, y, new_pixel);
+                }
+
+                new_glyph_pic.save(output_path.join(format!("{:04}.png", glyph_id.0)))?;
             }
             Ok(())
         }

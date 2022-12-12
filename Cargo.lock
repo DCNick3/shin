@@ -2097,6 +2097,7 @@ dependencies = [
  "clap",
  "futures",
  "image",
+ "itertools",
  "shin-core",
  "tracing-subscriber",
 ]
