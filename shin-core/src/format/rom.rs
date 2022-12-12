@@ -1,6 +1,7 @@
 use anyhow::{anyhow, bail, Context, Result};
 use binrw::{BinRead, BinResult, BinWrite, NullString, ReadOptions};
 use itertools::Itertools;
+use smartstring::alias::CompactString;
 use std::collections::BTreeMap;
 use std::io;
 use std::io::SeekFrom;
@@ -64,16 +65,20 @@ impl BinRead for Entry {
         reader.seek(SeekFrom::Start(
             ctx.current_dir_offset + (entry.directory_and_name_offset & 0x7fffffff) as u64,
         ))?;
+        // NullString does an extra heap alloc =(
+        // better write one ourselves it seems
         let name: NullString = <_>::read_options(reader, ro, ())?;
+        let name: String = name.try_into().unwrap();
+        let name: CompactString = name.into();
 
         let res = match is_directory {
             true => Entry::Directory {
-                name: name.to_string(),
+                name,
                 entries_offset: entry.data_offset as u64 * DIRECTORY_OFFSET_MULTIPLIER,
                 // data_size: entry.data_size,
             },
             false => Entry::File {
-                name: name.to_string(),
+                name,
                 data_offset: entry.data_offset as u64 * ctx.data_offset_multiplier,
                 data_size: entry.data_size,
             },
@@ -88,14 +93,14 @@ impl BinRead for Entry {
 #[derive(Debug)]
 enum Entry {
     Directory {
-        name: String,
+        name: CompactString,
         // this is offset from the beginning of the archive file
         entries_offset: u64,
         // this is provided, but we don't really use it
         // data_size: u32
     },
     File {
-        name: String,
+        name: CompactString,
         data_offset: u64,
         data_size: u32,
     },
@@ -121,7 +126,7 @@ impl IndexFile {
 
 #[derive(Debug)]
 pub struct IndexDirectory {
-    entries: BTreeMap<String, IndexEntry>,
+    entries: BTreeMap<CompactString, IndexEntry>,
 }
 
 impl IndexDirectory {
@@ -133,7 +138,7 @@ impl IndexDirectory {
 }
 
 pub struct IndexDirectoryIter<'a> {
-    inner: std::collections::btree_map::Iter<'a, String, IndexEntry>,
+    inner: std::collections::btree_map::Iter<'a, CompactString, IndexEntry>,
 }
 
 impl<'a> Iterator for IndexDirectoryIter<'a> {
@@ -145,7 +150,7 @@ impl<'a> Iterator for IndexDirectoryIter<'a> {
 }
 
 #[derive(Debug)]
-struct NamedEntry(String, IndexEntry);
+struct NamedEntry(CompactString, IndexEntry);
 
 impl BinRead for NamedEntry {
     type Args = ReadContext;
