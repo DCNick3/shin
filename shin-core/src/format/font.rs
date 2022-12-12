@@ -123,9 +123,7 @@ impl LazyGlyph {
             data.read_exact(&mut image_data)
                 .expect("Failed to read glyph texture");
 
-            let image = GrayImage::from_raw(width as u32, height as u32, image_data).unwrap();
-
-            image
+            GrayImage::from_raw(width as u32, height as u32, image_data).unwrap()
         }
 
         let mip_level_0 = read_texture(self.texture_size.0, self.texture_size.1, &mut data);
@@ -323,7 +321,7 @@ impl<G: GlyphTrait> BinRead for Font<G> {
         Ok(Font {
             min_size: header.min_size,
             max_size: header.max_size,
-            characters: characters,
+            characters,
             glyphs,
         })
     }

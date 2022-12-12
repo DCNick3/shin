@@ -9,31 +9,6 @@ pub fn load_picture(bytes: &[u8]) -> Result<Picture> {
     shin_core::format::picture::read_picture::<Picture>(bytes, ())
 }
 
-fn make_texture(device: &wgpu::Device, picture: &Picture) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width: picture.image.width(),
-        height: picture.image.height(),
-        depth_or_array_layers: 1,
-    };
-
-    assert_eq!(
-        render::TEXTURE_FORMAT,
-        wgpu::TextureFormat::Rgba8UnormSrgb,
-        "Only Rgba8UnormSrgb is supported for now"
-    );
-
-    let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some(&format!("picture_texture_{:08x}", picture.picture_id)),
-        size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: render::TEXTURE_FORMAT,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-    });
-    texture
-}
-
 pub struct GpuPicture {
     pub texture: wgpu::Texture,
     pub sampler: wgpu::Sampler,
@@ -47,7 +22,28 @@ pub struct GpuPicture {
 
 impl GpuPicture {
     pub fn load(resources: &GpuCommonResources, picture: Picture) -> GpuPicture {
-        let texture = make_texture(&resources.device, &picture);
+        let size = wgpu::Extent3d {
+            width: picture.image.width(),
+            height: picture.image.height(),
+            depth_or_array_layers: 1,
+        };
+
+        assert_eq!(
+            render::TEXTURE_FORMAT,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+            "Only Rgba8UnormSrgb is supported for now"
+        );
+
+        let texture = resources.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some(&format!("picture_texture_{:08x}", picture.picture_id)),
+            size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: render::TEXTURE_FORMAT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        });
+
         resources.queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &texture,
@@ -82,7 +78,7 @@ impl GpuPicture {
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = TextureBindGroup::new(
-            &resources,
+            resources,
             &texture_view,
             &sampler,
             Some(&format!("picture_bind_group_{:08x}", picture.picture_id)),

@@ -437,7 +437,7 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
     source: &'a [u8],
     builder_args: B::Args,
 ) -> Result<B::Output> {
-    let mut source = io::Cursor::new(source.as_ref());
+    let mut source = io::Cursor::new(source);
     let header = PicHeader::read(&mut source)?;
 
     if header.version != 3 {

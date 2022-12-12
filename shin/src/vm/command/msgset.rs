@@ -1,5 +1,4 @@
 use super::prelude::*;
-use std::time::Duration;
 
 pub struct MSGSET {
     #[allow(unused)]
