@@ -2199,7 +2199,6 @@ dependencies = [
  "binrw",
  "bitflags",
  "bytemuck",
- "byteorder",
  "bytes",
  "enum-map",
  "image",

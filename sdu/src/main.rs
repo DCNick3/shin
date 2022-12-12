@@ -3,11 +3,11 @@ use bytes::Bytes;
 use clap::Parser;
 use image::{GenericImageView, Rgba, RgbaImage};
 use itertools::Itertools;
-use shin_core::format::font::GlyphMipLevel;
 use shin_core::format::picture::SimpleMergedPicture;
 use shin_core::format::rom::IndexEntry;
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 use std::fs::File;
+use std::io::BufReader;
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
@@ -193,10 +193,12 @@ fn font_command(command: FontCommand) -> Result<()> {
             font_path: path,
             output_path,
         } => {
+            use shin_core::format::font::{read_lazy_font, GlyphMipLevel, GlyphTrait};
             use std::fmt::Write;
 
-            let font = std::fs::read(path)?;
-            let font = shin_core::format::font::read_font(&font)?;
+            let font = File::open(path)?;
+            let mut font = BufReader::new(font);
+            let font = read_lazy_font(&mut font)?;
             std::fs::create_dir_all(&output_path)?;
 
             let (min_size, max_size) = font.get_size_range();
@@ -206,12 +208,12 @@ fn font_command(command: FontCommand) -> Result<()> {
             writeln!(metadata, "min_size: {}", min_size)?;
             writeln!(metadata, "max_size: {}", max_size)?;
             writeln!(metadata, "graphemes:")?;
-            for (grapheme, glyph) in font.get_grapheme_mapping().into_iter().enumerate() {
+            for (grapheme, glyph) in font.get_grapheme_mapping().iter().enumerate() {
                 writeln!(metadata, "  {:04x}: {:04}", grapheme, glyph.0)?;
             }
             // finally, write the glyph metadata
             writeln!(metadata, "glyphs:")?;
-            for (glyph, glyph_data) in font.get_glyphs().into_iter().sorted_by_key(|v| v.0) {
+            for (glyph, glyph_data) in font.get_glyphs().iter().sorted_by_key(|v| v.0) {
                 let info = glyph_data.get_info();
                 writeln!(metadata, "  {:04}", glyph.0)?;
                 writeln!(metadata, "    bearing_y: {}", info.bearing_y)?;
@@ -222,6 +224,8 @@ fn font_command(command: FontCommand) -> Result<()> {
 
             // then, write each glyph to a separate file
             for (&glyph_id, glyph_data) in font.get_glyphs().iter() {
+                let glyph_data = glyph_data.decompress();
+
                 let size = glyph_data.get_info().size();
                 let glyph_pic = glyph_data
                     .get_image(GlyphMipLevel::Level0)
