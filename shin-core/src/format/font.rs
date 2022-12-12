@@ -234,7 +234,7 @@ impl GlyphTrait for LazyGlyph {
 pub struct Font<G: GlyphTrait = Glyph> {
     min_size: u16,
     max_size: u16,
-    graphemes: [GlyphId; 0x10000],
+    characters: [GlyphId; 0x10000],
     glyphs: HashMap<GlyphId, G>,
 }
 
@@ -245,12 +245,14 @@ impl<G: GlyphTrait> Font<G> {
         (self.min_size, self.max_size)
     }
 
-    pub fn get_for_grapheme(&self, grapheme: u16) -> &G {
-        self.glyphs.get(&self.graphemes[grapheme as usize]).unwrap()
+    pub fn get_glyph_for_character(&self, character: u16) -> &G {
+        self.glyphs
+            .get(&self.characters[character as usize])
+            .unwrap()
     }
 
-    pub fn get_grapheme_mapping(&self) -> &[GlyphId; 0x10000] {
-        &self.graphemes
+    pub fn get_character_mapping(&self) -> &[GlyphId; 0x10000] {
+        &self.characters
     }
 
     pub fn get_glyphs(&self) -> &HashMap<GlyphId, G> {
@@ -287,13 +289,13 @@ impl<G: GlyphTrait> BinRead for Font<G> {
             });
         }
 
-        let grapheme_table = <[u32; 0x10000]>::read_options(reader, options, ())?;
+        let character_table = <[u32; 0x10000]>::read_options(reader, options, ())?;
 
         let mut known_glyph_offsets = HashMap::new();
-        let mut graphemes = [GlyphId(0); 0x10000];
+        let mut characters = [GlyphId(0); 0x10000];
         let mut glyphs = HashMap::new();
 
-        for (grapheme_index, glyph_offset) in grapheme_table.into_iter().enumerate() {
+        for (character_index, glyph_offset) in character_table.into_iter().enumerate() {
             // we can't directly read FilePtr32 array because it's too large, the stack overflows
             let mut glyph_offset: FilePtr32<G> = FilePtr32 {
                 ptr: glyph_offset,
@@ -308,7 +310,7 @@ impl<G: GlyphTrait> BinRead for Font<G> {
             let glyph_id = *known_glyph_offsets
                 .entry(glyph_offset.ptr)
                 .or_insert(next_glyph_id);
-            graphemes[grapheme_index] = glyph_id;
+            characters[character_index] = glyph_id;
 
             match glyphs.entry(glyph_id) {
                 Entry::Occupied(_) => continue,
@@ -321,7 +323,7 @@ impl<G: GlyphTrait> BinRead for Font<G> {
         Ok(Font {
             min_size: header.min_size,
             max_size: header.max_size,
-            graphemes,
+            characters: characters,
             glyphs,
         })
     }

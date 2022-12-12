@@ -7,7 +7,7 @@ pub enum CommandInner {
         color: Vector3<f32>,
         size: f32,
         fade_speed: f32,
-        glyph: char,
+        character: char,
     },
 }
 

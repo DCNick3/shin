@@ -203,13 +203,13 @@ fn font_command(command: FontCommand) -> Result<()> {
 
             let (min_size, max_size) = font.get_size_range();
 
-            // first, write the metadata & grapheme mappings to a text file
+            // first, write the metadata & character mappings to a text file
             let mut metadata = String::new();
             writeln!(metadata, "min_size: {}", min_size)?;
             writeln!(metadata, "max_size: {}", max_size)?;
-            writeln!(metadata, "graphemes:")?;
-            for (grapheme, glyph) in font.get_grapheme_mapping().iter().enumerate() {
-                writeln!(metadata, "  {:04x}: {:04}", grapheme, glyph.0)?;
+            writeln!(metadata, "characters:")?;
+            for (character, glyph) in font.get_character_mapping().iter().enumerate() {
+                writeln!(metadata, "  {:04x}: {:04}", character, glyph.0)?;
             }
             // finally, write the glyph metadata
             writeln!(metadata, "glyphs:")?;
