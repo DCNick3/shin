@@ -2,9 +2,10 @@ mod layouter;
 
 use crate::layer::{Layer, LayerProperties};
 use crate::render::{GpuCommonResources, Renderable};
-use crate::update::{Ticks, Updatable, UpdateContext};
+use crate::update::{Updatable, UpdateContext};
 use cgmath::Matrix4;
 use shin_core::vm::command::layer::MessageboxStyle;
+use shin_core::vm::command::time::Ticks;
 
 enum State {
     Hidden,

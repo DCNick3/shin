@@ -1,5 +1,6 @@
 use super::prelude::*;
-use crate::update::{Ticks, UpdateContext};
+use crate::update::UpdateContext;
+use shin_core::vm::command::time::Ticks;
 use std::time::Duration;
 use tracing::debug;
 

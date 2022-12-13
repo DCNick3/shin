@@ -3,13 +3,13 @@
 mod prelude {
     pub use crate::adv::AdvState;
     pub use crate::layer::Layer;
-    pub use crate::update::Ticks;
     pub use crate::update::UpdateContext;
     pub use crate::vm::command::CommandStartResult;
     pub use crate::vm::VmState;
     pub use shin_core::format::scenario::Scenario;
     pub use shin_core::vm::command;
     pub use shin_core::vm::command::layer::VLayerIdRepr;
+    pub use shin_core::vm::command::time::Ticks;
     pub use shin_core::vm::command::CommandResult;
     pub use tracing::warn;
     pub use CommandStartResult::Yield;

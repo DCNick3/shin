@@ -1,3 +1,5 @@
+use cgmath::Vector3;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum LayouterCommand {
     /// Just your regular character (or a @U command)
@@ -15,7 +17,7 @@ pub enum LayouterCommand {
     /// @a
     SetFade(f32),
     /// @c
-    SetColor(Option<[f32; 3]>),
+    SetColor(Option<Vector3<f32>>),
     /// @e
     AutoClick,
     /// @k
@@ -76,7 +78,7 @@ impl<'a> LayouterParser<'a> {
         value as f32 / scale
     }
 
-    fn read_color_argument(&mut self) -> Option<[f32; 3]> {
+    fn read_color_argument(&mut self) -> Option<Vector3<f32>> {
         let argument = self.read_argument();
         if argument.is_empty() {
             None
@@ -86,7 +88,7 @@ impl<'a> LayouterParser<'a> {
             let g = chars.next().unwrap().to_digit(10).unwrap() as f32 / 9.0;
             let b = chars.next().unwrap().to_digit(10).unwrap() as f32 / 9.0;
             assert!(chars.next().is_none());
-            Some([r, g, b])
+            Some(Vector3::new(r, g, b))
         }
     }
 }
@@ -191,7 +193,7 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                LayouterCommand::SetColor(Some([1.0, 4.0 / 9.0, 0.0])),
+                LayouterCommand::SetColor(Some(Vector3::new(1.0, 4.0 / 9.0, 0.0))),
                 LayouterCommand::Newline,
                 LayouterCommand::Char('H'),
                 LayouterCommand::Char('e'),
@@ -241,7 +243,7 @@ mod tests {
                 LayouterCommand::Sync,
                 LayouterCommand::Char('｢'),
                 LayouterCommand::Char('｢'),
-                LayouterCommand::SetColor(Some([1.0, 0.0, 0.0])),
+                LayouterCommand::SetColor(Some(Vector3::new(1.0, 0.0, 0.0))),
                 LayouterCommand::InstantTextStart,
                 LayouterCommand::Char('謹'),
                 LayouterCommand::Char('啓'),

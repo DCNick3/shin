@@ -1,4 +1,5 @@
-use crate::update::{Ticks, UpdateContext};
+use crate::update::UpdateContext;
+use shin_core::vm::command::time::Ticks;
 use std::collections::VecDeque;
 use std::f32::consts::PI;
 use tracing::debug;

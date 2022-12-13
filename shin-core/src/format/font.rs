@@ -15,8 +15,8 @@ use std::io::{Read, Seek, SeekFrom};
 struct FontHeader {
     pub version: u32,
     pub size: u32,
-    pub max_size: u16,
-    pub min_size: u16,
+    pub ascent: u16,
+    pub descent: u16,
 }
 
 #[derive(BinRead, BinWrite, Debug)]
@@ -230,8 +230,10 @@ impl GlyphTrait for LazyGlyph {
 }
 
 pub struct Font<G: GlyphTrait = Glyph> {
-    min_size: u16,
-    max_size: u16,
+    /// Distance between the baseline and the top of the font
+    ascent: u16,
+    /// Distance between the baseline and the bottom of the font
+    descent: u16,
     characters: [GlyphId; 0x10000],
     glyphs: HashMap<GlyphId, G>,
 }
@@ -239,8 +241,19 @@ pub struct Font<G: GlyphTrait = Glyph> {
 type LazyFont = Font<LazyGlyph>;
 
 impl<G: GlyphTrait> Font<G> {
-    pub fn get_size_range(&self) -> (u16, u16) {
-        (self.min_size, self.max_size)
+    /// Get the sum of the ascent and descent, giving the total height of the font
+    pub fn get_line_height(&self) -> u16 {
+        self.ascent + self.descent
+    }
+
+    /// Get the distance between the baseline and the top of the font
+    pub fn get_descent(&self) -> u16 {
+        self.descent
+    }
+
+    /// Get the distance between the baseline and the bottom of the font
+    pub fn get_ascent(&self) -> u16 {
+        self.ascent
     }
 
     pub fn get_glyph_for_character(&self, character: u16) -> &G {
@@ -319,8 +332,8 @@ impl<G: GlyphTrait> BinRead for Font<G> {
         }
 
         Ok(Font {
-            min_size: header.min_size,
-            max_size: header.max_size,
+            ascent: header.ascent,
+            descent: header.descent,
             characters,
             glyphs,
         })

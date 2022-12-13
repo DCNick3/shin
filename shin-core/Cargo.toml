@@ -21,4 +21,5 @@ tracing = "0.1.37"
 enum-map = "2.4.1"
 shin-derive = { path = "../shin-derive" }
 smartstring = "1.0.1"
-
+cgmath = "0.18.0"
+derive_more = "0.99.17"

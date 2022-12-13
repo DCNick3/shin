@@ -1,4 +1,5 @@
 pub mod layer;
+pub mod time;
 
 use crate::format::scenario::instructions::{
     BitmaskNumberArray, MemoryAddress, NumberSpec, StringArray,

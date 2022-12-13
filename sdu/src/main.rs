@@ -201,12 +201,13 @@ fn font_command(command: FontCommand) -> Result<()> {
             let font = read_lazy_font(&mut font)?;
             std::fs::create_dir_all(&output_path)?;
 
-            let (min_size, max_size) = font.get_size_range();
+            let ascent = font.get_ascent();
+            let descent = font.get_descent();
 
             // first, write the metadata & character mappings to a text file
             let mut metadata = String::new();
-            writeln!(metadata, "min_size: {}", min_size)?;
-            writeln!(metadata, "max_size: {}", max_size)?;
+            writeln!(metadata, "ascent: {}", ascent)?;
+            writeln!(metadata, "descent: {}", descent)?;
             writeln!(metadata, "characters:")?;
             for (character, glyph) in font.get_character_mapping().iter().enumerate() {
                 writeln!(metadata, "  {:04x}: {:04}", character, glyph.0)?;

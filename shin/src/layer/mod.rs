@@ -7,6 +7,8 @@ mod root_layer_group;
 use cgmath::{Matrix4, SquareMatrix, Vector3};
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
+use enum_map::{Enum, EnumMap};
+use tracing::{debug, warn};
 
 pub use layer_group::LayerGroup;
 pub use message_layer::MessageLayer;
@@ -19,11 +21,10 @@ use crate::asset::picture::GpuPicture;
 use crate::game_data::GameData;
 use crate::interpolator::{Easing, Interpolator};
 use crate::render::{GpuCommonResources, Renderable};
-use crate::update::{Ticks, Updatable, UpdateContext};
-use enum_map::{Enum, EnumMap};
+use crate::update::{Updatable, UpdateContext};
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::command::layer::{LayerProperty, LayerType};
-use tracing::{debug, warn};
+use shin_core::vm::command::time::Ticks;
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
     EnumMap::from_array(
