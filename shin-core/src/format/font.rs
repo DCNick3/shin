@@ -234,7 +234,7 @@ pub struct Font<G: GlyphTrait = Glyph> {
     ascent: u16,
     /// Distance between the baseline and the bottom of the font
     descent: u16,
-    characters: [GlyphId; 0x10000],
+    characters: Box<[GlyphId; 0x10000]>,
     glyphs: HashMap<GlyphId, G>,
 }
 
@@ -278,6 +278,26 @@ fn stream_size(reader: &mut impl Seek) -> BinResult<u64> {
     Ok(size)
 }
 
+/// A macro similar to `vec![$elem; $size]` which returns a boxed array.
+///
+/// ```rustc
+///     let _: Box<[u8; 1024]> = box_array![0; 1024];
+/// ```
+macro_rules! box_array {
+    ($val:expr ; $len:expr) => {{
+        // Use a generic function so that the pointer cast remains type-safe
+        fn vec_to_boxed_array<T>(vec: Vec<T>) -> Box<[T; $len]> {
+            let boxed_slice = vec.into_boxed_slice();
+
+            let ptr = ::std::boxed::Box::into_raw(boxed_slice) as *mut [T; $len];
+
+            unsafe { Box::from_raw(ptr) }
+        }
+
+        vec_to_boxed_array(vec![$val; $len])
+    }};
+}
+
 impl<G: GlyphTrait> BinRead for Font<G> {
     type Args = ();
 
@@ -300,13 +320,16 @@ impl<G: GlyphTrait> BinRead for Font<G> {
             });
         }
 
-        let character_table = <[u32; 0x10000]>::read_options(reader, options, ())?;
+        let mut character_table = box_array![0u32; 0x10000];
+        for c in character_table.iter_mut() {
+            *c = u32::read_options(reader, options, ())?;
+        }
 
         let mut known_glyph_offsets = HashMap::new();
-        let mut characters = [GlyphId(0); 0x10000];
+        let mut characters = box_array![GlyphId(0); 0x10000];
         let mut glyphs = HashMap::new();
 
-        for (character_index, glyph_offset) in character_table.into_iter().enumerate() {
+        for (character_index, &glyph_offset) in character_table.iter().enumerate() {
             // we can't directly read FilePtr32 array because it's too large, the stack overflows
             let mut glyph_offset: FilePtr32<G> = FilePtr32 {
                 ptr: glyph_offset,
