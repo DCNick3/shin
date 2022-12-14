@@ -1,3 +1,4 @@
+mod command;
 mod layouter;
 
 use crate::layer::{Layer, LayerProperties};

@@ -1,4 +1,5 @@
 mod layouter;
 mod parser;
 
-pub use parser::{LayouterCommand, LayouterParser};
+pub use layouter::{CharCommand, Command, LayoutParams, LayouterState};
+pub use parser::{LayouterParser, ParsedCommand};

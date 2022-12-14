@@ -238,7 +238,7 @@ pub struct Font<G: GlyphTrait = Glyph> {
     glyphs: HashMap<GlyphId, G>,
 }
 
-type LazyFont = Font<LazyGlyph>;
+pub type LazyFont = Font<LazyGlyph>;
 
 impl<G: GlyphTrait> Font<G> {
     /// Get the sum of the ascent and descent, giving the total height of the font

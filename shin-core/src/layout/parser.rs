@@ -1,7 +1,7 @@
 use cgmath::Vector3;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LayouterCommand {
+pub enum ParsedCommand {
     /// Just your regular character (or a @U command)
     Char(char),
     /// @+
@@ -94,7 +94,7 @@ impl<'a> LayouterParser<'a> {
 }
 
 impl Iterator for LayouterParser<'_> {
-    type Item = LayouterCommand;
+    type Item = ParsedCommand;
 
     fn next(&mut self) -> Option<Self::Item> {
         // TODO: make this parsing fallible
@@ -108,35 +108,35 @@ impl Iterator for LayouterParser<'_> {
 
         if first_char != '@' {
             self.message = chars.as_str();
-            return Some(LayouterCommand::Char(first_char));
+            return Some(ParsedCommand::Char(first_char));
         }
 
         let second_char = chars.next().unwrap();
         self.message = chars.as_str();
 
         Some(match second_char {
-            '+' => LayouterCommand::EnableLipsync,
-            '-' => LayouterCommand::DisableLipsync,
-            'b' => LayouterCommand::Furigana(self.read_argument().to_owned()),
-            '<' => LayouterCommand::FuriganaStart,
-            '>' => LayouterCommand::FuriganaEnd,
-            'a' => LayouterCommand::SetFade(self.read_float_argument(0, u32::MAX, 1000.0)),
-            'c' => LayouterCommand::SetColor(self.read_color_argument()),
-            'e' => LayouterCommand::AutoClick,
-            'k' => LayouterCommand::WaitClick,
-            'o' => LayouterCommand::VoiceVolume(self.read_float_argument(0, 100, 100.0)),
-            'r' => LayouterCommand::Newline,
-            's' => LayouterCommand::TextSpeed(self.read_float_argument(100, 0, 40000.0)),
-            't' => LayouterCommand::SimultaneousStart,
-            'v' => LayouterCommand::Voice(self.read_argument().to_owned()),
-            'w' => LayouterCommand::Wait(self.read_float_argument(0, u32::MAX, 100.0)),
-            'y' => LayouterCommand::Sync,
-            'z' => LayouterCommand::FontSize(self.read_float_argument(10, 200, 100.0)),
-            '|' => LayouterCommand::Signal,
-            '[' => LayouterCommand::InstantTextStart,
-            ']' => LayouterCommand::InstantTextEnd,
-            '{' => LayouterCommand::BoldTextStart,
-            '}' => LayouterCommand::BoldTextEnd,
+            '+' => ParsedCommand::EnableLipsync,
+            '-' => ParsedCommand::DisableLipsync,
+            'b' => ParsedCommand::Furigana(self.read_argument().to_owned()),
+            '<' => ParsedCommand::FuriganaStart,
+            '>' => ParsedCommand::FuriganaEnd,
+            'a' => ParsedCommand::SetFade(self.read_float_argument(0, u32::MAX, 1000.0)),
+            'c' => ParsedCommand::SetColor(self.read_color_argument()),
+            'e' => ParsedCommand::AutoClick,
+            'k' => ParsedCommand::WaitClick,
+            'o' => ParsedCommand::VoiceVolume(self.read_float_argument(0, 100, 100.0)),
+            'r' => ParsedCommand::Newline,
+            's' => ParsedCommand::TextSpeed(self.read_float_argument(100, 0, 40000.0)),
+            't' => ParsedCommand::SimultaneousStart,
+            'v' => ParsedCommand::Voice(self.read_argument().to_owned()),
+            'w' => ParsedCommand::Wait(self.read_float_argument(0, u32::MAX, 100.0)),
+            'y' => ParsedCommand::Sync,
+            'z' => ParsedCommand::FontSize(self.read_float_argument(10, 200, 100.0)),
+            '|' => ParsedCommand::Signal,
+            '[' => ParsedCommand::InstantTextStart,
+            ']' => ParsedCommand::InstantTextEnd,
+            '{' => ParsedCommand::BoldTextStart,
+            '}' => ParsedCommand::BoldTextEnd,
             'U' => todo!("@U layouter command parsing"),
             _ => panic!("Unknown layouter command: {}", second_char),
         })
@@ -147,7 +147,7 @@ impl Iterator for LayouterParser<'_> {
 mod tests {
     use super::*;
 
-    fn parse(message: &str) -> Vec<LayouterCommand> {
+    fn parse(message: &str) -> Vec<ParsedCommand> {
         LayouterParser::new(message).collect()
     }
 
@@ -159,11 +159,11 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                LayouterCommand::Char('H'),
-                LayouterCommand::Char('e'),
-                LayouterCommand::Char('l'),
-                LayouterCommand::Char('l'),
-                LayouterCommand::Char('o')
+                ParsedCommand::Char('H'),
+                ParsedCommand::Char('e'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('o')
             ]
         );
     }
@@ -176,11 +176,11 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                LayouterCommand::Furigana("かな".to_owned()),
-                LayouterCommand::FuriganaStart,
-                LayouterCommand::Char('漢'),
-                LayouterCommand::Char('字'),
-                LayouterCommand::FuriganaEnd,
+                ParsedCommand::Furigana("かな".to_owned()),
+                ParsedCommand::FuriganaStart,
+                ParsedCommand::Char('漢'),
+                ParsedCommand::Char('字'),
+                ParsedCommand::FuriganaEnd,
             ]
         );
     }
@@ -193,14 +193,14 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                LayouterCommand::SetColor(Some(Vector3::new(1.0, 4.0 / 9.0, 0.0))),
-                LayouterCommand::Newline,
-                LayouterCommand::Char('H'),
-                LayouterCommand::Char('e'),
-                LayouterCommand::Char('l'),
-                LayouterCommand::Char('l'),
-                LayouterCommand::Char('o'),
-                LayouterCommand::SetColor(None),
+                ParsedCommand::SetColor(Some(Vector3::new(1.0, 4.0 / 9.0, 0.0))),
+                ParsedCommand::Newline,
+                ParsedCommand::Char('H'),
+                ParsedCommand::Char('e'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('o'),
+                ParsedCommand::SetColor(None),
             ]
         );
     }
@@ -213,18 +213,18 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                LayouterCommand::Char('H'),
-                LayouterCommand::Char('e'),
-                LayouterCommand::Char('l'),
-                LayouterCommand::Char('l'),
-                LayouterCommand::Char('o'),
-                LayouterCommand::Wait(4.0),
-                LayouterCommand::Newline,
-                LayouterCommand::Char('W'),
-                LayouterCommand::Char('o'),
-                LayouterCommand::Char('r'),
-                LayouterCommand::Char('l'),
-                LayouterCommand::Char('d'),
+                ParsedCommand::Char('H'),
+                ParsedCommand::Char('e'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('o'),
+                ParsedCommand::Wait(4.0),
+                ParsedCommand::Newline,
+                ParsedCommand::Char('W'),
+                ParsedCommand::Char('o'),
+                ParsedCommand::Char('r'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('d'),
             ]
         );
     }
@@ -237,50 +237,50 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                LayouterCommand::Newline,
-                LayouterCommand::Voice("00/awase6042_o".to_owned()),
-                LayouterCommand::Signal,
-                LayouterCommand::Sync,
-                LayouterCommand::Char('｢'),
-                LayouterCommand::Char('｢'),
-                LayouterCommand::SetColor(Some(Vector3::new(1.0, 0.0, 0.0))),
-                LayouterCommand::InstantTextStart,
-                LayouterCommand::Char('謹'),
-                LayouterCommand::Char('啓'),
-                LayouterCommand::Char('､'),
-                LayouterCommand::Char('謹'),
-                LayouterCommand::Char('ﾝ'),
-                LayouterCommand::Char('で'),
-                LayouterCommand::Char('申'),
-                LayouterCommand::Char('ｼ'),
-                LayouterCommand::Char('上'),
-                LayouterCommand::Char('げ'),
-                LayouterCommand::Char('ﾙ'),
-                LayouterCommand::Char('｡'),
-                LayouterCommand::WaitClick,
-                LayouterCommand::Voice("00/awase6043_o".to_owned()),
-                LayouterCommand::Char('ど'),
-                LayouterCommand::Char('ﾁ'),
-                LayouterCommand::Char('ﾗ'),
-                LayouterCommand::Char('ﾓ'),
-                LayouterCommand::Char('破'),
-                LayouterCommand::Char('ﾗ'),
-                LayouterCommand::Char('ﾚ'),
-                LayouterCommand::Char('ﾃ'),
-                LayouterCommand::Char('ｲ'),
-                LayouterCommand::Char('ﾅ'),
-                LayouterCommand::Char('ｲ'),
-                LayouterCommand::Char('ﾓ'),
-                LayouterCommand::Char('ﾉ'),
-                LayouterCommand::Char('ﾄ'),
-                LayouterCommand::Char('知'),
-                LayouterCommand::Char('ﾘ'),
-                LayouterCommand::Char('給'),
-                LayouterCommand::Char('ｴ'),
-                LayouterCommand::InstantTextEnd,
-                LayouterCommand::SetColor(None),
-                LayouterCommand::Char('｣'),
-                LayouterCommand::Char('｣'),
+                ParsedCommand::Newline,
+                ParsedCommand::Voice("00/awase6042_o".to_owned()),
+                ParsedCommand::Signal,
+                ParsedCommand::Sync,
+                ParsedCommand::Char('｢'),
+                ParsedCommand::Char('｢'),
+                ParsedCommand::SetColor(Some(Vector3::new(1.0, 0.0, 0.0))),
+                ParsedCommand::InstantTextStart,
+                ParsedCommand::Char('謹'),
+                ParsedCommand::Char('啓'),
+                ParsedCommand::Char('､'),
+                ParsedCommand::Char('謹'),
+                ParsedCommand::Char('ﾝ'),
+                ParsedCommand::Char('で'),
+                ParsedCommand::Char('申'),
+                ParsedCommand::Char('ｼ'),
+                ParsedCommand::Char('上'),
+                ParsedCommand::Char('げ'),
+                ParsedCommand::Char('ﾙ'),
+                ParsedCommand::Char('｡'),
+                ParsedCommand::WaitClick,
+                ParsedCommand::Voice("00/awase6043_o".to_owned()),
+                ParsedCommand::Char('ど'),
+                ParsedCommand::Char('ﾁ'),
+                ParsedCommand::Char('ﾗ'),
+                ParsedCommand::Char('ﾓ'),
+                ParsedCommand::Char('破'),
+                ParsedCommand::Char('ﾗ'),
+                ParsedCommand::Char('ﾚ'),
+                ParsedCommand::Char('ﾃ'),
+                ParsedCommand::Char('ｲ'),
+                ParsedCommand::Char('ﾅ'),
+                ParsedCommand::Char('ｲ'),
+                ParsedCommand::Char('ﾓ'),
+                ParsedCommand::Char('ﾉ'),
+                ParsedCommand::Char('ﾄ'),
+                ParsedCommand::Char('知'),
+                ParsedCommand::Char('ﾘ'),
+                ParsedCommand::Char('給'),
+                ParsedCommand::Char('ｴ'),
+                ParsedCommand::InstantTextEnd,
+                ParsedCommand::SetColor(None),
+                ParsedCommand::Char('｣'),
+                ParsedCommand::Char('｣'),
             ]
         );
     }
