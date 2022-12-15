@@ -1,7 +1,7 @@
 pub mod instructions;
+mod string;
 
 use crate::format::scenario::instructions::{CodeAddress, Instruction, NumberSpec};
-use crate::format::text;
 use anyhow::{Context, Result};
 use binrw::{BinRead, BinResult, BinWrite, ReadOptions, VecArgs, WriteOptions};
 use bytes::Bytes;
@@ -16,10 +16,12 @@ pub struct U8List<T>(pub Vec<T>);
 #[derive(Debug)]
 pub struct U16List<T>(pub Vec<T>);
 
-#[derive(Debug)]
-pub struct SJisString<L: Into<usize> + TryFrom<usize> + 'static>(pub String, pub PhantomData<L>);
+pub use string::{SJisString, StringArray};
+
 pub type U8String = SJisString<u8>;
 pub type U16String = SJisString<u16>;
+pub type U8FixupString = SJisString<u8, string::WithFixup>;
+pub type U16FixupString = SJisString<u16, string::WithFixup>;
 
 pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, A: smallvec::Array>(
     pub SmallVec<A>,
@@ -94,50 +96,6 @@ impl<T: BinWrite<Args = ()>> BinWrite for U16List<T> {
         _: (),
     ) -> BinResult<()> {
         todo!()
-    }
-}
-impl<L: Into<usize> + TryFrom<usize> + 'static> BinRead for SJisString<L> {
-    type Args = ();
-
-    fn read_options<R: Read + Seek>(
-        reader: &mut R,
-        options: &ReadOptions,
-        _: (),
-    ) -> BinResult<Self> {
-        let len = u16::read_options(reader, options, ())?;
-        // "- 1" to strip the null terminator
-
-        let res = Self(
-            text::read_sjis_string(reader, Some((len - 1) as usize))?,
-            PhantomData,
-        );
-
-        // read the null terminator
-        let _ = u8::read_options(reader, options, ())?;
-
-        Ok(res)
-    }
-}
-impl<L: Into<usize> + TryFrom<usize>> BinWrite for SJisString<L> {
-    type Args = ();
-
-    fn write_options<W: Write + Seek>(
-        &self,
-        _writer: &mut W,
-        _options: &WriteOptions,
-        _: (),
-    ) -> BinResult<()> {
-        todo!()
-    }
-}
-impl<L: Into<usize> + TryFrom<usize>> AsRef<str> for SJisString<L> {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-impl<L: Into<usize> + TryFrom<usize>> SJisString<L> {
-    pub fn as_str(&self) -> &str {
-        &self.0
     }
 }
 

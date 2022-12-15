@@ -282,6 +282,10 @@ impl<G: GlyphTrait> Font<G> {
             .unwrap()
     }
 
+    pub fn get_glyph(&self, glyph_id: GlyphId) -> Option<&G> {
+        self.glyphs.get(&glyph_id)
+    }
+
     pub fn get_character_mapping(&self) -> &[GlyphId; 0x10000] {
         &self.characters
     }

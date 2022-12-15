@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
 use std::io;
 
 include!("conv_tables.rs");
@@ -106,6 +108,31 @@ pub fn read_sjis_string<T: io::Read>(s: &mut T, byte_size: Option<usize>) -> io:
     }
 
     Ok(res)
+}
+
+const FIXUP_ENCODED: &str = "｢｣ｧｨｩｪｫｬｭｮｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝｰｯ､ﾟﾞ･?｡";
+const FIXUP_DECODED: &str = "「」ぁぃぅぇぉゃゅょあいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんーっ、？！…　。";
+
+static FIXUP_DECODE_TABLE: Lazy<HashMap<char, char>> =
+    Lazy::new(|| FIXUP_ENCODED.chars().zip(FIXUP_DECODED.chars()).collect());
+
+static FIXUP_ENCODE_TABLE: Lazy<HashMap<char, char>> =
+    Lazy::new(|| FIXUP_DECODED.chars().zip(FIXUP_ENCODED.chars()).collect());
+
+/// Apply transformations that the game does to some strings
+/// This basically involves replacing some common characters with those that have shorted Shift-JIS encoding
+pub fn encode_string_fixup(s: &str) -> String {
+    s.chars()
+        .map(|c| FIXUP_ENCODE_TABLE.get(&c).copied().unwrap_or(c))
+        .collect()
+}
+
+/// Apply transformations that the game does to some strings
+/// This basically involves replacing  
+pub fn decode_string_fixup(s: &str) -> String {
+    s.chars()
+        .map(|c| FIXUP_DECODE_TABLE.get(&c).copied().unwrap_or(c))
+        .collect()
 }
 
 mod tests {

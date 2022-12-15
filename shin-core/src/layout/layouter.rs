@@ -58,6 +58,7 @@ impl Default for LayouterState {
 pub struct GlyphSize {
     pub scale: f32,
     pub horizontal_scale: f32,
+    pub advance_width: f32,
     pub width: f32,
     pub height: f32,
 }
@@ -85,11 +86,13 @@ impl<'a> LayoutParams<'a> {
         let scale = height / self.font.get_line_height() as f32;
         let horizontal_scale = scale * self.font_horizontal_base_scale;
         let glyph = self.font.get_glyph_for_character(codepoint).get_info();
-        let width = glyph.advance_width as f32 * horizontal_scale;
+        let width = glyph.actual_width as f32 * horizontal_scale;
+        let advance_width = glyph.advance_width as f32 * horizontal_scale;
 
         GlyphSize {
             scale,
             horizontal_scale,
+            advance_width,
             width,
             height,
         }
@@ -125,8 +128,8 @@ impl<'a> Layouter<'a> {
             codepoint,
         });
 
-        self.position.x += size.width;
-        self.time += Ticks(self.state.text_draw_speed * size.width);
+        self.position.x += size.advance_width;
+        self.time += Ticks(self.state.text_draw_speed * size.advance_width);
 
         // TODO: handle full stops (they add more delay)
 

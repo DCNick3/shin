@@ -1,5 +1,7 @@
-use crate::format::scenario::instructions::{BitmaskNumberArray, NumberSpec, StringArray};
-use crate::format::scenario::{U16String, U8SmallNumberList, U8String};
+use crate::format::scenario::instructions::{BitmaskNumberArray, NumberSpec};
+use crate::format::scenario::{
+    StringArray, U16FixupString, U16String, U8FixupString, U8SmallNumberList, U8String,
+};
 use crate::vm::VmCtx;
 use smallvec::SmallVec;
 
@@ -75,6 +77,24 @@ impl FromVmCtx<U16String> for String {
     }
 }
 impl FromVmCtxDefault for U16String {
+    type Output = String;
+}
+
+impl FromVmCtx<U8FixupString> for String {
+    fn from_vm_ctx(_: &VmCtx, input: U8FixupString) -> Self {
+        input.0
+    }
+}
+impl FromVmCtxDefault for U8FixupString {
+    type Output = String;
+}
+
+impl FromVmCtx<U16FixupString> for String {
+    fn from_vm_ctx(_: &VmCtx, input: U16FixupString) -> Self {
+        input.0
+    }
+}
+impl FromVmCtxDefault for U16FixupString {
     type Output = String;
 }
 

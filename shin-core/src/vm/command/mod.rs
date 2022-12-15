@@ -1,10 +1,10 @@
 pub mod layer;
 pub mod time;
 
-use crate::format::scenario::instructions::{
-    BitmaskNumberArray, MemoryAddress, NumberSpec, StringArray,
+use crate::format::scenario::instructions::{BitmaskNumberArray, MemoryAddress, NumberSpec};
+use crate::format::scenario::{
+    StringArray, U16FixupString, U16String, U8SmallNumberList, U8String,
 };
-use crate::format::scenario::{U16String, U8SmallNumberList, U8String};
 use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)
@@ -57,7 +57,7 @@ pub enum Command {
         messagebox_style: NumberSpec,
     },
     #[cmd(opcode = 0x86u8)]
-    MSGSET { msg_id: u32, text: U16String }, // TODO: this string needs a fixup (see ShinDataUtil's OpcodeDefinitions.NeedsStringFixup)
+    MSGSET { msg_id: u32, text: U16FixupString }, // TODO: this string needs a fixup (see ShinDataUtil's OpcodeDefinitions.NeedsStringFixup)
     #[cmd(opcode = 0x87u8)]
     MSGWAIT { section_num: NumberSpec },
     #[cmd(opcode = 0x88u8)]

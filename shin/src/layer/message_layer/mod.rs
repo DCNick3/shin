@@ -10,7 +10,7 @@ use shin_core::format::font::{GlyphTrait, LazyFont};
 use shin_core::layout::Command;
 use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
 use shin_core::vm::command::time::Ticks;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 struct Message {
     time: Ticks,

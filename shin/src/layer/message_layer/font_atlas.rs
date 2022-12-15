@@ -1,6 +1,6 @@
 use crate::render::dynamic_atlas::{AtlasImage, DynamicAtlas, ImageProvider};
 use crate::render::{GpuCommonResources, TextureBindGroup};
-use shin_core::format::font::{GlyphMipLevel, GlyphTrait, LazyFont};
+use shin_core::format::font::{GlyphId, GlyphMipLevel, GlyphTrait, LazyFont};
 use std::sync::Arc;
 use strum::IntoEnumIterator;
 use wgpu::TextureFormat;
@@ -12,10 +12,10 @@ struct FontImageProvider {
 impl ImageProvider for FontImageProvider {
     const IMAGE_FORMAT: TextureFormat = TextureFormat::R8Unorm;
     const MIPMAP_LEVELS: u32 = 4;
-    type Id = u16;
+    type Id = GlyphId;
 
     fn get_image(&self, id: Self::Id) -> (Vec<Vec<u8>>, (u32, u32)) {
-        let glyph = self.font.get_glyph_for_character(id);
+        let glyph = self.font.get_glyph(id).unwrap();
         let size = glyph.get_info().texture_size();
         let glyph = glyph.decompress();
 
@@ -58,12 +58,14 @@ impl FontAtlas {
 
     // TODO: implement internal locking
     pub fn get_image(&mut self, resources: &GpuCommonResources, charcode: u16) -> AtlasImage {
+        let glyph_id = self.get_font().get_character_mapping()[charcode as usize];
         self.atlas
-            .get_image(resources, charcode)
+            .get_image(resources, glyph_id)
             .expect("Could not fit image in atlas")
     }
 
     pub fn free_image(&mut self, charcode: u16) {
-        self.atlas.free_image(charcode);
+        let glyph_id = self.get_font().get_character_mapping()[charcode as usize];
+        self.atlas.free_image(glyph_id);
     }
 }

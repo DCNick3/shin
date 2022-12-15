@@ -1,5 +1,4 @@
 use crate::format::scenario::{U16SmallList, U8SmallList, U8SmallNumberList};
-use crate::format::text::read_sjis_string;
 use crate::vm::command::CompiletimeCommand;
 use binrw::{BinRead, BinResult, BinWrite, ReadOptions, WriteOptions};
 use num_derive::FromPrimitive;
@@ -413,52 +412,6 @@ impl BinRead for BitmaskNumberArray {
 }
 
 impl BinWrite for BitmaskNumberArray {
-    type Args = ();
-
-    fn write_options<W: io::Write + io::Seek>(
-        &self,
-        _writer: &mut W,
-        _options: &WriteOptions,
-        _: (),
-    ) -> BinResult<()> {
-        todo!()
-    }
-}
-
-#[derive(Debug)]
-pub struct StringArray(pub SmallVec<[String; 4]>);
-
-impl BinRead for StringArray {
-    type Args = ();
-
-    fn read_options<R: io::Read + io::Seek>(
-        reader: &mut R,
-        options: &ReadOptions,
-        _: (),
-    ) -> BinResult<Self> {
-        let size = u16::read_options(reader, options, ())?;
-        let pos = reader.stream_position()?;
-        let mut res = SmallVec::new();
-        loop {
-            let s = read_sjis_string(reader, None)?;
-
-            res.push(s);
-
-            let v = u8::read_options(reader, options, ())?;
-            if v == 0x00 {
-                break;
-            } else {
-                reader.seek(SeekFrom::Current(-1))?;
-            }
-        }
-        let end = reader.stream_position()?;
-        let diff = end - pos;
-        assert_eq!(diff, size as u64);
-        Ok(Self(res))
-    }
-}
-
-impl BinWrite for StringArray {
     type Args = ();
 
     fn write_options<W: io::Write + io::Seek>(
