@@ -1,6 +1,7 @@
 mod bind_groups;
 mod camera;
 mod common_resources;
+mod dynamic_atlas;
 mod pillarbox;
 mod pipelines;
 mod render_target;

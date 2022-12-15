@@ -5,7 +5,8 @@ use crate::layer::{Layer, LayerProperties};
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::Matrix4;
-use shin_core::vm::command::layer::MessageboxStyle;
+use shin_core::format::font::LazyFont;
+use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
 use shin_core::vm::command::time::Ticks;
 
 enum State {
@@ -20,15 +21,17 @@ pub struct MessageLayer {
     style: MessageboxStyle,
     running_time: Ticks,
     state: State,
+    font: LazyFont,
 }
 
 impl MessageLayer {
-    pub fn new(_resources: &GpuCommonResources) -> Self {
+    pub fn new(_resources: &GpuCommonResources, font: LazyFont) -> Self {
         Self {
             props: LayerProperties::new(),
             style: MessageboxStyle::default(),
             running_time: Ticks::ZERO,
             state: State::Hidden,
+            font,
         }
     }
 
@@ -36,9 +39,21 @@ impl MessageLayer {
         self.style = style;
     }
 
-    pub fn set_message(&mut self, _message: &str) {
+    pub fn set_message(&mut self, message: &str) {
         self.state = State::Running;
         self.running_time = Ticks::ZERO;
+
+        let layout_params = shin_core::layout::LayoutParams {
+            font: &self.font,
+            layout_width: 1500.0,
+            base_font_height: 50.0,
+            font_horizontal_base_scale: 0.9696999788284302,
+            text_layout: MessageTextLayout::Left,
+            default_state: Default::default(),
+            has_character_name: true,
+        };
+
+        let _layouted = shin_core::layout::layout_text(layout_params, message);
     }
 
     pub fn is_finished(&self) -> bool {

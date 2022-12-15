@@ -5,6 +5,7 @@ use crate::vm::command::time::Ticks;
 use cgmath::{Vector2, Vector3};
 use float_ord::FloatOrd;
 use std::iter::Peekable;
+use tracing::warn;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CharCommand {
@@ -174,7 +175,7 @@ impl<'a> Layouter<'a> {
         self.position.y += max_height;
     }
 
-    fn on_linefeed(&mut self) {
+    fn on_newline(&mut self) {
         let chars = std::mem::take(&mut self.pending_chars);
         // TODO: handle overflows
         self.finalize_line(&chars);
@@ -183,12 +184,12 @@ impl<'a> Layouter<'a> {
 
     fn finalize(mut self) -> Vec<Command> {
         // TODO: close furigana
-        self.on_linefeed();
+        self.on_newline();
         self.commands
     }
 }
 
-fn layout_text(params: LayoutParams, text: &str) -> Vec<Command> {
+pub fn layout_text(params: LayoutParams, text: &str) -> Vec<Command> {
     let mut layouter = Layouter {
         parser: LayouterParser::new(text).peekable(),
         params,
@@ -219,18 +220,20 @@ fn layout_text(params: LayoutParams, text: &str) -> Vec<Command> {
             ParsedCommand::Char(c) => layouter.on_char(c),
             ParsedCommand::EnableLipsync => todo!(),
             ParsedCommand::DisableLipsync => todo!(),
-            ParsedCommand::Furigana(_) => todo!(),
-            ParsedCommand::FuriganaStart => todo!(),
-            ParsedCommand::FuriganaEnd => todo!(),
+            ParsedCommand::Furigana(_) => warn!("Furigana layout command is not implemented"),
+            ParsedCommand::FuriganaStart => {
+                warn!("FuriganaStart layout command is not implemented")
+            }
+            ParsedCommand::FuriganaEnd => warn!("FuriganaEnd layout command is not implemented"),
             ParsedCommand::SetFade(_) => todo!(),
             ParsedCommand::SetColor(_) => todo!(),
             ParsedCommand::AutoClick => todo!(),
-            ParsedCommand::WaitClick => todo!(),
+            ParsedCommand::WaitClick => warn!("WaitClick layout command not implemented"),
             ParsedCommand::VoiceVolume(_) => todo!(),
-            ParsedCommand::Newline => todo!(),
+            ParsedCommand::Newline => layouter.on_newline(),
             ParsedCommand::TextSpeed(_) => todo!(),
             ParsedCommand::SimultaneousStart => todo!(),
-            ParsedCommand::Voice(_) => todo!(),
+            ParsedCommand::Voice(_) => warn!("Voice layout command not implemented"),
             ParsedCommand::Wait(_) => todo!(),
             ParsedCommand::Sync => todo!(),
             ParsedCommand::FontSize(_) => todo!(),

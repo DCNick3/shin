@@ -6,6 +6,7 @@ use crate::vm::{
     CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand, VmState,
 };
 use cgmath::Matrix4;
+use shin_core::format::font::LazyFont;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
 use shin_core::vm::command::CommandResult;
@@ -23,13 +24,14 @@ pub struct Adv {
 impl Adv {
     pub fn new(
         resources: &GpuCommonResources,
+        font: LazyFont,
         scenario: Scenario,
         init_val: i32,
         random_seed: u32,
     ) -> Self {
         let scripter = Scripter::new(&scenario, init_val, random_seed);
         let vm_state = VmState::new();
-        let adv_state = AdvState::new(resources);
+        let adv_state = AdvState::new(resources, font);
 
         Self {
             scenario,
@@ -100,12 +102,15 @@ pub struct AdvState {
 }
 
 impl AdvState {
-    pub fn new(resources: &GpuCommonResources) -> Self {
+    pub fn new(
+        resources: &GpuCommonResources,
+        font: LazyFont, /* TODO: we need a better asset system */
+    ) -> Self {
         Self {
             root_layer_group: RootLayerGroup::new(
                 resources,
                 LayerGroup::new(resources),
-                MessageLayer::new(resources),
+                MessageLayer::new(resources, font),
             ),
         }
     }

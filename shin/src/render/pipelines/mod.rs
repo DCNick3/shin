@@ -24,6 +24,19 @@ pub struct PosVertex {
     pub position: Vector3<f32>,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct TextVertex {
+    #[f32x2(0)]
+    pub position: Vector2<f32>,
+    #[f32x2(1)]
+    pub tex_position: Vector2<f32>,
+    #[f32x2(2)]
+    pub time: f32,
+    #[f32x2(3)]
+    pub fade: f32,
+}
+
 pub enum VertexSource<'a, T> {
     VertexBuffer {
         vertex_buffer: &'a wgpu::Buffer, // TODO: support multiple vertex buffers

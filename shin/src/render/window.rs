@@ -157,7 +157,10 @@ impl State {
 
         let scenario = game_data.read_file("/main.snr");
         let scenario = Scenario::new(scenario.into()).expect("Parsing scenario");
-        let adv = Adv::new(&resources, scenario, 0, 42);
+        let font = game_data.read_file("/newrodin-medium.fnt");
+        let font = shin_core::format::font::read_lazy_font(&mut std::io::Cursor::new(font))
+            .expect("Parsing font");
+        let adv = Adv::new(&resources, font, scenario, 0, 42);
 
         Self {
             surface,
