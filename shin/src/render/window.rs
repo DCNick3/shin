@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 use tracing::{debug, warn};
 
 use shin_core::format::scenario::Scenario;
@@ -160,7 +161,7 @@ impl State {
         let font = game_data.read_file("/newrodin-medium.fnt");
         let font = shin_core::format::font::read_lazy_font(&mut std::io::Cursor::new(font))
             .expect("Parsing font");
-        let adv = Adv::new(&resources, font, scenario, 0, 42);
+        let adv = Adv::new(&resources, Arc::new(font), scenario, 0, 42);
 
         Self {
             surface,

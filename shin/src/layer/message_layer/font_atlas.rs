@@ -1,11 +1,12 @@
 use crate::render::dynamic_atlas::{AtlasImage, DynamicAtlas, ImageProvider};
 use crate::render::{GpuCommonResources, TextureBindGroup};
 use shin_core::format::font::{GlyphMipLevel, GlyphTrait, LazyFont};
+use std::sync::Arc;
 use strum::IntoEnumIterator;
 use wgpu::TextureFormat;
 
 struct FontImageProvider {
-    font: LazyFont,
+    font: Arc<LazyFont>,
 }
 
 impl ImageProvider for FontImageProvider {
@@ -36,7 +37,7 @@ pub struct FontAtlas {
 }
 
 impl FontAtlas {
-    pub fn new(resources: &GpuCommonResources, font: LazyFont) -> Self {
+    pub fn new(resources: &GpuCommonResources, font: Arc<LazyFont>) -> Self {
         let provider = FontImageProvider { font };
         let atlas = DynamicAtlas::new(resources, provider, TEXTURE_SIZE, Some("FontAtlas"));
 
@@ -55,6 +56,7 @@ impl FontAtlas {
         self.atlas.texture_size()
     }
 
+    // TODO: implement internal locking
     pub fn get_image(&mut self, resources: &GpuCommonResources, charcode: u16) -> AtlasImage {
         self.atlas
             .get_image(resources, charcode)

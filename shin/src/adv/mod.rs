@@ -11,6 +11,7 @@ use shin_core::format::scenario::Scenario;
 use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
 use shin_core::vm::command::CommandResult;
 use shin_core::vm::Scripter;
+use std::sync::Arc;
 use tracing::warn;
 
 pub struct Adv {
@@ -24,7 +25,7 @@ pub struct Adv {
 impl Adv {
     pub fn new(
         resources: &GpuCommonResources,
-        font: LazyFont,
+        font: Arc<LazyFont>,
         scenario: Scenario,
         init_val: i32,
         random_seed: u32,
@@ -104,7 +105,7 @@ pub struct AdvState {
 impl AdvState {
     pub fn new(
         resources: &GpuCommonResources,
-        font: LazyFont, /* TODO: we need a better asset system */
+        font: Arc<LazyFont>, /* TODO: we need a better asset system */
     ) -> Self {
         Self {
             root_layer_group: RootLayerGroup::new(

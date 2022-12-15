@@ -49,7 +49,7 @@ impl Default for LayouterState {
             // TODO: those are not correct
             // TODO: make those into newtypes
             text_draw_speed: 0.1,
-            fade: 1.0,
+            fade: 0.01,
         }
     }
 }

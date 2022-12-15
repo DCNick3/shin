@@ -1,7 +1,8 @@
 use crate::render::camera::Camera;
 use crate::render::pipelines::Pipelines;
 use crate::render::{
-    BindGroupLayouts, PosColTexVertex, PosVertex, SubmittingEncoder, TextureBindGroup, VertexSource,
+    BindGroupLayouts, PosColTexVertex, PosVertex, SubmittingEncoder, TextVertex, TextureBindGroup,
+    VertexSource,
 };
 use cgmath::{Matrix4, Vector4};
 
@@ -48,6 +49,19 @@ impl GpuCommonResources {
         self.pipelines
             .fill
             .draw(render_pass, source, transform, color);
+    }
+
+    pub fn draw_text<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        source: VertexSource<'a, TextVertex>,
+        texture: &'a TextureBindGroup,
+        transform: Matrix4<f32>,
+        time: f32,
+    ) {
+        self.pipelines
+            .text
+            .draw(render_pass, source, texture, transform, time);
     }
 
     pub fn current_render_buffer_size(&self) -> (u32, u32) {

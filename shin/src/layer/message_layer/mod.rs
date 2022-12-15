@@ -12,15 +12,9 @@ use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
 use shin_core::vm::command::time::Ticks;
 use std::sync::{Arc, Mutex};
 
-enum State {
-    Hidden,
-    Running,
-    Waiting,
-    Finished,
-}
-
 struct Message {
-    font_atlas: Arc<Mutex<FontAtlas>>,
+    time: Ticks,
+    font_atlas: FontAtlas,
     commands: Vec<Command>,
     vertex_buffer: VertexBuffer<TextVertex>,
 }
@@ -28,14 +22,14 @@ struct Message {
 impl Message {
     pub fn new(
         context: &UpdateContext,
-        font_atlas: &Arc<Mutex<FontAtlas>>,
+        mut font_atlas: FontAtlas,
         base_position: Vector2<f32>,
         message: &str,
     ) -> Self {
-        let mut font_atlas_guard = font_atlas.lock().unwrap();
+        // let mut font_atlas_guard = font_atlas.lock().unwrap();
 
         let layout_params = shin_core::layout::LayoutParams {
-            font: font_atlas_guard.get_font(),
+            font: font_atlas.get_font(),
             layout_width: 1500.0,
             base_font_height: 50.0,
             font_horizontal_base_scale: 0.9696999788284302,
@@ -50,18 +44,18 @@ impl Message {
         for command in commands.iter() {
             match command {
                 Command::Char(char) => {
-                    let glyph_info = font_atlas_guard
+                    let glyph_info = font_atlas
                         .get_font()
                         .get_glyph_for_character(char.codepoint)
                         .get_info();
 
-                    let atlas_size = font_atlas_guard.texture_size();
+                    let atlas_size = font_atlas.texture_size();
                     let atlas_size = Vector2::new(atlas_size.0 as f32, atlas_size.1 as f32);
 
                     let AtlasImage {
                         position: tex_position,
                         size: tex_size,
-                    } = font_atlas_guard.get_image(context.gpu_resources, char.codepoint);
+                    } = font_atlas.get_image(context.gpu_resources, char.codepoint);
 
                     // we don't actually want to use the full size of the glyph texture
                     //   because they are padded to be a power of 2
@@ -76,50 +70,38 @@ impl Message {
                         + char.position
                         + Vector2::new(
                             glyph_info.bearing_x as f32 * char.size.horizontal_scale,
-                            -glyph_info.bearing_y as f32 * char.size.scale,
+                            glyph_info.bearing_y as f32 * char.size.scale,
                         );
                     let size = char.size.size();
 
                     let time = char.time.0;
                     let fade = char.fade;
+                    let color = char.color;
+
+                    // TODO: do the fade calculation here
+
+                    // helper macro to reduce vertex creation boilerplate
+                    macro_rules! v {
+                        (($x:expr, $y:expr), ($tex_x:expr, $tex_y:expr)) => {
+                            TextVertex {
+                                position: position + Vector2::new($x, $y),
+                                tex_position: tex_position + Vector2::new($tex_x, $tex_y),
+                                color,
+                                time,
+                                fade,
+                            }
+                        };
+                    }
 
                     vertices.extend([
-                        TextVertex {
-                            position: position + Vector2::new(0.0, 0.0),
-                            tex_position: tex_position + Vector2::new(0.0, 0.0),
-                            time,
-                            fade,
-                        },
-                        TextVertex {
-                            position: position + Vector2::new(size.x, 0.0),
-                            tex_position: tex_position + Vector2::new(tex_size.x, 0.0),
-                            time,
-                            fade,
-                        },
-                        TextVertex {
-                            position: position + Vector2::new(0.0, size.y),
-                            tex_position: tex_position + Vector2::new(0.0, tex_size.y),
-                            time,
-                            fade,
-                        },
-                        TextVertex {
-                            position: position + Vector2::new(size.x, size.y),
-                            tex_position: tex_position + Vector2::new(tex_size.x, tex_size.y),
-                            time,
-                            fade,
-                        },
-                        TextVertex {
-                            position: position + Vector2::new(0.0, size.y),
-                            tex_position: tex_position + Vector2::new(0.0, tex_size.y),
-                            time,
-                            fade,
-                        },
-                        TextVertex {
-                            position: position + Vector2::new(size.x, 0.0),
-                            tex_position: tex_position + Vector2::new(tex_size.x, 0.0),
-                            time,
-                            fade,
-                        },
+                        // Top left triangle
+                        v!((0.0, 0.0), (0.0, tex_size.y)),
+                        v!((size.x, 0.0), (tex_size.x, tex_size.y)),
+                        v!((0.0, size.y), (0.0, 0.0)),
+                        // Bottom right triangle
+                        v!((size.x, size.y), (tex_size.x, 0.0)),
+                        v!((0.0, size.y), (0.0, 0.0)),
+                        v!((size.x, 0.0), (tex_size.x, tex_size.y)),
                     ]);
                 }
             }
@@ -127,25 +109,50 @@ impl Message {
 
         let vertex_buffer = VertexBuffer::new(
             context.gpu_resources,
-            dbg!(&vertices),
+            &vertices,
             Some("Message VertexBuffer"),
         );
 
         Self {
-            font_atlas: font_atlas.clone(),
+            time: Ticks::ZERO,
+            font_atlas,
             commands,
             vertex_buffer,
         }
     }
 }
 
+impl Updatable for Message {
+    fn update(&mut self, context: &UpdateContext) {
+        self.time += context.time_delta_ticks();
+    }
+}
+
+impl Renderable for Message {
+    fn render<'enc>(
+        &'enc self,
+        resources: &'enc GpuCommonResources,
+        render_pass: &mut wgpu::RenderPass<'enc>,
+        transform: Matrix4<f32>,
+    ) {
+        resources.draw_text(
+            render_pass,
+            self.vertex_buffer.vertex_source(),
+            self.font_atlas.texture_bind_group(),
+            transform,
+            self.time.0,
+        );
+    }
+
+    fn resize(&mut self, resources: &GpuCommonResources) {}
+}
+
 impl Drop for Message {
     fn drop(&mut self) {
-        let mut font_atlas = self.font_atlas.lock().unwrap();
         for command in self.commands.iter() {
             match command {
                 Command::Char(char) => {
-                    font_atlas.free_image(char.codepoint);
+                    self.font_atlas.free_image(char.codepoint);
                 }
             }
         }
@@ -156,18 +163,18 @@ pub struct MessageLayer {
     props: LayerProperties,
     style: MessageboxStyle,
     running_time: Ticks,
-    state: State,
-    font_atlas: Arc<Mutex<FontAtlas>>,
+    font: Arc<LazyFont>,
+    message: Option<Message>,
 }
 
 impl MessageLayer {
-    pub fn new(resources: &GpuCommonResources, font: LazyFont) -> Self {
+    pub fn new(_resources: &GpuCommonResources, font: Arc<LazyFont>) -> Self {
         Self {
             props: LayerProperties::new(),
             style: MessageboxStyle::default(),
             running_time: Ticks::ZERO,
-            state: State::Hidden,
-            font_atlas: Arc::new(Mutex::new(FontAtlas::new(resources, font))),
+            font,
+            message: None,
         }
     }
 
@@ -176,29 +183,32 @@ impl MessageLayer {
     }
 
     pub fn set_message(&mut self, context: &UpdateContext, message: &str) {
-        self.state = State::Running;
         self.running_time = Ticks::ZERO;
 
-        let _message = Message::new(
+        self.message = Some(Message::new(
             context,
-            &self.font_atlas,
-            Vector2::new(-900.0, -300.0),
+            FontAtlas::new(context.gpu_resources, self.font.clone()),
+            Vector2::new(-740.0, -300.0),
             message,
-        );
+        ));
     }
 
     pub fn is_finished(&self) -> bool {
-        matches!(self.state, State::Finished)
+        // TODO: actually implement it
+        false
     }
 }
 
 impl Renderable for MessageLayer {
     fn render<'enc>(
         &'enc self,
-        _resources: &'enc GpuCommonResources,
-        _render_pass: &mut wgpu::RenderPass<'enc>,
-        _transform: Matrix4<f32>,
+        resources: &'enc GpuCommonResources,
+        render_pass: &mut wgpu::RenderPass<'enc>,
+        transform: Matrix4<f32>,
     ) {
+        if let Some(message) = &self.message {
+            message.render(resources, render_pass, transform);
+        }
     }
 
     fn resize(&mut self, _resources: &GpuCommonResources) {
@@ -208,16 +218,8 @@ impl Renderable for MessageLayer {
 
 impl Updatable for MessageLayer {
     fn update(&mut self, ctx: &UpdateContext) {
-        match self.state {
-            State::Hidden => {}
-            State::Running => {
-                self.running_time += ctx.time_delta_ticks();
-                if self.running_time >= Ticks::from_seconds(1.0) {
-                    self.state = State::Finished;
-                }
-            }
-            State::Waiting => {}
-            State::Finished => {}
+        if let Some(message) = &mut self.message {
+            message.update(ctx);
         }
     }
 }

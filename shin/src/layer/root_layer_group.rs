@@ -72,7 +72,7 @@ impl Renderable for RootLayerGroup {
             let mut encoder = resources.start_encoder();
             let mut render_pass = self
                 .render_target
-                .begin_render_pass(&mut encoder, Some("LayerGroup RenderPass"));
+                .begin_render_pass(&mut encoder, Some("RootLayerGroup RenderPass"));
 
             render_pass.push_debug_group("ScreenLayer");
             self.screen_layer.render(
