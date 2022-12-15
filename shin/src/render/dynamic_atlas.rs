@@ -1,5 +1,6 @@
 use crate::render::{GpuCommonResources, TextureBindGroup};
 use bevy_utils::{Entry, HashMap};
+use cgmath::Vector2;
 use std::num::NonZeroU32;
 
 pub trait ImageProvider {
@@ -21,20 +22,16 @@ impl AtlasAllocation {
         let size = self.allocation.rectangle.size();
 
         AtlasImage {
-            x: pos.x.try_into().unwrap(),
-            y: pos.y.try_into().unwrap(),
-            width: size.width.try_into().unwrap(),
-            height: size.height.try_into().unwrap(),
+            position: Vector2::new(pos.x as f32, pos.y as f32),
+            size: Vector2::new(size.width as f32, size.height as f32),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AtlasImage {
-    pub x: u32,
-    pub y: u32,
-    pub width: u32,
-    pub height: u32,
+    pub position: Vector2<f32>,
+    pub size: Vector2<f32>,
 }
 
 /// Dynamic texture atlas, (for now) used for text rendering.
@@ -73,7 +70,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                 height: texture_size.1,
                 depth_or_array_layers: 1,
             },
-            mip_level_count: 1,
+            mip_level_count: P::MIPMAP_LEVELS,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: P::IMAGE_FORMAT,
@@ -199,7 +196,8 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                             wgpu::ImageDataLayout {
                                 offset: 0,
                                 bytes_per_row: Some(
-                                    NonZeroU32::new(width * format.block_size as u32).unwrap(),
+                                    NonZeroU32::new(width * format.block_size as u32 / mip_scale)
+                                        .unwrap(),
                                 ),
                                 rows_per_image: Some(NonZeroU32::new(height / mip_scale).unwrap()),
                             },
@@ -238,5 +236,13 @@ impl<P: ImageProvider> DynamicAtlas<P> {
             self.eviction_ready.insert(id, allocation.allocation);
             self.active_allocations.remove(&id);
         }
+    }
+
+    pub fn provider(&self) -> &P {
+        &self.image_provider
+    }
+
+    pub fn provider_mut(&mut self) -> &mut P {
+        &mut self.image_provider
     }
 }

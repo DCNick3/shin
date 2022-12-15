@@ -45,15 +45,6 @@ checksum = "216261ddc8289130e551ddcd5ce8a064710c0d064a4d2895c67151c92b5443f6"
 
 [[package]]
 name = "approx"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f2a05fd1bd10b2527e20a2cd32d8873d115b8b39fe219ee25f42a8aca6ba278"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "approx"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
@@ -459,19 +450,9 @@ checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 [[package]]
 name = "cgmath"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a98d30140e3296250832bbaaff83b27dcd6fa3cc70fb6f1f3e5c9c0023b5317"
-dependencies = [
- "approx 0.4.0",
- "num-traits",
-]
-
-[[package]]
-name = "cgmath"
-version = "0.18.0"
 source = "git+https://github.com/rustgd/cgmath.git?rev=d5e765db61cf9039cb625a789a59ddf6b6ab2337#d5e765db61cf9039cb625a789a59ddf6b6ab2337"
 dependencies = [
- "approx 0.5.1",
+ "approx",
  "bytemuck",
  "num-traits",
 ]
@@ -2103,6 +2084,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustversion"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97477e48b4cf8603ad5f7aaf897467cf42ab4218a38ef76fb14c2d6773a6d6a8"
+
+[[package]]
 name = "safe_arch"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2223,7 +2210,7 @@ dependencies = [
  "bytemuck",
  "bytes",
  "cfg-if",
- "cgmath 0.18.0 (git+https://github.com/rustgd/cgmath.git?rev=d5e765db61cf9039cb625a789a59ddf6b6ab2337)",
+ "cgmath",
  "copyless",
  "derive_more",
  "enum-map",
@@ -2238,6 +2225,7 @@ dependencies = [
  "pollster",
  "shin-core",
  "smallvec",
+ "strum",
  "tracing",
  "tracing-subscriber",
  "wgpu 0.14.0",
@@ -2255,7 +2243,7 @@ dependencies = [
  "bitflags",
  "bytemuck",
  "bytes",
- "cgmath 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cgmath",
  "derive_more",
  "enum-map",
  "float-ord",
@@ -2267,6 +2255,7 @@ dependencies = [
  "shin-derive",
  "smallvec",
  "smartstring",
+ "strum",
  "tracing",
 ]
 
@@ -2369,6 +2358,28 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "strum"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.24.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e385be0d24f186b4ce2f9982191e7101bb737312ad61c1f2f984f34bcf85d59"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn",
+]
 
 [[package]]
 name = "svg_fmt"

@@ -1,12 +1,14 @@
 use crate::format::lz77;
 use anyhow::anyhow;
 use binrw::{BinRead, BinResult, BinWrite, FilePtr32, ReadOptions, VecArgs};
+use cgmath::Vector2;
 use image::GrayImage;
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::io;
 use std::io::{Read, Seek, SeekFrom};
+use strum::EnumIter;
 
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little, magic = b"FNT4")]
@@ -57,11 +59,26 @@ pub struct GlyphInfo {
     pub actual_width: u8,
     /// Height of the glyph bitmap (w/o padding)
     pub actual_height: u8,
+    /// Width of the texture (should be a power of 2)
+    pub texture_width: u8,
+    /// Height of the texture (should be a power of 2)
+    pub texture_height: u8,
 }
 
 impl GlyphInfo {
-    pub fn size(&self) -> (u32, u32) {
+    pub fn actual_size(&self) -> (u32, u32) {
         (self.actual_width as u32, self.actual_height as u32)
+    }
+
+    pub fn texture_size(&self) -> (u32, u32) {
+        (self.texture_width as u32, self.texture_height as u32)
+    }
+
+    pub fn actual_size_relative(&self) -> Vector2<f32> {
+        Vector2::new(
+            self.actual_width as f32 / self.texture_width as f32,
+            self.actual_height as f32 / self.texture_height as f32,
+        )
     }
 }
 
@@ -73,15 +90,18 @@ impl From<GlyphHeader> for GlyphInfo {
             advance_width: header.advance_width,
             actual_width: header.actual_width,
             actual_height: header.actual_height,
+            texture_width: header.texture_width,
+            texture_height: header.texture_height,
         }
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, EnumIter)]
 pub enum GlyphMipLevel {
-    Level0,
-    Level1,
-    Level2,
-    Level3,
+    Level0 = 0,
+    Level1 = 1,
+    Level2 = 2,
+    Level3 = 3,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

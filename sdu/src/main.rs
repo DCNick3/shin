@@ -227,7 +227,7 @@ fn font_command(command: FontCommand) -> Result<()> {
             for (&glyph_id, glyph_data) in font.get_glyphs().iter() {
                 let glyph_data = glyph_data.decompress();
 
-                let size = glyph_data.get_info().size();
+                let size = glyph_data.get_info().actual_size();
                 let glyph_pic = glyph_data
                     .get_image(GlyphMipLevel::Level0)
                     .view(0, 0, size.0, size.1);

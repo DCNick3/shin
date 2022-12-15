@@ -9,12 +9,12 @@ use tracing::warn;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CharCommand {
-    time: Ticks,
-    position: Vector2<f32>,
-    color: Vector3<f32>,
-    size: GlyphSize,
-    fade_time: f32,
-    codepoint: u16,
+    pub time: Ticks,
+    pub position: Vector2<f32>,
+    pub color: Vector3<f32>,
+    pub size: GlyphSize,
+    pub fade: f32,
+    pub codepoint: u16,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -57,9 +57,15 @@ impl Default for LayouterState {
 #[derive(Debug, Copy, Clone)]
 pub struct GlyphSize {
     pub scale: f32,
-    pub vertical_scale: f32,
+    pub horizontal_scale: f32,
     pub width: f32,
     pub height: f32,
+}
+
+impl GlyphSize {
+    pub fn size(&self) -> Vector2<f32> {
+        Vector2::new(self.width, self.height)
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -77,13 +83,13 @@ impl<'a> LayoutParams<'a> {
     fn glyph_size(&self, font_size: f32, codepoint: u16) -> GlyphSize {
         let height = self.base_font_height * font_size;
         let scale = height / self.font.get_line_height() as f32;
-        let vertical_scale = scale * self.font_horizontal_base_scale;
+        let horizontal_scale = scale * self.font_horizontal_base_scale;
         let glyph = self.font.get_glyph_for_character(codepoint).get_info();
-        let width = glyph.advance_width as f32 * vertical_scale;
+        let width = glyph.advance_width as f32 * horizontal_scale;
 
         GlyphSize {
             scale,
-            vertical_scale,
+            horizontal_scale,
             width,
             height,
         }
@@ -115,7 +121,7 @@ impl<'a> Layouter<'a> {
             position: self.position,
             color: self.state.text_color,
             size,
-            fade_time,
+            fade: fade_time,
             codepoint,
         });
 

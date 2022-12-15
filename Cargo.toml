@@ -5,8 +5,11 @@ members = [
     "sdu",
     "shin",
 ]
-
 resolver = "2"
+
+[workspace.dependencies]
+cgmath = { git = "https://github.com/rustgd/cgmath.git", rev = "d5e765db61cf9039cb625a789a59ddf6b6ab2337", features = ["bytemuck"] }
+
 
 [profile.release]
 debug = true

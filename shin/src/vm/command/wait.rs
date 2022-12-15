@@ -43,7 +43,9 @@ impl super::UpdatableCommand for WAIT {
         // trace!("WAIT: {:?} {:?}", self.waiting_left, context.time_delta());
         self.waiting_left = self.waiting_left.saturating_sub(context.time_delta());
         // TODO: short circuit the wait for now
-        if self.waiting_left <= Duration::ZERO {
+        if true
+        /*self.waiting_left <= Duration::ZERO*/
+        {
             debug!("WAIT: done");
             // TODO: this is kinda boilerplaty, maybe we want to have a TokenCell type?
             Some(self.token.take().unwrap().finish())

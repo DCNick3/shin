@@ -14,7 +14,7 @@ impl super::StartableCommand for command::runtime::MSGSET {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        context: &UpdateContext,
         _scenario: &Scenario,
         _vm_state: &VmState,
         adv_state: &mut AdvState,
@@ -22,7 +22,7 @@ impl super::StartableCommand for command::runtime::MSGSET {
         adv_state
             .root_layer_group
             .message_layer_mut()
-            .set_message(&self.text);
+            .set_message(context, &self.text);
 
         Yield(
             MSGSET {

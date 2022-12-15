@@ -1,7 +1,7 @@
 mod bind_groups;
 mod camera;
 mod common_resources;
-mod dynamic_atlas;
+pub mod dynamic_atlas;
 mod pillarbox;
 mod pipelines;
 mod render_target;
@@ -12,7 +12,7 @@ pub use bind_groups::{BindGroupLayouts, TextureBindGroup};
 pub use camera::{VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 use cgmath::Matrix4;
 pub use common_resources::GpuCommonResources;
-pub use pipelines::{PosColTexVertex, PosVertex, VertexSource};
+pub use pipelines::{PosColTexVertex, PosVertex, TextVertex, VertexSource};
 pub use render_target::RenderTarget;
 pub use vertex_buffer::{IndexBuffer, SpriteVertexBuffer, Vertex, VertexBuffer};
 

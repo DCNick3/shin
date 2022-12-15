@@ -1,5 +1,5 @@
 use crate::render;
-use crate::render::{GpuCommonResources, PosColTexVertex, PosVertex, VertexSource};
+use crate::render::{GpuCommonResources, PosColTexVertex, PosVertex, TextVertex, VertexSource};
 use cgmath::{Vector2, Vector3, Vector4};
 use wgpu::util::DeviceExt;
 
@@ -16,6 +16,11 @@ impl Vertex for PosColTexVertex {
 impl Vertex for PosVertex {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         PosVertex::desc()
+    }
+}
+impl Vertex for TextVertex {
+    fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
+        TextVertex::desc()
     }
 }
 
