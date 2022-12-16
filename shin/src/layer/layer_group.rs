@@ -43,6 +43,7 @@ impl LayerGroup {
         }
     }
 
+    #[allow(unused)]
     pub fn get_layer(&self, id: LayerId) -> Option<&UserLayer> {
         self.layers.get(&id)
     }

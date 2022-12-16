@@ -39,6 +39,7 @@ impl GpuCommonResources {
             .draw(render_pass, source, texture, transform);
     }
 
+    #[allow(unused)]
     pub fn draw_fill<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,

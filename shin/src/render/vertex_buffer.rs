@@ -78,6 +78,7 @@ impl IndexBuffer {
         }
     }
 
+    #[allow(unused)]
     pub fn num_indices(&self) -> u32 {
         self.num_indices
     }

@@ -55,6 +55,7 @@ pub enum VertexSource<'a, T> {
 }
 
 impl<'a, T> VertexSource<'a, T> {
+    #[allow(unused)]
     pub fn vertex_count(&self) -> u32 {
         match self {
             VertexSource::VertexBuffer { vertices, .. } => vertices.end - vertices.start,

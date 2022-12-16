@@ -1,10 +1,13 @@
+mod command;
+mod state;
+
+pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
+pub use state::VmState;
+
 use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup};
 use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
-use crate::vm::{
-    CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand, VmState,
-};
 use cgmath::Matrix4;
 use shin_core::format::font::LazyFont;
 use shin_core::format::scenario::Scenario;
@@ -120,6 +123,7 @@ impl AdvState {
         self.root_layer_group.screen_layer_mut()
     }
 
+    #[allow(unused)]
     pub fn get_vlayer(&self, _vm_state: &VmState, _id: VLayerId) -> impl Iterator<Item = AnyLayer> {
         todo!() as std::iter::Once<_>
     }

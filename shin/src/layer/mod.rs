@@ -122,6 +122,7 @@ impl LayerPropertiesSnapshot {
         self.properties = initial_values();
     }
 
+    #[allow(unused)]
     pub fn get_property(&self, property: LayerProperty) -> i32 {
         self.properties[property]
     }
@@ -197,6 +198,7 @@ pub enum AnyLayer<'a> {
 }
 
 impl<'a> AnyLayer<'a> {
+    #[allow(unused)]
     pub fn properties(&self) -> &LayerProperties {
         match self {
             Self::UserLayer(layer) => layer.properties(),
@@ -216,6 +218,7 @@ pub enum AnyLayerMut<'a> {
 }
 
 impl<'a> AnyLayerMut<'a> {
+    #[allow(unused)]
     pub fn properties(&self) -> &LayerProperties {
         match self {
             Self::UserLayer(layer) => layer.properties(),

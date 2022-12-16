@@ -236,6 +236,7 @@ impl LayersState {
     }
 
     /// Get user layer by id
+    #[allow(unused)]
     pub fn get_layer(&self, layer_id: LayerId) -> Option<&LayerState> {
         self.planes[self.current_plane as usize].get_layer(layer_id)
     }
@@ -246,6 +247,7 @@ impl LayersState {
     }
 
     /// Get layer by id, handling the special layers & selection
+    #[allow(unused)]
     pub fn get_vlayer(&self, vlayer_id: VLayerId) -> LayersIter {
         // if a special layer - return a single layer
         // if a normal layer id - return it if exists, otherwise print a warning and return an empty iterator

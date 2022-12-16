@@ -36,6 +36,7 @@ impl RootLayerGroup {
         }
     }
 
+    #[allow(unused)]
     pub fn screen_layer(&self) -> &ScreenLayer {
         &self.screen_layer
     }

@@ -1,11 +1,9 @@
 #![allow(clippy::upper_case_acronyms)]
 
 mod prelude {
-    pub use crate::adv::AdvState;
+    pub use crate::adv::{AdvState, CommandStartResult, VmState};
     pub use crate::layer::Layer;
     pub use crate::update::UpdateContext;
-    pub use crate::vm::command::CommandStartResult;
-    pub use crate::vm::VmState;
     pub use shin_core::format::scenario::Scenario;
     pub use shin_core::vm::command;
     pub use shin_core::vm::command::layer::VLayerIdRepr;
@@ -44,9 +42,8 @@ use shin_core::format::scenario::Scenario;
 
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 
-use crate::adv::AdvState;
+use crate::adv::{AdvState, VmState};
 use crate::update::UpdateContext;
-use crate::vm::VmState;
 
 #[enum_dispatch]
 pub trait UpdatableCommand {

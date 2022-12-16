@@ -40,7 +40,6 @@ pub struct DynamicAtlas<P: ImageProvider> {
 
     // TODO: support multiple atlas pages
     texture: wgpu::Texture,
-    texture_view: wgpu::TextureView,
     texture_bind_group: TextureBindGroup,
     texture_size: (u32, u32),
 
@@ -110,7 +109,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
         Self {
             image_provider,
             texture,
-            texture_view,
+            // texture_view,
             texture_bind_group,
             texture_size,
             allocator,
@@ -220,6 +219,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
         Some(allocation.as_atlas_image())
     }
 
+    #[allow(unused)]
     pub fn peek_image(&mut self, id: P::Id) -> Option<AtlasImage> {
         Some(self.active_allocations.get(&id)?.as_atlas_image())
     }
@@ -242,6 +242,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
         &self.image_provider
     }
 
+    #[allow(unused)]
     pub fn provider_mut(&mut self) -> &mut P {
         &mut self.image_provider
     }

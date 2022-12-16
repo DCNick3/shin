@@ -144,7 +144,7 @@ impl Renderable for Message {
         );
     }
 
-    fn resize(&mut self, resources: &GpuCommonResources) {}
+    fn resize(&mut self, _resources: &GpuCommonResources) {}
 }
 
 impl Drop for Message {

@@ -96,10 +96,12 @@ impl GpuPicture {
         }
     }
 
+    #[allow(unused)]
     pub fn width(&self) -> u32 {
         self.width
     }
 
+    #[allow(unused)]
     pub fn height(&self) -> u32 {
         self.height
     }
