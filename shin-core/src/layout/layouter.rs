@@ -59,6 +59,7 @@ pub struct GlyphSize {
     pub scale: f32,
     pub horizontal_scale: f32,
     pub advance_width: f32,
+    pub line_height: f32,
     pub width: f32,
     pub height: f32,
 }
@@ -82,10 +83,12 @@ pub struct LayoutParams<'a> {
 
 impl<'a> LayoutParams<'a> {
     fn glyph_size(&self, font_size: f32, codepoint: u16) -> GlyphSize {
-        let height = self.base_font_height * font_size;
-        let scale = height / self.font.get_line_height() as f32;
+        let line_height = self.base_font_height * font_size;
+        let scale = line_height / self.font.get_line_height() as f32;
         let horizontal_scale = scale * self.font_horizontal_base_scale;
+
         let glyph = self.font.get_glyph_for_character(codepoint).get_info();
+        let height = glyph.actual_height as f32 * scale;
         let width = glyph.actual_width as f32 * horizontal_scale;
         let advance_width = glyph.advance_width as f32 * horizontal_scale;
 
@@ -93,6 +96,7 @@ impl<'a> LayoutParams<'a> {
             scale,
             horizontal_scale,
             advance_width,
+            line_height,
             width,
             height,
         }
@@ -143,14 +147,12 @@ impl<'a> Layouter<'a> {
 
         // TODO: there are flags.... I think they have to do with difference between text alignment 0 & 1
 
-        // TODO: handle overflows
-        assert!(self.position.x <= self.params.layout_width);
         // TODO: handle text alignment
         assert_eq!(self.params.text_layout, MessageTextLayout::Left);
 
-        let max_height = chars
+        let max_line_height = chars
             .iter()
-            .map(|c| FloatOrd(c.size.height))
+            .map(|c| FloatOrd(c.size.line_height))
             .max()
             .unwrap()
             .0;
@@ -163,7 +165,8 @@ impl<'a> Layouter<'a> {
 
         let font = self.params.font;
 
-        let line_ascent = (max_height / font.get_line_height() as f32) * font.get_ascent() as f32;
+        let line_ascent =
+            (max_line_height / font.get_line_height() as f32) * font.get_ascent() as f32;
 
         // TODO: adjust vertical scale if the overflow is small
         // TODO: handle hiragana
@@ -181,7 +184,7 @@ impl<'a> Layouter<'a> {
         );
 
         self.position.x = 0.0;
-        self.position.y += max_height;
+        self.position.y += max_line_height;
     }
 
     fn on_newline(&mut self) {
@@ -263,8 +266,7 @@ mod tests {
     use std::fs::File;
     use std::io::BufReader;
 
-    #[test]
-    fn test_simple() {
+    fn test_layout(text: &str) -> Vec<Command> {
         // NOTICE: here we need to use a font
         // it is an asset, so we need to load it from __somewhere__
         // having tests that depend on assets is not ideal
@@ -284,7 +286,36 @@ mod tests {
             has_character_name: true,
         };
 
-        let result = layout_text(params, "@rHello, world!");
+        layout_text(params, text)
+    }
+
+    #[test]
+    fn test_simple() {
+        let result = test_layout("@rHello, world!");
         println!("{:#?}", result);
+    }
+
+    #[test]
+    fn test_tsu() {
+        let result = test_layout(
+            "@r埃と甘ったるい異臭の入り混じった薄暗い書斎に、年輩の男たちの姿はあった。",
+        );
+
+        let tsu = result[3];
+        if let Command::Char(c) = tsu {
+            assert_eq!(c.codepoint, 'っ' as u16);
+
+            const EXPECTED_ASPECT_RATIO: f32 = 104.0 / 80.0;
+            let aspect_ratio = c.size.width / c.size.height;
+
+            // divide max by min to get the ratio between aspect ratios
+            let ratio =
+                aspect_ratio.max(EXPECTED_ASPECT_RATIO) / aspect_ratio.min(EXPECTED_ASPECT_RATIO);
+            // the ratio will always be larger than 1 and should be close to 1
+            assert!(ratio < 1.05);
+            todo!()
+        } else {
+            panic!("Expected a char command");
+        }
     }
 }

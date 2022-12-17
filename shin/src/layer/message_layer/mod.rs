@@ -55,13 +55,12 @@ impl Message {
 
                     let AtlasImage {
                         position: tex_position,
-                        size: tex_size,
+                        size: _, // the atlas size is not to be trusted, as it can be larger than the actual texture (even larger than the power of 2 padded texture...)
                     } = font_atlas.get_image(context.gpu_resources, char.codepoint);
 
-                    // we don't actually want to use the full size of the glyph texture
-                    //   because they are padded to be a power of 2
-                    //   so we need to scale the texture coordinates to the actual size of the glyph
-                    let tex_size = tex_size.mul_element_wise(glyph_info.actual_size_relative());
+                    // just use the actual size of the glyph
+                    let tex_size = glyph_info.actual_size();
+                    let tex_size = Vector2::new(tex_size.0 as f32, tex_size.1 as f32);
 
                     // scale texture coordinates to the size of the texture
                     let tex_position = tex_position.div_element_wise(atlas_size);
@@ -71,7 +70,7 @@ impl Message {
                         + char.position
                         + Vector2::new(
                             glyph_info.bearing_x as f32 * char.size.horizontal_scale,
-                            glyph_info.bearing_y as f32 * char.size.scale,
+                            -glyph_info.bearing_y as f32 * char.size.scale,
                         );
                     let size = char.size.size();
 
@@ -96,13 +95,13 @@ impl Message {
 
                     vertices.extend([
                         // Top left triangle
-                        v!((0.0, 0.0), (0.0, tex_size.y)),
-                        v!((size.x, 0.0), (tex_size.x, tex_size.y)),
-                        v!((0.0, size.y), (0.0, 0.0)),
+                        v!((0.0, 0.0), (0.0, 0.0)),
+                        v!((size.x, 0.0), (tex_size.x, 0.0)),
+                        v!((0.0, size.y), (0.0, tex_size.y)),
                         // Bottom right triangle
-                        v!((size.x, size.y), (tex_size.x, 0.0)),
-                        v!((0.0, size.y), (0.0, 0.0)),
-                        v!((size.x, 0.0), (tex_size.x, tex_size.y)),
+                        v!((size.x, size.y), (tex_size.x, tex_size.y)),
+                        v!((0.0, size.y), (0.0, tex_size.y)),
+                        v!((size.x, 0.0), (tex_size.x, 0.0)),
                     ]);
                 }
             }
@@ -202,7 +201,7 @@ impl MessageLayer {
             context,
             // TODO: actually reuse the atlas
             FontAtlas::new(context.gpu_resources, self.fonts.medium_font.clone()),
-            Vector2::new(-740.0, -300.0),
+            Vector2::new(-740.0, 300.0),
             message,
         ));
     }

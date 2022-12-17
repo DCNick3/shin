@@ -100,25 +100,25 @@ impl SpriteVertexBuffer {
             PosColTexVertex {
                 position: Vector3::new(l, b, 0.0),
                 color,
-                texture_coordinate: Vector2::new(0.0, 0.0),
+                texture_coordinate: Vector2::new(0.0, 1.0),
             },
             // 1
             PosColTexVertex {
                 position: Vector3::new(l, t, 0.0),
                 color,
-                texture_coordinate: Vector2::new(0.0, 1.0),
+                texture_coordinate: Vector2::new(0.0, 0.0),
             },
             // 2
             PosColTexVertex {
                 position: Vector3::new(r, b, 0.0),
                 color,
-                texture_coordinate: Vector2::new(1.0, 0.0),
+                texture_coordinate: Vector2::new(1.0, 1.0),
             },
             // 3
             PosColTexVertex {
                 position: Vector3::new(r, t, 0.0),
                 color,
-                texture_coordinate: Vector2::new(1.0, 1.0),
+                texture_coordinate: Vector2::new(1.0, 0.0),
             },
         ];
 
