@@ -2205,6 +2205,7 @@ dependencies = [
  "anyhow",
  "arrayvec 0.7.2",
  "async-trait",
+ "bevy_tasks",
  "bevy_time",
  "bevy_utils",
  "bytemuck",
@@ -2222,12 +2223,14 @@ dependencies = [
  "lru",
  "num-derive",
  "num-traits",
+ "once_cell",
  "pollster",
  "shin-core",
  "smallvec",
  "strum",
  "tracing",
  "tracing-subscriber",
+ "typemap",
  "wgpu 0.14.0",
  "winit",
  "wrld",
@@ -2566,6 +2569,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "traitobject"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efd1f82c56340fdf16f2a953d7bda4f8fdffba13d93b00844c25572110b26079"
+
+[[package]]
+name = "typemap"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "653be63c80a3296da5551e1bfd2cca35227e13cdd08c6668903ae2f4f77aa1f6"
+dependencies = [
+ "unsafe-any",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2582,6 +2600,15 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
+
+[[package]]
+name = "unsafe-any"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f30360d7979f5e9c6e6cea48af192ea8fab4afb3cf72597154b8f08935bc9c7f"
+dependencies = [
+ "traitobject",
+]
 
 [[package]]
 name = "uuid"

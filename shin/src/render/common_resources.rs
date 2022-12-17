@@ -1,15 +1,17 @@
-use crate::render::camera::Camera;
 use crate::render::pipelines::Pipelines;
 use crate::render::{
     BindGroupLayouts, PosColTexVertex, PosVertex, SubmittingEncoder, TextVertex, TextureBindGroup,
     VertexSource,
 };
 use cgmath::{Matrix4, Vector4};
+use std::sync::RwLock;
 
 pub struct GpuCommonResources {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    pub camera: Camera,
+    /// please don't write to this, this is only for reading
+    /// TODO: make this private or smth
+    pub render_buffer_size: RwLock<(u32, u32)>,
     pub pipelines: Pipelines,
     pub bind_group_layouts: BindGroupLayouts,
 }
@@ -66,10 +68,6 @@ impl GpuCommonResources {
     }
 
     pub fn current_render_buffer_size(&self) -> (u32, u32) {
-        self.camera.render_buffer_size()
-    }
-
-    pub fn projection_matrix(&self) -> Matrix4<f32> {
-        self.camera.projection_matrix()
+        *self.render_buffer_size.read().unwrap()
     }
 }

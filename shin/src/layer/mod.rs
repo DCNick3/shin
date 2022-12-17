@@ -16,9 +16,8 @@ pub use null_layer::NullLayer;
 pub use picture_layer::PictureLayer;
 pub use root_layer_group::RootLayerGroup;
 
-use crate::asset;
-use crate::asset::picture::GpuPicture;
-use crate::game_data::GameData;
+use crate::asset::picture::Picture;
+use crate::asset::AnyAssetServer;
 use crate::interpolator::{Easing, Interpolator};
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
@@ -145,9 +144,9 @@ pub enum UserLayer {
 }
 
 impl UserLayer {
-    pub fn load(
+    pub async fn load(
         resources: &GpuCommonResources,
-        game_data: &GameData,
+        asset_server: &AnyAssetServer,
         scenario: &Scenario,
         layer_ty: LayerType,
         params: [i32; 8],
@@ -165,9 +164,10 @@ impl UserLayer {
                 let (pic_name, v1) = scenario.get_picture_data(pic_id);
                 debug!("Load picture: {} -> {} {}", pic_id, pic_name, v1);
                 let pic_path = format!("/picture/{}.pic", pic_name.to_ascii_lowercase());
-                let pic_data = game_data.read_file(&pic_path);
-                let pic = asset::picture::load_picture(&pic_data).expect("Parsing picture");
-                let pic = GpuPicture::load(resources, pic);
+                let pic = asset_server
+                    .load::<Picture>(&pic_path)
+                    .await
+                    .expect("Failed to load picture");
                 PictureLayer::new(resources, pic).into()
             }
             LayerType::Bustup => {

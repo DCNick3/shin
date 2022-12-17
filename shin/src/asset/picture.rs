@@ -1,12 +1,48 @@
+use crate::asset::Asset;
 use crate::render::{self, GpuCommonResources, TextureBindGroup};
 use anyhow::Result;
+use once_cell::sync::OnceCell;
 use shin_core::format::picture::SimpleMergedPicture;
 use std::num::NonZeroU32;
 
-pub type Picture = SimpleMergedPicture;
+/// A Picture, uploaded to GPU on demand (because doing it in the asset loading context is awkward)
+pub struct Picture {
+    picture: SimpleMergedPicture,
+    gpu_picture: OnceCell<GpuPicture>,
+}
 
-pub fn load_picture(bytes: &[u8]) -> Result<Picture> {
-    shin_core::format::picture::read_picture::<Picture>(bytes, ())
+impl Picture {
+    pub fn gpu_picture(&self, resources: &GpuCommonResources) -> &GpuPicture {
+        self.gpu_picture
+            .get_or_init(|| GpuPicture::load(resources, &self.picture))
+    }
+
+    pub fn width(&self) -> u32 {
+        self.picture.image.width()
+    }
+
+    pub fn height(&self) -> u32 {
+        self.picture.image.height()
+    }
+
+    pub fn origin_x(&self) -> u32 {
+        self.picture.origin_x
+    }
+
+    pub fn origin_y(&self) -> u32 {
+        self.picture.origin_y
+    }
+}
+
+impl Asset for Picture {
+    fn load_from_bytes(data: Vec<u8>) -> Result<Self> {
+        let picture = shin_core::format::picture::read_picture::<SimpleMergedPicture>(&data, ())?;
+
+        Ok(Self {
+            picture,
+            gpu_picture: OnceCell::new(),
+        })
+    }
 }
 
 pub struct GpuPicture {
@@ -21,7 +57,7 @@ pub struct GpuPicture {
 }
 
 impl GpuPicture {
-    pub fn load(resources: &GpuCommonResources, picture: Picture) -> GpuPicture {
+    pub fn load(resources: &GpuCommonResources, picture: &SimpleMergedPicture) -> GpuPicture {
         let size = wgpu::Extent3d {
             width: picture.image.width(),
             height: picture.image.height(),
@@ -94,15 +130,5 @@ impl GpuPicture {
             origin_y: picture.origin_y as f32,
             picture_id: picture.picture_id,
         }
-    }
-
-    #[allow(unused)]
-    pub fn width(&self) -> u32 {
-        self.width
-    }
-
-    #[allow(unused)]
-    pub fn height(&self) -> u32 {
-        self.height
     }
 }

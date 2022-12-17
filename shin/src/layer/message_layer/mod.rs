@@ -1,16 +1,16 @@
 mod font_atlas;
 
+use crate::adv::assets::AdvFonts;
 use crate::layer::message_layer::font_atlas::FontAtlas;
 use crate::layer::{Layer, LayerProperties};
 use crate::render::dynamic_atlas::AtlasImage;
 use crate::render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{ElementWise, Matrix4, Vector2};
-use shin_core::format::font::{GlyphTrait, LazyFont};
+use shin_core::format::font::GlyphTrait;
 use shin_core::layout::Command;
 use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
 use shin_core::vm::command::time::Ticks;
-use std::sync::Arc;
 
 struct Message {
     time: Ticks,
@@ -163,17 +163,17 @@ pub struct MessageLayer {
     props: LayerProperties,
     style: MessageboxStyle,
     running_time: Ticks,
-    font: Arc<LazyFont>,
+    fonts: AdvFonts,
     message: Option<Message>,
 }
 
 impl MessageLayer {
-    pub fn new(_resources: &GpuCommonResources, font: Arc<LazyFont>) -> Self {
+    pub fn new(_resources: &GpuCommonResources, fonts: AdvFonts) -> Self {
         Self {
             props: LayerProperties::new(),
             style: MessageboxStyle::default(),
             running_time: Ticks::ZERO,
-            font,
+            fonts,
             message: None,
         }
     }
@@ -187,7 +187,8 @@ impl MessageLayer {
 
         self.message = Some(Message::new(
             context,
-            FontAtlas::new(context.gpu_resources, self.font.clone()),
+            // TODO: actually reuse the atlas
+            FontAtlas::new(context.gpu_resources, self.fonts.medium_font.clone()),
             Vector2::new(-740.0, -300.0),
             message,
         ));

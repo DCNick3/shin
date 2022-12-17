@@ -1,8 +1,7 @@
 use std::path::PathBuf;
-use std::sync::Arc;
-use tracing::{debug, warn};
+use std::sync::{Arc, RwLock};
+use tracing::{debug, trace, warn};
 
-use shin_core::format::scenario::Scenario;
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::window::Fullscreen;
 use winit::{
@@ -13,8 +12,9 @@ use winit::{
 
 use super::pipelines::Pipelines;
 
+use crate::adv::assets::AdvAssets;
 use crate::adv::Adv;
-use crate::game_data::GameData;
+use crate::asset::AnyAssetServer;
 use crate::render::bind_groups::BindGroupLayouts;
 use crate::render::camera::Camera;
 use crate::render::common_resources::GpuCommonResources;
@@ -28,13 +28,14 @@ struct State {
     surface: wgpu::Surface,
     surface_config: wgpu::SurfaceConfiguration,
     window_size: (u32, u32),
-    resources: GpuCommonResources,
+    resources: Arc<GpuCommonResources>,
+    camera: Camera,
     // TODO: do we want to pull the bevy deps?
     time: bevy_time::Time,
     vertices: SpriteVertexBuffer,
     render_target: RenderTarget,
     pillarbox: Pillarbox,
-    game_data: GameData,
+    asset_server: Arc<AnyAssetServer>,
     adv: Adv,
 }
 
@@ -98,18 +99,18 @@ impl State {
 
         let camera = Camera::new(window_size);
 
-        let resources = GpuCommonResources {
+        let resources = Arc::new(GpuCommonResources {
             device,
             queue,
+            render_buffer_size: RwLock::new(camera.render_buffer_size()),
             bind_group_layouts,
             pipelines,
-            camera,
-        };
+        });
 
         let vertices = SpriteVertexBuffer::new_fullscreen(&resources);
         let render_target = RenderTarget::new(
             &resources,
-            resources.current_render_buffer_size(),
+            camera.render_buffer_size(),
             Some("Window RenderTarget"),
         );
 
@@ -154,25 +155,24 @@ impl State {
         //     Easing::EaseOut,
         // );
 
-        let game_data = GameData::new(PathBuf::from("assets/data"));
+        let asset_server = Arc::new(AnyAssetServer::new_dir(PathBuf::from("assets/data")));
 
-        let scenario = game_data.read_file("/main.snr");
-        let scenario = Scenario::new(scenario.into()).expect("Parsing scenario");
-        let font = game_data.read_file("/newrodin-medium.fnt");
-        let font = shin_core::format::font::read_lazy_font(&mut std::io::Cursor::new(font))
-            .expect("Parsing font");
-        let adv = Adv::new(&resources, Arc::new(font), scenario, 0, 42);
+        let adv_assets =
+            pollster::block_on(AdvAssets::load(&asset_server)).expect("Loading assets failed");
+
+        let adv = Adv::new(&resources, adv_assets, 0, 42);
 
         Self {
             surface,
             surface_config: config,
             window_size,
             resources,
+            camera,
             time: bevy_time::Time::default(),
             vertices,
             render_target,
             pillarbox,
-            game_data,
+            asset_server,
             adv,
         }
     }
@@ -190,15 +190,17 @@ impl State {
             self.surface
                 .configure(&self.resources.device, &self.surface_config);
 
-            self.resources.camera.resize(new_size);
+            self.camera.resize(new_size);
             self.render_target
-                .resize(&self.resources, self.resources.current_render_buffer_size());
+                .resize(&self.resources, self.camera.render_buffer_size());
 
             debug!(
                 "Window resized to {:?}, new render buffer size is {:?}",
                 new_size,
-                self.resources.current_render_buffer_size()
+                self.camera.render_buffer_size()
             );
+
+            *self.resources.render_buffer_size.write().unwrap() = self.camera.render_buffer_size();
 
             self.pillarbox.resize(&self.resources);
             self.adv.resize(&self.resources);
@@ -216,7 +218,7 @@ impl State {
         let update_context = UpdateContext {
             time: &self.time,
             gpu_resources: &self.resources,
-            game_data: &self.game_data,
+            asset_server: &self.asset_server,
         };
 
         self.adv.update(&update_context);
@@ -233,7 +235,7 @@ impl State {
             self.adv.render(
                 &self.resources,
                 &mut render_pass,
-                self.resources.projection_matrix(),
+                self.camera.projection_matrix(),
             );
         }
 
@@ -261,12 +263,12 @@ impl State {
                 &mut render_pass,
                 self.vertices.vertex_source(),
                 self.render_target.bind_group(),
-                self.resources.camera.screen_projection_matrix(),
+                self.camera.screen_projection_matrix(),
             );
             self.pillarbox.render(
                 &self.resources,
                 &mut render_pass,
-                self.resources.camera.screen_projection_matrix(),
+                self.camera.screen_projection_matrix(),
             );
         }
 
@@ -274,6 +276,92 @@ impl State {
 
         Ok(())
     }
+}
+
+fn create_task_pools() {
+    // bevy params:
+    // TaskPoolOptions {
+    //     // By default, use however many cores are available on the system
+    //     min_total_threads: 1,
+    //     max_total_threads: std::usize::MAX,
+    //
+    //     // Use 25% of cores for IO, at least 1, no more than 4
+    //     io: TaskPoolThreadAssignmentPolicy {
+    //         min_threads: 1,
+    //         max_threads: 4,
+    //         percent: 0.25,
+    //     },
+    //
+    //     // Use 25% of cores for async compute, at least 1, no more than 4
+    //     async_compute: TaskPoolThreadAssignmentPolicy {
+    //         min_threads: 1,
+    //         max_threads: 4,
+    //         percent: 0.25,
+    //     },
+    //
+    //     // Use all remaining cores for compute (at least 1)
+    //     compute: TaskPoolThreadAssignmentPolicy {
+    //         min_threads: 1,
+    //         max_threads: std::usize::MAX,
+    //         percent: 1.0, // This 1.0 here means "whatever is left over"
+    //     },
+    // }
+
+    let total_threads = bevy_tasks::available_parallelism().clamp(1, usize::MAX);
+    trace!("Assigning {} cores to default task pools", total_threads);
+
+    let mut remaining_threads = total_threads;
+
+    fn get_number_of_threads(
+        percent: f32,
+        min_threads: usize,
+        max_threads: usize,
+        remaining_threads: usize,
+        total_threads: usize,
+    ) -> usize {
+        let mut desired = (total_threads as f32 * percent).round() as usize;
+
+        // Limit ourselves to the number of cores available
+        desired = desired.min(remaining_threads);
+
+        // Clamp by min_threads, max_threads. (This may result in us using more threads than are
+        // available, this is intended. An example case where this might happen is a device with
+        // <= 2 threads.
+        desired.clamp(min_threads, max_threads)
+    }
+
+    {
+        // Determine the number of IO threads we will use
+        let io_threads = get_number_of_threads(0.25, 1, 4, remaining_threads, total_threads);
+
+        trace!("IO Threads: {}", io_threads);
+        remaining_threads = remaining_threads.saturating_sub(io_threads);
+
+        bevy_tasks::IoTaskPool::init(|| {
+            bevy_tasks::TaskPoolBuilder::default()
+                .num_threads(io_threads)
+                .thread_name("IO Task Pool".to_string())
+                .build()
+        });
+    }
+
+    {
+        // Determine the number of async compute threads we will use
+        let async_compute_threads =
+            get_number_of_threads(0.25, 1, 4, remaining_threads, total_threads);
+
+        trace!("Async Compute Threads: {}", async_compute_threads);
+        remaining_threads = remaining_threads.saturating_sub(async_compute_threads);
+
+        bevy_tasks::AsyncComputeTaskPool::init(|| {
+            bevy_tasks::TaskPoolBuilder::default()
+                .num_threads(async_compute_threads)
+                .thread_name("Async Compute Task Pool".to_string())
+                .build()
+        });
+    }
+
+    // do not initialize the compute task pool, we do not use it (at least for now)
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
@@ -286,6 +374,8 @@ pub async fn run() {
             tracing_subscriber::fmt::init();
         }
     }
+
+    create_task_pools();
 
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()

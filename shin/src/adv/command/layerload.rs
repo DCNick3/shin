@@ -1,5 +1,13 @@
 use super::prelude::*;
 use crate::layer::UserLayer;
+use bevy_tasks::{AsyncComputeTaskPool, Task};
+use pollster::FutureExt;
+
+pub struct LAYERLOAD {
+    token: Option<command::token::LAYERLOAD>,
+    layer_id: VLayerId,
+    load_task: Option<Task<UserLayer>>,
+}
 
 impl super::StartableCommand for command::runtime::LAYERLOAD {
     fn apply_state(&self, state: &mut VmState) {
@@ -30,34 +38,66 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
     fn start(
         self,
         context: &UpdateContext,
-        scenario: &Scenario,
+        scenario: &Arc<Scenario>,
         vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         // TODO: loading should be done async
-        let layer = UserLayer::load(
-            context.gpu_resources,
-            context.game_data,
-            scenario,
-            self.layer_type,
-            self.params,
-        );
+        let resources = context.gpu_resources.clone();
+        let asset_server = context.asset_server.clone();
+        let scenario = scenario.clone();
 
-        match self.layer_id.repr() {
-            VLayerIdRepr::RootLayerGroup
-            | VLayerIdRepr::ScreenLayer
-            | VLayerIdRepr::PageLayer
-            | VLayerIdRepr::PlaneLayerGroup => {
-                unreachable!("You can't load special layers")
+        let load_task = AsyncComputeTaskPool::get().spawn(async move {
+            UserLayer::load(
+                &resources,
+                &asset_server,
+                &scenario,
+                self.layer_type,
+                self.params,
+            )
+            .await
+        });
+
+        Yield(
+            LAYERLOAD {
+                token: Some(self.token),
+                layer_id: self.layer_id,
+                load_task: Some(load_task),
             }
-            VLayerIdRepr::Selected => {
-                todo!("LAYERLOAD: selected");
+            .into(),
+        )
+    }
+}
+
+impl UpdatableCommand for LAYERLOAD {
+    fn update(
+        &mut self,
+        _context: &UpdateContext,
+        _scenario: &Arc<Scenario>,
+        vm_state: &VmState,
+        adv_state: &mut AdvState,
+    ) -> Option<CommandResult> {
+        if self.load_task.as_ref().unwrap().is_finished() {
+            let layer = self.load_task.take().unwrap().block_on();
+
+            match self.layer_id.repr() {
+                VLayerIdRepr::RootLayerGroup
+                | VLayerIdRepr::ScreenLayer
+                | VLayerIdRepr::PageLayer
+                | VLayerIdRepr::PlaneLayerGroup => {
+                    panic!("You can't load special layers")
+                }
+                VLayerIdRepr::Selected => {
+                    todo!("LAYERLOAD: selected");
+                }
+                VLayerIdRepr::Layer(id) => adv_state
+                    .current_layer_group_mut(vm_state)
+                    .add_layer(id, layer),
             }
-            VLayerIdRepr::Layer(id) => adv_state
-                .current_layer_group_mut(vm_state)
-                .add_layer(id, layer),
+
+            return Some(self.token.take().unwrap().finish());
         }
 
-        self.token.finish().into()
+        None
     }
 }

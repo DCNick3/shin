@@ -128,17 +128,17 @@ impl From<Rgba8> for image::Rgba<u8> {
 pub trait PictureChunkBuilder {
     type Output: Send;
     fn new(
-        offset_x: usize,
-        offset_y: usize,
-        width: usize,
-        height: usize,
+        offset_x: u32,
+        offset_y: u32,
+        width: u32,
+        height: u32,
         opaque_vertices: Vec<PicVertexEntry>,
         transparent_vertices: Vec<PicVertexEntry>,
     ) -> Self;
 
     // TODO: handle vertices
 
-    fn on_pixel(&mut self, x: usize, y: usize, value: Rgba8);
+    fn on_pixel(&mut self, x: u32, y: u32, value: Rgba8);
     fn build(self) -> Result<Self::Output>;
 }
 
@@ -149,16 +149,16 @@ pub trait PictureBuilder<'d>: Send {
 
     fn new(
         args: Self::Args,
-        effective_width: usize,
-        effective_height: usize,
-        origin_x: usize,
-        origin_y: usize,
+        effective_width: u32,
+        effective_height: u32,
+        origin_x: u32,
+        origin_y: u32,
         picture_id: u32,
     ) -> Self;
 
     fn add_chunk(
         &mut self,
-        position: (usize, usize),
+        position: (u32, u32),
         chunk: <Self::ChunkBuilder as PictureChunkBuilder>::Output,
     ) -> Result<()>;
 
@@ -167,8 +167,8 @@ pub trait PictureBuilder<'d>: Send {
 
 #[derive(Debug, Clone)]
 pub struct SimplePictureChunk {
-    pub offset_x: usize,
-    pub offset_y: usize,
+    pub offset_x: u32,
+    pub offset_y: u32,
     pub opaque_vertices: Vec<PicVertexEntry>,
     pub transparent_vertices: Vec<PicVertexEntry>,
     pub data: RgbaImage,
@@ -178,10 +178,10 @@ impl PictureChunkBuilder for SimplePictureChunk {
     type Output = SimplePictureChunk;
 
     fn new(
-        offset_x: usize,
-        offset_y: usize,
-        width: usize,
-        height: usize,
+        offset_x: u32,
+        offset_y: u32,
+        width: u32,
+        height: u32,
         opaque_vertices: Vec<PicVertexEntry>,
         transparent_vertices: Vec<PicVertexEntry>,
     ) -> Self {
@@ -190,12 +190,12 @@ impl PictureChunkBuilder for SimplePictureChunk {
             offset_y,
             opaque_vertices,
             transparent_vertices,
-            data: ImageBuffer::new(width as u32, height as u32),
+            data: ImageBuffer::new(width, height),
         }
     }
 
-    fn on_pixel(&mut self, x: usize, y: usize, value: Rgba8) {
-        self.data.put_pixel(x as u32, y as u32, value.into());
+    fn on_pixel(&mut self, x: u32, y: u32, value: Rgba8) {
+        self.data.put_pixel(x, y, value.into());
     }
 
     fn build(self) -> Result<Self::Output> {
@@ -205,8 +205,8 @@ impl PictureChunkBuilder for SimplePictureChunk {
 
 pub struct SimpleMergedPicture {
     pub image: RgbaImage,
-    pub origin_x: usize,
-    pub origin_y: usize,
+    pub origin_x: u32,
+    pub origin_y: u32,
     pub picture_id: u32,
 }
 
@@ -217,14 +217,14 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
 
     fn new(
         _: (),
-        effective_width: usize,
-        effective_height: usize,
-        origin_x: usize,
-        origin_y: usize,
+        effective_width: u32,
+        effective_height: u32,
+        origin_x: u32,
+        origin_y: u32,
         picture_id: u32,
     ) -> Self {
         SimpleMergedPicture {
-            image: RgbaImage::new(effective_width as u32, effective_height as u32),
+            image: RgbaImage::new(effective_width, effective_height),
             origin_x,
             origin_y,
             picture_id,
@@ -233,7 +233,7 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
 
     fn add_chunk(
         &mut self,
-        (x, y): (usize, usize),
+        (x, y): (u32, u32),
         chunk: <Self::ChunkBuilder as PictureChunkBuilder>::Output,
     ) -> Result<()> {
         // I think those are used only in bustups
@@ -253,11 +253,11 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
 }
 
 pub struct SimplePicture {
-    pub chunks: Vec<((usize, usize), SimplePictureChunk)>,
-    pub effective_width: usize,
-    pub effective_height: usize,
-    pub origin_x: usize,
-    pub origin_y: usize,
+    pub chunks: Vec<((u32, u32), SimplePictureChunk)>,
+    pub effective_width: u32,
+    pub effective_height: u32,
+    pub origin_x: u32,
+    pub origin_y: u32,
     pub picture_id: u32,
 }
 
@@ -268,10 +268,10 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
 
     fn new(
         _: (),
-        effective_width: usize,
-        effective_height: usize,
-        origin_x: usize,
-        origin_y: usize,
+        effective_width: u32,
+        effective_height: u32,
+        origin_x: u32,
+        origin_y: u32,
         picture_id: u32,
     ) -> Self {
         Self {
@@ -286,7 +286,7 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
 
     fn add_chunk(
         &mut self,
-        position: (usize, usize),
+        position: (u32, u32),
         chunk: <Self::ChunkBuilder as PictureChunkBuilder>::Output,
     ) -> Result<()> {
         self.chunks.push((position, chunk));
@@ -322,14 +322,14 @@ fn decode_dict<B: PictureChunkBuilder>(
             {
                 let mut val = dict[index as usize];
                 val.a = alpha;
-                builder.on_pixel(x, y, val);
+                builder.on_pixel(x as u32, y as u32, val);
             }
         }
     } else {
         for (y, row) in encoded_data.chunks(stride).enumerate() {
             for (x, index) in row[..width].iter().cloned().enumerate() {
                 let val = dict[index as usize];
-                builder.on_pixel(x, y, val);
+                builder.on_pixel(x as u32, y as u32, val);
             }
         }
     }
@@ -390,10 +390,10 @@ fn read_picture_chunk<'a, L: PictureBuilder<'a>>(
     };
 
     let mut builder = L::ChunkBuilder::new(
-        header.offset_x as usize,
-        header.offset_y as usize,
-        width,
-        height,
+        header.offset_x as u32,
+        header.offset_y as u32,
+        width as u32,
+        height as u32,
         opaque_vertices,
         transparent_vertices,
     );
@@ -468,10 +468,10 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
 
     let builder = B::new(
         builder_args,
-        header.effective_width as usize,
-        header.effective_height as usize,
-        header.origin_x as usize,
-        header.origin_y as usize,
+        header.effective_width as u32,
+        header.effective_height as u32,
+        header.origin_x as u32,
+        header.origin_y as u32,
         header.picture_id,
     );
     // TODO: how should be parallelize it in bevy?
@@ -482,7 +482,12 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
         .par_iter()
         .cloned()
         .map(|(pos, data)| (pos, read_picture_chunk::<B>(data)))
-        .try_for_each(|(pos, chunk)| builder.lock().unwrap().add_chunk(pos, chunk?))?;
+        .try_for_each(|(pos, chunk)| {
+            builder
+                .lock()
+                .unwrap()
+                .add_chunk((pos.0 as u32, pos.1 as u32), chunk?)
+        })?;
 
     let listener = builder.into_inner().unwrap();
 

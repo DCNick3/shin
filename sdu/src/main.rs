@@ -79,6 +79,7 @@ fn rom_command(command: RomCommand) -> Result<()> {
     match command {
         RomCommand::List { rom_path: path } => {
             let rom = File::open(path).context("Opening rom file")?;
+            let rom = BufReader::new(rom);
             let reader = shin_core::format::rom::RomReader::new(rom).context("Parsing ROM")?;
             for (name, entry) in reader.traverse() {
                 let ty = match entry {
@@ -96,6 +97,7 @@ fn rom_command(command: RomCommand) -> Result<()> {
         } => {
             use std::io::Read;
             let rom = File::open(rom_path).context("Opening rom file")?;
+            let rom = BufReader::new(rom);
             let mut reader = shin_core::format::rom::RomReader::new(rom).context("Parsing ROM")?;
             let file = reader
                 .find_file(&rom_filename)

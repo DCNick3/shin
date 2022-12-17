@@ -17,12 +17,12 @@ impl super::StartableCommand for command::runtime::WAIT {
     fn start(
         self,
         _context: &UpdateContext,
-        _scenario: &Scenario,
+        _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
         assert_eq!(self.allow_interrupt, 0);
-        CommandStartResult::Yield(
+        Yield(
             WAIT {
                 token: Some(self.token),
                 waiting_left: Ticks(self.wait_amount as f32).as_duration(),
@@ -32,11 +32,11 @@ impl super::StartableCommand for command::runtime::WAIT {
     }
 }
 
-impl super::UpdatableCommand for WAIT {
+impl UpdatableCommand for WAIT {
     fn update(
         &mut self,
         context: &UpdateContext,
-        _scenario: &Scenario,
+        _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> Option<CommandResult> {

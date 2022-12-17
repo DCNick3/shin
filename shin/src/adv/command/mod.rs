@@ -1,14 +1,16 @@
 #![allow(clippy::upper_case_acronyms)]
 
 mod prelude {
+    pub use crate::adv::UpdatableCommand;
     pub use crate::adv::{AdvState, CommandStartResult, VmState};
     pub use crate::layer::Layer;
     pub use crate::update::UpdateContext;
     pub use shin_core::format::scenario::Scenario;
     pub use shin_core::vm::command;
-    pub use shin_core::vm::command::layer::VLayerIdRepr;
+    pub use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
     pub use shin_core::vm::command::time::Ticks;
     pub use shin_core::vm::command::CommandResult;
+    pub use std::sync::Arc;
     pub use tracing::warn;
     pub use CommandStartResult::Yield;
 }
@@ -34,11 +36,13 @@ mod sset;
 mod wait;
 mod wipe;
 
+use layerload::LAYERLOAD;
 use msgset::MSGSET;
 use wait::WAIT;
 
 use enum_dispatch::enum_dispatch;
 use shin_core::format::scenario::Scenario;
+use std::sync::Arc;
 
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 
@@ -51,7 +55,7 @@ pub trait UpdatableCommand {
     fn update(
         &mut self,
         _context: &UpdateContext,
-        _scenario: &Scenario,
+        _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> Option<CommandResult>;
@@ -64,6 +68,7 @@ pub trait UpdatableCommand {
 pub enum ExecutingCommand {
     WAIT,
     MSGSET,
+    LAYERLOAD,
 }
 
 impl StartableCommand for RuntimeCommand {
@@ -135,7 +140,7 @@ impl StartableCommand for RuntimeCommand {
     fn start(
         self,
         context: &UpdateContext,
-        scenario: &Scenario,
+        scenario: &Arc<Scenario>,
         vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
@@ -229,7 +234,7 @@ pub trait StartableCommand {
     fn start(
         self,
         context: &UpdateContext,
-        scenario: &Scenario,
+        scenario: &Arc<Scenario>,
         vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult;

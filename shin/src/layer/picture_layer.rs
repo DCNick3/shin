@@ -1,20 +1,22 @@
-use crate::asset::picture::GpuPicture;
+use crate::asset::picture::Picture;
 use crate::layer::{Layer, LayerProperties};
 use crate::render::Renderable;
 use crate::render::{GpuCommonResources, SpriteVertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{Matrix4, Vector3, Vector4};
+use std::sync::Arc;
 
 pub struct PictureLayer {
-    picture: GpuPicture,
+    picture: Arc<Picture>,
     vertices: SpriteVertexBuffer,
 
     props: LayerProperties,
 }
 
 impl PictureLayer {
-    pub fn new(resources: &GpuCommonResources, picture: GpuPicture) -> Self {
-        let origin_translate = -Vector3::new(picture.origin_x as f32, picture.origin_y as f32, 0.0);
+    pub fn new(resources: &GpuCommonResources, picture: Arc<Picture>) -> Self {
+        let origin_translate =
+            -Vector3::new(picture.origin_x() as f32, picture.origin_y() as f32, 0.0);
 
         let color = Vector4::new(1.0, 1.0, 1.0, 1.0);
 
@@ -23,8 +25,8 @@ impl PictureLayer {
             (
                 origin_translate.x,
                 origin_translate.y,
-                origin_translate.x + picture.width as f32,
-                origin_translate.y + picture.height as f32,
+                origin_translate.x + picture.width() as f32,
+                origin_translate.y + picture.height() as f32,
             ),
             color,
         );
@@ -48,7 +50,7 @@ impl Renderable for PictureLayer {
         resources.draw_sprite(
             render_pass,
             self.vertices.vertex_source(),
-            &self.picture.bind_group,
+            &self.picture.gpu_picture(resources).bind_group,
             self.props.compute_transform(transform),
         );
     }

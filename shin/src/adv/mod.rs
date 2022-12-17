@@ -1,15 +1,16 @@
+pub mod assets;
 mod command;
 mod state;
 
 pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
 pub use state::VmState;
 
+use crate::adv::assets::AdvAssets;
 use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup};
 use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
 use cgmath::Matrix4;
-use shin_core::format::font::LazyFont;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
 use shin_core::vm::command::CommandResult;
@@ -18,7 +19,7 @@ use std::sync::Arc;
 use tracing::warn;
 
 pub struct Adv {
-    scenario: Scenario,
+    scenario: Arc<Scenario>,
     scripter: Scripter,
     vm_state: VmState,
     adv_state: AdvState,
@@ -28,14 +29,14 @@ pub struct Adv {
 impl Adv {
     pub fn new(
         resources: &GpuCommonResources,
-        font: Arc<LazyFont>,
-        scenario: Scenario,
+        assets: AdvAssets,
         init_val: i32,
         random_seed: u32,
     ) -> Self {
+        let scenario = assets.scenario.clone();
         let scripter = Scripter::new(&scenario, init_val, random_seed);
         let vm_state = VmState::new();
-        let adv_state = AdvState::new(resources, font);
+        let adv_state = AdvState::new(resources, assets);
 
         Self {
             scenario,
@@ -108,13 +109,13 @@ pub struct AdvState {
 impl AdvState {
     pub fn new(
         resources: &GpuCommonResources,
-        font: Arc<LazyFont>, /* TODO: we need a better asset system */
+        assets: AdvAssets, /* TODO: we need a better asset system */
     ) -> Self {
         Self {
             root_layer_group: RootLayerGroup::new(
                 resources,
                 LayerGroup::new(resources),
-                MessageLayer::new(resources, font),
+                MessageLayer::new(resources, assets.fonts),
             ),
         }
     }
