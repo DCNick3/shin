@@ -14,6 +14,7 @@ use shin_core::vm::command::time::Ticks;
 
 struct Message {
     time: Ticks,
+    complete_time: Ticks,
     font_atlas: FontAtlas,
     commands: Vec<Command>,
     vertex_buffer: VertexBuffer<TextVertex>,
@@ -113,12 +114,24 @@ impl Message {
             Some("Message VertexBuffer"),
         );
 
+        let complete_time = commands
+            .iter()
+            .map(|v| v.time())
+            .max()
+            .unwrap_or(Ticks::ZERO)
+            + Ticks::from_seconds(2.0);
+
         Self {
             time: Ticks::ZERO,
+            complete_time,
             font_atlas,
             commands,
             vertex_buffer,
         }
+    }
+
+    pub fn complete(&self) -> bool {
+        self.time >= self.complete_time
     }
 }
 
@@ -195,8 +208,7 @@ impl MessageLayer {
     }
 
     pub fn is_finished(&self) -> bool {
-        // TODO: actually implement it
-        false
+        self.message.as_ref().map(|m| m.complete()).unwrap_or(true)
     }
 }
 

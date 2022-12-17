@@ -1,8 +1,9 @@
 use derive_more::{Add, AddAssign, Sub, SubAssign};
+use float_ord::FloatOrd;
 use std::ops::Div;
 use std::time::Duration;
 
-#[derive(Debug, Copy, Clone, Add, AddAssign, Sub, SubAssign, PartialEq, PartialOrd)]
+#[derive(Debug, Copy, Clone, Add, AddAssign, Sub, SubAssign)]
 pub struct Ticks(pub f32);
 
 pub const TICKS_PER_SECOND: f32 = 60.0;
@@ -32,5 +33,25 @@ impl Div for Ticks {
 
     fn div(self, rhs: Self) -> Self::Output {
         self.0 / rhs.0
+    }
+}
+
+impl PartialEq for Ticks {
+    fn eq(&self, other: &Self) -> bool {
+        FloatOrd(self.0).eq(&FloatOrd(other.0))
+    }
+}
+
+impl Eq for Ticks {}
+
+impl PartialOrd for Ticks {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        FloatOrd(self.0).partial_cmp(&FloatOrd(other.0))
+    }
+}
+
+impl Ord for Ticks {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        FloatOrd(self.0).cmp(&FloatOrd(other.0))
     }
 }
