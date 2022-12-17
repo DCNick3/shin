@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
-use tracing::{debug, trace, warn};
+use tracing::{debug, info, trace, warn};
 
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::window::Fullscreen;
@@ -46,16 +46,21 @@ impl State {
 
         // The instance is a handle to our GPU
         // BackendBit::PRIMARY => Vulkan + Metal + DX12 + Browser WebGPU
-        let instance = wgpu::Instance::new(wgpu::Backends::all());
+        let backend_bits = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all());
+        let instance = wgpu::Instance::new(backend_bits);
         let surface = unsafe { instance.create_surface(window) };
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::LowPower,
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-            })
-            .await
-            .unwrap();
+        let adapter = wgpu::util::initialize_adapter_from_env_or_default(
+            &instance,
+            backend_bits,
+            // NOTE: this select the low-power GPU by default
+            // it's fine, but if we want to use the high-perf one in the future we will have to ditch this function
+            Some(&surface),
+        )
+        .await
+        .unwrap();
+
+        info!("Selected an adapter {:?}", adapter.get_info(),);
+        debug!("Adapter limits: {:?}", adapter.limits());
 
         let (device, queue) = adapter
             .request_device(
@@ -67,7 +72,7 @@ impl State {
                     limits: wgpu::Limits {
                         max_texture_dimension_2d: 4096,
                         // TODO: maybe we should use uniform buffers more...
-                        max_push_constant_size: 256,
+                        max_push_constant_size: 128,
 
                         ..wgpu::Limits::downlevel_webgl2_defaults()
                     },
