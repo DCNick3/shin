@@ -81,6 +81,7 @@ pub struct LayoutParams<'a> {
     pub font: &'a LazyFont,
     pub layout_width: f32,
     pub base_font_height: f32,
+    pub furigana_font_height: f32,
     pub font_horizontal_base_scale: f32,
     pub text_layout: MessageTextLayout,
     pub default_state: LayouterState,
@@ -159,9 +160,10 @@ impl<'a> Layouter<'a> {
             .max()
             .unwrap()
             .0;
+        let furigana_height = self.params.furigana_font_height; // TODO: there is an "always leave space for furigana" flag
         let width = chars
             .iter()
-            .map(|c| FloatOrd(c.position.x + c.size.width))
+            .map(|c| FloatOrd(c.position.x + c.size.advance_width))
             .max()
             .unwrap()
             .0
@@ -219,6 +221,9 @@ impl<'a> Layouter<'a> {
                     c.position.y += self.position.y;
                     // make sure that the glyph is on the baseline (doing it here because font size might change on the line)
                     c.position.y += line_ascent;
+                    // leave space for furigana
+                    // TODO: we, obviously, should not do this when there is no furigana
+                    c.position.y += furigana_height;
 
                     // if we are overflowing - make it fit by squishing the text
                     c.position.x *= fit_scale;
@@ -239,7 +244,7 @@ impl<'a> Layouter<'a> {
         );
 
         self.position.x = 0.0;
-        self.position.y += max_line_height;
+        self.position.y += max_line_height + furigana_height + 4.0 /* TODO: this is one of the many obscure line height-type parameters */;
     }
 
     fn on_newline(&mut self) {
@@ -250,11 +255,14 @@ impl<'a> Layouter<'a> {
         let mut start = 0;
         let mut x_pos = 0.0;
         for (i, c) in chars.iter().enumerate() {
-            if c.position.x + c.size.width - x_pos > self.params.layout_width * 1.05
+            // if the start of the character is outside of the layout width
+            if c.position.x - x_pos > self.params.layout_width
+                // or if the end of the character is outside of the layout width * 1.05
+                || c.position.x + c.size.width - x_pos > self.params.layout_width * 1.05
             /* allow a bit of overflow, the chars will be rescaled */
             {
                 self.finalize_line(&chars[start..i], false, x_pos);
-                x_pos = x_pos.max(c.position.x);
+                x_pos = c.position.x;
                 start = i;
             }
         }
@@ -342,14 +350,15 @@ mod tests {
         // having tests that depend on assets is not ideal
         // maybe I can create my own font for testing purposes?
         // use the one from assets for now
-        let font = File::open("../shin/assets/data/system.fnt").unwrap();
+        let font = File::open("../shin/assets/data/newrodin-medium.fnt").unwrap();
         let mut font = BufReader::new(font);
         let font = shin_core::format::font::read_lazy_font(&mut font).unwrap();
 
         let params = LayoutParams {
             font: &font,
-            layout_width: 1050.0,
+            layout_width: 1500.0,
             base_font_height: 50.0,
+            furigana_font_height: 20.0,
             font_horizontal_base_scale: 0.9696999788284302,
             text_layout: MessageTextLayout::Left,
             default_state: LayouterState::default(),
@@ -382,8 +391,23 @@ mod tests {
             let ratio =
                 aspect_ratio.max(EXPECTED_ASPECT_RATIO) / aspect_ratio.min(EXPECTED_ASPECT_RATIO);
             // the ratio will always be larger than 1 and should be close to 1
-            assert!(ratio < 1.05);
-            todo!()
+            assert!(ratio < 1.09);
+        } else {
+            panic!("Expected a char command");
+        }
+
+        // the の should still be on the first line
+        if let Command::Char(c) = result[29] {
+            assert_eq!(c.codepoint, 'の' as u16);
+            assert_eq!(c.position.y, 40.625);
+        } else {
+            panic!("Expected a char command");
+        }
+
+        // while the 姿 should be on the second line
+        if let Command::Char(c) = result[30] {
+            assert_eq!(c.codepoint, '姿' as u16);
+            assert!(c.position.y > 40.625);
         } else {
             panic!("Expected a char command");
         }

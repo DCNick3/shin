@@ -1,4 +1,4 @@
-use cgmath::{Matrix4, SquareMatrix};
+use cgmath::{Matrix4, SquareMatrix, Vector3};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -32,11 +32,17 @@ impl Camera {
             (VIRTUAL_WIDTH * w / h, VIRTUAL_HEIGHT)
         };
 
+        // It seems that we are basically one traslation away from matching the game output
+        // TODO: figure out a proper way to move the coordinate space of smth
+        // because this creates a strip of black pixels on the right and bottom
+        let translation = Matrix4::from_translation(Vector3::new(-1.0, -1.0, 0.0));
+
         let mut screen_projection = Matrix4::identity();
         screen_projection.x.x = 2.0 / viewport_width;
         screen_projection.y.y = -2.0 / viewport_height;
         screen_projection.z.z = 1.0 / 1000.0;
         screen_projection.w.w = 1.0;
+        let screen_projection = screen_projection * translation;
 
         let mut projection = Matrix4::identity();
         projection.x.x = 2.0 / VIRTUAL_WIDTH;

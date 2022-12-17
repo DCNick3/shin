@@ -33,6 +33,7 @@ impl Message {
             font: font_atlas.get_font(),
             layout_width: 1500.0,
             base_font_height: 50.0,
+            furigana_font_height: 20.0,
             font_horizontal_base_scale: 0.9696999788284302,
             text_layout: MessageTextLayout::Left,
             default_state: Default::default(),
@@ -201,7 +202,7 @@ impl MessageLayer {
             context,
             // TODO: actually reuse the atlas
             FontAtlas::new(context.gpu_resources, self.fonts.medium_font.clone()),
-            Vector2::new(-740.0, 300.0),
+            Vector2::new(-740.0 - 9.0, 300.0 - 83.0),
             message,
         ));
     }
