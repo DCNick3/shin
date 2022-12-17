@@ -68,6 +68,12 @@ impl GlyphSize {
     pub fn size(&self) -> Vector2<f32> {
         Vector2::new(self.width, self.height)
     }
+
+    pub fn scale_horizontal(&mut self, scale: f32) {
+        self.advance_width *= scale;
+        self.width *= scale;
+        self.horizontal_scale *= scale;
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -125,7 +131,7 @@ impl<'a> Layouter<'a> {
 
         self.pending_chars.push(CharCommand {
             time: self.time,
-            position: self.position,
+            position: Vector2::new(self.position.x, 0.0), // do not set y position yet, it will be set when we know which line this char is on
             color: self.state.text_color,
             size,
             fade: fade_time,
@@ -140,15 +146,12 @@ impl<'a> Layouter<'a> {
         // TODO: where are overflows handled? On the linefeed?
     }
 
-    fn finalize_line(&mut self, chars: &[CharCommand]) {
+    fn finalize_line(&mut self, chars: &[CharCommand], last_line: bool, x_pos: f32) {
         if chars.is_empty() {
             return;
         }
 
         // TODO: there are flags.... I think they have to do with difference between text alignment 0 & 1
-
-        // TODO: handle text alignment
-        assert_eq!(self.params.text_layout, MessageTextLayout::Left);
 
         let max_line_height = chars
             .iter()
@@ -156,28 +159,80 @@ impl<'a> Layouter<'a> {
             .max()
             .unwrap()
             .0;
-        let _width = chars
+        let width = chars
             .iter()
             .map(|c| FloatOrd(c.position.x + c.size.width))
             .max()
             .unwrap()
-            .0;
+            .0
+            - x_pos;
+        // let start_x = chars
+        //     .iter()
+        //     .map(|c| FloatOrd(c.position.x))
+        //     .min()
+        //     .unwrap()
+        //     .0;
+
+        // if we are not the last line, we haven't overflowed yet
+        let should_stretch = !last_line
+            && self.params.layout_width > width
+            && self.params.text_layout == MessageTextLayout::Left
+            && self.params.layout_width - width < self.params.layout_width * 0.05;
+
+        let fit_scale = if !last_line {
+            // if we are not at the last line, the line should be full
+            // and usually this means that it has overflowed
+            // squish text a bit to make it fit (probably more visually pleasing?)
+            self.params.layout_width / width
+        } else {
+            1.0
+        };
 
         let font = self.params.font;
 
         let line_ascent =
             (max_line_height / font.get_line_height() as f32) * font.get_ascent() as f32;
 
-        // TODO: adjust vertical scale if the overflow is small
         // TODO: handle hiragana
         // TODO: handle special cases for brackets
+
+        let x_offset = match self.params.text_layout {
+            MessageTextLayout::Left => 0.0,
+            MessageTextLayout::Layout1 => 0.0,
+            MessageTextLayout::Center => (self.params.layout_width - width) / 2.0,
+            MessageTextLayout::Right => self.params.layout_width - width,
+        };
 
         self.commands.extend(
             chars
                 .iter()
                 .cloned()
                 .map(|mut c| {
+                    // move the text to the beginning of the real line
+                    // x might be larger than we want if an overflow happened
+                    c.position.x -= x_pos;
+
+                    // align the text according to the layout params
+                    c.position.x += x_offset;
+
+                    // move the glyph on its line y coordinate (previously it was zero)
+                    c.position.y += self.position.y;
+                    // make sure that the glyph is on the baseline (doing it here because font size might change on the line)
                     c.position.y += line_ascent;
+
+                    // if we are overflowing - make it fit by squishing the text
+                    c.position.x *= fit_scale;
+                    c.size.scale_horizontal(fit_scale);
+
+                    // if needed - make the text fit by stretching it
+                    if should_stretch {
+                        // I don't get this formula...
+                        // also it seems to do something strange
+                        // TODO: figure this stuff out
+                        // c.position.x = (self.params.layout_width - c.size.width)
+                        //     * (self.position.x
+                        //         / (self.position.x + (width - (self.position.x + c.size.width))));
+                    }
                     c
                 })
                 .map(Command::Char),
@@ -189,8 +244,23 @@ impl<'a> Layouter<'a> {
 
     fn on_newline(&mut self) {
         let chars = std::mem::take(&mut self.pending_chars);
+
+        // split into lines on overflows
+        // TODO: implement word wrapping?
+        let mut start = 0;
+        let mut x_pos = 0.0;
+        for (i, c) in chars.iter().enumerate() {
+            if c.position.x + c.size.width - x_pos > self.params.layout_width * 1.05
+            /* allow a bit of overflow, the chars will be rescaled */
+            {
+                self.finalize_line(&chars[start..i], false, x_pos);
+                x_pos = x_pos.max(c.position.x);
+                start = i;
+            }
+        }
+
         // TODO: handle overflows
-        self.finalize_line(&chars);
+        self.finalize_line(&chars[start..], true, x_pos);
         self.pending_chars.clear();
     }
 

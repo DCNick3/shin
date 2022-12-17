@@ -346,9 +346,9 @@ fn create_task_pools() {
     }
 
     {
-        // Determine the number of async compute threads we will use
-        let async_compute_threads =
-            get_number_of_threads(0.25, 1, 4, remaining_threads, total_threads);
+        // Use the rest for async compute threads
+        let async_compute_threads = remaining_threads;
+        // get_number_of_threads(0.25, 1, 4, remaining_threads, total_threads);
 
         trace!("Async Compute Threads: {}", async_compute_threads);
         remaining_threads = remaining_threads.saturating_sub(async_compute_threads);
@@ -362,6 +362,7 @@ fn create_task_pools() {
     }
 
     // do not initialize the compute task pool, we do not use it (at least for now)
+    trace!("Remaining Threads: {}", remaining_threads);
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]

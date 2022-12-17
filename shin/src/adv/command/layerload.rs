@@ -39,8 +39,8 @@ impl super::StartableCommand for command::runtime::LAYERLOAD {
         self,
         context: &UpdateContext,
         scenario: &Arc<Scenario>,
-        vm_state: &VmState,
-        adv_state: &mut AdvState,
+        _vm_state: &VmState,
+        _adv_state: &mut AdvState,
     ) -> CommandStartResult {
         // TODO: loading should be done async
         let resources = context.gpu_resources.clone();
