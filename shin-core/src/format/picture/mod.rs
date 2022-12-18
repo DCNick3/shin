@@ -6,6 +6,7 @@ use binrw::{ReadOptions, WriteOptions};
 use bitflags::bitflags;
 use bytemuck::{Pod, Zeroable};
 use image::{ImageBuffer, RgbaImage};
+use itertools::Itertools;
 use std::borrow::Cow;
 use std::io;
 use std::sync::Mutex;
@@ -127,27 +128,9 @@ impl From<Rgba8> for image::Rgba<u8> {
     }
 }
 
-pub trait PictureChunkBuilder {
-    type Output: Send;
-    fn new(
-        offset_x: u32,
-        offset_y: u32,
-        width: u32,
-        height: u32,
-        opaque_vertices: Vec<PicVertexEntry>,
-        transparent_vertices: Vec<PicVertexEntry>,
-    ) -> Self;
-
-    // TODO: handle vertices
-
-    fn on_pixel(&mut self, x: u32, y: u32, value: Rgba8);
-    fn build(self) -> Result<Self::Output>;
-}
-
 pub trait PictureBuilder<'d>: Send {
     type Args;
     type Output: Send;
-    type ChunkBuilder: PictureChunkBuilder;
 
     fn new(
         args: Self::Args,
@@ -158,17 +141,13 @@ pub trait PictureBuilder<'d>: Send {
         picture_id: u32,
     ) -> Self;
 
-    fn add_chunk(
-        &mut self,
-        position: (u32, u32),
-        chunk: <Self::ChunkBuilder as PictureChunkBuilder>::Output,
-    ) -> Result<()>;
+    fn add_chunk(&mut self, position: (u32, u32), chunk: PictureChunk) -> Result<()>;
 
     fn build(self) -> Result<Self::Output>;
 }
 
 #[derive(Debug, Clone)]
-pub struct SimplePictureChunk {
+pub struct PictureChunk {
     pub offset_x: u32,
     pub offset_y: u32,
     pub opaque_vertices: Vec<PicVertexEntry>,
@@ -176,9 +155,7 @@ pub struct SimplePictureChunk {
     pub data: RgbaImage,
 }
 
-impl PictureChunkBuilder for SimplePictureChunk {
-    type Output = SimplePictureChunk;
-
+impl PictureChunk {
     fn new(
         offset_x: u32,
         offset_y: u32,
@@ -195,14 +172,6 @@ impl PictureChunkBuilder for SimplePictureChunk {
             data: ImageBuffer::new(width, height),
         }
     }
-
-    fn on_pixel(&mut self, x: u32, y: u32, value: Rgba8) {
-        self.data.put_pixel(x, y, value.into());
-    }
-
-    fn build(self) -> Result<Self::Output> {
-        Ok(self)
-    }
 }
 
 pub struct SimpleMergedPicture {
@@ -215,7 +184,6 @@ pub struct SimpleMergedPicture {
 impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
     type Args = ();
     type Output = SimpleMergedPicture;
-    type ChunkBuilder = SimplePictureChunk;
 
     fn new(
         _: (),
@@ -233,11 +201,7 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
         }
     }
 
-    fn add_chunk(
-        &mut self,
-        (x, y): (u32, u32),
-        chunk: <Self::ChunkBuilder as PictureChunkBuilder>::Output,
-    ) -> Result<()> {
+    fn add_chunk(&mut self, (x, y): (u32, u32), chunk: PictureChunk) -> Result<()> {
         // I think those are used only in bustups
         // I am not sure how to handle them yet
         assert_eq!(chunk.offset_x, 0);
@@ -255,7 +219,7 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
 }
 
 pub struct SimplePicture {
-    pub chunks: Vec<((u32, u32), SimplePictureChunk)>,
+    pub chunks: Vec<((u32, u32), PictureChunk)>,
     pub effective_width: u32,
     pub effective_height: u32,
     pub origin_x: u32,
@@ -266,7 +230,6 @@ pub struct SimplePicture {
 impl<'a> PictureBuilder<'a> for SimplePicture {
     type Args = ();
     type Output = SimplePicture;
-    type ChunkBuilder = SimplePictureChunk;
 
     fn new(
         _: (),
@@ -286,11 +249,7 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
         }
     }
 
-    fn add_chunk(
-        &mut self,
-        position: (u32, u32),
-        chunk: <Self::ChunkBuilder as PictureChunkBuilder>::Output,
-    ) -> Result<()> {
+    fn add_chunk(&mut self, position: (u32, u32), chunk: PictureChunk) -> Result<()> {
         self.chunks.push((position, chunk));
         Ok(())
     }
@@ -300,8 +259,8 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
     }
 }
 
-fn decode_dict<B: PictureChunkBuilder>(
-    builder: &mut B,
+fn decode_dict(
+    image: &mut RgbaImage,
     dict: &[Rgba8; 0x100],
     encoded_data: &[u8],
     alpha_data: Option<&[u8]>,
@@ -311,35 +270,32 @@ fn decode_dict<B: PictureChunkBuilder>(
     if let Some(alpha_data) = alpha_data {
         assert_eq!(alpha_data.len(), encoded_data.len());
 
-        for (y, (row, alpha_row)) in encoded_data
+        for ((row, alpha_row), dest_row) in encoded_data
             .chunks(stride)
             .zip(alpha_data.chunks(stride))
-            .enumerate()
+            .zip_eq(image.rows_mut())
         {
-            for (x, (index, alpha)) in row[..width]
+            for ((index, alpha), dest_pixel) in row[..width]
                 .iter()
                 .cloned()
                 .zip(alpha_row[..width].iter().cloned())
-                .enumerate()
+                .zip_eq(dest_row)
             {
                 let mut val = dict[index as usize];
                 val.a = alpha;
-                builder.on_pixel(x as u32, y as u32, val);
+                *dest_pixel = val.into();
             }
         }
     } else {
-        for (y, row) in encoded_data.chunks(stride).enumerate() {
-            for (x, index) in row[..width].iter().cloned().enumerate() {
-                let val = dict[index as usize];
-                builder.on_pixel(x as u32, y as u32, val);
+        for (row, dest_row) in encoded_data.chunks(stride).zip_eq(image.rows_mut()) {
+            for (index, dest_pixel) in row[..width].iter().cloned().zip_eq(dest_row) {
+                *dest_pixel = dict[index as usize].into();
             }
         }
     }
 }
 
-fn read_picture_chunk<'a, L: PictureBuilder<'a>>(
-    chunk_data: &'a [u8],
-) -> Result<<L::ChunkBuilder as PictureChunkBuilder>::Output> {
+pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
     use io::Seek;
 
     let mut reader = io::Cursor::new(chunk_data);
@@ -391,7 +347,7 @@ fn read_picture_chunk<'a, L: PictureBuilder<'a>>(
         Cow::Borrowed(&chunk_data[reader.position() as usize..])
     };
 
-    let mut builder = L::ChunkBuilder::new(
+    let mut chunk = PictureChunk::new(
         header.offset_x as u32,
         header.offset_y as u32,
         width as u32,
@@ -421,7 +377,7 @@ fn read_picture_chunk<'a, L: PictureBuilder<'a>>(
         }
 
         decode_dict(
-            &mut builder,
+            &mut chunk.data,
             &dictionary,
             encoded_data,
             alpha_data,
@@ -432,7 +388,7 @@ fn read_picture_chunk<'a, L: PictureBuilder<'a>>(
         todo!("decode differential")
     }
 
-    builder.build()
+    Ok(chunk)
 }
 
 pub fn read_picture<'a, B: PictureBuilder<'a>>(
@@ -483,7 +439,7 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
     chunks
         .par_iter()
         .cloned()
-        .map(|(pos, data)| (pos, read_picture_chunk::<B>(data)))
+        .map(|(pos, data)| (pos, read_picture_chunk(data)))
         .try_for_each(|(pos, chunk)| {
             builder
                 .lock()

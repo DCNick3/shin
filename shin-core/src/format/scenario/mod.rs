@@ -3,9 +3,9 @@
 //! See also [crate::vm] for the VM that runs the scenario.
 
 pub mod instructions;
-mod string;
 
 use crate::format::scenario::instructions::{CodeAddress, Instruction, NumberSpec};
+use crate::format::text::U16String;
 use anyhow::{Context, Result};
 use binrw::{BinRead, BinResult, BinWrite, ReadOptions, VecArgs, WriteOptions};
 use bytes::Bytes;
@@ -19,13 +19,6 @@ use std::marker::PhantomData;
 pub struct U8List<T>(pub Vec<T>);
 #[derive(Debug)]
 pub struct U16List<T>(pub Vec<T>);
-
-pub use string::{SJisString, StringArray};
-
-pub type U8String = SJisString<u8>;
-pub type U16String = SJisString<u16>;
-pub type U8FixupString = SJisString<u8, string::WithFixup>;
-pub type U16FixupString = SJisString<u16, string::WithFixup>;
 
 pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, A: smallvec::Array>(
     pub SmallVec<A>,

@@ -34,6 +34,9 @@ enum SduAction {
     /// Operations on FNT font files
     #[clap(subcommand)]
     Font(FontCommand),
+    /// Operations on BUP character bustup files
+    #[clap(subcommand)]
+    Bustup(BustupCommand),
 }
 
 #[derive(clap::Args, Debug)]
@@ -98,6 +101,17 @@ enum FontCommand {
     Decode {
         /// Path to the FNT file
         font_path: PathBuf,
+        /// Path to the output directory
+        output_path: PathBuf,
+    },
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum BustupCommand {
+    /// Convert a BUP file into a bunch of PNG files (one base image, one per expression, and one per mouth position)
+    Decode {
+        /// Path to the BUP file
+        bustup_path: PathBuf,
         /// Path to the output directory
         output_path: PathBuf,
     },
@@ -292,6 +306,63 @@ fn font_command(command: FontCommand) -> Result<()> {
     }
 }
 
+fn bustup_command(command: BustupCommand) -> Result<()> {
+    match command {
+        BustupCommand::Decode {
+            bustup_path,
+            output_path,
+        } => {
+            use std::fmt::Write;
+
+            let bustup = std::fs::read(bustup_path)?;
+            let bustup = shin_core::format::bustup::read_bustup(&bustup)?;
+
+            std::fs::create_dir_all(&output_path)?;
+
+            let mut metadata = String::new();
+            writeln!(metadata, "expressions:")?;
+            for (expression_name, expression) in bustup.expressions.iter().sorted_by_key(|v| v.0) {
+                writeln!(metadata, "  \"{}\":", expression_name.replace('\"', "\\\""))?;
+                writeln!(
+                    metadata,
+                    "    face_pos: {:?}",
+                    (
+                        expression.face_chunk.offset_x,
+                        expression.face_chunk.offset_y
+                    )
+                )?;
+                writeln!(metadata, "    mouths:")?;
+                for (i, mouth) in expression.mouth_chunks.iter().enumerate() {
+                    writeln!(
+                        metadata,
+                        "      {}: {:?}",
+                        i,
+                        (mouth.offset_x, mouth.offset_y)
+                    )?;
+                }
+            }
+            std::fs::write(output_path.join("metadata.txt"), metadata)?;
+
+            bustup.base_image.save(output_path.join("base.png"))?;
+
+            for (expression_name, expression) in bustup.expressions.iter() {
+                expression
+                    .face_chunk
+                    .data
+                    .save(output_path.join(format!("{}_face.png", expression_name)))?;
+
+                for (i, mouth) in expression.mouth_chunks.iter().enumerate() {
+                    mouth
+                        .data
+                        .save(output_path.join(format!("{}_mouth_{}.png", expression_name, i)))?;
+                }
+            }
+
+            Ok(())
+        }
+    }
+}
+
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -305,5 +376,6 @@ fn main() -> Result<()> {
         SduAction::Scenario(cmd) => scenario_command(cmd),
         SduAction::Picture(cmd) => picture_command(cmd),
         SduAction::Font(cmd) => font_command(cmd),
+        SduAction::Bustup(cmd) => bustup_command(cmd),
     }
 }

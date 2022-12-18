@@ -2,6 +2,21 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::io;
 
+mod string;
+
+pub use string::{SJisString, StringArray};
+
+/// A zero-terminated Shift-JIS string.
+pub type ZeroString = SJisString<()>;
+/// A Shift-JIS string with a u8 length descriptor.
+pub type U8String = SJisString<u8>;
+/// A Shift-JIS string with a u16 length descriptor.
+pub type U16String = SJisString<u16>;
+/// A Shift-JIS string with a u8 length descriptor and fixup applied.
+pub type U8FixupString = SJisString<u8, string::WithFixup>;
+/// A Shift-JIS string with a u16 length descriptor and fixup applied.
+pub type U16FixupString = SJisString<u16, string::WithFixup>;
+
 include!("conv_tables.rs");
 
 #[inline]

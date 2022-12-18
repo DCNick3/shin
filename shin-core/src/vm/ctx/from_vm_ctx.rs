@@ -1,7 +1,6 @@
 use crate::format::scenario::instructions::{BitmaskNumberArray, NumberSpec};
-use crate::format::scenario::{
-    StringArray, U16FixupString, U16String, U8FixupString, U8SmallNumberList, U8String,
-};
+use crate::format::scenario::U8SmallNumberList;
+use crate::format::text::{StringArray, U16FixupString, U16String, U8FixupString, U8String};
 use crate::vm::VmCtx;
 use smallvec::SmallVec;
 

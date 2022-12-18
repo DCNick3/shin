@@ -2,9 +2,8 @@ pub mod layer;
 pub mod time;
 
 use crate::format::scenario::instructions::{BitmaskNumberArray, MemoryAddress, NumberSpec};
-use crate::format::scenario::{
-    StringArray, U16FixupString, U16String, U8SmallNumberList, U8String,
-};
+use crate::format::scenario::U8SmallNumberList;
+use crate::format::text::{StringArray, U16FixupString, U16String, U8String};
 use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)

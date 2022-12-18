@@ -32,8 +32,36 @@ impl StringFixup for WithFixup {
     }
 }
 
+pub trait StringLengthDesc: BinRead<Args = ()> + BinWrite<Args = ()> + Sized + 'static {
+    /// Should return the length of the string, in bytes, including the null terminator.
+    fn get_length(&self) -> Option<usize>;
+}
+
+impl StringLengthDesc for u8 {
+    fn get_length(&self) -> Option<usize> {
+        Some(*self as usize)
+    }
+}
+
+impl StringLengthDesc for u16 {
+    fn get_length(&self) -> Option<usize> {
+        Some(*self as usize)
+    }
+}
+
+impl StringLengthDesc for () {
+    fn get_length(&self) -> Option<usize> {
+        None
+    }
+}
+
+/// A string that is encoded in Shift-JIS when written to a file.
+///
+/// `L` specifies how the length will be encoded in the file.
+/// `F` describes the fixup to be applied to the string (an additional transform that is applied to the string before it is written to the file).
+///     Entergram uses it to convert hiragana to half-width katakana in some places, probably saving a bit of space.
 #[derive(Debug)]
-pub struct SJisString<L: Into<usize> + TryFrom<usize> + 'static, F: StringFixup + 'static = NoFixup>(
+pub struct SJisString<L: StringLengthDesc, F: StringFixup + 'static = NoFixup>(
     pub String,
     pub PhantomData<(L, F)>,
 );
@@ -41,7 +69,7 @@ pub struct SJisString<L: Into<usize> + TryFrom<usize> + 'static, F: StringFixup 
 #[derive(Debug)]
 pub struct StringArray(pub SmallVec<[String; 4]>);
 
-impl<L: Into<usize> + TryFrom<usize> + 'static, F: StringFixup> BinRead for SJisString<L, F> {
+impl<L: StringLengthDesc, F: StringFixup> BinRead for SJisString<L, F> {
     type Args = ();
 
     fn read_options<R: Read + Seek>(
@@ -49,22 +77,23 @@ impl<L: Into<usize> + TryFrom<usize> + 'static, F: StringFixup> BinRead for SJis
         options: &ReadOptions,
         _: (),
     ) -> BinResult<Self> {
-        let len = u16::read_options(reader, options, ())?;
+        let len = L::read_options(reader, options, ())?;
         // "- 1" to strip the null terminator
 
         let res = Self(
             // TODO: extra allocation in case of fixup
-            F::decode(text::read_sjis_string(reader, Some((len - 1) as usize))?),
+            // this will consume the null terminator
+            F::decode(text::read_sjis_string(reader, len.get_length())?),
             PhantomData,
         );
 
         // read the null terminator
-        let _ = u8::read_options(reader, options, ())?;
+        // let _ = u8::read_options(reader, options, ())?;
 
         Ok(res)
     }
 }
-impl<L: Into<usize> + TryFrom<usize>, F: StringFixup> BinWrite for SJisString<L, F> {
+impl<L: StringLengthDesc, F: StringFixup> BinWrite for SJisString<L, F> {
     type Args = ();
 
     fn write_options<W: Write + Seek>(
@@ -76,12 +105,12 @@ impl<L: Into<usize> + TryFrom<usize>, F: StringFixup> BinWrite for SJisString<L,
         todo!()
     }
 }
-impl<L: Into<usize> + TryFrom<usize>, F: StringFixup> AsRef<str> for SJisString<L, F> {
+impl<L: StringLengthDesc, F: StringFixup> AsRef<str> for SJisString<L, F> {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
-impl<L: Into<usize> + TryFrom<usize>, F: StringFixup> SJisString<L, F> {
+impl<L: StringLengthDesc, F: StringFixup> SJisString<L, F> {
     pub fn as_str(&self) -> &str {
         &self.0
     }
