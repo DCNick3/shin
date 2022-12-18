@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use bytes::Bytes;
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::{generate, Shell};
 use image::{GenericImageView, Rgba, RgbaImage};
 use itertools::Itertools;
 use shin_core::format::picture::SimpleMergedPicture;
@@ -19,60 +20,102 @@ struct Args {
 
 #[derive(clap::Subcommand, Debug)]
 enum SduAction {
+    /// Generate shell complete script for the given shell
+    GenerateCompletion(GenerateCommand),
+    /// Operations on ROM archive files
     #[clap(subcommand)]
     Rom(RomCommand),
+    /// Operations on SNR scenario files
     #[clap(subcommand)]
     Scenario(ScenarioCommand),
+    /// Operations on PIC picture files
     #[clap(subcommand)]
     Picture(PictureCommand),
+    /// Operations on FNT font files
     #[clap(subcommand)]
     Font(FontCommand),
 }
 
+#[derive(clap::Args, Debug)]
+struct GenerateCommand {
+    /// If provided, outputs the completion file for given shell
+    #[clap(value_enum)]
+    shell: Shell,
+}
+
 #[derive(clap::Subcommand, Debug)]
 enum RomCommand {
-    List {
-        rom_path: PathBuf,
-    },
+    /// List file and directory entries in the archive
+    // TODO: print file sizes
+    List { rom_path: PathBuf },
+    /// Extract one file from the archive (arguments subject to change)
     ExtractOne {
-        // TODO: make a more generalized interface, maybe like tar or 7z
+        // TODO: this is awkward to use, make it more ergonomic
+        /// Path to the ROM file
         rom_path: PathBuf,
+        /// Name of the file in the archive to extract
         rom_filename: String,
+        /// Path to the output file
         output_path: PathBuf,
     },
 }
 
 #[derive(clap::Subcommand, Debug)]
 enum ScenarioCommand {
+    /// Run a scenario in VM, printing all the commands executed
     Dump {
+        /// Path to the SNR file
         scenario_path: PathBuf,
+        /// Initial value of the memory cell "0", usually selecting the episode or smth
         #[clap(short, long, default_value = "0")]
         init_val: i32,
     },
+    /// Run a scenario in VM, parsing all the messages with layout parser (for testing)
     TestLayouter {
         scenario_path: PathBuf,
+        /// Initial value of the memory cell "0", usually selecting the episode or smth
         #[clap(short, long, default_value = "0")]
         init_val: i32,
     },
-    Decompile {
-        scenario_path: PathBuf,
-    },
+    /// [WIP] Decompile a scenario into an assembly-like language
+    Decompile { scenario_path: PathBuf },
 }
 
 #[derive(clap::Subcommand, Debug)]
 enum PictureCommand {
+    /// Convert a PIC file into a PNG file
     Decode {
+        /// Path to the PIC file
         picture_path: PathBuf,
+        /// Path to the output PNG file
         output_path: PathBuf,
     },
 }
 
 #[derive(clap::Subcommand, Debug)]
 enum FontCommand {
+    /// Convert a FNT file into a metadata.txt file and a bunch of PNG files (one per glyph)
     Decode {
+        /// Path to the FNT file
         font_path: PathBuf,
+        /// Path to the output directory
         output_path: PathBuf,
     },
+}
+
+fn generate_command(command: GenerateCommand) -> Result<()> {
+    let mut cmd = Args::command();
+    eprintln!("Generating completion file for {:?}...", command.shell);
+
+    let cmd = &mut cmd;
+
+    generate(
+        command.shell,
+        cmd,
+        cmd.get_name().to_string(),
+        &mut std::io::stdout(),
+    );
+    Ok(())
 }
 
 fn rom_command(command: RomCommand) -> Result<()> {
@@ -257,6 +300,7 @@ fn main() -> Result<()> {
         .init();
     let args = Args::parse();
     match args.action {
+        SduAction::GenerateCompletion(command) => generate_command(command),
         SduAction::Rom(cmd) => rom_command(cmd),
         SduAction::Scenario(cmd) => scenario_command(cmd),
         SduAction::Picture(cmd) => picture_command(cmd),

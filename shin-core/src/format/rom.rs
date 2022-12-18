@@ -1,3 +1,11 @@
+//! Support for ROM format, which is an archive format used by the game
+//!
+//! Note that, unlike the original engine, this implementation reads the entire ROM index into memory.
+//!
+//! This make the implementation much simpler and file access much faster, but it increases startup time.
+//!
+//! When using BufReader, the startup time is about 300 ms on my machine, so it's not a big deal.
+
 use anyhow::{anyhow, bail, Context, Result};
 use binrw::{BinRead, BinResult, BinWrite, NullString, ReadOptions};
 use itertools::Itertools;

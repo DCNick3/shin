@@ -1,3 +1,7 @@
+//! Support for SNR file format, storing the game scenario.
+//!
+//! See also [crate::vm] for the VM that runs the scenario.
+
 pub mod instructions;
 mod string;
 

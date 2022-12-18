@@ -1,3 +1,5 @@
+//! Support for decoding PIC format used by the game
+
 use anyhow::{bail, Result};
 use binrw::prelude::*;
 use binrw::{ReadOptions, WriteOptions};

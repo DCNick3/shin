@@ -1,3 +1,5 @@
+//! Support for FNT format, storing bitmap fonts with 4 mip-map levels.
+
 use crate::format::lz77;
 use anyhow::anyhow;
 use binrw::{BinRead, BinResult, BinWrite, FilePtr32, ReadOptions, VecArgs};
