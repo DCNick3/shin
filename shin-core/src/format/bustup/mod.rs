@@ -148,36 +148,33 @@ pub fn read_bustup(source: &[u8]) -> Result<Bustup> {
     let base_image = RgbaImage::new(header.viewport_width as u32, header.viewport_height as u32);
     let base_image = Mutex::new(base_image);
 
-    base_chunks
-        .into_par_iter()
-        .map(|(id, desc)| -> Result<_> {
-            let data = &source.get_ref()[desc.offset as usize..(desc.offset + desc.size) as usize];
+    fn par_decode_chunks(
+        chunks: HashMap<u32, BustupChunkDesc>,
+        source: &[u8],
+    ) -> impl ParallelIterator<Item = Result<(u32, PictureChunk)>> + '_ {
+        chunks.into_par_iter().map(|(id, desc)| -> Result<_> {
+            let data = &source[desc.offset as usize..(desc.offset + desc.size) as usize];
             let mut chunk = read_picture_chunk(data)?;
             cleanup_unused_areas(&mut chunk);
             Ok((id, chunk))
         })
-        .try_for_each(|res| -> Result<()> {
-            let (_, chunk) = res?;
+    }
 
-            let mut base_image = base_image.lock().unwrap();
+    par_decode_chunks(base_chunks, source.get_ref()).try_for_each(|res| -> Result<()> {
+        let (_, chunk) = res?;
 
-            image::imageops::overlay(
-                base_image.deref_mut(),
-                &chunk.data,
-                chunk.offset_x as i64,
-                chunk.offset_y as i64,
-            );
-            Ok(())
-        })?;
+        let mut base_image = base_image.lock().unwrap();
 
-    let additional_chunks = additional_chunks
-        .into_par_iter()
-        .map(|(id, desc)| -> Result<_> {
-            let data = &source.get_ref()[desc.offset as usize..(desc.offset + desc.size) as usize];
-            let mut chunk = read_picture_chunk(data)?;
-            cleanup_unused_areas(&mut chunk);
-            Ok((id, chunk))
-        })
+        image::imageops::overlay(
+            base_image.deref_mut(),
+            &chunk.data,
+            chunk.offset_x as i64,
+            chunk.offset_y as i64,
+        );
+        Ok(())
+    })?;
+
+    let additional_chunks = par_decode_chunks(additional_chunks, source.get_ref())
         .collect::<Result<HashMap<_, _>>>()?;
 
     Ok(Bustup {

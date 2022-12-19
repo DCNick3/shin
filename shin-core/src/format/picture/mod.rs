@@ -12,7 +12,7 @@ use std::io;
 use std::sync::Mutex;
 
 #[derive(BinRead, BinWrite, Debug)]
-#[br(little, magic = b"PIC4")]
+#[brw(little, magic = b"PIC4")]
 struct PicHeader {
     version: u32,
     file_size: u32,
@@ -27,7 +27,7 @@ struct PicHeader {
 }
 
 #[derive(BinRead, BinWrite, Debug)]
-#[br(little)]
+#[brw(little)]
 struct PicChunkDesc {
     x: u16,
     y: u16,
@@ -295,6 +295,76 @@ fn decode_dict(
     }
 }
 
+pub fn read_texture(
+    data: &[u8],
+    compressed_size: usize,
+    target_image: &mut RgbaImage,
+    use_dict_encoding: bool,
+    use_inline_alpha: bool,
+) {
+    let width = target_image.width();
+    let height = target_image.height();
+
+    // TODO: maybe replace this bit alignment magic with easier to understand operations?
+    let differential_stride = ((width * 4 + 0xf) & 0xfffffff0) as usize;
+    let dictionary_stride = ((width + 3) & 0xfffffffc) as usize;
+
+    let data = if compressed_size != 0 {
+        // need to decompress...
+        let decompressed_size = if use_dict_encoding {
+            let mut out_size = dictionary_stride * height as usize;
+            if !use_inline_alpha {
+                out_size *= 2;
+            }
+            out_size += 0x400; // for the dictionary
+            out_size
+        } else {
+            differential_stride * height as usize
+        };
+        let mut out_buffer = Vec::with_capacity(decompressed_size);
+        let compressed = &data[..compressed_size];
+        super::lz77::decompress::<12>(compressed, &mut out_buffer);
+
+        assert_eq!(decompressed_size, out_buffer.len());
+
+        Cow::Owned(out_buffer)
+    } else {
+        Cow::Borrowed(data)
+    };
+
+    if use_dict_encoding {
+        let stride = dictionary_stride;
+        let dictionary = &data[..0x400];
+        let encoded_data = &data[0x400..0x400 + stride * height as usize];
+        let alpha_data = if !use_inline_alpha {
+            Some(&data[0x400 + stride * height as usize..])
+        } else {
+            None
+        };
+
+        let dictionary = bytemuck::pod_read_unaligned::<[Rgba8; 0x100]>(dictionary);
+
+        if !use_inline_alpha {
+            debug_assert!(dictionary
+                .iter()
+                // if we have inline alpha we can't have any transparent pixels
+                // (the second case is for empty dictionary entries, where all the components are 0)
+                .all(|v| v.a == 0xff || v == &Rgba8::default()));
+        }
+
+        decode_dict(
+            target_image,
+            &dictionary,
+            encoded_data,
+            alpha_data,
+            width as usize,
+            stride,
+        )
+    } else {
+        todo!("decode differential")
+    }
+}
+
 pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
     use io::Seek;
 
@@ -313,39 +383,8 @@ pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
     // skip padding
     reader.seek(io::SeekFrom::Current(header.padding_before_data as i64 * 2))?;
 
-    // TODO: maybe replace this bit alignment magic with easier to understand operations?
-    let differential_stride = ((header.width as u32 * 4 + 0xf) & 0xfffffff0) as usize;
-    let dictionary_stride = ((header.width as u32 + 3) & 0xfffffffc) as usize;
-
-    let width = header.width as usize;
-    let height = header.height as usize;
-
-    let data = if header.compressed_size != 0 {
-        // need to decompress...
-        // first calculate size of required output buffer (for perf reasons)
-        let out_size = if header.use_dict_encoding() {
-            let mut out_size = dictionary_stride * height;
-            if !header.use_inline_alpha() {
-                out_size *= 2;
-            }
-            out_size += 0x400; // for the dictionary
-            out_size
-        } else {
-            differential_stride * height
-        };
-
-        let mut out_buffer = Vec::with_capacity(out_size);
-        let compressed =
-            &chunk_data[reader.position() as usize..][..header.compressed_size as usize];
-        reader.seek(io::SeekFrom::Current(header.compressed_size as i64))?;
-        super::lz77::decompress::<12>(compressed, &mut out_buffer);
-
-        assert_eq!(out_size, out_buffer.len());
-
-        Cow::Owned(out_buffer)
-    } else {
-        Cow::Borrowed(&chunk_data[reader.position() as usize..])
-    };
+    let width = header.width as u32;
+    let height = header.height as u32;
 
     let mut chunk = PictureChunk::new(
         header.offset_x as u32,
@@ -356,37 +395,13 @@ pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
         transparent_vertices,
     );
 
-    if header.use_dict_encoding() {
-        let stride = dictionary_stride;
-        let dictionary = &data[..0x400];
-        let encoded_data = &data[0x400..0x400 + stride * height];
-        let alpha_data = if !header.use_inline_alpha() {
-            Some(&data[0x400 + stride * height..])
-        } else {
-            None
-        };
-
-        let dictionary = bytemuck::pod_read_unaligned::<[Rgba8; 0x100]>(dictionary);
-
-        if !header.use_inline_alpha() {
-            debug_assert!(dictionary
-                .iter()
-                // if we have inline alpha we can't have any transparent pixels
-                // (the second case is for empty dictionary entries, where all the components are 0)
-                .all(|v| v.a == 0xff || v == &Rgba8::default()));
-        }
-
-        decode_dict(
-            &mut chunk.data,
-            &dictionary,
-            encoded_data,
-            alpha_data,
-            width,
-            stride,
-        )
-    } else {
-        todo!("decode differential")
-    }
+    read_texture(
+        &chunk_data[reader.position() as usize..],
+        header.compressed_size as usize,
+        &mut chunk.data,
+        header.use_dict_encoding(),
+        header.use_inline_alpha(),
+    );
 
     Ok(chunk)
 }

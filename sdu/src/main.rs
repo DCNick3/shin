@@ -37,6 +37,9 @@ enum SduAction {
     /// Operations on BUP character bustup files
     #[clap(subcommand)]
     Bustup(BustupCommand),
+    /// Operations on TXA texture archive files
+    #[clap(subcommand, alias("txa"))]
+    TextureArchive(TextureArchiveCommand),
 }
 
 #[derive(clap::Args, Debug)]
@@ -112,6 +115,17 @@ enum BustupCommand {
     Decode {
         /// Path to the BUP file
         bustup_path: PathBuf,
+        /// Path to the output directory
+        output_path: PathBuf,
+    },
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum TextureArchiveCommand {
+    /// Convert a TXA file into a bunch of PNG files (one per texture)
+    Decode {
+        /// Path to the TXA file
+        texture_archive_path: PathBuf,
         /// Path to the output directory
         output_path: PathBuf,
     },
@@ -363,6 +377,34 @@ fn bustup_command(command: BustupCommand) -> Result<()> {
     }
 }
 
+fn texture_archive_command(command: TextureArchiveCommand) -> Result<()> {
+    match command {
+        TextureArchiveCommand::Decode {
+            texture_archive_path,
+            output_path,
+        } => {
+            // use std::fmt::Write;
+
+            let texture_archive = std::fs::read(texture_archive_path)?;
+            let texture_archive =
+                shin_core::format::texture_archive::read_texture_archive(&texture_archive)?;
+
+            std::fs::create_dir_all(&output_path)?;
+
+            // let mut metadata = String::new();
+            // TODO: write metadata
+            // std::fs::write(output_path.join("metadata.txt"), metadata)?;
+
+            for (texture_name, index) in texture_archive.name_to_index.iter() {
+                let texture = &texture_archive.textures[*index];
+                texture.save(output_path.join(format!("{}.png", texture_name)))?;
+            }
+
+            Ok(())
+        }
+    }
+}
+
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -377,5 +419,6 @@ fn main() -> Result<()> {
         SduAction::Picture(cmd) => picture_command(cmd),
         SduAction::Font(cmd) => font_command(cmd),
         SduAction::Bustup(cmd) => bustup_command(cmd),
+        SduAction::TextureArchive(cmd) => texture_archive_command(cmd),
     }
 }

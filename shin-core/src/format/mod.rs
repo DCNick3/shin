@@ -8,3 +8,4 @@ pub mod bustup;
 pub mod font;
 pub mod picture;
 pub mod scenario;
+pub mod texture_archive;
