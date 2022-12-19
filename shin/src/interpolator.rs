@@ -102,7 +102,7 @@ impl Interpolator {
         let x = if self.t_final != Ticks::ZERO {
             self.t_now / self.t_final
         } else {
-            0.0
+            1.0
         };
 
         let y = ease(self.easing, x);

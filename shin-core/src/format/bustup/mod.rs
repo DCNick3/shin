@@ -8,7 +8,7 @@ use image::RgbaImage;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::ops::DerefMut;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use crate::format::text::ZeroString;
 
@@ -79,12 +79,13 @@ struct BustupExpressionDesc {
 // TODO: do we want to support non-composited bustups, like we do in pictures?
 pub struct Bustup {
     pub base_image: RgbaImage,
+    pub origin: (u16, u16),
     pub expressions: HashMap<String, BustupExpression>,
 }
 
 pub struct BustupExpression {
-    pub face_chunk: Arc<PictureChunk>,
-    pub mouth_chunks: Vec<Arc<PictureChunk>>,
+    pub face_chunk: PictureChunk,
+    pub mouth_chunks: Vec<PictureChunk>,
 }
 
 fn cleanup_unused_areas(chunk: &mut PictureChunk) {
@@ -175,12 +176,13 @@ pub fn read_bustup(source: &[u8]) -> Result<Bustup> {
             let data = &source.get_ref()[desc.offset as usize..(desc.offset + desc.size) as usize];
             let mut chunk = read_picture_chunk(data)?;
             cleanup_unused_areas(&mut chunk);
-            Ok((id, Arc::new(chunk)))
+            Ok((id, chunk))
         })
         .collect::<Result<HashMap<_, _>>>()?;
 
     Ok(Bustup {
         base_image: base_image.into_inner().unwrap(),
+        origin: (header.origin_x, header.origin_y),
         expressions: header
             .expressions
             .into_iter()

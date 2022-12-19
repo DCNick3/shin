@@ -1,3 +1,4 @@
+mod bustup_layer;
 mod layer_group;
 mod message_layer;
 mod null_layer;
@@ -10,12 +11,14 @@ use enum_dispatch::enum_dispatch;
 use enum_map::{Enum, EnumMap};
 use tracing::{debug, warn};
 
+pub use bustup_layer::BustupLayer;
 pub use layer_group::LayerGroup;
 pub use message_layer::MessageLayer;
 pub use null_layer::NullLayer;
 pub use picture_layer::PictureLayer;
 pub use root_layer_group::RootLayerGroup;
 
+use crate::asset::bustup::Bustup;
 use crate::asset::picture::Picture;
 use crate::asset::AnyAssetServer;
 use crate::interpolator::{Easing, Interpolator};
@@ -141,6 +144,7 @@ pub trait Layer: Renderable + Updatable {
 pub enum UserLayer {
     NullLayer,
     PictureLayer,
+    BustupLayer,
 }
 
 impl UserLayer {
@@ -177,10 +181,13 @@ impl UserLayer {
                     "Load bustup: {} -> {} {} {}",
                     bup_id, bup_name, bup_emotion, v1
                 );
-                let _bup_path = format!("/bustup/{}.bup", bup_name.to_ascii_lowercase());
-                // todo!()
-                warn!("Loading NullLayer instead of BustupLayer");
-                NullLayer::new().into()
+                let bup_path = format!("/bustup/{}.bup", bup_name.to_ascii_lowercase());
+                let bup = asset_server
+                    .load::<Bustup>(&bup_path)
+                    .await
+                    .expect("Failed to load bustup");
+
+                BustupLayer::new(resources, bup, bup_emotion).into()
             }
             _ => {
                 todo!("Layer type not implemented: {:?}", layer_ty);

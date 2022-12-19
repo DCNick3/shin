@@ -9,6 +9,7 @@ use std::io::BufReader;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock, Weak};
+use tracing::debug;
 
 pub trait Asset: Send + Sync + Sized + 'static {
     fn load_from_bytes(data: Vec<u8>) -> Result<Self>;
@@ -49,10 +50,13 @@ impl<Io: AssetIo> AssetServer<Io> {
         if let Some(loaded) = self.loaded_assets.read().unwrap().get::<AssetMap<T>>() {
             if let Some(asset) = loaded.get(path) {
                 if let Some(asset) = asset.upgrade() {
+                    debug!("Loaded asset from cache: {}", path);
                     return Ok(asset);
                 }
             }
         }
+
+        debug!("Loading asset: {}", path);
 
         // could not find the asset in the cache, load it
         let data = self
@@ -80,10 +84,12 @@ impl<Io: AssetIo> AssetServer<Io> {
 pub type AnyAssetServer = AssetServer<AnyAssetIo>;
 
 impl AnyAssetServer {
+    #[allow(unused)]
     pub fn new_dir(root_path: PathBuf) -> Self {
         Self::new(AnyAssetIo::new_dir(root_path))
     }
 
+    #[allow(unused)]
     pub fn new_rom(rom_path: impl AsRef<Path>) -> Self {
         Self::new(AnyAssetIo::new_rom(rom_path))
     }

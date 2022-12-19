@@ -1,4 +1,6 @@
+pub mod bustup;
 mod font;
+pub mod gpu_picture;
 pub mod picture;
 mod scenario;
 mod server;
