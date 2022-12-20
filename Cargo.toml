@@ -4,6 +4,7 @@ members = [
     "shin-core",
     "sdu",
     "shin",
+    "junk",
 ]
 resolver = "2"
 
