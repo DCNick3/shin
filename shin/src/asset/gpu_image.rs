@@ -1,5 +1,7 @@
 use crate::render;
-use crate::render::{GpuCommonResources, SpriteVertexBuffer, TextureBindGroup};
+use crate::render::{
+    GpuCommonResources, PosColTexVertex, SpriteVertexBuffer, TextureBindGroup, VertexSource,
+};
 use cgmath::{Vector2, Vector4};
 use image::RgbaImage;
 use once_cell::sync::OnceCell;
@@ -30,15 +32,32 @@ impl LazyGpuImage {
     }
 }
 
+pub struct LazyGpuTexture {
+    image: RgbaImage,
+    label: Option<String>,
+    gpu_texture: OnceCell<GpuTexture>,
+}
+
+impl LazyGpuTexture {
+    pub fn new(image: RgbaImage, label: Option<&str>) -> Self {
+        Self {
+            image,
+            label: label.map(|s| s.to_owned()),
+            gpu_texture: OnceCell::new(),
+        }
+    }
+
+    pub fn gpu_texture(&self, resources: &GpuCommonResources) -> &GpuTexture {
+        self.gpu_texture
+            .get_or_init(|| GpuTexture::load(resources, &self.image, self.label.as_deref()))
+    }
+}
+
 /// Gpu picture, ready to be drawn
 /// Includes a texture, a sampler, a bind group, and a vertex buffer
 pub struct GpuImage {
-    pub texture: wgpu::Texture,
-    pub sampler: wgpu::Sampler,
-    pub bind_group: TextureBindGroup,
+    pub texture: GpuTexture,
     pub vertex_buffer: SpriteVertexBuffer,
-    pub width: u32,
-    pub height: u32,
 }
 
 impl GpuImage {
@@ -47,10 +66,57 @@ impl GpuImage {
         image: &RgbaImage,
         origin: Vector2<f32>,
         label: Option<&str>,
-    ) -> GpuImage {
+    ) -> Self {
         let label = label
             .map(|s| Cow::from(s.to_owned()))
             .unwrap_or_else(|| Cow::from("Unnamed GpuPicture"));
+
+        let texture = GpuTexture::load(resources, image, Some(&label));
+
+        let origin_translate = -origin.extend(0.0);
+
+        let vertex_buffer = SpriteVertexBuffer::new(
+            resources,
+            (
+                origin_translate.x,
+                origin_translate.y,
+                origin_translate.x + image.width() as f32,
+                origin_translate.y + image.height() as f32,
+            ),
+            // TODO: do we even want colored vertices?..
+            Vector4::new(1.0, 1.0, 1.0, 1.0),
+        );
+
+        GpuImage {
+            texture,
+            vertex_buffer,
+        }
+    }
+
+    pub fn bind_group(&self) -> &TextureBindGroup {
+        &self.texture.bind_group
+    }
+
+    pub fn vertex_source(&self) -> VertexSource<PosColTexVertex> {
+        self.vertex_buffer.vertex_source()
+    }
+}
+
+/// Gpu texture
+/// Includes a texture, a sampler, and a bind group (no vertex buffer)
+pub struct GpuTexture {
+    pub texture: wgpu::Texture,
+    pub sampler: wgpu::Sampler,
+    pub bind_group: TextureBindGroup,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl GpuTexture {
+    pub fn load(resources: &GpuCommonResources, image: &RgbaImage, label: Option<&str>) -> Self {
+        let label = label
+            .map(|s| Cow::from(s.to_owned()))
+            .unwrap_or_else(|| Cow::from("Unnamed GpuTexture"));
 
         let size = wgpu::Extent3d {
             width: image.width(),
@@ -114,27 +180,16 @@ impl GpuImage {
             Some(&format!("{} BindGroup", label)),
         );
 
-        let origin_translate = -origin.extend(0.0);
-
-        let vertex_buffer = SpriteVertexBuffer::new(
-            resources,
-            (
-                origin_translate.x,
-                origin_translate.y,
-                origin_translate.x + image.width() as f32,
-                origin_translate.y + image.height() as f32,
-            ),
-            // TODO: do we even want colored vertices?..
-            Vector4::new(1.0, 1.0, 1.0, 1.0),
-        );
-
-        GpuImage {
+        Self {
             texture,
             sampler,
             bind_group,
-            vertex_buffer,
             width: image.width(),
             height: image.height(),
         }
+    }
+
+    pub fn bind_group(&self) -> &TextureBindGroup {
+        &self.bind_group
     }
 }

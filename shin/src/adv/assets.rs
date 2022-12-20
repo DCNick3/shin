@@ -1,4 +1,5 @@
 use crate::asset::{asset_paths, AnyAssetServer};
+use crate::layer::MessageboxTextures;
 use anyhow::Result;
 use futures::try_join;
 use shin_core::format::font::LazyFont;
@@ -10,6 +11,7 @@ use std::sync::Arc;
 pub struct AdvAssets {
     pub scenario: Arc<Scenario>,
     pub fonts: AdvFonts,
+    pub messagebox_textures: Arc<MessageboxTextures>,
 }
 
 #[derive(Clone)]
@@ -23,12 +25,14 @@ impl AdvAssets {
     pub async fn load(asset_server: &AnyAssetServer) -> Result<Self> {
         let result = try_join!(
             asset_server.load(asset_paths::SCENARIO),
-            AdvFonts::load(asset_server)
+            AdvFonts::load(asset_server),
+            asset_server.load(asset_paths::MSGTEX),
         )?;
 
         Ok(Self {
             scenario: result.0,
             fonts: result.1,
+            messagebox_textures: result.2,
         })
     }
 }

@@ -32,11 +32,11 @@ impl Renderable for PictureLayer {
         transform: Matrix4<f32>,
     ) {
         // TODO: there should be a generic function to render a layer (from texture?)
-        let gpu_picture = self.picture.gpu_image(resources);
+        let gpu_image = self.picture.gpu_image(resources);
         resources.draw_sprite(
             render_pass,
-            gpu_picture.vertex_buffer.vertex_source(),
-            &gpu_picture.bind_group,
+            gpu_image.vertex_source(),
+            gpu_image.bind_group(),
             self.props.compute_transform(transform),
         );
     }

@@ -13,7 +13,7 @@ use tracing::{debug, warn};
 
 pub use bustup_layer::BustupLayer;
 pub use layer_group::LayerGroup;
-pub use message_layer::MessageLayer;
+pub use message_layer::{MessageLayer, MessageboxTextures};
 pub use null_layer::NullLayer;
 pub use picture_layer::PictureLayer;
 pub use root_layer_group::RootLayerGroup;

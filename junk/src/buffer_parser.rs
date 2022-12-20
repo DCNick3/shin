@@ -1,4 +1,5 @@
 use binrw::BinRead;
+use derive_more::Add;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::borrow::Cow;
@@ -26,22 +27,22 @@ impl Buffer {
 
     pub fn set_float(&mut self, offset: usize, value: f32) {
         let bytes = value.to_le_bytes();
-        self.values[offset] = Some(bytes[0]);
-        self.values[offset + 1] = Some(bytes[1]);
-        self.values[offset + 2] = Some(bytes[2]);
-        self.values[offset + 3] = Some(bytes[3]);
+        self.set(offset, bytes[0]);
+        self.set(offset + 1, bytes[1]);
+        self.set(offset + 2, bytes[2]);
+        self.set(offset + 3, bytes[3]);
     }
 
     pub fn set_undefined8(&mut self, offset: usize, value: u64) {
         let bytes = value.to_le_bytes();
-        self.values[offset] = Some(bytes[0]);
-        self.values[offset + 1] = Some(bytes[1]);
-        self.values[offset + 2] = Some(bytes[2]);
-        self.values[offset + 3] = Some(bytes[3]);
-        self.values[offset + 4] = Some(bytes[4]);
-        self.values[offset + 5] = Some(bytes[5]);
-        self.values[offset + 6] = Some(bytes[6]);
-        self.values[offset + 7] = Some(bytes[7]);
+        self.set(offset, bytes[0]);
+        self.set(offset + 1, bytes[1]);
+        self.set(offset + 2, bytes[2]);
+        self.set(offset + 3, bytes[3]);
+        self.set(offset + 4, bytes[4]);
+        self.set(offset + 5, bytes[5]);
+        self.set(offset + 6, bytes[6]);
+        self.set(offset + 7, bytes[7]);
     }
 
     pub fn dump(&self) -> String {
@@ -94,20 +95,20 @@ pub fn parse_buffer(buffer_size: usize, text: &str) -> Buffer {
     buffer
 }
 
-#[derive(BinRead, Debug)]
+#[derive(BinRead, Debug, Copy, Clone)]
 struct Vector3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
 
-#[derive(BinRead, Debug)]
+#[derive(BinRead, Add, Debug, Copy, Clone)]
 struct Vector2 {
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(BinRead, Debug)]
+#[derive(BinRead, Debug, Copy, Clone)]
 struct SpriteVertex {
     pub pos: Vector3,
     pub color: u32,
@@ -121,7 +122,54 @@ struct SpriteVertices {
     pub vertices: Vec<SpriteVertex>,
 }
 
-fn dump_sprite_vertex_buffer(text: &str, size: usize) {
+fn make_svg(triangle_strip: Vec<Vector2>, view_box: (f32, f32, f32, f32)) -> String {
+    use std::fmt::Write;
+
+    let mut result = String::new();
+    assert!(triangle_strip.len() >= 3);
+
+    writeln!(
+        result,
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="{} {} {} {}">"#,
+        view_box.0,
+        view_box.1,
+        view_box.2 - view_box.0,
+        view_box.3 - view_box.1
+    )
+    .unwrap();
+
+    let mut line = |from: Vector2, to: Vector2| {
+        writeln!(
+            result,
+            r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="black" />"#,
+            from.x, from.y, to.x, to.y
+        )
+        .unwrap();
+    };
+
+    for triangle in triangle_strip.windows(3) {
+        if let &[a, b, c] = triangle {
+            line(a, b);
+            line(b, c);
+            line(c, a);
+        } else {
+            unreachable!()
+        }
+    }
+
+    result.push_str("</svg>\n");
+
+    result
+}
+
+fn dump_sprite_vertex_buffer(
+    text: &str,
+    size: usize,
+    index_buffer: Option<&[u16]>,
+    tex_size: Vector2,
+    translation: Vector2,
+    filename_base: &str,
+) {
     let buffer = parse_buffer(size, text);
 
     // println!("{}", buffer.dump());
@@ -130,17 +178,18 @@ fn dump_sprite_vertex_buffer(text: &str, size: usize) {
 
     let vertices = SpriteVertices::read(&mut std::io::Cursor::new(&buffer)).unwrap();
 
-    let tex_size = Vector2 {
-        x: 1648.0,
-        y: 288.0,
-    };
+    // let tex_size = Vector2 {
+    //     x: 1648.0,
+    //     y: 288.0,
+    // };
 
     // print legend
     println!(
         "[{:5} {:5} {:3}] [{:5} {:5}]",
         "x", "y", "z", "tex_x", "tex_y"
     );
-    for vertex in vertices.vertices {
+
+    fn print_vertex(vertex: &SpriteVertex, tex_size: &Vector2) {
         println!(
             "[{:5} {:5} {:3}] [{:5} {:5}]",
             vertex.pos.x,
@@ -150,6 +199,47 @@ fn dump_sprite_vertex_buffer(text: &str, size: usize) {
             (vertex.tex_pos.y * tex_size.y).round()
         );
     }
+
+    let vertices = if let Some(index_buffer) = index_buffer {
+        index_buffer
+            .iter()
+            .map(|&i| vertices.vertices[i as usize])
+            .collect::<Vec<_>>()
+    } else {
+        vertices.vertices
+    };
+
+    for vertex in vertices.iter() {
+        print_vertex(vertex, &tex_size);
+    }
+
+    let screen_svg = make_svg(
+        vertices
+            .iter()
+            .map(|v| {
+                Vector2 {
+                    x: v.pos.x,
+                    y: v.pos.y,
+                } + translation
+            })
+            .collect::<Vec<_>>(),
+        // (-960.0, -540.0, 960.0, 540.0),
+        (0.0, 0.0, 1920.0, 1080.0),
+    );
+
+    let tex_svg = make_svg(
+        vertices
+            .iter()
+            .map(|v| Vector2 {
+                x: v.tex_pos.x * tex_size.x,
+                y: v.tex_pos.y * tex_size.y,
+            })
+            .collect::<Vec<_>>(),
+        (0.0, 0.0, tex_size.x, tex_size.y),
+    );
+
+    std::fs::write(format!("{}_screen.svg", filename_base), screen_svg).unwrap();
+    std::fs::write(format!("{}_tex.svg", filename_base), tex_svg).unwrap();
 }
 
 pub fn main() {
@@ -198,8 +288,18 @@ pub fn main() {
         buffer._184_8_ = 0x3f638e393d8b2f39;
     "#;
 
+    let tex_size = Vector2 {
+        x: 1648.0,
+        y: 288.0,
+    };
+
+    let translation = Vector2 {
+        x: 0.0,
+        y: 1080.0 - 1024.0,
+    };
+
     println!("Messagebox header:");
-    dump_sprite_vertex_buffer(text, 0xc0);
+    dump_sprite_vertex_buffer(text, 0xc0, None, tex_size, translation, "messagebox_header");
     println!();
 
     // messagebox body vertices
@@ -267,5 +367,12 @@ pub fn main() {
     "#;
 
     println!("Messagebox body:");
-    dump_sprite_vertex_buffer(text, 0x120);
+    dump_sprite_vertex_buffer(
+        text,
+        0x120,
+        Some(&[0, 4, 1, 5, 2, 6, 3, 7, 11, 6, 10, 4, 8]),
+        tex_size,
+        translation,
+        "messagebox_body",
+    );
 }

@@ -1,4 +1,8 @@
 mod font_atlas;
+mod messagebox;
+
+pub use messagebox::MessageboxTextures;
+use std::sync::Arc;
 
 use crate::adv::assets::AdvFonts;
 use crate::layer::message_layer::font_atlas::FontAtlas;
@@ -181,7 +185,11 @@ pub struct MessageLayer {
 }
 
 impl MessageLayer {
-    pub fn new(_resources: &GpuCommonResources, fonts: AdvFonts) -> Self {
+    pub fn new(
+        _resources: &GpuCommonResources,
+        fonts: AdvFonts,
+        _textures: Arc<MessageboxTextures>,
+    ) -> Self {
         Self {
             props: LayerProperties::new(),
             style: MessageboxStyle::default(),

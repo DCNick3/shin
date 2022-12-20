@@ -1,4 +1,4 @@
-use crate::asset::gpu_picture::{GpuImage, LazyGpuImage};
+use crate::asset::gpu_image::{GpuImage, LazyGpuImage};
 use crate::asset::Asset;
 use crate::render::GpuCommonResources;
 use anyhow::Result;

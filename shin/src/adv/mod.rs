@@ -115,7 +115,7 @@ impl AdvState {
             root_layer_group: RootLayerGroup::new(
                 resources,
                 LayerGroup::new(resources),
-                MessageLayer::new(resources, assets.fonts),
+                MessageLayer::new(resources, assets.fonts, assets.messagebox_textures),
             ),
         }
     }

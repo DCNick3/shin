@@ -1,3 +1,5 @@
+extern crate self as shin;
+
 mod asset;
 // mod camera;
 mod adv;

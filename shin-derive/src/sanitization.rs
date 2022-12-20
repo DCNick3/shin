@@ -43,6 +43,12 @@ macro_rules! from_shin_core {
     };
 }
 
+macro_rules! from_shin {
+    ($path:path) => {
+        concat!("shin::", stringify!($path))
+    };
+}
+
 macro_rules! from_binrw {
     ($path:path) => {
         concat!("binrw::", stringify!($path))
@@ -55,6 +61,10 @@ ident_str! {
     pub FROM_VM_CTX_DEFAULT = from_shin_core!(vm::FromVmCtxDefault);
     pub MEMORY_ADDRESS = from_shin_core!(format::scenario::instructions::MemoryAddress);
     pub COMMAND_RESULT = from_shin_core!(vm::command::CommandResult);
+
+    pub TEXTURE_ARCHIVE = from_shin!(asset::texture_archive::TextureArchive);
+    pub TEXTURE_ARCHIVE_BUILDER = from_shin!(asset::texture_archive::TextureArchiveBuilder);
+    pub LAZY_GPU_TEXTURE = from_shin!(asset::gpu_image::LazyGpuTexture);
 
     pub BIN_READ = from_binrw!(BinRead);
     pub BIN_WRITE = from_binrw!(BinWrite);

@@ -1,5 +1,5 @@
 use crate::asset::bustup::Bustup;
-use crate::asset::gpu_picture::GpuImage;
+use crate::asset::gpu_image::GpuImage;
 use crate::layer::{Layer, LayerProperties};
 use crate::render::GpuCommonResources;
 use crate::render::Renderable;
@@ -38,8 +38,8 @@ impl Renderable for BustupLayer {
             // TODO: there should be a generic function to render a layer (from texture?)
             resources.draw_sprite(
                 render_pass,
-                image.vertex_buffer.vertex_source(),
-                &image.bind_group,
+                image.vertex_source(),
+                image.bind_group(),
                 self.props.compute_transform(transform),
             );
         };
