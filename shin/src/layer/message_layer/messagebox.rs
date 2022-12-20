@@ -3,6 +3,7 @@ use crate::asset::texture_archive::TextureArchive;
 use crate::render::{GpuCommonResources, PosColTexVertex, Renderable, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{Matrix4, Vector2, Vector3, Vector4};
+use shin_core::vm::command::layer::{MessageboxStyle, MessageboxType};
 use std::sync::Arc;
 
 #[derive(TextureArchive)]
@@ -123,6 +124,8 @@ fn build_vertex_buffer(char_name_width: f32, height: f32) -> Vec<PosColTexVertex
 pub struct Messagebox {
     textures: Arc<MessageboxTextures>,
     vertex_buffer: VertexBuffer<PosColTexVertex>,
+    messagebox_type: MessageboxType,
+    visible: bool,
 }
 
 impl Messagebox {
@@ -135,6 +138,8 @@ impl Messagebox {
                 MAX_VERTEX_COUNT as u32,
                 Some("Messagebox VertexBuffer"),
             ),
+            messagebox_type: MessageboxType::Neutral,
+            visible: false,
         }
     }
 }
@@ -150,7 +155,9 @@ impl Renderable for Messagebox {
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Matrix4<f32>,
     ) {
-        render_pass.push_debug_group("Messagebox");
+        if !self.visible {
+            return;
+        }
 
         let height = 360.0;
 
@@ -164,7 +171,23 @@ impl Renderable for Messagebox {
         let vertices = build_vertex_buffer(0.0, height);
         self.vertex_buffer.write(&resources.queue, &vertices);
 
-        let texture = self.textures.message_window_3.gpu_texture(resources);
+        let texture = match self.messagebox_type {
+            MessageboxType::Neutral => &self.textures.message_window_1,
+            MessageboxType::WitchSpace => &self.textures.message_window_2,
+            MessageboxType::Ushinomiya => &self.textures.message_window_3,
+            MessageboxType::Transparent => {
+                todo!()
+            }
+            MessageboxType::Novel => {
+                todo!()
+            }
+            MessageboxType::NoText => {
+                todo!()
+            }
+        }
+        .gpu_texture(resources);
+
+        render_pass.push_debug_group("Messagebox");
 
         resources.draw_sprite(
             render_pass,
@@ -177,4 +200,14 @@ impl Renderable for Messagebox {
     }
 
     fn resize(&mut self, _resources: &GpuCommonResources) {}
+}
+
+impl Messagebox {
+    pub fn set_messagebox_type(&mut self, messagebox_type: MessageboxType) {
+        self.messagebox_type = messagebox_type;
+    }
+
+    pub fn set_visible(&mut self, visible: bool) {
+        self.visible = visible;
+    }
 }

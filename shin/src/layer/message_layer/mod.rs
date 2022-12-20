@@ -204,11 +204,14 @@ impl MessageLayer {
 
     pub fn set_style(&mut self, style: MessageboxStyle) {
         self.style = style;
+
+        self.messagebox.set_messagebox_type(style.messagebox_type);
     }
 
     pub fn set_message(&mut self, context: &UpdateContext, message: &str) {
         self.running_time = Ticks::ZERO;
 
+        self.messagebox.set_visible(true);
         self.message = Some(Message::new(
             context,
             // TODO: actually reuse the atlas
