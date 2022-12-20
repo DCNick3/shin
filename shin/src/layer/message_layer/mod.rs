@@ -20,7 +20,7 @@ use shin_core::vm::command::time::Ticks;
 struct Message {
     time: Ticks,
     complete_time: Ticks,
-    font_atlas: FontAtlas,
+    font_atlas: Arc<FontAtlas>,
     commands: Vec<Command>,
     vertex_buffer: VertexBuffer<TextVertex>,
 }
@@ -28,7 +28,7 @@ struct Message {
 impl Message {
     pub fn new(
         context: &UpdateContext,
-        mut font_atlas: FontAtlas,
+        font_atlas: Arc<FontAtlas>,
         base_position: Vector2<f32>,
         message: &str,
     ) -> Self {
@@ -62,7 +62,7 @@ impl Message {
                     let AtlasImage {
                         position: tex_position,
                         size: _, // the atlas size is not to be trusted, as it can be larger than the actual texture (even larger than the power of 2 padded texture...)
-                    } = font_atlas.get_image(context.gpu_resources, char.codepoint);
+                    } = font_atlas.get_glyph(context.gpu_resources, char.codepoint);
 
                     // just use the actual size of the glyph
                     let tex_size = glyph_info.actual_size();
@@ -170,7 +170,7 @@ impl Drop for Message {
         for command in self.commands.iter() {
             match command {
                 Command::Char(char) => {
-                    self.font_atlas.free_image(char.codepoint);
+                    self.font_atlas.free_glyph(char.codepoint);
                 }
             }
         }
@@ -181,7 +181,7 @@ pub struct MessageLayer {
     props: LayerProperties,
     style: MessageboxStyle,
     running_time: Ticks,
-    fonts: AdvFonts,
+    font_atlas: Arc<FontAtlas>,
     message: Option<Message>,
     messagebox: Messagebox,
 }
@@ -196,7 +196,7 @@ impl MessageLayer {
             props: LayerProperties::new(),
             style: MessageboxStyle::default(),
             running_time: Ticks::ZERO,
-            fonts,
+            font_atlas: Arc::new(FontAtlas::new(resources, fonts.medium_font)),
             message: None,
             messagebox: Messagebox::new(textures, resources),
         }
@@ -215,7 +215,7 @@ impl MessageLayer {
         self.message = Some(Message::new(
             context,
             // TODO: actually reuse the atlas
-            FontAtlas::new(context.gpu_resources, self.fonts.medium_font.clone()),
+            self.font_atlas.clone(),
             Vector2::new(-740.0 - 9.0, 300.0 - 83.0),
             message,
         ));

@@ -57,14 +57,14 @@ impl FontAtlas {
     }
 
     // TODO: implement internal locking
-    pub fn get_image(&mut self, resources: &GpuCommonResources, charcode: u16) -> AtlasImage {
+    pub fn get_glyph(&self, resources: &GpuCommonResources, charcode: u16) -> AtlasImage {
         let glyph_id = self.get_font().get_character_mapping()[charcode as usize];
         self.atlas
             .get_image(resources, glyph_id)
             .expect("Could not fit image in atlas")
     }
 
-    pub fn free_image(&mut self, charcode: u16) {
+    pub fn free_glyph(&self, charcode: u16) {
         let glyph_id = self.get_font().get_character_mapping()[charcode as usize];
         self.atlas.free_image(glyph_id);
     }

@@ -2,6 +2,7 @@ use crate::render::{GpuCommonResources, TextureBindGroup};
 use bevy_utils::{Entry, HashMap};
 use cgmath::Vector2;
 use std::num::NonZeroU32;
+use std::sync::{Mutex, RwLock};
 
 pub trait ImageProvider {
     const IMAGE_FORMAT: wgpu::TextureFormat;
@@ -43,12 +44,11 @@ pub struct DynamicAtlas<P: ImageProvider> {
     texture_bind_group: TextureBindGroup,
     texture_size: (u32, u32),
 
-    allocator: etagere::BucketedAtlasAllocator,
-
+    allocator: Mutex<etagere::BucketedAtlasAllocator>,
     /// These are the images that are currently in the atlas and cannot be evicted.
-    active_allocations: HashMap<P::Id, AtlasAllocation>,
+    active_allocations: RwLock<HashMap<P::Id, AtlasAllocation>>,
     /// These are images still in the atlas, but can be evicted.
-    eviction_ready: HashMap<P::Id, etagere::Allocation>,
+    eviction_ready: Mutex<HashMap<P::Id, etagere::Allocation>>,
 }
 
 impl<P: ImageProvider> DynamicAtlas<P> {
@@ -112,9 +112,9 @@ impl<P: ImageProvider> DynamicAtlas<P> {
             // texture_view,
             texture_bind_group,
             texture_size,
-            allocator,
-            active_allocations: HashMap::default(),
-            eviction_ready: HashMap::default(),
+            allocator: Mutex::new(allocator),
+            active_allocations: RwLock::new(HashMap::default()),
+            eviction_ready: Mutex::new(HashMap::default()),
         }
     }
 
@@ -128,8 +128,10 @@ impl<P: ImageProvider> DynamicAtlas<P> {
 
     /// Gets an image from the atlas, or adds it if it's not already there.
     /// Increases the ref count of the image.
-    pub fn get_image(&mut self, resources: &GpuCommonResources, id: P::Id) -> Option<AtlasImage> {
-        let entry = self.active_allocations.entry(id);
+    pub fn get_image(&self, resources: &GpuCommonResources, id: P::Id) -> Option<AtlasImage> {
+        let mut active_allocations = self.active_allocations.write().unwrap();
+
+        let entry = active_allocations.entry(id);
 
         let allocation: &AtlasAllocation = match entry {
             Entry::Occupied(entry) => {
@@ -138,7 +140,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                 allocation
             }
             Entry::Vacant(entry) => {
-                if let Some(allocation) = self.eviction_ready.remove(&id) {
+                if let Some(allocation) = self.eviction_ready.lock().unwrap().remove(&id) {
                     // The image is already allocated, but not in use, so we can restore it
                     entry.insert(AtlasAllocation {
                         allocation,
@@ -155,15 +157,19 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                     // no compressed textures support for now
                     assert_eq!(format.block_dimensions, (1, 1));
 
-                    let allocation = if let Some(alloc) = self.allocator.allocate(
-                        etagere::Size::new(width.try_into().unwrap(), height.try_into().unwrap()),
-                    ) {
-                        alloc
-                    } else {
-                        // seems like we are out of space
-                        // we can evict unused images to make space
-                        todo!("evict some images");
-                    };
+                    let allocation =
+                        if let Some(alloc) =
+                            self.allocator.lock().unwrap().allocate(etagere::Size::new(
+                                width.try_into().unwrap(),
+                                height.try_into().unwrap(),
+                            ))
+                        {
+                            alloc
+                        } else {
+                            // seems like we are out of space
+                            // we can evict unused images to make space
+                            todo!("evict some images");
+                        };
 
                     let x: u32 = allocation.rectangle.min.x.try_into().unwrap();
                     let y: u32 = allocation.rectangle.min.y.try_into().unwrap();
@@ -220,21 +226,31 @@ impl<P: ImageProvider> DynamicAtlas<P> {
     }
 
     #[allow(unused)]
-    pub fn peek_image(&mut self, id: P::Id) -> Option<AtlasImage> {
-        Some(self.active_allocations.get(&id)?.as_atlas_image())
+    pub fn peek_image(&self, id: P::Id) -> Option<AtlasImage> {
+        Some(
+            self.active_allocations
+                .read()
+                .unwrap()
+                .get(&id)?
+                .as_atlas_image(),
+        )
     }
 
-    pub fn free_image(&mut self, id: P::Id) {
-        let allocation = self
-            .active_allocations
+    pub fn free_image(&self, id: P::Id) {
+        let mut active_allocations = self.active_allocations.write().unwrap();
+
+        let allocation = active_allocations
             .get_mut(&id)
             .expect("Attempt to free an image not in atlas");
 
         allocation.ref_count -= 1;
 
         if allocation.ref_count == 0 {
-            self.eviction_ready.insert(id, allocation.allocation);
-            self.active_allocations.remove(&id);
+            self.eviction_ready
+                .lock()
+                .unwrap()
+                .insert(id, allocation.allocation);
+            active_allocations.remove(&id);
         }
     }
 

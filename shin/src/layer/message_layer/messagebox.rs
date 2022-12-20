@@ -3,7 +3,7 @@ use crate::asset::texture_archive::TextureArchive;
 use crate::render::{GpuCommonResources, PosColTexVertex, Renderable, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{Matrix4, Vector2, Vector3, Vector4};
-use shin_core::vm::command::layer::{MessageboxStyle, MessageboxType};
+use shin_core::vm::command::layer::MessageboxType;
 use std::sync::Arc;
 
 #[derive(TextureArchive)]

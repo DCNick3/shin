@@ -85,16 +85,16 @@ impl<T: Vertex> VertexBuffer<T> {
         }
     }
 
-    pub fn vertex_source_slice(&self, range: std::ops::Range<u32>) -> VertexSource<T> {
-        assert!(range.end <= self.num_vertices.load(Ordering::SeqCst));
-
-        VertexSource::VertexBuffer {
-            vertex_buffer: &self.buffer,
-            vertices: range,
-            instances: 0..1,
-            phantom: std::marker::PhantomData,
-        }
-    }
+    // pub fn vertex_source_slice(&self, range: std::ops::Range<u32>) -> VertexSource<T> {
+    //     assert!(range.end <= self.num_vertices.load(Ordering::SeqCst));
+    //
+    //     VertexSource::VertexBuffer {
+    //         vertex_buffer: &self.buffer,
+    //         vertices: range,
+    //         instances: 0..1,
+    //         phantom: std::marker::PhantomData,
+    //     }
+    // }
 }
 
 pub struct IndexBuffer {
