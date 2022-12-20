@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use crate::adv::assets::AdvFonts;
 use crate::layer::message_layer::font_atlas::FontAtlas;
+use crate::layer::message_layer::messagebox::Messagebox;
 use crate::layer::{Layer, LayerProperties};
 use crate::render::dynamic_atlas::AtlasImage;
 use crate::render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
@@ -182,13 +183,14 @@ pub struct MessageLayer {
     running_time: Ticks,
     fonts: AdvFonts,
     message: Option<Message>,
+    messagebox: Messagebox,
 }
 
 impl MessageLayer {
     pub fn new(
-        _resources: &GpuCommonResources,
+        resources: &GpuCommonResources,
         fonts: AdvFonts,
-        _textures: Arc<MessageboxTextures>,
+        textures: Arc<MessageboxTextures>,
     ) -> Self {
         Self {
             props: LayerProperties::new(),
@@ -196,6 +198,7 @@ impl MessageLayer {
             running_time: Ticks::ZERO,
             fonts,
             message: None,
+            messagebox: Messagebox::new(textures, resources),
         }
     }
 
@@ -227,6 +230,8 @@ impl Renderable for MessageLayer {
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Matrix4<f32>,
     ) {
+        let transform = self.props.compute_transform(transform);
+        self.messagebox.render(resources, render_pass, transform);
         if let Some(message) = &self.message {
             message.render(resources, render_pass, transform);
         }
@@ -239,6 +244,7 @@ impl Renderable for MessageLayer {
 
 impl Updatable for MessageLayer {
     fn update(&mut self, ctx: &UpdateContext) {
+        self.messagebox.update(ctx);
         if let Some(message) = &mut self.message {
             message.update(ctx);
         }

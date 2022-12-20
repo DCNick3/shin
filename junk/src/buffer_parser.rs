@@ -370,7 +370,7 @@ pub fn main() {
     dump_sprite_vertex_buffer(
         text,
         0x120,
-        Some(&[0, 4, 1, 5, 2, 6, 3, 7, 11, 6, 10, 4, 8]),
+        Some(&[0, 4, 1, 5, 2, 6, 3, 7, 11, 6, 10, 5, 9, 4, 8]),
         tex_size,
         translation,
         "messagebox_body",

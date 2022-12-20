@@ -1,6 +1,7 @@
 use crate::render;
 use crate::render::{GpuCommonResources, PosColTexVertex, PosVertex, TextVertex, VertexSource};
 use cgmath::{Vector2, Vector3, Vector4};
+use std::sync::atomic::{AtomicU32, Ordering};
 use wgpu::util::DeviceExt;
 
 pub trait Vertex: bytemuck::Pod + bytemuck::Zeroable {
@@ -26,7 +27,8 @@ impl Vertex for TextVertex {
 
 pub struct VertexBuffer<T: Vertex> {
     buffer: wgpu::Buffer,
-    num_vertices: u32,
+    num_vertices: AtomicU32,
+    capacity_vertices: u32,
     phantom: std::marker::PhantomData<T>,
 }
 
@@ -42,15 +44,53 @@ impl<T: Vertex> VertexBuffer<T> {
         let num_vertices = vertices.len() as u32;
         Self {
             buffer,
-            num_vertices,
+            num_vertices: num_vertices.into(),
+            capacity_vertices: num_vertices,
             phantom: std::marker::PhantomData,
         }
+    }
+
+    pub fn new_updatable(
+        resources: &GpuCommonResources,
+        capacity_vertices: u32,
+        label: Option<&str>,
+    ) -> Self {
+        let buffer = resources.device.create_buffer(&wgpu::BufferDescriptor {
+            label,
+            size: (capacity_vertices * std::mem::size_of::<T>() as u32) as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        Self {
+            buffer,
+            num_vertices: 0.into(),
+            capacity_vertices,
+            phantom: std::marker::PhantomData,
+        }
+    }
+
+    pub fn write(&self, queue: &wgpu::Queue, vertices: &[T]) {
+        assert!(vertices.len() as u32 <= self.capacity_vertices);
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(vertices));
+        self.num_vertices
+            .store(vertices.len() as u32, Ordering::SeqCst);
     }
 
     pub fn vertex_source(&self) -> VertexSource<T> {
         VertexSource::VertexBuffer {
             vertex_buffer: &self.buffer,
-            vertices: 0..self.num_vertices,
+            vertices: 0..self.num_vertices.load(Ordering::SeqCst),
+            instances: 0..1,
+            phantom: std::marker::PhantomData,
+        }
+    }
+
+    pub fn vertex_source_slice(&self, range: std::ops::Range<u32>) -> VertexSource<T> {
+        assert!(range.end <= self.num_vertices.load(Ordering::SeqCst));
+
+        VertexSource::VertexBuffer {
+            vertex_buffer: &self.buffer,
+            vertices: range,
             instances: 0..1,
             phantom: std::marker::PhantomData,
         }
