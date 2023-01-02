@@ -3,8 +3,8 @@ use float_ord::FloatOrd;
 use std::ops::Div;
 use std::time::Duration;
 
-#[derive(Debug, Copy, Clone, Add, AddAssign, Sub, SubAssign)]
-pub struct Ticks(pub f32);
+#[derive(Debug, Copy, Clone, Default, Add, AddAssign, Sub, SubAssign)]
+pub struct Ticks(pub f32); // TODO: hide away the f32 to allow changing the representation later
 
 pub const TICKS_PER_SECOND: f32 = 60.0;
 

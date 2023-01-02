@@ -10,7 +10,8 @@ resolver = "2"
 
 [workspace.dependencies]
 cgmath = { git = "https://github.com/rustgd/cgmath.git", rev = "d5e765db61cf9039cb625a789a59ddf6b6ab2337", features = ["bytemuck"] }
-
+#enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "6f89ffcc8d3f5a95f98bce1ee7ec4444cd8b405f" }
+enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
 
 [profile.release]
 debug = true

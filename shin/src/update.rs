@@ -1,4 +1,5 @@
 use crate::asset::AnyAssetServer;
+use crate::input::RawInputState;
 use enum_dispatch::enum_dispatch;
 use shin_core::vm::command::time::Ticks;
 use std::sync::Arc;
@@ -11,6 +12,7 @@ pub struct UpdateContext<'a> {
     pub time: &'a bevy_time::Time,
     pub gpu_resources: &'a Arc<GpuCommonResources>,
     pub asset_server: &'a Arc<AnyAssetServer>,
+    pub raw_input_state: &'a RawInputState,
 }
 
 impl<'a> UpdateContext<'a> {

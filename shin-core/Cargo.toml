@@ -11,7 +11,7 @@ num-traits = "0.2.15"
 num-derive = "0.3.3"
 shin-derive = { path = "../shin-derive" }
 derive_more = "0.99.17"
-enum-map = "2.4.1"
+enum-map = { workspace = true }
 async-trait = "0.1.58"
 binrw = "0.10.0"
 strum = { version = "0.24.1", features = ["derive"] }

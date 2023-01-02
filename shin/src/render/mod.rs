@@ -6,13 +6,13 @@ mod pillarbox;
 mod pipelines;
 mod render_target;
 mod vertex_buffer;
-mod window;
 
 pub use bind_groups::{BindGroupLayouts, TextureBindGroup};
-pub use camera::{VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
+pub use camera::{Camera, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 use cgmath::Matrix4;
 pub use common_resources::GpuCommonResources;
-pub use pipelines::{PosColTexVertex, PosVertex, TextVertex, VertexSource};
+pub use pillarbox::Pillarbox;
+pub use pipelines::{Pipelines, PosColTexVertex, PosVertex, TextVertex, VertexSource};
 pub use render_target::RenderTarget;
 pub use vertex_buffer::{IndexBuffer, SpriteVertexBuffer, Vertex, VertexBuffer};
 
@@ -20,8 +20,6 @@ use enum_dispatch::enum_dispatch;
 use std::ops::{Deref, DerefMut};
 
 use crate::layer::UserLayer;
-
-pub use window::run;
 
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
 

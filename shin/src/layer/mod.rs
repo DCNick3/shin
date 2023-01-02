@@ -8,7 +8,7 @@ mod root_layer_group;
 use cgmath::{Matrix4, SquareMatrix, Vector3};
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
-use enum_map::{Enum, EnumMap};
+use enum_map::{enum_map, EnumMap};
 use tracing::{debug, warn};
 
 pub use bustup_layer::BustupLayer;
@@ -29,13 +29,9 @@ use shin_core::vm::command::layer::{LayerProperty, LayerType};
 use shin_core::vm::command::time::Ticks;
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
-    EnumMap::from_array(
-        (0..LayerProperty::COUNT)
-            .map(|i| <LayerProperty as Enum>::from_usize(i).initial_value())
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap(),
-    )
+    enum_map! {
+        v => v.initial_value()
+    }
 }
 
 pub struct LayerProperties {

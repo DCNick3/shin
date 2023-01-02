@@ -37,7 +37,7 @@ pollster = "0.2.5"
 
 num-derive = "0.3.3"
 num-traits = "0.2.15"
-enum-map = "2.4.1"
+enum-map = { workspace = true }
 derive_more = "0.99.17"
 enum_dispatch = "0.3.8"
 itertools = "0.10.5"
@@ -46,6 +46,7 @@ lru = "0.8.1"
 strum = "0.24.1"
 typemap = "0.3.3"
 once_cell = "1.16.0"
+petitset = "0.2.1"
 
 [features]
 default = []

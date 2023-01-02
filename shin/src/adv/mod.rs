@@ -6,6 +6,8 @@ pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, Updata
 pub use state::VmState;
 
 use crate::adv::assets::AdvAssets;
+use crate::input::actions::AdvMessageAction;
+use crate::input::{Action, ActionMap, ActionState};
 use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup};
 use crate::render::GpuCommonResources;
 use crate::render::Renderable;
@@ -23,6 +25,8 @@ pub struct Adv {
     scripter: Scripter,
     vm_state: VmState,
     adv_state: AdvState,
+    action_state: ActionState<AdvMessageAction>,
+    action_map: ActionMap<AdvMessageAction>,
     current_command: Option<ExecutingCommand>,
 }
 
@@ -43,6 +47,8 @@ impl Adv {
             scripter,
             vm_state,
             adv_state,
+            action_state: ActionState::new(),
+            action_map: AdvMessageAction::default_action_map(),
             current_command: None,
         }
     }
@@ -50,6 +56,19 @@ impl Adv {
 
 impl Updatable for Adv {
     fn update(&mut self, context: &UpdateContext) {
+        self.action_state
+            .update(&self.action_map, context.raw_input_state);
+
+        if self
+            .action_state
+            .is_just_pressed(AdvMessageAction::Continue)
+        {
+            self.adv_state
+                .root_layer_group
+                .message_layer_mut()
+                .r#continue();
+        }
+
         let mut result = CommandResult::None;
         loop {
             // TODO: maybe yield if spent too much time in this loop?

@@ -240,7 +240,7 @@ pub enum LayerProperty {
 }
 
 impl LayerProperty {
-    pub const COUNT: usize = <LayerProperty as Enum>::LENGTH;
+    // pub const COUNT: usize = <LayerProperty as Enum>::Array::LENGTH;
 
     pub fn initial_value(self) -> i32 {
         match self {

@@ -224,6 +224,10 @@ impl MessageLayer {
     pub fn is_finished(&self) -> bool {
         self.message.as_ref().map(|m| m.complete()).unwrap_or(true)
     }
+
+    pub fn r#continue(&mut self) {
+        todo!()
+    }
 }
 
 impl Renderable for MessageLayer {

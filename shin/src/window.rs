@@ -10,17 +10,19 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-use super::pipelines::Pipelines;
-
-use crate::adv::assets::AdvAssets;
-use crate::adv::Adv;
-use crate::asset::AnyAssetServer;
-use crate::render::bind_groups::BindGroupLayouts;
-use crate::render::camera::Camera;
-use crate::render::common_resources::GpuCommonResources;
-use crate::render::pillarbox::Pillarbox;
-use crate::render::{RenderTarget, Renderable, SpriteVertexBuffer};
-use crate::update::{Updatable, UpdateContext};
+use crate::{
+    adv::assets::AdvAssets,
+    adv::Adv,
+    asset::AnyAssetServer,
+    input::RawInputState,
+    render::BindGroupLayouts,
+    render::Camera,
+    render::GpuCommonResources,
+    render::Pillarbox,
+    render::Pipelines,
+    render::{RenderTarget, Renderable, SpriteVertexBuffer},
+    update::{Updatable, UpdateContext},
+};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -36,6 +38,7 @@ struct State {
     render_target: RenderTarget,
     pillarbox: Pillarbox,
     asset_server: Arc<AnyAssetServer>,
+    input: RawInputState,
     adv: Adv,
 }
 
@@ -178,6 +181,7 @@ impl State {
             render_target,
             pillarbox,
             asset_server,
+            input: RawInputState::new(),
             adv,
         }
     }
@@ -214,6 +218,7 @@ impl State {
 
     #[allow(unused_variables)]
     fn input(&mut self, event: &WindowEvent) -> bool {
+        self.input.on_winit_event(event);
         false
     }
 
@@ -224,9 +229,13 @@ impl State {
             time: &self.time,
             gpu_resources: &self.resources,
             asset_server: &self.asset_server,
+            raw_input_state: &self.input,
         };
 
         self.adv.update(&update_context);
+
+        // NOTE: it's important that the input is updated after everything else, as it clears some state after it should have been handled
+        self.input.update();
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
