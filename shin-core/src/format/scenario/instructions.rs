@@ -1,4 +1,4 @@
-use crate::format::scenario::{U16SmallList, U8SmallList, U8SmallNumberList};
+use crate::format::scenario::types::{U16SmallList, U8SmallList, U8SmallNumberList};
 use crate::vm::command::CompiletimeCommand;
 use binrw::{BinRead, BinResult, BinWrite, ReadOptions, WriteOptions};
 use num_derive::FromPrimitive;
@@ -421,6 +421,46 @@ impl BinWrite for BitmaskNumberArray {
         _: (),
     ) -> BinResult<()> {
         todo!()
+    }
+}
+
+pub struct MessageId(pub u32);
+
+impl BinRead for MessageId {
+    type Args = ();
+
+    fn read_options<R: io::Read + io::Seek>(
+        reader: &mut R,
+        options: &ReadOptions,
+        _: (),
+    ) -> BinResult<Self> {
+        // MessageId is a 24-bit (sic!) integer
+        let b0 = u8::read_options(reader, options, ())?;
+        let b1 = u8::read_options(reader, options, ())?;
+        let b2 = u8::read_options(reader, options, ())?;
+
+        let id = (b0 as u32) | ((b1 as u32) << 8) | ((b2 as u32) << 16);
+
+        Ok(Self(id))
+    }
+}
+
+impl BinWrite for MessageId {
+    type Args = ();
+
+    fn write_options<W: io::Write + io::Seek>(
+        &self,
+        _writer: &mut W,
+        _options: &WriteOptions,
+        _: (),
+    ) -> BinResult<()> {
+        todo!()
+    }
+}
+
+impl Debug for MessageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

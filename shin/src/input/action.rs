@@ -27,25 +27,17 @@ struct ActionData {
 
 impl ActionData {
     fn press(&mut self, amount: f32) {
-        if self.state != ButtonState::Pressed {
-            self.state = ButtonState::JustPressed;
-        }
+        self.state.press();
         self.amount = amount;
     }
 
     fn release(&mut self) {
-        if self.state != ButtonState::Released {
-            self.state = ButtonState::JustReleased;
-        }
+        self.state.release();
         self.amount = 0.0;
     }
 
-    fn update(&mut self) {
-        self.state = match self.state {
-            ButtonState::JustPressed => ButtonState::Pressed,
-            ButtonState::JustReleased => ButtonState::Released,
-            _ => self.state,
-        };
+    fn tick(&mut self) {
+        self.state.tick();
     }
 
     fn reset(&mut self) {
@@ -66,7 +58,7 @@ impl<T: Action> ActionState<T> {
     }
 
     pub fn update(&mut self, action_map: &ActionMap<T>, raw_input_state: &RawInputState) {
-        self.action_data.values_mut().for_each(|d| d.update());
+        self.action_data.values_mut().for_each(|d| d.tick());
 
         let pressed = action_map.which_pressed(raw_input_state);
         for ((_action, pressed), data) in pressed.into_iter().zip(self.action_data.values_mut()) {
@@ -127,7 +119,7 @@ impl<A: Action> ActionMap<A> {
     }
 
     pub fn which_pressed(&self, input_state: &RawInputState) -> EnumMap<A, Option<f32>> {
-        self.action_map.map_ref(|action, inputs| {
+        self.action_map.map_ref(|_action, inputs| {
             inputs
                 .iter()
                 // flat map acts as an OR

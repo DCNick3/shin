@@ -73,8 +73,9 @@ enum ScenarioCommand {
         /// Path to the SNR file
         scenario_path: PathBuf,
         /// Initial value of the memory cell "0", usually selecting the episode or smth
-        #[clap(short, long, default_value = "0")]
+        #[clap(default_value = "0")]
         init_val: i32,
+        output_filename: Option<PathBuf>,
     },
     /// Run a scenario in VM, parsing all the messages with layout parser (for testing)
     TestLayouter {
@@ -187,10 +188,16 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
         ScenarioCommand::Dump {
             scenario_path: path,
             init_val,
+            output_filename,
         } => {
             let scenario = std::fs::read(path)?;
             let scenario = Bytes::from(scenario);
             let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
+
+            let mut output: Box<dyn std::io::Write> = match output_filename {
+                None => Box::new(std::io::stdout().lock()),
+                Some(filename) => Box::new(File::create(filename).context("Opening output file")?),
+            };
 
             let mut vm = shin_core::vm::Scripter::new(&scenario, init_val, 42);
             let mut result = CommandResult::None;
@@ -198,7 +205,8 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                 // NOTE: usually you would want to do something when the VM has returned "Pending"
                 // stuff like running game loop to let the command progress...
                 let command = vm.run(result)?;
-                println!("{:08x} {}", vm.position().0, command);
+                writeln!(output, "{:08x} {}", vm.position().0, command)
+                    .context("Writing to the output file")?;
                 if let Some(new_result) = command.execute_dummy() {
                     result = new_result
                 } else {

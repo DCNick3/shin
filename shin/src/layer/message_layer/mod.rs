@@ -13,16 +13,23 @@ use crate::render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{ElementWise, Matrix4, Vector2};
 use shin_core::format::font::GlyphTrait;
-use shin_core::layout::Command;
+use shin_core::layout::{Block, BlockExitCondition, Command};
 use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
 use shin_core::vm::command::time::Ticks;
 
 struct Message {
     time: Ticks,
-    complete_time: Ticks,
     font_atlas: Arc<FontAtlas>,
     commands: Vec<Command>,
+    blocks: Vec<Block>,
     vertex_buffer: VertexBuffer<TextVertex>,
+}
+
+pub enum MessageStatus {
+    Printing,
+    ClickWaiting,
+    SignalWaiting,
+    Complete,
 }
 
 impl Message {
@@ -45,7 +52,10 @@ impl Message {
             has_character_name: true,
         };
 
-        let commands = shin_core::layout::layout_text(layout_params, message);
+        let (commands, mut blocks) = shin_core::layout::layout_text(layout_params, message);
+
+        // reverse the blocks so that we can easily pop them off the end in order
+        blocks.reverse();
 
         let mut vertices = Vec::new();
         for command in commands.iter() {
@@ -90,8 +100,9 @@ impl Message {
                     macro_rules! v {
                         (($x:expr, $y:expr), ($tex_x:expr, $tex_y:expr)) => {
                             TextVertex {
-                                position: position + Vector2::new($x, $y),
-                                tex_position: tex_position + Vector2::new($tex_x, $tex_y),
+                                position: position + Vector2::new($x, $y).mul_element_wise(size),
+                                tex_position: tex_position
+                                    + Vector2::new($tex_x, $tex_y).mul_element_wise(tex_size),
                                 color,
                                 time,
                                 fade,
@@ -102,12 +113,12 @@ impl Message {
                     vertices.extend([
                         // Top left triangle
                         v!((0.0, 0.0), (0.0, 0.0)),
-                        v!((size.x, 0.0), (tex_size.x, 0.0)),
-                        v!((0.0, size.y), (0.0, tex_size.y)),
+                        v!((1.0, 0.0), (1.0, 0.0)),
+                        v!((0.0, 1.0), (0.0, 1.0)),
                         // Bottom right triangle
-                        v!((size.x, size.y), (tex_size.x, tex_size.y)),
-                        v!((0.0, size.y), (0.0, tex_size.y)),
-                        v!((size.x, 0.0), (tex_size.x, 0.0)),
+                        v!((1.0, 1.0), (1.0, 1.0)),
+                        v!((0.0, 1.0), (0.0, 1.0)),
+                        v!((1.0, 0.0), (1.0, 0.0)),
                     ]);
                 }
             }
@@ -119,30 +130,79 @@ impl Message {
             Some("Message VertexBuffer"),
         );
 
-        let complete_time = commands
-            .iter()
-            .map(|v| v.time())
-            .max()
-            .unwrap_or(Ticks::ZERO)
-            + Ticks::from_seconds(2.0);
-
         Self {
             time: Ticks::ZERO,
-            complete_time,
             font_atlas,
+            blocks,
             commands,
             vertex_buffer,
         }
     }
 
-    pub fn complete(&self) -> bool {
-        self.time >= self.complete_time
+    pub fn is_complete(&self) -> bool {
+        self.blocks.is_empty()
+    }
+
+    pub fn status(&self) -> MessageStatus {
+        match self.current_block() {
+            None => MessageStatus::Complete,
+            Some(block) => {
+                if block.completed(self.time) {
+                    match block.exit_condition {
+                        BlockExitCondition::ClickWait => MessageStatus::ClickWaiting,
+                        BlockExitCondition::Signal(_) => MessageStatus::SignalWaiting,
+                        BlockExitCondition::None => unreachable!(
+                            "If Block has None as exit condition it should be immediately removed"
+                        ),
+                    }
+                } else {
+                    MessageStatus::Printing
+                }
+            }
+        }
+    }
+
+    fn current_block(&self) -> Option<&Block> {
+        self.blocks.last()
+    }
+
+    fn next_block(&mut self) {
+        // let old_block =
+        self.blocks
+            .pop()
+            .expect("Message::next_block called when no blocks remain");
+
+        // let overshoot_time = self.time - old_block.end_time;
+        if let Some(block) = self.current_block() {
+            self.time = block.start_time;
+            // self.time += overshoot_time;
+        }
+    }
+
+    pub fn advance(&mut self) {
+        if let Some(block) = self.current_block() {
+            if block.completed(self.time)
+                && matches!(block.exit_condition, BlockExitCondition::ClickWait)
+            {
+                self.next_block();
+            } else {
+                // skip to the end of the current block
+                // NOTE: we may want to have a separate control for that
+                self.time = block.end_time;
+            }
+        }
     }
 }
 
 impl Updatable for Message {
     fn update(&mut self, context: &UpdateContext) {
-        self.time += context.time_delta_ticks();
+        if let Some(block) = self.current_block() {
+            if !block.completed(self.time) {
+                self.time += context.time_delta_ticks();
+            } else if matches!(block.exit_condition, BlockExitCondition::None) {
+                self.next_block();
+            }
+        }
     }
 }
 
@@ -222,11 +282,16 @@ impl MessageLayer {
     }
 
     pub fn is_finished(&self) -> bool {
-        self.message.as_ref().map(|m| m.complete()).unwrap_or(true)
+        self.message
+            .as_ref()
+            .map(|m| m.is_complete())
+            .unwrap_or(true)
     }
 
-    pub fn r#continue(&mut self) {
-        todo!()
+    pub fn advance(&mut self) {
+        if let Some(m) = self.message.as_mut() {
+            m.advance()
+        }
     }
 }
 

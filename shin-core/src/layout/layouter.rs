@@ -279,7 +279,101 @@ impl<'a> Layouter<'a> {
     }
 }
 
-pub fn layout_text(params: LayoutParams, text: &str) -> Vec<Command> {
+pub enum BlockExitCondition {
+    /// Wait for user to press "Advance" button
+    ClickWait,
+    /// Wait for the VM to signal us with MSGSIGNAL command
+    /// The number specified the signal number (they are counted consecutively, from 0)
+    Signal(u32),
+    /// Do not wait for anything to leave this block, just go to the next one (or finish the message)
+    None,
+}
+
+/// One message is split into multiple blocks.
+/// _Usually_ blocks are separated by click-wait commands (@k)
+/// but sometimes they are separated by sync commands (@y)
+///
+/// Blocks are also kind of a single skip-able unit:
+///  by pressing "Advance" button you skip the whole block.
+///
+/// For... reasons, blocks live separately from the characters,
+///  their boundaries instead defined by the time they start and end.
+///
+/// They also contain exit conditions, which are used to determine
+///  when the next block (or message) should be executed.
+pub struct Block {
+    pub exit_condition: BlockExitCondition,
+    pub start_time: Ticks,
+    pub end_time: Ticks,
+}
+
+impl Block {
+    pub fn completed(&self, time: Ticks) -> bool {
+        time >= self.end_time
+    }
+}
+
+struct BlockBuilder {
+    final_wait: bool,
+    time_start: Ticks,
+    signal_number: u32,
+    blocks: Vec<Block>,
+}
+
+impl BlockBuilder {
+    /// An artificial gap between blocks
+    /// Needed because we don't want the fade-in of the next block to interfere   
+    const TIME_GAP: Ticks = Ticks(1000.0);
+
+    fn new() -> Self {
+        Self {
+            final_wait: true,
+            time_start: Ticks(0.0),
+            signal_number: 0,
+            blocks: Vec::new(),
+        }
+    }
+
+    fn click_wait(&mut self, time: &mut Ticks) {
+        self.blocks.push(Block {
+            exit_condition: BlockExitCondition::ClickWait,
+            start_time: self.time_start,
+            end_time: *time,
+        });
+        *time += Self::TIME_GAP;
+        self.time_start = *time;
+    }
+
+    fn sync(&mut self, time: &mut Ticks) {
+        self.blocks.push(Block {
+            exit_condition: BlockExitCondition::Signal(self.signal_number),
+            start_time: self.time_start,
+            end_time: *time,
+        });
+        self.signal_number += 1;
+        *time += Self::TIME_GAP;
+        self.time_start = *time;
+    }
+
+    fn no_final_wait(&mut self) {
+        self.final_wait = false;
+    }
+
+    fn finalize(mut self, time: Ticks) -> Vec<Block> {
+        self.blocks.push(Block {
+            exit_condition: if self.final_wait {
+                BlockExitCondition::ClickWait
+            } else {
+                BlockExitCondition::None
+            },
+            start_time: self.time_start,
+            end_time: time,
+        });
+        self.blocks
+    }
+}
+
+pub fn layout_text(params: LayoutParams, text: &str) -> (Vec<Command>, Vec<Block>) {
     let mut layouter = Layouter {
         parser: LayouterParser::new(text).peekable(),
         params,
@@ -289,6 +383,8 @@ pub fn layout_text(params: LayoutParams, text: &str) -> Vec<Command> {
         position: Vector2::new(0.0, 0.0),
         time: Ticks(0.0),
     };
+
+    let mut block_builder = BlockBuilder::new();
 
     // NOTE: the first line is always the character name, even if the message box does not show it
     // (it's ignored for that case)
@@ -300,42 +396,45 @@ pub fn layout_text(params: LayoutParams, text: &str) -> Vec<Command> {
             break;
         }
     }
-    if layouter.parser.peek().is_none() {
-        return layouter.finalize();
-    }
-
-    // Not using a for loop because of borrow checker
-    while let Some(command) = layouter.parser.next() {
-        match command {
-            ParsedCommand::Char(c) => layouter.on_char(c),
-            ParsedCommand::EnableLipsync => todo!(),
-            ParsedCommand::DisableLipsync => todo!(),
-            ParsedCommand::Furigana(_) => warn!("Furigana layout command is not implemented"),
-            ParsedCommand::FuriganaStart => {
-                warn!("FuriganaStart layout command is not implemented")
+    if layouter.parser.peek().is_some() {
+        // Not using a for loop because of borrow checker
+        while let Some(command) = layouter.parser.next() {
+            match command {
+                ParsedCommand::Char(c) => layouter.on_char(c),
+                ParsedCommand::EnableLipsync => todo!(),
+                ParsedCommand::DisableLipsync => todo!(),
+                ParsedCommand::Furigana(_) => warn!("Furigana layout command is not implemented"),
+                ParsedCommand::FuriganaStart => {
+                    warn!("FuriganaStart layout command is not implemented")
+                }
+                ParsedCommand::FuriganaEnd => {
+                    warn!("FuriganaEnd layout command is not implemented")
+                }
+                ParsedCommand::SetFade(_) => todo!(),
+                ParsedCommand::SetColor(_) => todo!(),
+                ParsedCommand::NoFinalClickWait => block_builder.no_final_wait(),
+                ParsedCommand::ClickWait => block_builder.click_wait(&mut layouter.time),
+                ParsedCommand::VoiceVolume(_) => todo!(),
+                ParsedCommand::Newline => layouter.on_newline(),
+                ParsedCommand::TextSpeed(_) => todo!(),
+                ParsedCommand::SimultaneousStart => todo!(),
+                ParsedCommand::Voice(_) => warn!("Voice layout command not implemented"),
+                ParsedCommand::Wait(_) => todo!(),
+                ParsedCommand::Sync => block_builder.sync(&mut layouter.time),
+                ParsedCommand::FontSize(_) => todo!(),
+                ParsedCommand::Signal => todo!(),
+                ParsedCommand::InstantTextStart => todo!(),
+                ParsedCommand::InstantTextEnd => todo!(),
+                ParsedCommand::BoldTextStart => todo!(),
+                ParsedCommand::BoldTextEnd => todo!(),
             }
-            ParsedCommand::FuriganaEnd => warn!("FuriganaEnd layout command is not implemented"),
-            ParsedCommand::SetFade(_) => todo!(),
-            ParsedCommand::SetColor(_) => todo!(),
-            ParsedCommand::AutoClick => todo!(),
-            ParsedCommand::WaitClick => warn!("WaitClick layout command not implemented"),
-            ParsedCommand::VoiceVolume(_) => todo!(),
-            ParsedCommand::Newline => layouter.on_newline(),
-            ParsedCommand::TextSpeed(_) => todo!(),
-            ParsedCommand::SimultaneousStart => todo!(),
-            ParsedCommand::Voice(_) => warn!("Voice layout command not implemented"),
-            ParsedCommand::Wait(_) => todo!(),
-            ParsedCommand::Sync => todo!(),
-            ParsedCommand::FontSize(_) => todo!(),
-            ParsedCommand::Signal => todo!(),
-            ParsedCommand::InstantTextStart => todo!(),
-            ParsedCommand::InstantTextEnd => todo!(),
-            ParsedCommand::BoldTextStart => todo!(),
-            ParsedCommand::BoldTextEnd => todo!(),
         }
     }
 
-    layouter.finalize()
+    let blocks = block_builder.finalize(layouter.time);
+    let commands = layouter.finalize();
+    // TODO: separate Chars, Actions and Blocks
+    return (commands, blocks);
 }
 
 #[cfg(test)]
@@ -365,7 +464,10 @@ mod tests {
             has_character_name: true,
         };
 
-        layout_text(params, text)
+        // TODO: test the blocks
+        let (commands, _blocks) = layout_text(params, text);
+
+        commands
     }
 
     #[test]

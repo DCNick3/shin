@@ -19,9 +19,9 @@ pub enum ParsedCommand {
     /// @c
     SetColor(Option<Vector3<f32>>),
     /// @e
-    AutoClick,
+    NoFinalClickWait,
     /// @k
-    WaitClick,
+    ClickWait,
     /// @o
     VoiceVolume(f32),
     /// @r
@@ -122,8 +122,8 @@ impl Iterator for LayouterParser<'_> {
             '>' => ParsedCommand::FuriganaEnd,
             'a' => ParsedCommand::SetFade(self.read_float_argument(0, u32::MAX, 1000.0)),
             'c' => ParsedCommand::SetColor(self.read_color_argument()),
-            'e' => ParsedCommand::AutoClick,
-            'k' => ParsedCommand::WaitClick,
+            'e' => ParsedCommand::NoFinalClickWait,
+            'k' => ParsedCommand::ClickWait,
             'o' => ParsedCommand::VoiceVolume(self.read_float_argument(0, 100, 100.0)),
             'r' => ParsedCommand::Newline,
             's' => ParsedCommand::TextSpeed(self.read_float_argument(100, 0, 40000.0)),
@@ -257,7 +257,7 @@ mod tests {
                 ParsedCommand::Char('げ'),
                 ParsedCommand::Char('ﾙ'),
                 ParsedCommand::Char('｡'),
-                ParsedCommand::WaitClick,
+                ParsedCommand::ClickWait,
                 ParsedCommand::Voice("00/awase6043_o".to_owned()),
                 ParsedCommand::Char('ど'),
                 ParsedCommand::Char('ﾁ'),

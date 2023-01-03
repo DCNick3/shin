@@ -1,6 +1,5 @@
 use crate::input::action::UserInput;
 use crate::input::inputs::{KeyCode, MouseButton};
-use crate::update::{Updatable, UpdateContext};
 use enum_map::{enum_map, EnumMap};
 use itertools::Itertools;
 use petitset::PetitSet;

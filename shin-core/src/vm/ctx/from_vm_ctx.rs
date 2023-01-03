@@ -1,5 +1,5 @@
-use crate::format::scenario::instructions::{BitmaskNumberArray, NumberSpec};
-use crate::format::scenario::U8SmallNumberList;
+use crate::format::scenario::instructions::{BitmaskNumberArray, MessageId, NumberSpec};
+use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String, U8FixupString, U8String};
 use crate::vm::VmCtx;
 use smallvec::SmallVec;
@@ -50,7 +50,7 @@ macro_rules! identity_from_vm_ctx_default {
     };
 }
 
-identity_from_vm_ctx_default!(u8, u16, u32, u64, i8, i16, i32, i64, f32, f64);
+identity_from_vm_ctx_default!(u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, MessageId);
 
 impl FromVmCtx<NumberSpec> for i32 {
     fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {

@@ -59,14 +59,11 @@ impl Updatable for Adv {
         self.action_state
             .update(&self.action_map, context.raw_input_state);
 
-        if self
-            .action_state
-            .is_just_pressed(AdvMessageAction::Continue)
-        {
+        if self.action_state.is_just_pressed(AdvMessageAction::Advance) {
             self.adv_state
                 .root_layer_group
                 .message_layer_mut()
-                .r#continue();
+                .advance();
         }
 
         let mut result = CommandResult::None;
