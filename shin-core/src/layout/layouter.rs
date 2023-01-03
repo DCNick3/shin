@@ -8,7 +8,7 @@ use std::iter::Peekable;
 use tracing::warn;
 
 #[derive(Debug, Clone, Copy)]
-pub struct CharCommand {
+pub struct LayoutedChar {
     pub time: Ticks,
     pub position: Vector2<f32>,
     pub color: Vector3<f32>,
@@ -17,17 +17,18 @@ pub struct CharCommand {
     pub codepoint: u16,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum Command {
-    Char(CharCommand),
+#[derive(Debug, Clone)]
+pub enum ActionType {
+    SetLipSync(bool),
+    VoiceVolume(f32),
+    Voice(String),
+    Signal,
 }
 
-impl Command {
-    pub fn time(&self) -> Ticks {
-        match self {
-            Command::Char(c) => c.time,
-        }
-    }
+#[derive(Debug, Clone)]
+pub struct Action {
+    pub time: Ticks,
+    pub action_type: ActionType,
 }
 
 /// Represents layouter state directly settable by the user.
@@ -114,8 +115,8 @@ struct Layouter<'a> {
     parser: Peekable<LayouterParser<'a>>,
     params: LayoutParams<'a>,
     state: LayouterState,
-    commands: Vec<Command>,
-    pending_chars: Vec<CharCommand>,
+    chars: Vec<LayoutedChar>,
+    pending_chars: Vec<LayoutedChar>,
     position: Vector2<f32>,
     time: Ticks,
 }
@@ -130,7 +131,7 @@ impl<'a> Layouter<'a> {
         // TODO: handle special cases for brackets
         // TODO: handle furigana
 
-        self.pending_chars.push(CharCommand {
+        self.pending_chars.push(LayoutedChar {
             time: self.time,
             position: Vector2::new(self.position.x, 0.0), // do not set y position yet, it will be set when we know which line this char is on
             color: self.state.text_color,
@@ -147,7 +148,7 @@ impl<'a> Layouter<'a> {
         // TODO: where are overflows handled? On the linefeed?
     }
 
-    fn finalize_line(&mut self, chars: &[CharCommand], last_line: bool, x_pos: f32) {
+    fn finalize_line(&mut self, chars: &[LayoutedChar], last_line: bool, x_pos: f32) {
         if chars.is_empty() {
             return;
         }
@@ -205,43 +206,37 @@ impl<'a> Layouter<'a> {
             MessageTextLayout::Right => self.params.layout_width - width,
         };
 
-        self.commands.extend(
-            chars
-                .iter()
-                .cloned()
-                .map(|mut c| {
-                    // move the text to the beginning of the real line
-                    // x might be larger than we want if an overflow happened
-                    c.position.x -= x_pos;
+        self.chars.extend(chars.iter().cloned().map(|mut c| {
+            // move the text to the beginning of the real line
+            // x might be larger than we want if an overflow happened
+            c.position.x -= x_pos;
 
-                    // align the text according to the layout params
-                    c.position.x += x_offset;
+            // align the text according to the layout params
+            c.position.x += x_offset;
 
-                    // move the glyph on its line y coordinate (previously it was zero)
-                    c.position.y += self.position.y;
-                    // make sure that the glyph is on the baseline (doing it here because font size might change on the line)
-                    c.position.y += line_ascent;
-                    // leave space for furigana
-                    // TODO: we, obviously, should not do this when there is no furigana
-                    c.position.y += furigana_height;
+            // move the glyph on its line y coordinate (previously it was zero)
+            c.position.y += self.position.y;
+            // make sure that the glyph is on the baseline (doing it here because font size might change on the line)
+            c.position.y += line_ascent;
+            // leave space for furigana
+            // TODO: we, obviously, should not do this when there is no furigana
+            c.position.y += furigana_height;
 
-                    // if we are overflowing - make it fit by squishing the text
-                    c.position.x *= fit_scale;
-                    c.size.scale_horizontal(fit_scale);
+            // if we are overflowing - make it fit by squishing the text
+            c.position.x *= fit_scale;
+            c.size.scale_horizontal(fit_scale);
 
-                    // if needed - make the text fit by stretching it
-                    if should_stretch {
-                        // I don't get this formula...
-                        // also it seems to do something strange
-                        // TODO: figure this stuff out
-                        // c.position.x = (self.params.layout_width - c.size.width)
-                        //     * (self.position.x
-                        //         / (self.position.x + (width - (self.position.x + c.size.width))));
-                    }
-                    c
-                })
-                .map(Command::Char),
-        );
+            // if needed - make the text fit by stretching it
+            if should_stretch {
+                // I don't get this formula...
+                // also it seems to do something strange
+                // TODO: figure this stuff out
+                // c.position.x = (self.params.layout_width - c.size.width)
+                //     * (self.position.x
+                //         / (self.position.x + (width - (self.position.x + c.size.width))));
+            }
+            c
+        }));
 
         self.position.x = 0.0;
         self.position.y += max_line_height + furigana_height + 4.0 /* TODO: this is one of the many obscure line height-type parameters */;
@@ -272,10 +267,10 @@ impl<'a> Layouter<'a> {
         self.pending_chars.clear();
     }
 
-    fn finalize(mut self) -> Vec<Command> {
+    fn finalize(mut self) -> Vec<LayoutedChar> {
         // TODO: close furigana
         self.on_newline();
-        self.commands
+        self.chars
     }
 }
 
@@ -373,18 +368,48 @@ impl BlockBuilder {
     }
 }
 
-pub fn layout_text(params: LayoutParams, text: &str) -> (Vec<Command>, Vec<Block>) {
+struct ActionsBuilder {
+    actions: Vec<Action>,
+}
+
+impl ActionsBuilder {
+    fn new() -> Self {
+        Self {
+            actions: Vec::new(),
+        }
+    }
+
+    fn action(&mut self, time: Ticks, action: ActionType) {
+        self.actions.push(Action {
+            time,
+            action_type: action,
+        });
+    }
+
+    fn finalize(self) -> Vec<Action> {
+        self.actions
+    }
+}
+
+pub struct LayoutedMessage {
+    pub chars: Vec<LayoutedChar>,
+    pub actions: Vec<Action>,
+    pub blocks: Vec<Block>,
+}
+
+pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
     let mut layouter = Layouter {
         parser: LayouterParser::new(text).peekable(),
         params,
         state: params.default_state,
-        commands: Vec::new(),
+        chars: Vec::new(),
         pending_chars: Vec::new(),
         position: Vector2::new(0.0, 0.0),
         time: Ticks(0.0),
     };
 
     let mut block_builder = BlockBuilder::new();
+    let mut actions_builder = ActionsBuilder::new();
 
     // NOTE: the first line is always the character name, even if the message box does not show it
     // (it's ignored for that case)
@@ -401,8 +426,12 @@ pub fn layout_text(params: LayoutParams, text: &str) -> (Vec<Command>, Vec<Block
         while let Some(command) = layouter.parser.next() {
             match command {
                 ParsedCommand::Char(c) => layouter.on_char(c),
-                ParsedCommand::EnableLipsync => todo!(),
-                ParsedCommand::DisableLipsync => todo!(),
+                ParsedCommand::EnableLipsync => {
+                    actions_builder.action(layouter.time, ActionType::SetLipSync(true))
+                }
+                ParsedCommand::DisableLipsync => {
+                    actions_builder.action(layouter.time, ActionType::SetLipSync(false))
+                }
                 ParsedCommand::Furigana(_) => warn!("Furigana layout command is not implemented"),
                 ParsedCommand::FuriganaStart => {
                     warn!("FuriganaStart layout command is not implemented")
@@ -414,15 +443,19 @@ pub fn layout_text(params: LayoutParams, text: &str) -> (Vec<Command>, Vec<Block
                 ParsedCommand::SetColor(_) => todo!(),
                 ParsedCommand::NoFinalClickWait => block_builder.no_final_wait(),
                 ParsedCommand::ClickWait => block_builder.click_wait(&mut layouter.time),
-                ParsedCommand::VoiceVolume(_) => todo!(),
+                ParsedCommand::VoiceVolume(volume) => {
+                    actions_builder.action(layouter.time, ActionType::VoiceVolume(volume))
+                }
                 ParsedCommand::Newline => layouter.on_newline(),
                 ParsedCommand::TextSpeed(_) => todo!(),
                 ParsedCommand::SimultaneousStart => todo!(),
-                ParsedCommand::Voice(_) => warn!("Voice layout command not implemented"),
+                ParsedCommand::Voice(filename) => {
+                    actions_builder.action(layouter.time, ActionType::Voice(filename))
+                }
                 ParsedCommand::Wait(_) => todo!(),
                 ParsedCommand::Sync => block_builder.sync(&mut layouter.time),
                 ParsedCommand::FontSize(_) => todo!(),
-                ParsedCommand::Signal => todo!(),
+                ParsedCommand::Signal => actions_builder.action(layouter.time, ActionType::Signal),
                 ParsedCommand::InstantTextStart => todo!(),
                 ParsedCommand::InstantTextEnd => todo!(),
                 ParsedCommand::BoldTextStart => todo!(),
@@ -432,9 +465,14 @@ pub fn layout_text(params: LayoutParams, text: &str) -> (Vec<Command>, Vec<Block
     }
 
     let blocks = block_builder.finalize(layouter.time);
-    let commands = layouter.finalize();
-    // TODO: separate Chars, Actions and Blocks
-    return (commands, blocks);
+    let chars = layouter.finalize();
+    let actions = actions_builder.finalize();
+
+    LayoutedMessage {
+        chars,
+        actions,
+        blocks,
+    }
 }
 
 #[cfg(test)]
@@ -443,7 +481,15 @@ mod tests {
     use std::fs::File;
     use std::io::BufReader;
 
-    fn test_layout(text: &str) -> Vec<Command> {
+    fn is_sorted<T, F, K>(data: &[T], mut map: F) -> bool
+    where
+        K: Ord,
+        F: FnMut(&T) -> K,
+    {
+        data.windows(2).all(|w| map(&w[0]) <= map(&w[1]))
+    }
+
+    fn test_layout(text: &str) -> Vec<LayoutedChar> {
         // NOTICE: here we need to use a font
         // it is an asset, so we need to load it from __somewhere__
         // having tests that depend on assets is not ideal
@@ -464,10 +510,14 @@ mod tests {
             has_character_name: true,
         };
 
-        // TODO: test the blocks
-        let (commands, _blocks) = layout_text(params, text);
+        let message = layout_text(params, text);
 
-        commands
+        assert!(is_sorted(&message.chars, |c| c.time));
+        assert!(is_sorted(&message.actions, |a| a.time));
+        assert!(is_sorted(&message.blocks, |b| b.start_time));
+        assert!(message.blocks.iter().all(|b| b.end_time >= b.start_time));
+
+        message.chars
     }
 
     #[test]
@@ -483,35 +533,25 @@ mod tests {
         );
 
         let tsu = result[3];
-        if let Command::Char(c) = tsu {
-            assert_eq!(c.codepoint, 'っ' as u16);
+        assert_eq!(tsu.codepoint, 'っ' as u16);
 
-            const EXPECTED_ASPECT_RATIO: f32 = 104.0 / 80.0;
-            let aspect_ratio = c.size.width / c.size.height;
+        const EXPECTED_ASPECT_RATIO: f32 = 104.0 / 80.0;
+        let aspect_ratio = tsu.size.width / tsu.size.height;
 
-            // divide max by min to get the ratio between aspect ratios
-            let ratio =
-                aspect_ratio.max(EXPECTED_ASPECT_RATIO) / aspect_ratio.min(EXPECTED_ASPECT_RATIO);
-            // the ratio will always be larger than 1 and should be close to 1
-            assert!(ratio < 1.09);
-        } else {
-            panic!("Expected a char command");
-        }
+        // divide max by min to get the ratio between aspect ratios
+        let ratio =
+            aspect_ratio.max(EXPECTED_ASPECT_RATIO) / aspect_ratio.min(EXPECTED_ASPECT_RATIO);
+        // the ratio will always be larger than 1 and should be close to 1
+        assert!(ratio < 1.09);
 
         // the の should still be on the first line
-        if let Command::Char(c) = result[29] {
-            assert_eq!(c.codepoint, 'の' as u16);
-            assert_eq!(c.position.y, 40.625);
-        } else {
-            panic!("Expected a char command");
-        }
+        let c = result[29];
+        assert_eq!(c.codepoint, 'の' as u16);
+        assert_eq!(c.position.y, 40.625); // TODO: why this fails?
 
         // while the 姿 should be on the second line
-        if let Command::Char(c) = result[30] {
-            assert_eq!(c.codepoint, '姿' as u16);
-            assert!(c.position.y > 40.625);
-        } else {
-            panic!("Expected a char command");
-        }
+        let c = result[30];
+        assert_eq!(c.codepoint, '姿' as u16);
+        assert!(c.position.y > 40.625);
     }
 }

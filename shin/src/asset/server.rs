@@ -86,11 +86,13 @@ pub type AnyAssetServer = AssetServer<AnyAssetIo>;
 impl AnyAssetServer {
     #[allow(unused)]
     pub fn new_dir(root_path: PathBuf) -> Self {
+        debug!("Using directory for assets: {:?}", root_path);
         Self::new(AnyAssetIo::new_dir(root_path))
     }
 
     #[allow(unused)]
     pub fn new_rom(rom_path: impl AsRef<Path>) -> Self {
+        debug!("Using ROM for assets: {}", rom_path.as_ref().display());
         Self::new(AnyAssetIo::new_rom(rom_path))
     }
 }

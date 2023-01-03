@@ -2,6 +2,7 @@ mod layouter;
 mod parser;
 
 pub use layouter::{
-    layout_text, Block, BlockExitCondition, CharCommand, Command, LayoutParams, LayouterState,
+    layout_text, Action, ActionType, Block, BlockExitCondition, LayoutParams, LayoutedChar,
+    LayoutedMessage, LayouterState,
 };
 pub use parser::{LayouterParser, ParsedCommand};

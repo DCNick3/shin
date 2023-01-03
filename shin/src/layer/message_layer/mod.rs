@@ -13,14 +13,16 @@ use crate::render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{ElementWise, Matrix4, Vector2};
 use shin_core::format::font::GlyphTrait;
-use shin_core::layout::{Block, BlockExitCondition, Command};
+use shin_core::layout::{Action, ActionType, Block, BlockExitCondition, LayoutedMessage};
 use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
 use shin_core::vm::command::time::Ticks;
+use tracing::warn;
 
 struct Message {
     time: Ticks,
     font_atlas: Arc<FontAtlas>,
-    commands: Vec<Command>,
+    used_codepoints: Vec<u16>,
+    actions: Vec<Action>,
     blocks: Vec<Block>,
     vertex_buffer: VertexBuffer<TextVertex>,
 }
@@ -52,76 +54,81 @@ impl Message {
             has_character_name: true,
         };
 
-        let (commands, mut blocks) = shin_core::layout::layout_text(layout_params, message);
+        let LayoutedMessage {
+            chars,
+            mut actions,
+            mut blocks,
+        } = shin_core::layout::layout_text(layout_params, message);
 
-        // reverse the blocks so that we can easily pop them off the end in order
+        // reverse the blocks & actions so that we can easily pop them off the end in order
         blocks.reverse();
+        actions.reverse();
 
+        let mut used_codepoints = Vec::new();
         let mut vertices = Vec::new();
-        for command in commands.iter() {
-            match command {
-                Command::Char(char) => {
-                    let glyph_info = font_atlas
-                        .get_font()
-                        .get_glyph_for_character(char.codepoint)
-                        .get_info();
+        for char in chars.iter() {
+            // TODO: support for BOLD font
+            let glyph_info = font_atlas
+                .get_font()
+                .get_glyph_for_character(char.codepoint)
+                .get_info();
 
-                    let atlas_size = font_atlas.texture_size();
-                    let atlas_size = Vector2::new(atlas_size.0 as f32, atlas_size.1 as f32);
+            let atlas_size = font_atlas.texture_size();
+            let atlas_size = Vector2::new(atlas_size.0 as f32, atlas_size.1 as f32);
 
-                    let AtlasImage {
-                        position: tex_position,
-                        size: _, // the atlas size is not to be trusted, as it can be larger than the actual texture (even larger than the power of 2 padded texture...)
-                    } = font_atlas.get_glyph(context.gpu_resources, char.codepoint);
+            let AtlasImage {
+                position: tex_position,
+                size: _, // the atlas size is not to be trusted, as it can be larger than the actual texture (even larger than the power of 2 padded texture...)
+            } = font_atlas.get_glyph(context.gpu_resources, char.codepoint);
+            // save the codepoint to free it from the atlas later
+            used_codepoints.push(char.codepoint);
 
-                    // just use the actual size of the glyph
-                    let tex_size = glyph_info.actual_size();
-                    let tex_size = Vector2::new(tex_size.0 as f32, tex_size.1 as f32);
+            // just use the actual size of the glyph
+            let tex_size = glyph_info.actual_size();
+            let tex_size = Vector2::new(tex_size.0 as f32, tex_size.1 as f32);
 
-                    // scale texture coordinates to the size of the texture
-                    let tex_position = tex_position.div_element_wise(atlas_size);
-                    let tex_size = tex_size.div_element_wise(atlas_size);
+            // scale texture coordinates to the size of the texture
+            let tex_position = tex_position.div_element_wise(atlas_size);
+            let tex_size = tex_size.div_element_wise(atlas_size);
 
-                    let position = base_position
-                        + char.position
-                        + Vector2::new(
-                            glyph_info.bearing_x as f32 * char.size.horizontal_scale,
-                            -glyph_info.bearing_y as f32 * char.size.scale,
-                        );
-                    let size = char.size.size();
+            let position = base_position
+                + char.position
+                + Vector2::new(
+                    glyph_info.bearing_x as f32 * char.size.horizontal_scale,
+                    -glyph_info.bearing_y as f32 * char.size.scale,
+                );
+            let size = char.size.size();
 
-                    let time = char.time.0;
-                    let fade = char.fade;
-                    let color = char.color;
+            let time = char.time.0;
+            let fade = char.fade;
+            let color = char.color;
 
-                    // TODO: do the fade calculation here
+            // TODO: do the fade calculation here
 
-                    // helper macro to reduce vertex creation boilerplate
-                    macro_rules! v {
-                        (($x:expr, $y:expr), ($tex_x:expr, $tex_y:expr)) => {
-                            TextVertex {
-                                position: position + Vector2::new($x, $y).mul_element_wise(size),
-                                tex_position: tex_position
-                                    + Vector2::new($tex_x, $tex_y).mul_element_wise(tex_size),
-                                color,
-                                time,
-                                fade,
-                            }
-                        };
+            // helper macro to reduce vertex creation boilerplate
+            macro_rules! v {
+                (($x:expr, $y:expr), ($tex_x:expr, $tex_y:expr)) => {
+                    TextVertex {
+                        position: position + Vector2::new($x, $y).mul_element_wise(size),
+                        tex_position: tex_position
+                            + Vector2::new($tex_x, $tex_y).mul_element_wise(tex_size),
+                        color,
+                        time,
+                        fade,
                     }
-
-                    vertices.extend([
-                        // Top left triangle
-                        v!((0.0, 0.0), (0.0, 0.0)),
-                        v!((1.0, 0.0), (1.0, 0.0)),
-                        v!((0.0, 1.0), (0.0, 1.0)),
-                        // Bottom right triangle
-                        v!((1.0, 1.0), (1.0, 1.0)),
-                        v!((0.0, 1.0), (0.0, 1.0)),
-                        v!((1.0, 0.0), (1.0, 0.0)),
-                    ]);
-                }
+                };
             }
+
+            vertices.extend([
+                // Top left triangle
+                v!((0.0, 0.0), (0.0, 0.0)),
+                v!((1.0, 0.0), (1.0, 0.0)),
+                v!((0.0, 1.0), (0.0, 1.0)),
+                // Bottom right triangle
+                v!((1.0, 1.0), (1.0, 1.0)),
+                v!((0.0, 1.0), (0.0, 1.0)),
+                v!((1.0, 0.0), (1.0, 0.0)),
+            ]);
         }
 
         let vertex_buffer = VertexBuffer::new(
@@ -133,8 +140,9 @@ impl Message {
         Self {
             time: Ticks::ZERO,
             font_atlas,
+            used_codepoints,
+            actions,
             blocks,
-            commands,
             vertex_buffer,
         }
     }
@@ -175,6 +183,7 @@ impl Message {
         // let overshoot_time = self.time - old_block.end_time;
         if let Some(block) = self.current_block() {
             self.time = block.start_time;
+            self.execute_actions();
             // self.time += overshoot_time;
         }
     }
@@ -192,6 +201,23 @@ impl Message {
             }
         }
     }
+
+    fn execute_actions(&mut self) {
+        while let Some(action) = self.actions.last() {
+            if action.time > self.time {
+                break;
+            }
+            let action = self.actions.pop().unwrap();
+            match action.action_type {
+                ActionType::SetLipSync(state) => warn!("Ignoring SetLipSync action: {:?}", state),
+                ActionType::VoiceVolume(volume) => {
+                    warn!("Ignoring voice volume change: {}", volume)
+                }
+                ActionType::Voice(filename) => warn!("Ignoring voice action: {}", filename),
+                ActionType::Signal => todo!(),
+            }
+        }
+    }
 }
 
 impl Updatable for Message {
@@ -199,6 +225,7 @@ impl Updatable for Message {
         if let Some(block) = self.current_block() {
             if !block.completed(self.time) {
                 self.time += context.time_delta_ticks();
+                self.execute_actions();
             } else if matches!(block.exit_condition, BlockExitCondition::None) {
                 self.next_block();
             }
@@ -227,12 +254,8 @@ impl Renderable for Message {
 
 impl Drop for Message {
     fn drop(&mut self) {
-        for command in self.commands.iter() {
-            match command {
-                Command::Char(char) => {
-                    self.font_atlas.free_glyph(char.codepoint);
-                }
-            }
+        for &codepoint in self.used_codepoints.iter() {
+            self.font_atlas.free_glyph(codepoint);
         }
     }
 }

@@ -23,7 +23,6 @@ winit = "0.27.5"
 wgpu = "0.14.0"
 wrld = "1.0.0"
 
-# git version for yet unreleased bytemuck feature
 cgmath = { workspace = true, features = ["bytemuck"] }
 bytemuck = { version = "1.12.3", features = ["derive"] }
 image = "0.24.5"
@@ -41,8 +40,9 @@ enum-map = { workspace = true }
 derive_more = "0.99.17"
 enum_dispatch = "0.3.8"
 itertools = "0.10.5"
-etagere = "0.2.7"
-lru = "0.8.1"
+# git version for integer overflow fix https://github.com/nical/etagere/pull/21
+etagere = { git = "https://github.com/DCNick3/etagere", rev = "53c7ba67256408af78b66909bad7bb905648ec97" }
+lru = "0.9.0"
 strum = "0.24.1"
 typemap = "0.3.3"
 once_cell = "1.16.0"

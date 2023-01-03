@@ -3,6 +3,7 @@ use bevy_utils::{Entry, HashMap};
 use cgmath::Vector2;
 use std::num::NonZeroU32;
 use std::sync::{Mutex, RwLock};
+use tracing::info;
 
 pub trait ImageProvider {
     const IMAGE_FORMAT: wgpu::TextureFormat;
@@ -39,11 +40,14 @@ pub struct AtlasImage {
 pub struct DynamicAtlas<P: ImageProvider> {
     image_provider: P,
 
+    label: String,
+
     // TODO: support multiple atlas pages
     texture: wgpu::Texture,
     texture_bind_group: TextureBindGroup,
     texture_size: (u32, u32),
 
+    // TODO: I am not sure that this "split" locking can't cause deadlocks
     allocator: Mutex<etagere::BucketedAtlasAllocator>,
     /// These are the images that are currently in the atlas and cannot be evicted.
     active_allocations: RwLock<HashMap<P::Id, AtlasAllocation>>,
@@ -108,8 +112,8 @@ impl<P: ImageProvider> DynamicAtlas<P> {
 
         Self {
             image_provider,
+            label,
             texture,
-            // texture_view,
             texture_bind_group,
             texture_size,
             allocator: Mutex::new(allocator),
@@ -140,7 +144,8 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                 allocation
             }
             Entry::Vacant(entry) => {
-                if let Some(allocation) = self.eviction_ready.lock().unwrap().remove(&id) {
+                let mut eviction_ready = self.eviction_ready.lock().unwrap();
+                if let Some(allocation) = eviction_ready.remove(&id) {
                     // The image is already allocated, but not in use, so we can restore it
                     entry.insert(AtlasAllocation {
                         allocation,
@@ -157,19 +162,39 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                     // no compressed textures support for now
                     assert_eq!(format.block_dimensions, (1, 1));
 
-                    let allocation =
-                        if let Some(alloc) =
-                            self.allocator.lock().unwrap().allocate(etagere::Size::new(
-                                width.try_into().unwrap(),
-                                height.try_into().unwrap(),
-                            ))
-                        {
+                    let allocation = {
+                        let mut allocator = self.allocator.lock().unwrap();
+                        if let Some(alloc) = allocator.allocate(etagere::Size::new(
+                            width.try_into().unwrap(),
+                            height.try_into().unwrap(),
+                        )) {
                             alloc
                         } else {
                             // seems like we are out of space
                             // we can evict unused images to make space
-                            todo!("evict some images");
-                        };
+                            for (_id, alloc) in eviction_ready.drain() {
+                                allocator.deallocate(alloc.id);
+                            }
+                            info!(
+                                label = self.label,
+                                "Evicted all atlas images to make space for new ones, free space: {:.2}%", 
+                                100.0 * allocator.free_space() as f32 / allocator.size().area() as f32
+                            );
+
+                            // allocator
+                            //     .dump_svg(&mut std::fs::File::create("atlas_dump.svg").unwrap())
+                            //     .unwrap();
+
+                            if let Some(alloc) = allocator.allocate(etagere::Size::new(
+                                width.try_into().unwrap(),
+                                height.try_into().unwrap(),
+                            )) {
+                                alloc
+                            } else {
+                                panic!("Failed to allocate atlas space for image, even after evicting all unused images");
+                            }
+                        }
+                    };
 
                     let x: u32 = allocation.rectangle.min.x.try_into().unwrap();
                     let y: u32 = allocation.rectangle.min.y.try_into().unwrap();
