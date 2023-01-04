@@ -48,5 +48,10 @@ typemap = "0.3.3"
 once_cell = "1.16.0"
 petitset = "0.2.1"
 
+# egui used for debug overlays
+egui = { version = "0.20.1", features = [] }
+egui_extras = { version = "0.20.0", features = ["svg"] }
+egui-wgpu = { version = "0.20.0", features = [] }
+
 [features]
 default = []

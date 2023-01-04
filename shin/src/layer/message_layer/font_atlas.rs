@@ -1,4 +1,5 @@
 use crate::render::dynamic_atlas::{AtlasImage, DynamicAtlas, ImageProvider};
+use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::render::{GpuCommonResources, TextureBindGroup};
 use shin_core::format::font::{GlyphId, GlyphMipLevel, GlyphTrait, LazyFont};
 use std::sync::Arc;
@@ -67,5 +68,15 @@ impl FontAtlas {
     pub fn free_glyph(&self, charcode: u16) {
         let glyph_id = self.get_font().get_character_mapping()[charcode as usize];
         self.atlas.free_image(glyph_id);
+    }
+
+    pub fn free_space(&self) -> f32 {
+        self.atlas.free_space()
+    }
+}
+
+impl OverlayVisitable for FontAtlas {
+    fn visit_overlay(&self, collector: &mut OverlayCollector) {
+        self.atlas.visit_overlay(collector);
     }
 }

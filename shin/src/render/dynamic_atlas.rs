@@ -1,3 +1,4 @@
+use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::render::{GpuCommonResources, TextureBindGroup};
 use bevy_utils::{Entry, HashMap};
 use cgmath::Vector2;
@@ -53,6 +54,8 @@ pub struct DynamicAtlas<P: ImageProvider> {
     active_allocations: RwLock<HashMap<P::Id, AtlasAllocation>>,
     /// These are images still in the atlas, but can be evicted.
     eviction_ready: Mutex<HashMap<P::Id, etagere::Allocation>>,
+
+    overlay_cache: Mutex<Option<(Vec<u8>, egui_extras::image::RetainedImage)>>,
 }
 
 impl<P: ImageProvider> DynamicAtlas<P> {
@@ -119,6 +122,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
             allocator: Mutex::new(allocator),
             active_allocations: RwLock::new(HashMap::default()),
             eviction_ready: Mutex::new(HashMap::default()),
+            overlay_cache: Mutex::new(None),
         }
     }
 
@@ -286,5 +290,51 @@ impl<P: ImageProvider> DynamicAtlas<P> {
     #[allow(unused)]
     pub fn provider_mut(&mut self) -> &mut P {
         &mut self.image_provider
+    }
+
+    pub fn free_space(&self) -> f32 {
+        let allocator = self.allocator.lock().unwrap();
+        allocator.free_space() as f32 / allocator.size().area() as f32
+    }
+}
+
+impl<P: ImageProvider> OverlayVisitable for DynamicAtlas<P> {
+    fn visit_overlay(&self, collector: &mut OverlayCollector) {
+        collector.overlay(
+            &self.label,
+            |ctx, _top_left| {
+                egui::Window::new(&self.label).show(ctx, |ui| {
+                    ui.label(format!(
+                        "Atlas size: {}x{}\nFree space: {:.2}%",
+                        self.texture_size.0,
+                        self.texture_size.1,
+                        100.0 * self.free_space()
+                    ));
+                    let mut svg_bytes = Vec::new();
+                    self.allocator
+                        .lock()
+                        .unwrap()
+                        .dump_svg(&mut svg_bytes)
+                        .unwrap();
+
+                    // this is... kinda inefficient
+                    let mut cache = self.overlay_cache.lock().unwrap();
+                    match &*cache {
+                        Some((cached_svg, _image)) if cached_svg == &svg_bytes => {}
+                        _ => {
+                            let image = egui_extras::image::RetainedImage::from_svg_bytes(
+                                "atlas_dump.svg",
+                                &svg_bytes,
+                            )
+                            .expect("Failed to load atlas dump svg");
+                            *cache = Some((svg_bytes, image));
+                        }
+                    }
+
+                    cache.as_ref().unwrap().1.show_scaled(ui, 1.0 / 8.0);
+                });
+            },
+            false,
+        );
     }
 }

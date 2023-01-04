@@ -2,6 +2,7 @@ mod bind_groups;
 mod camera;
 mod common_resources;
 pub mod dynamic_atlas;
+pub mod overlay;
 mod pillarbox;
 mod pipelines;
 mod render_target;
@@ -9,13 +10,13 @@ mod vertex_buffer;
 
 pub use bind_groups::{BindGroupLayouts, TextureBindGroup};
 pub use camera::{Camera, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
-use cgmath::Matrix4;
 pub use common_resources::GpuCommonResources;
 pub use pillarbox::Pillarbox;
 pub use pipelines::{Pipelines, PosColTexVertex, PosVertex, TextVertex, VertexSource};
 pub use render_target::RenderTarget;
 pub use vertex_buffer::{IndexBuffer, SpriteVertexBuffer, Vertex, VertexBuffer};
 
+use cgmath::Matrix4;
 use enum_dispatch::enum_dispatch;
 use std::ops::{Deref, DerefMut};
 

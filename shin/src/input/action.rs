@@ -47,20 +47,26 @@ impl ActionData {
 }
 
 pub struct ActionState<T: Action> {
+    action_map: ActionMap<T>,
     action_data: EnumMap<T, ActionData>,
 }
 
 impl<T: Action> ActionState<T> {
     pub fn new() -> Self {
+        Self::with_action_map(T::default_action_map())
+    }
+
+    pub fn with_action_map(action_map: ActionMap<T>) -> Self {
         Self {
+            action_map,
             action_data: enum_map! { _ => ActionData { state: ButtonState::Released, amount: 0.0 } },
         }
     }
 
-    pub fn update(&mut self, action_map: &ActionMap<T>, raw_input_state: &RawInputState) {
+    pub fn update(&mut self, raw_input_state: &RawInputState) {
         self.action_data.values_mut().for_each(|d| d.tick());
 
-        let pressed = action_map.which_pressed(raw_input_state);
+        let pressed = self.action_map.which_pressed(raw_input_state);
         for ((_action, pressed), data) in pressed.into_iter().zip(self.action_data.values_mut()) {
             if let Some(amount) = pressed {
                 data.press(amount);

@@ -7,12 +7,13 @@ pub use state::VmState;
 
 use crate::adv::assets::AdvAssets;
 use crate::input::actions::AdvMessageAction;
-use crate::input::{Action, ActionMap, ActionState};
+use crate::input::ActionState;
 use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup};
-use crate::render::GpuCommonResources;
-use crate::render::Renderable;
+use crate::render::overlay::{OverlayCollector, OverlayVisitable};
+use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::Matrix4;
+use egui::Window;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
 use shin_core::vm::command::CommandResult;
@@ -26,7 +27,6 @@ pub struct Adv {
     vm_state: VmState,
     adv_state: AdvState,
     action_state: ActionState<AdvMessageAction>,
-    action_map: ActionMap<AdvMessageAction>,
     current_command: Option<ExecutingCommand>,
 }
 
@@ -48,7 +48,6 @@ impl Adv {
             vm_state,
             adv_state,
             action_state: ActionState::new(),
-            action_map: AdvMessageAction::default_action_map(),
             current_command: None,
         }
     }
@@ -56,8 +55,7 @@ impl Adv {
 
 impl Updatable for Adv {
     fn update(&mut self, context: &UpdateContext) {
-        self.action_state
-            .update(&self.action_map, context.raw_input_state);
+        self.action_state.update(context.raw_input_state);
 
         if self.action_state.is_just_pressed(AdvMessageAction::Advance) {
             self.adv_state
@@ -115,6 +113,59 @@ impl Renderable for Adv {
 
     fn resize(&mut self, resources: &GpuCommonResources) {
         self.adv_state.resize(resources);
+    }
+}
+
+impl OverlayVisitable for Adv {
+    fn visit_overlay(&self, collector: &mut OverlayCollector) {
+        collector.subgroup(
+            "ADV",
+            |collector| {
+                collector.overlay(
+                    "Command",
+                    |_ctx, top_left| {
+                        let command_name = if let Some(command) = &self.current_command {
+                            command.into()
+                        } else {
+                            "None"
+                        };
+                        top_left.label(format!("Command: {}", command_name));
+                    },
+                    true,
+                );
+                self.adv_state
+                    .root_layer_group
+                    .message_layer()
+                    .visit_overlay(collector);
+                collector.overlay(
+                    "User Layers",
+                    |ctx, _top_left| {
+                        let mut layer_ids = self
+                            .adv_state
+                            .root_layer_group
+                            .screen_layer()
+                            .get_layer_ids()
+                            .cloned()
+                            .collect::<Vec<_>>();
+                        layer_ids.sort();
+                        Window::new("User Layers").show(ctx, |ui| {
+                            for layer_id in layer_ids {
+                                let layer_ty: &'static str = self
+                                    .adv_state
+                                    .root_layer_group
+                                    .screen_layer()
+                                    .get_layer(layer_id)
+                                    .unwrap()
+                                    .into();
+                                ui.label(format!("{}: {}", layer_id.raw(), layer_ty));
+                            }
+                        });
+                    },
+                    false,
+                );
+            },
+            true,
+        );
     }
 }
 

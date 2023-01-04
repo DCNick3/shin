@@ -1,17 +1,21 @@
 use crate::input::action::UserInput;
 use crate::input::inputs::{KeyCode, MouseButton};
+use crate::render::overlay::OverlayVisitable;
+use cgmath::Vector2;
 use enum_map::{enum_map, EnumMap};
 use itertools::Itertools;
 use petitset::PetitSet;
 use std::fmt::Display;
 use winit::event::{ElementState, WindowEvent};
 
+#[derive(Clone)]
 pub struct RawInputState {
     /// Keyboard state, set of pressed keys
-    keyboard: PetitSet<KeyCode, 16>,
+    pub keyboard: PetitSet<KeyCode, 16>,
     /// Mouse buttons state, simple state of each button
-    mouse_buttons: EnumMap<MouseButton, bool>,
-    mouse_scroll_amount: f32,
+    pub mouse_buttons: EnumMap<MouseButton, bool>,
+    pub mouse_position: Vector2<f32>,
+    pub mouse_scroll_amount: f32,
     // TODO: dummy gamepad state for now
     gamepad: (),
     // TODO: mouse position?
@@ -23,6 +27,7 @@ impl RawInputState {
         Self {
             keyboard: PetitSet::new(),
             mouse_buttons: enum_map! { _ => false },
+            mouse_position: Vector2::new(0.0, 0.0),
             mouse_scroll_amount: 0.0,
             gamepad: (),
         }
@@ -53,6 +58,9 @@ impl RawInputState {
                         }
                     }
                 }
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                self.mouse_position = Vector2::new(position.x as f32, position.y as f32);
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 // press virtual mouse buttons
@@ -109,6 +117,25 @@ impl Display for RawInputState {
         )?;
         writeln!(f, "}}")?;
         Ok(())
+    }
+}
+
+impl OverlayVisitable for RawInputState {
+    fn visit_overlay(&self, collector: &mut crate::render::overlay::OverlayCollector) {
+        collector.overlay(
+            "Input State",
+            |_ctx, top_left| {
+                top_left.label(format!(
+                    "Input State: [{}] [{}]",
+                    self.mouse_buttons
+                        .iter()
+                        .filter_map(|(but, state)| state.then(|| format!("{:?}", but)))
+                        .join(", "),
+                    self.keyboard.iter().map(|v| format!("{:?}", v)).join(", ")
+                ));
+            },
+            true,
+        );
     }
 }
 

@@ -2,7 +2,9 @@ use crate::input::inputs::{KeyCode, MouseButton};
 use crate::input::{Action, ActionMap, InputSet};
 use enum_map::{enum_map, Enum};
 
-// Action available in all ADV contexts
+// TODO: move actions from here when an adequate derive macro will be available
+
+/// Actions available in all ADV contexts
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Enum)]
 pub enum AdvMessageAction {
     Advance,
@@ -23,6 +25,26 @@ impl Action for AdvMessageAction {
                 .collect(),
                 AdvMessageAction::Backlog => [].into_iter().collect(),
                 AdvMessageAction::Rollback => [].into_iter().collect(),
+            }
+        }
+
+        ActionMap::new(enum_map! { v => map(v) })
+    }
+}
+
+/// Overlay Manager actions
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Enum)]
+pub enum OverlayManagerAction {
+    ToggleOverlayManager,
+}
+
+impl Action for OverlayManagerAction {
+    fn default_action_map() -> ActionMap<Self> {
+        fn map(v: OverlayManagerAction) -> InputSet {
+            match v {
+                OverlayManagerAction::ToggleOverlayManager => {
+                    [KeyCode::F3.into()].into_iter().collect()
+                }
             }
         }
 

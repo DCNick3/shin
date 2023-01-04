@@ -14,7 +14,9 @@ use crate::{
     adv::assets::AdvAssets,
     adv::Adv,
     asset::AnyAssetServer,
+    fps_counter::FpsCounter,
     input::RawInputState,
+    render::overlay::{OverlayManager, OverlayVisitable},
     render::BindGroupLayouts,
     render::Camera,
     render::GpuCommonResources,
@@ -34,11 +36,13 @@ struct State {
     camera: Camera,
     // TODO: do we want to pull the bevy deps?
     time: bevy_time::Time,
-    vertices: SpriteVertexBuffer,
+    screen_vertices: SpriteVertexBuffer,
     render_target: RenderTarget,
     pillarbox: Pillarbox,
     asset_server: Arc<AnyAssetServer>,
     input: RawInputState,
+    overlay_manager: OverlayManager,
+    fps_counter: FpsCounter,
     adv: Adv,
 }
 
@@ -115,7 +119,9 @@ impl State {
             pipelines,
         });
 
-        let vertices = SpriteVertexBuffer::new_fullscreen(&resources);
+        let overlay = OverlayManager::new(&resources, surface_texture_format);
+
+        let screen_vertices = SpriteVertexBuffer::new_fullscreen(&resources);
         let render_target = RenderTarget::new(
             &resources,
             camera.render_buffer_size(),
@@ -177,11 +183,13 @@ impl State {
             resources,
             camera,
             time: bevy_time::Time::default(),
-            vertices,
+            screen_vertices,
             render_target,
             pillarbox,
             asset_server,
             input: RawInputState::new(),
+            overlay_manager: overlay,
+            fps_counter: FpsCounter::new(),
             adv,
         }
     }
@@ -225,14 +233,27 @@ impl State {
     fn update(&mut self) {
         self.time.update();
 
+        let mut input = self.input.clone();
+
+        self.overlay_manager
+            .start_update(&self.time, &input, self.window_size);
+        self.overlay_manager.visit_overlays(|collector| {
+            self.fps_counter.visit_overlay(collector);
+            input.visit_overlay(collector);
+            self.adv.visit_overlay(collector);
+        });
+        self.overlay_manager
+            .finish_update(&self.resources, &mut input);
+
         let update_context = UpdateContext {
             time: &self.time,
             gpu_resources: &self.resources,
             asset_server: &self.asset_server,
-            raw_input_state: &self.input,
+            raw_input_state: &input,
         };
 
         self.adv.update(&update_context);
+        self.fps_counter.update(&update_context);
 
         // NOTE: it's important that the input is updated after everything else, as it clears some state after it should have been handled
         self.input.update();
@@ -275,7 +296,7 @@ impl State {
 
             self.resources.pipelines.sprite_screen.draw(
                 &mut render_pass,
-                self.vertices.vertex_source(),
+                self.screen_vertices.vertex_source(),
                 self.render_target.bind_group(),
                 self.camera.screen_projection_matrix(),
             );
@@ -284,6 +305,9 @@ impl State {
                 &mut render_pass,
                 self.camera.screen_projection_matrix(),
             );
+
+            self.overlay_manager
+                .render(&self.resources, &mut render_pass);
         }
 
         output.present();

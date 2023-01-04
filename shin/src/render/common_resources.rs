@@ -22,7 +22,7 @@ impl GpuCommonResources {
             encoder: Some(
                 self.device
                     .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                        label: Some("encoder"),
+                        label: Some("SubmittingEncoder"),
                     }),
             ),
             queue: &self.queue,

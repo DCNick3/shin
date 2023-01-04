@@ -9,6 +9,7 @@ use cgmath::{Matrix4, SquareMatrix, Vector3};
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
 use enum_map::{enum_map, EnumMap};
+use strum::IntoStaticStr;
 use tracing::{debug, warn};
 
 pub use bustup_layer::BustupLayer;
@@ -137,6 +138,7 @@ pub trait Layer: Renderable + Updatable {
 }
 
 #[enum_dispatch(Layer, Renderable, Updatable)]
+#[derive(IntoStaticStr)]
 pub enum UserLayer {
     NullLayer,
     PictureLayer,

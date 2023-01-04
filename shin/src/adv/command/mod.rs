@@ -43,6 +43,7 @@ use wait::WAIT;
 use enum_dispatch::enum_dispatch;
 use shin_core::format::scenario::Scenario;
 use std::sync::Arc;
+use strum::IntoStaticStr;
 
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 
@@ -65,6 +66,7 @@ pub trait UpdatableCommand {
 // - a type implementing UpdatableCommand
 // - a enum variant for that type here
 #[enum_dispatch(UpdatableCommand)]
+#[derive(IntoStaticStr)]
 pub enum ExecutingCommand {
     WAIT,
     MSGSET,

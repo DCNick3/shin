@@ -33,6 +33,10 @@ impl LayerGroup {
         }
     }
 
+    pub fn get_layer_ids(&self) -> impl Iterator<Item = &LayerId> {
+        self.layers.keys()
+    }
+
     pub fn add_layer(&mut self, id: LayerId, layer: UserLayer) {
         self.layers.insert(id, layer);
     }

@@ -9,6 +9,7 @@ use crate::layer::message_layer::font_atlas::FontAtlas;
 use crate::layer::message_layer::messagebox::Messagebox;
 use crate::layer::{Layer, LayerProperties};
 use crate::render::dynamic_atlas::AtlasImage;
+use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{ElementWise, Matrix4, Vector2};
@@ -25,6 +26,8 @@ struct Message {
     actions: Vec<Action>,
     blocks: Vec<Block>,
     vertex_buffer: VertexBuffer<TextVertex>,
+    signalled: u32,
+    completed_blocks: u32,
 }
 
 pub enum MessageStatus {
@@ -144,6 +147,8 @@ impl Message {
             actions,
             blocks,
             vertex_buffer,
+            signalled: 0,
+            completed_blocks: 0,
         }
     }
 
@@ -179,6 +184,7 @@ impl Message {
         self.blocks
             .pop()
             .expect("Message::next_block called when no blocks remain");
+        self.completed_blocks += 1;
 
         // let overshoot_time = self.time - old_block.end_time;
         if let Some(block) = self.current_block() {
@@ -214,9 +220,17 @@ impl Message {
                     warn!("Ignoring voice volume change: {}", volume)
                 }
                 ActionType::Voice(filename) => warn!("Ignoring voice action: {}", filename),
-                ActionType::Signal => todo!(),
+                ActionType::Signal => self.signalled += 1,
             }
         }
+    }
+
+    pub fn completed_blocks(&self) -> u32 {
+        self.completed_blocks
+    }
+
+    pub fn signalled(&self) -> u32 {
+        self.signalled
     }
 }
 
@@ -343,6 +357,49 @@ impl Updatable for MessageLayer {
         if let Some(message) = &mut self.message {
             message.update(ctx);
         }
+    }
+}
+
+impl OverlayVisitable for MessageLayer {
+    fn visit_overlay(&self, collector: &mut OverlayCollector) {
+        collector.subgroup(
+            "Message Layer",
+            |collector| {
+                collector.overlay(
+                    "Status",
+                    |_ctx, top_left| {
+                        let status = match self.message {
+                            None => "N",
+                            Some(ref m) => match m.status() {
+                                MessageStatus::Printing => "P",
+                                MessageStatus::ClickWaiting => "K",
+                                MessageStatus::SignalWaiting => "Y",
+                                MessageStatus::Complete => "C",
+                            },
+                        };
+                        let blocks = self
+                            .message
+                            .as_ref()
+                            .map(|m| m.completed_blocks())
+                            .unwrap_or(0);
+                        let signalled = self.message.as_ref().map(|m| m.signalled()).unwrap_or(0);
+                        let time = self.message.as_ref().map(|v| v.time.0).unwrap_or(0.0);
+
+                        top_left.label(format!(
+                            "MessageLayer: {} B={} S={} T={:06.1} AF={:04.1}%",
+                            status,
+                            blocks,
+                            signalled,
+                            time,
+                            self.font_atlas.free_space() * 100.0,
+                        ));
+                    },
+                    true,
+                );
+                self.font_atlas.visit_overlay(collector);
+            },
+            true,
+        );
     }
 }
 
