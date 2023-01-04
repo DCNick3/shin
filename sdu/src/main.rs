@@ -81,8 +81,16 @@ enum ScenarioCommand {
     TestLayouter {
         scenario_path: PathBuf,
         /// Initial value of the memory cell "0", usually selecting the episode or smth
-        #[clap(short, long, default_value = "0")]
+        #[clap(default_value = "0")]
         init_val: i32,
+    },
+    CharFrequency {
+        scenario_path: PathBuf,
+        /// Initial value of the memory cell "0", usually selecting the episode or smth
+        #[clap(default_value = "0")]
+        init_val: i32,
+        #[clap(default_value = "64")]
+        top_k: usize,
     },
     /// [WIP] Decompile a scenario into an assembly-like language
     Decompile { scenario_path: PathBuf },
@@ -245,6 +253,57 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                 }
             }
 
+            Ok(())
+        }
+        ScenarioCommand::CharFrequency {
+            scenario_path: path,
+            init_val,
+            top_k,
+        } => {
+            let scenario = std::fs::read(path)?;
+            let scenario = Bytes::from(scenario);
+            let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
+
+            let mut counter = counter::Counter::<_, u64>::new();
+
+            let mut vm = shin_core::vm::Scripter::new(&scenario, init_val, 42);
+            let mut result = CommandResult::None;
+            loop {
+                // NOTE: usually you would want to do something when the VM has returned "Pending"
+                // stuff like running game loop to let the command progress...
+                let command = vm.run(result)?;
+
+                if let RuntimeCommand::MSGSET(msgset) = &command {
+                    let layouter = shin_core::layout::LayouterParser::new(&msgset.text);
+                    for command in layouter {
+                        match command {
+                            shin_core::layout::ParsedCommand::Char(c) => {
+                                counter[&c] += 1;
+                            }
+                            shin_core::layout::ParsedCommand::Furigana(text) => {
+                                counter.update(text.chars());
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+
+                if let Some(new_result) = command.execute_dummy() {
+                    result = new_result
+                } else {
+                    break;
+                }
+            }
+
+            println!(
+                "{:#?}",
+                counter
+                    .k_most_common_ordered(top_k)
+                    .into_iter()
+                    .map(|v| v.0)
+                    .sorted()
+                    .join("")
+            );
             Ok(())
         }
         ScenarioCommand::Decompile { scenario_path: _ } => {

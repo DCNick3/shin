@@ -38,7 +38,7 @@ pub struct FontAtlas {
 }
 
 const COMMON_CHARACTERS: &str =
-    "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわを";
+    "…\u{3000}、。「」あいうえおかがきくけこさしじすせそただちっつてでとどなにねのはひまめもゃやよらりるれろわをんー亞人代右宮戦真里\u{f8f0}！？";
 
 impl FontAtlas {
     pub fn new(resources: &GpuCommonResources, font: Arc<LazyFont>) -> Self {
@@ -66,7 +66,6 @@ impl FontAtlas {
         self.atlas.texture_size()
     }
 
-    // TODO: implement internal locking
     pub fn get_glyph(&self, resources: &GpuCommonResources, charcode: u16) -> AtlasImage {
         let glyph_id = self.get_font().get_character_mapping()[charcode as usize];
         self.atlas
