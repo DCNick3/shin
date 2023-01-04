@@ -2,9 +2,12 @@ use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::render::{GpuCommonResources, TextureBindGroup};
 use bevy_utils::{Entry, HashMap};
 use cgmath::Vector2;
+use egui::Vec2;
 use std::num::NonZeroU32;
+use std::ops::Deref;
 use std::sync::{Mutex, RwLock};
 use tracing::info;
+use usvg::NodeKind;
 
 pub trait ImageProvider {
     const IMAGE_FORMAT: wgpu::TextureFormat;
@@ -54,8 +57,6 @@ pub struct DynamicAtlas<P: ImageProvider> {
     active_allocations: RwLock<HashMap<P::Id, AtlasAllocation>>,
     /// These are images still in the atlas, but can be evicted.
     eviction_ready: Mutex<HashMap<P::Id, etagere::Allocation>>,
-
-    overlay_cache: Mutex<Option<(Vec<u8>, egui_extras::image::RetainedImage)>>,
 }
 
 impl<P: ImageProvider> DynamicAtlas<P> {
@@ -122,7 +123,6 @@ impl<P: ImageProvider> DynamicAtlas<P> {
             allocator: Mutex::new(allocator),
             active_allocations: RwLock::new(HashMap::default()),
             eviction_ready: Mutex::new(HashMap::default()),
-            overlay_cache: Mutex::new(None),
         }
     }
 
@@ -298,41 +298,211 @@ impl<P: ImageProvider> DynamicAtlas<P> {
     }
 }
 
+// fn stroke_path(path: &usvg::PathData) {}
+
+fn fill_path(path: &usvg::PathData, fill: egui::Color32) -> egui::Shape {
+    let mut points = Vec::new();
+
+    let mut iter = path.segments();
+    if let Some(first) = iter.next() {
+        match first {
+            usvg::PathSegment::MoveTo { x, y } => {
+                points.push(egui::Pos2::new(x as f32, y as f32));
+            }
+            _ => unimplemented!("First segment of path must be MoveTo"),
+        }
+    } else {
+        return egui::Shape::Noop;
+    }
+
+    for segment in &mut iter {
+        match segment {
+            usvg::PathSegment::LineTo { x, y } => {
+                points.push(egui::Pos2::new(x as f32, y as f32));
+            }
+            usvg::PathSegment::ClosePath => break,
+            e => panic!("Unexpected segment: {:?}", e),
+        }
+    }
+    assert!(
+        matches!(iter.next(), None),
+        "ClosePath can only be the last segment"
+    );
+
+    egui::Shape::Path(egui::epaint::PathShape {
+        points,
+        closed: true,
+        fill,
+        stroke: egui::Stroke::NONE,
+    })
+}
+
+fn stroke_path(path: &usvg::PathData, width: f32, color: egui::Color32) -> egui::Shape {
+    let mut points = Vec::new();
+
+    let mut iter = path.segments();
+    if let Some(first) = iter.next() {
+        match first {
+            usvg::PathSegment::MoveTo { x, y } => {
+                points.push(egui::Pos2::new(x as f32, y as f32));
+            }
+            _ => unimplemented!("First segment of path must be MoveTo"),
+        }
+    } else {
+        return egui::Shape::Noop;
+    }
+
+    let mut closed = false;
+    for segment in &mut iter {
+        match segment {
+            usvg::PathSegment::LineTo { x, y } => {
+                points.push(egui::Pos2::new(x as f32, y as f32));
+            }
+            usvg::PathSegment::ClosePath => {
+                closed = true;
+                break;
+            }
+            e => panic!("Unexpected segment: {:?}", e),
+        }
+    }
+    assert!(
+        matches!(iter.next(), None),
+        "ClosePath can only be the last segment"
+    );
+
+    egui::Shape::Path(egui::epaint::PathShape {
+        points,
+        closed,
+        fill: egui::Color32::TRANSPARENT,
+        stroke: egui::Stroke::new(width, color),
+    })
+}
+
+fn convert_path(transform: usvg::Transform, path: &usvg::Path, extra_opacity: f64) -> egui::Shape {
+    let mut data = path.data.deref().clone();
+    data.transform(transform);
+
+    let fill = if let Some(fill) = &path.fill {
+        // egui supports only convex fills anyways
+        assert_eq!(fill.rule, usvg::FillRule::NonZero);
+        if let usvg::Paint::Color(color) = fill.paint {
+            let color = egui::Color32::from_rgba_unmultiplied(
+                color.red,
+                color.green,
+                color.blue,
+                (fill.opacity * usvg::NormalizedF64::new_clamped(extra_opacity)).to_u8(),
+            );
+            fill_path(&data, color)
+        } else {
+            todo!("non-solid svg fill")
+        }
+    } else {
+        egui::Shape::Noop
+    };
+    let stroke = if let Some(stroke) = &path.stroke {
+        assert_eq!(stroke.dasharray, None);
+        // no handling of linecap/linejoin because egui doesn't expose them
+
+        if let usvg::Paint::Color(color) = stroke.paint {
+            let color = egui::Color32::from_rgba_unmultiplied(
+                color.red,
+                color.green,
+                color.blue,
+                (stroke.opacity * usvg::NormalizedF64::new_clamped(extra_opacity)).to_u8(),
+            );
+            stroke_path(&data, stroke.width.get() as f32, color)
+        } else {
+            todo!("non-solid svg stroke")
+        }
+    } else {
+        egui::Shape::Noop
+    };
+
+    match path.paint_order {
+        usvg::PaintOrder::FillAndStroke => egui::Shape::Vec(vec![fill, stroke]),
+        usvg::PaintOrder::StrokeAndFill => egui::Shape::Vec(vec![stroke, fill]),
+    }
+}
+
 impl<P: ImageProvider> OverlayVisitable for DynamicAtlas<P> {
     fn visit_overlay(&self, collector: &mut OverlayCollector) {
         collector.overlay(
             &self.label,
             |ctx, _top_left| {
-                egui::Window::new(&self.label).show(ctx, |ui| {
-                    ui.label(format!(
-                        "Atlas size: {}x{}\nFree space: {:.2}%",
-                        self.texture_size.0,
-                        self.texture_size.1,
-                        100.0 * self.free_space()
-                    ));
-                    let mut svg_bytes = Vec::new();
-                    self.allocator
-                        .lock()
-                        .unwrap()
-                        .dump_svg(&mut svg_bytes)
-                        .unwrap();
+                egui::Window::new(&self.label)
+                    .resizable(true)
+                    .default_width(256.0)
+                    .default_height(256.0 + 32.0)
+                    .show(ctx, |ui| {
+                        ui.label(format!(
+                            "Atlas size: {}x{}\nFree space: {:.2}%",
+                            self.texture_size.0,
+                            self.texture_size.1,
+                            100.0 * self.free_space()
+                        ));
 
-                    // this is... kinda inefficient
-                    let mut cache = self.overlay_cache.lock().unwrap();
-                    match &*cache {
-                        Some((cached_svg, _image)) if cached_svg == &svg_bytes => {}
-                        _ => {
-                            let image = egui_extras::image::RetainedImage::from_svg_bytes(
-                                "atlas_dump.svg",
-                                &svg_bytes,
-                            )
-                            .expect("Failed to load atlas dump svg");
-                            *cache = Some((svg_bytes, image));
+                        let mut svg_bytes = Vec::new();
+                        self.allocator
+                            .lock()
+                            .unwrap()
+                            .dump_svg(&mut svg_bytes)
+                            .unwrap();
+
+                        let svg =
+                            usvg::Tree::from_data(&svg_bytes, &usvg::Options::default()).unwrap();
+
+                        let svg_size = Vec2::new(svg.size.width() as f32, svg.size.height() as f32);
+                        let min_scale = 1.0 / 12.0;
+                        let min_size = svg_size * min_scale;
+
+                        let view_box = svg.view_box;
+
+                        let mut size = ui.available_size();
+                        size.x = size.x.max(min_size.x);
+                        size.y = size.y.max(min_size.y);
+                        let (_id, mut rect) = ui.allocate_space(size);
+
+                        // fiddle with rect to make aspect ratio correct
+                        let aspect_ratio = min_size.x / min_size.y;
+                        let rect_aspect_ratio = rect.width() / rect.height();
+                        // shrinking the size as needed, but keeping the center of the rect the same
+                        if aspect_ratio > rect_aspect_ratio {
+                            let new_height = rect.width() / aspect_ratio;
+                            let old_height = rect.height();
+                            rect.min.y += (old_height - new_height) / 2.0;
+                            rect.max.y -= (old_height - new_height) / 2.0;
+                        } else {
+                            let new_width = rect.height() * aspect_ratio;
+                            let old_width = rect.width();
+                            rect.min.x += (old_width - new_width) / 2.0;
+                            rect.max.x -= (old_width - new_width) / 2.0;
                         }
-                    }
 
-                    cache.as_ref().unwrap().1.show_scaled(ui, 1.0 / 8.0);
-                });
+                        // transform from svg's coordinate system to egui's (after positioning the widget)
+                        let mut transform = usvg::Transform::default();
+                        // do it backwards because linear algebra
+                        transform.translate(rect.min.x as f64, rect.min.y as f64);
+                        transform.scale(rect.width() as f64, rect.height() as f64);
+                        transform.scale(1.0 / view_box.rect.width(), 1.0 / view_box.rect.height());
+                        transform.translate(-view_box.rect.x(), -view_box.rect.y());
+
+                        let painter = ui.painter().with_clip_rect(rect);
+                        for node in svg.root.descendants() {
+                            match node.borrow().deref() {
+                                NodeKind::Group(_g) => {}
+                                NodeKind::Path(p) => {
+                                    assert_eq!(p.transform, usvg::Transform::default());
+                                    if p.visibility != usvg::Visibility::Visible {
+                                        continue;
+                                    }
+
+                                    painter.add(convert_path(transform, p, 0.5));
+                                }
+                                NodeKind::Image(_) => todo!(),
+                                NodeKind::Text(_) => todo!(),
+                            }
+                        }
+                    });
             },
             false,
         );
