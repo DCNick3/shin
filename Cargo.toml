@@ -11,9 +11,8 @@ resolver = "2"
 [workspace.dependencies]
 # git version for yet unreleased bytemuck feature
 cgmath = { git = "https://github.com/rustgd/cgmath.git", rev = "d5e765db61cf9039cb625a789a59ddf6b6ab2337", features = ["bytemuck"] }
-#enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "6f89ffcc8d3f5a95f98bce1ee7ec4444cd8b405f" }
-# ALERT ALERT: this should be a git dependency, not a local one
-enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
+# git version for GATs and a map_ref function
+enum-map = { git = "https://github.com/DCNick3/enum-map.git", rev = "a04d7e336275c5d3796dff157b756af2dab268d7" }
 
 [profile.release]
 debug = true

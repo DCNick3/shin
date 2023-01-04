@@ -1008,6 +1008,7 @@ dependencies = [
 [[package]]
 name = "enum-map"
 version = "2.4.1"
+source = "git+https://github.com/DCNick3/enum-map.git?rev=a04d7e336275c5d3796dff157b756af2dab268d7#a04d7e336275c5d3796dff157b756af2dab268d7"
 dependencies = [
  "enum-map-derive",
 ]
@@ -1015,6 +1016,7 @@ dependencies = [
 [[package]]
 name = "enum-map-derive"
 version = "0.10.0"
+source = "git+https://github.com/DCNick3/enum-map.git?rev=a04d7e336275c5d3796dff157b756af2dab268d7#a04d7e336275c5d3796dff157b756af2dab268d7"
 dependencies = [
  "proc-macro2",
  "quote",
