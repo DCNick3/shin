@@ -37,10 +37,19 @@ pub struct FontAtlas {
     atlas: DynamicAtlas<FontImageProvider>,
 }
 
+const COMMON_CHARACTERS: &str =
+    "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわを";
+
 impl FontAtlas {
     pub fn new(resources: &GpuCommonResources, font: Arc<LazyFont>) -> Self {
         let provider = FontImageProvider { font };
         let atlas = DynamicAtlas::new(resources, provider, TEXTURE_SIZE, Some("FontAtlas"));
+
+        // Preload some common characters (not unloadable)
+        for c in COMMON_CHARACTERS.chars() {
+            let glyph_id = atlas.provider().font.get_character_mapping()[c as usize];
+            let _ = atlas.get_image(resources, glyph_id);
+        }
 
         Self { atlas }
     }
