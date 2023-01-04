@@ -10,9 +10,9 @@ impl super::StartableCommand for command::runtime::MSGSIGNAL {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        warn!("TODO: MSGSIGNAL {:?}", self);
+        adv_state.root_layer_group.message_layer_mut().signal();
         self.token.finish().into()
     }
 }

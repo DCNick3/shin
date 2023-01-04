@@ -38,6 +38,7 @@ mod wipe;
 
 use layerload::LAYERLOAD;
 use msgset::MSGSET;
+use msgwait::MSGWAIT;
 use wait::WAIT;
 
 use enum_dispatch::enum_dispatch;
@@ -70,6 +71,7 @@ pub trait UpdatableCommand {
 pub enum ExecutingCommand {
     WAIT,
     MSGSET,
+    MSGWAIT,
     LAYERLOAD,
 }
 

@@ -26,7 +26,8 @@ struct Message {
     actions: Vec<Action>,
     blocks: Vec<Block>,
     vertex_buffer: VertexBuffer<TextVertex>,
-    signalled: u32,
+    sent_signals: u32,
+    received_signals: u32,
     completed_blocks: u32,
 }
 
@@ -147,7 +148,8 @@ impl Message {
             actions,
             blocks,
             vertex_buffer,
-            signalled: 0,
+            sent_signals: 0,
+            received_signals: 0,
             completed_blocks: 0,
         }
     }
@@ -208,6 +210,10 @@ impl Message {
         }
     }
 
+    pub fn signal(&mut self) {
+        self.received_signals += 1;
+    }
+
     fn execute_actions(&mut self) {
         while let Some(action) = self.actions.last() {
             if action.time > self.time {
@@ -220,7 +226,7 @@ impl Message {
                     warn!("Ignoring voice volume change: {}", volume)
                 }
                 ActionType::Voice(filename) => warn!("Ignoring voice action: {}", filename),
-                ActionType::Signal => self.signalled += 1,
+                ActionType::SignalSection => self.sent_signals += 1,
             }
         }
     }
@@ -229,8 +235,8 @@ impl Message {
         self.completed_blocks
     }
 
-    pub fn signalled(&self) -> u32 {
-        self.signalled
+    pub fn sent_signals(&self) -> u32 {
+        self.sent_signals
     }
 }
 
@@ -240,8 +246,12 @@ impl Updatable for Message {
             if !block.completed(self.time) {
                 self.time += context.time_delta_ticks();
                 self.execute_actions();
-            } else if matches!(block.exit_condition, BlockExitCondition::None) {
-                self.next_block();
+            } else {
+                match block.exit_condition {
+                    BlockExitCondition::None => self.next_block(),
+                    BlockExitCondition::Signal(s) if self.received_signals > s => self.next_block(),
+                    _ => {}
+                }
             }
         }
     }
@@ -325,6 +335,19 @@ impl MessageLayer {
             .unwrap_or(true)
     }
 
+    pub fn is_section_finished(&self, section_num: u32) -> bool {
+        self.message
+            .as_ref()
+            .map(|m| m.sent_signals() > section_num)
+            .expect("MessageLayer::is_section_finished called when no message is set")
+    }
+
+    pub fn signal(&mut self) {
+        if let Some(message) = self.message.as_mut() {
+            message.signal();
+        }
+    }
+
     pub fn advance(&mut self) {
         if let Some(m) = self.message.as_mut() {
             m.advance()
@@ -382,14 +405,21 @@ impl OverlayVisitable for MessageLayer {
                             .as_ref()
                             .map(|m| m.completed_blocks())
                             .unwrap_or(0);
-                        let signalled = self.message.as_ref().map(|m| m.signalled()).unwrap_or(0);
+                        let signalled_out =
+                            self.message.as_ref().map(|m| m.sent_signals()).unwrap_or(0);
+                        let signalled_in = self
+                            .message
+                            .as_ref()
+                            .map(|m| m.received_signals)
+                            .unwrap_or(0);
                         let time = self.message.as_ref().map(|v| v.time.0).unwrap_or(0.0);
 
                         top_left.label(format!(
-                            "MessageLayer: {} B={} S={} T={:06.1} AF={:04.1}%",
+                            "MessageLayer: {} B={} So={} Si={} T={:06.1} AF={:04.1}%",
                             status,
                             blocks,
-                            signalled,
+                            signalled_out,
+                            signalled_in,
                             time,
                             self.font_atlas.free_space() * 100.0,
                         ));

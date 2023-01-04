@@ -22,7 +22,7 @@ pub enum ActionType {
     SetLipSync(bool),
     VoiceVolume(f32),
     Voice(String),
-    Signal,
+    SignalSection,
 }
 
 #[derive(Debug, Clone)]
@@ -455,7 +455,9 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                 ParsedCommand::Wait(_) => todo!(),
                 ParsedCommand::Sync => block_builder.sync(&mut layouter.time),
                 ParsedCommand::FontSize(_) => todo!(),
-                ParsedCommand::Signal => actions_builder.action(layouter.time, ActionType::Signal),
+                ParsedCommand::Signal => {
+                    actions_builder.action(layouter.time, ActionType::SignalSection)
+                }
                 ParsedCommand::InstantTextStart => todo!(),
                 ParsedCommand::InstantTextEnd => todo!(),
                 ParsedCommand::BoldTextStart => todo!(),
