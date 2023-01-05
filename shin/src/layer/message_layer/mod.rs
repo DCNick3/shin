@@ -264,6 +264,22 @@ impl Renderable for Message {
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Matrix4<f32>,
     ) {
+        const OUTLINE_DISTANCE: f32 = 3.5;
+
+        let atlas_size = self.font_atlas.texture_size();
+        let scaled_distance =
+            Vector2::new(atlas_size.0 as f32, atlas_size.1 as f32).map(|x| OUTLINE_DISTANCE / x);
+
+        render_pass.push_debug_group("Message");
+        resources.draw_text_outline(
+            render_pass,
+            self.vertex_buffer.vertex_source(),
+            self.font_atlas.texture_bind_group(),
+            transform,
+            self.time.0,
+            scaled_distance,
+        );
+
         resources.draw_text(
             render_pass,
             self.vertex_buffer.vertex_source(),
@@ -271,6 +287,7 @@ impl Renderable for Message {
             transform,
             self.time.0,
         );
+        render_pass.pop_debug_group();
     }
 
     fn resize(&mut self, _resources: &GpuCommonResources) {}

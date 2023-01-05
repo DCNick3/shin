@@ -36,7 +36,7 @@ macro_rules! make_vertices {
         $(
             $r.push(PosColTexVertex {
                 position: Vector3::new($x, $y, 1.0),
-                color: Vector4::new(1.0, 1.0, 1.0, 0.9),
+                color: Vector4::new(1.0, 1.0, 1.0, 0.85),
                 texture_coordinate: Vector2::new($x_tex / TEX_SIZE.x, $y_tex / TEX_SIZE.y),
             });
         )*

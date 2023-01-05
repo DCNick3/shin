@@ -185,7 +185,18 @@ impl SpritePipeline {
             shader_module,
             layout,
             PosColTexVertex::desc(),
-            Some(wgpu::BlendState::ALPHA_BLENDING),
+            Some(wgpu::BlendState {
+                color: wgpu::BlendComponent {
+                    src_factor: wgpu::BlendFactor::SrcAlpha,
+                    dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                    operation: wgpu::BlendOperation::Add,
+                },
+                alpha: wgpu::BlendComponent {
+                    src_factor: wgpu::BlendFactor::OneMinusDstAlpha,
+                    dst_factor: wgpu::BlendFactor::One,
+                    operation: wgpu::BlendOperation::Add,
+                },
+            }),
             "sprite_pipeline",
         ))
     }
@@ -318,10 +329,74 @@ impl TextPipeline {
     }
 }
 
+#[derive(Pod, Zeroable, Copy, Clone, Debug)]
+#[repr(C)]
+struct TextOutlineParams {
+    pub transform: Matrix4<f32>,
+    pub time: f32,
+    pub distance: Vector2<f32>,
+}
+
+pub struct TextOutlinePipeline(wgpu::RenderPipeline);
+impl TextOutlinePipeline {
+    pub fn new(
+        device: &wgpu::Device,
+        bind_group_layouts: &BindGroupLayouts,
+        texture_format: wgpu::TextureFormat,
+    ) -> Self {
+        let shader_module = device.create_shader_module(include_wgsl!("text_outline.wgsl"));
+
+        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("text_outline_pipeline_layout"),
+            bind_group_layouts: &[&bind_group_layouts.texture],
+            push_constant_ranges: &[wgpu::PushConstantRange {
+                stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                range: 0..mem::size_of::<TextOutlineParams>() as u32,
+            }],
+        });
+
+        let desc = TextVertex::desc();
+
+        Self(make_pipeline(
+            device,
+            texture_format,
+            shader_module,
+            layout,
+            desc,
+            Some(wgpu::BlendState::ALPHA_BLENDING),
+            "text_outline_pipeline",
+        ))
+    }
+
+    pub fn draw<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        source: VertexSource<'a, TextVertex>,
+        texture: &'a TextureBindGroup,
+        transform: Matrix4<f32>,
+        time: f32,
+        distance: Vector2<f32>,
+    ) {
+        render_pass.set_pipeline(&self.0);
+        render_pass.set_bind_group(0, &texture.0, &[]);
+        render_pass.set_push_constants(
+            wgpu::ShaderStages::VERTEX_FRAGMENT,
+            0,
+            bytemuck::cast_slice(&[TextOutlineParams {
+                transform,
+                time,
+                distance,
+            }]),
+        );
+        source.draw(render_pass);
+    }
+}
+
 pub struct Pipelines {
     pub sprite: SpritePipeline,
     pub fill: FillPipeline,
     pub text: TextPipeline,
+    pub text_outline: TextOutlinePipeline,
     // those are pipelines using screen's texture format (not our preferred RGBA format)
     // they are only used for the final render pass
     pub sprite_screen: SpritePipeline,
@@ -338,6 +413,11 @@ impl Pipelines {
             sprite: SpritePipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
             fill: FillPipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
             text: TextPipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
+            text_outline: TextOutlinePipeline::new(
+                device,
+                bind_group_layouts,
+                render::TEXTURE_FORMAT,
+            ),
 
             sprite_screen: SpritePipeline::new(device, bind_group_layouts, surface_texture_format),
             fill_screen: FillPipeline::new(device, bind_group_layouts, surface_texture_format),

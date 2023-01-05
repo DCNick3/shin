@@ -3,7 +3,7 @@ use crate::render::{
     BindGroupLayouts, PosColTexVertex, PosVertex, SubmittingEncoder, TextVertex, TextureBindGroup,
     VertexSource,
 };
-use cgmath::{Matrix4, Vector4};
+use cgmath::{Matrix4, Vector2, Vector4};
 use std::sync::RwLock;
 
 pub struct GpuCommonResources {
@@ -65,6 +65,20 @@ impl GpuCommonResources {
         self.pipelines
             .text
             .draw(render_pass, source, texture, transform, time);
+    }
+
+    pub fn draw_text_outline<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        source: VertexSource<'a, TextVertex>,
+        texture: &'a TextureBindGroup,
+        transform: Matrix4<f32>,
+        time: f32,
+        distance: Vector2<f32>,
+    ) {
+        self.pipelines
+            .text_outline
+            .draw(render_pass, source, texture, transform, time, distance);
     }
 
     pub fn current_render_buffer_size(&self) -> (u32, u32) {
