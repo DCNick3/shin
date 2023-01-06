@@ -89,8 +89,9 @@ impl<F: AsRef<AudioFile>> AudioDecoder<F> {
         self.decoder.reset_state().unwrap();
     }
 
-    pub fn samples_position(&self) -> usize {
-        self.position / self.frame_size() * self.frame_samples() + self.pre_skip
+    pub fn samples_position(&self) -> i64 {
+        (self.position / self.frame_size()) as i64 * self.frame_samples() as i64
+            + self.pre_skip as i64
     }
 
     fn frame_size(&self) -> usize {
@@ -101,7 +102,10 @@ impl<F: AsRef<AudioFile>> AudioDecoder<F> {
         self.info().frame_samples as usize
     }
 
-    pub fn decode_frame(&mut self) -> Option<&[f32]> {
+    /// Decodes one opus frame
+    ///
+    /// Returns the offset in the buffer to start reading from
+    pub fn decode_frame(&mut self) -> Option<usize> {
         // the loop is here to handle pre-skips larger than one frame
         loop {
             let data = &self.file.as_ref().data;
@@ -129,9 +133,13 @@ impl<F: AsRef<AudioFile>> AudioDecoder<F> {
                 self.pre_skip -= self.frame_samples();
             } else {
                 self.pre_skip = 0;
-                break Some(&self.buffer[self.pre_skip..]);
+                break Some(self.pre_skip);
             }
         }
+    }
+
+    pub fn buffer(&self) -> &[f32] {
+        &self.buffer
     }
 }
 

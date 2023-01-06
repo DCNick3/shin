@@ -184,6 +184,11 @@ impl Scenario {
         (bup_name.as_str(), bup_emotion.as_str(), *bup_index)
     }
 
+    pub fn get_bgm_data(&self, bgm_id: i32) -> (&str, &str, u16) {
+        let (bgm_name, bgm_display_name, bgm_index) = &self.bgm_data[bgm_id as usize];
+        (bgm_name.as_str(), bgm_display_name.as_str(), *bgm_index)
+    }
+
     pub fn raw(&self) -> &[u8] {
         &self.raw_data
     }

@@ -55,7 +55,8 @@ egui-wgpu = { version = "0.20.0", features = [] }
 usvg = "0.28.0"
 
 # kira for audio output
-kira = { version = "0.7.1", default-features = true, features = ["cpal"] }
+kira = { version = "0.7.1", default-features = false, features = ["cpal"] }
+ringbuf = "0.3.1"
 
 [features]
 default = []

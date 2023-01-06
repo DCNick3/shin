@@ -10,6 +10,7 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
+use crate::audio::AudioManager;
 use crate::{
     adv::assets::AdvAssets,
     adv::Adv,
@@ -130,51 +131,14 @@ impl State {
 
         let pillarbox = Pillarbox::new(&resources);
 
-        // let bg_pic = std::fs::read("assets/ship_p1a.pic").unwrap();
-        // let bg_pic = crate::asset::picture::load_picture(&bg_pic).unwrap();
-        // let bg_pic = GpuPicture::load(&resources, bg_pic);
-        // let mut bg_pic = PictureLayer::new(&resources, bg_pic);
-        //
-        // // test the interpolators
-        // let props = bg_pic.properties_mut();
-        // props.set_property(LayerProperty::Rotation, 400.0, Ticks(180.0), Easing::EaseIn);
-        // props.set_property(
-        //     LayerProperty::Rotation,
-        //     -400.0,
-        //     Ticks(240.0),
-        //     Easing::Identity,
-        // );
-        // props.set_property(LayerProperty::Rotation, 0.0, Ticks(180.0), Easing::EaseOut);
-        //
-        // let mut layer_group = LayerGroup::new(&resources);
-        // layer_group.add_layer(LayerId::new(1), bg_pic.into());
-        //
-        // let props = layer_group.properties_mut();
-        // props.set_property(
-        //     LayerProperty::TranslateY,
-        //     400.0,
-        //     Ticks(180.0),
-        //     Easing::EaseIn,
-        // );
-        // props.set_property(
-        //     LayerProperty::TranslateY,
-        //     -400.0,
-        //     Ticks(240.0),
-        //     Easing::Identity,
-        // );
-        // props.set_property(
-        //     LayerProperty::TranslateY,
-        //     0.0,
-        //     Ticks(180.0),
-        //     Easing::EaseOut,
-        // );
+        let audio_manager = Arc::new(AudioManager::new());
 
         let asset_server = Arc::new(AnyAssetServer::new_dir(PathBuf::from("assets/data")));
 
         let adv_assets =
             pollster::block_on(AdvAssets::load(&asset_server)).expect("Loading assets failed");
 
-        let adv = Adv::new(&resources, adv_assets, 0, 42);
+        let adv = Adv::new(&resources, audio_manager, adv_assets, 0, 42);
 
         Self {
             surface,

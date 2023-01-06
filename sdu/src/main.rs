@@ -567,8 +567,9 @@ fn audio_command(command: AudioCommand) -> Result<()> {
 
             let mut decoder = audio.decode().context("Creating decoder")?;
 
-            while let Some(buffer) = decoder.decode_frame() {
+            while let Some(offset) = decoder.decode_frame() {
                 // writing this is ungodly slow, maybe we could use a different wav library?
+                let buffer = &decoder.buffer()[offset..];
                 buffer
                     .iter()
                     .try_for_each(|sample| writer.write_sample(*sample))

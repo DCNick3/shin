@@ -7,12 +7,23 @@ impl super::StartableCommand for command::runtime::BGMPLAY {
 
     fn start(
         self,
-        _context: &UpdateContext,
-        _scenario: &Arc<Scenario>,
+        context: &UpdateContext,
+        scenario: &Arc<Scenario>,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        warn!("TODO: BGMPLAY: {:?}", self);
+        let (bgm_filename, _bgm_name, _idk) = scenario.get_bgm_data(self.bgm_data_id);
+
+        let bgm_path = format!("/bgm/{}.nxa", bgm_filename);
+
+        let audio = context
+            .asset_server
+            // TODO: sync - bad!!
+            .load_sync(bgm_path)
+            .expect("Failed to load BGM track");
+
+        adv_state.bgm_player.play(audio);
+
         self.token.finish().into()
     }
 }

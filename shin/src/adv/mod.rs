@@ -6,6 +6,7 @@ pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, Updata
 pub use state::VmState;
 
 use crate::adv::assets::AdvAssets;
+use crate::audio::{AudioManager, BgmPlayer};
 use crate::input::actions::AdvMessageAction;
 use crate::input::ActionState;
 use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup};
@@ -33,6 +34,7 @@ pub struct Adv {
 impl Adv {
     pub fn new(
         resources: &GpuCommonResources,
+        audio_manager: Arc<AudioManager>,
         assets: AdvAssets,
         init_val: i32,
         random_seed: u32,
@@ -40,7 +42,7 @@ impl Adv {
         let scenario = assets.scenario.clone();
         let scripter = Scripter::new(&scenario, init_val, random_seed);
         let vm_state = VmState::new();
-        let adv_state = AdvState::new(resources, assets);
+        let adv_state = AdvState::new(resources, audio_manager, assets);
 
         Self {
             scenario,
@@ -171,12 +173,14 @@ impl OverlayVisitable for Adv {
 
 pub struct AdvState {
     pub root_layer_group: RootLayerGroup,
+    pub bgm_player: BgmPlayer,
 }
 
 impl AdvState {
     pub fn new(
         resources: &GpuCommonResources,
-        assets: AdvAssets, /* TODO: we need a better asset system */
+        audio_manager: Arc<AudioManager>,
+        assets: AdvAssets,
     ) -> Self {
         Self {
             root_layer_group: RootLayerGroup::new(
@@ -184,6 +188,7 @@ impl AdvState {
                 LayerGroup::new(resources),
                 MessageLayer::new(resources, assets.fonts, assets.messagebox_textures),
             ),
+            bgm_player: BgmPlayer::new(audio_manager),
         }
     }
 

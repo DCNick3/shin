@@ -1,3 +1,4 @@
+pub mod audio;
 pub mod bustup;
 mod font;
 pub mod gpu_image;

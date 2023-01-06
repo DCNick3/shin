@@ -162,7 +162,15 @@ impl UserLayer {
             LayerType::Null => NullLayer::new().into(),
             LayerType::Tile => {
                 let [tile_color, offset_x, offset_y, width, height, _, _, _] = params;
-                TileLayer::new(resources, tile_color, offset_x, offset_y, width.try_into().unwrap(), height.try_into().unwrap()).into()
+                TileLayer::new(
+                    resources,
+                    tile_color,
+                    offset_x,
+                    offset_y,
+                    width.try_into().unwrap(),
+                    height.try_into().unwrap(),
+                )
+                .into()
             }
             LayerType::Picture => {
                 let [pic_id, _, _, _, _, _, _, _] = params;
@@ -170,7 +178,7 @@ impl UserLayer {
                 debug!("Load picture: {} -> {} {}", pic_id, pic_name, v1);
                 let pic_path = format!("/picture/{}.pic", pic_name.to_ascii_lowercase());
                 let pic = asset_server
-                    .load::<Picture>(&pic_path)
+                    .load::<Picture, _>(pic_path)
                     .await
                     .expect("Failed to load picture");
                 PictureLayer::new(resources, pic).into()
@@ -184,7 +192,7 @@ impl UserLayer {
                 );
                 let bup_path = format!("/bustup/{}.bup", bup_name.to_ascii_lowercase());
                 let bup = asset_server
-                    .load::<Bustup>(&bup_path)
+                    .load::<Bustup, _>(bup_path)
                     .await
                     .expect("Failed to load bustup");
 

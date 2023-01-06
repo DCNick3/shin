@@ -46,7 +46,9 @@ impl<Io: AssetIo> AssetServer<Io> {
         }
     }
 
-    pub async fn load<T: Asset>(&self, path: &str) -> Result<Arc<T>> {
+    pub async fn load<T: Asset, P: AsRef<str>>(&self, path: P) -> Result<Arc<T>> {
+        let path = path.as_ref();
+
         if let Some(loaded) = self.loaded_assets.read().unwrap().get::<AssetMap<T>>() {
             if let Some(asset) = loaded.get(path) {
                 if let Some(asset) = asset.upgrade() {
@@ -78,6 +80,12 @@ impl<Io: AssetIo> AssetServer<Io> {
             .insert(path.to_string(), Arc::downgrade(&asset));
 
         Ok(asset)
+    }
+
+    /// Load an asset synchronously. This is useful for assets not required much CPU time to load.
+    /// Though it might cause lockups if the loading is not blazing fast (tm).
+    pub fn load_sync<T: Asset, P: AsRef<str>>(&self, path: P) -> Result<Arc<T>> {
+        pollster::block_on(self.load(path))
     }
 }
 
