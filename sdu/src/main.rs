@@ -5,7 +5,7 @@ use clap_complete::{generate, Shell};
 use image::{GenericImageView, Rgba, RgbaImage};
 use itertools::Itertools;
 use shin_core::format::picture::SimpleMergedPicture;
-use shin_core::format::rom::IndexEntry;
+use shin_core::format::rom::{IndexEntry, IndexFile};
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -67,6 +67,15 @@ enum RomCommand {
         /// Path to the output file
         output_path: PathBuf,
     },
+    /// Extract multiple files from the archive, creating a directory tree
+    Extract {
+        /// Path to the ROM file
+        rom_path: PathBuf,
+        /// Path to the output directory (will be created if it does not exist)
+        output_dir: PathBuf,
+        /// Names of specific files to be extracted. If none are specified, all files in the ROM will be extracted.
+        file_names: Vec<String>,
+    }
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -202,6 +211,52 @@ fn rom_command(command: RomCommand) -> Result<()> {
             std::fs::write(output_path, buf).context("Writing file")?;
             Ok(())
         }
+        RomCommand::Extract {
+            rom_path,
+            output_dir,
+            file_names
+        } => {
+            use std::io::Read;
+            let rom = File::open(rom_path).context("Opening rom file")?;
+            let rom = BufReader::new(rom);
+            let mut reader = shin_core::format::rom::RomReader::new(rom).context("Parsing ROM")?;
+
+            // First, make a list of all the files in the rom
+            let files: Vec<(String, IndexFile)> = reader
+                .traverse()
+                .filter_map(|(name, entry)| {
+                    match entry {
+                        IndexEntry::File(file_entry) => {
+                            if file_names.is_empty() || file_names.contains(&name) {
+                                Some((name, *file_entry))
+                            } else {
+                                None
+                            }
+                        },
+                        IndexEntry::Directory(_) => None
+                    }
+                })
+                .collect();
+
+            // Then go through the files, read each one from the rom, and write it to the filesystem
+            for (name, file_entry) in files {
+                // Construct output path
+                let mut output_path = output_dir.clone();
+                output_path.extend(name.split('/'));
+
+                let mut file = reader.open_file(file_entry).context("Opening file in rom")?;
+                let mut buf = Vec::new();
+                let len = file.read_to_end(&mut buf).context("Reading file data from rom")?;
+                match output_path.parent() {
+                    Some(parent) => std::fs::create_dir_all(parent).context("Creating directory to write file in")?,
+                    None => {},
+                }
+                std::fs::write(output_path.as_path(), buf).context("Writing file")?;
+
+                println!("Wrote file {} ({} bytes)", output_path.display(), len);
+            }
+            Ok(())
+        },
     }
 }
 
