@@ -191,3 +191,62 @@ impl SpriteVertexBuffer {
             .with_index_buffer(&self.index_buffer.buffer, 0..self.index_buffer.num_indices)
     }
 }
+
+pub struct PosVertexBuffer {
+    vertex_buffer: VertexBuffer<PosVertex>,
+    index_buffer: IndexBuffer,
+}
+
+impl PosVertexBuffer {
+    pub fn new(
+        resources: &GpuCommonResources,
+        (l, t, r, b): (f32, f32, f32, f32),
+    ) -> Self {
+        let vertices = [
+            // 0
+            PosVertex {
+                position: Vector3::new(l, b, 0.0),
+            },
+            // 1
+            PosVertex {
+                position: Vector3::new(l, t, 0.0),
+            },
+            // 2
+            PosVertex {
+                position: Vector3::new(r, b, 0.0),
+            },
+            // 3
+            PosVertex {
+                position: Vector3::new(r, t, 0.0),
+            },
+        ];
+
+        let indices = [0, 1, 2, 2, 1, 3];
+
+        Self {
+            vertex_buffer: VertexBuffer::new(
+                resources,
+                &vertices,
+                Some(&format!("PosVertexBuffer({}, {}, {}, {})", l, t, r, b)),
+            ),
+            index_buffer: IndexBuffer::new(
+                resources,
+                &indices,
+                Some("PosVertexBuffer.index_buffer"),
+            ),
+        }
+    }
+
+    pub fn new_fullscreen(resources: &GpuCommonResources) -> Self {
+        let w = render::VIRTUAL_WIDTH as f32 / 2.0;
+        let h = render::VIRTUAL_HEIGHT as f32 / 2.0;
+
+        Self::new(resources, (-w, -h, w, h))
+    }
+
+    pub fn vertex_source(&self) -> VertexSource<PosVertex> {
+        self.vertex_buffer
+            .vertex_source()
+            .with_index_buffer(&self.index_buffer.buffer, 0..self.index_buffer.num_indices)
+    }
+}

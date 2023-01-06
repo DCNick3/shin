@@ -4,13 +4,14 @@ mod message_layer;
 mod null_layer;
 mod picture_layer;
 mod root_layer_group;
+mod tile_layer;
 
 use cgmath::{Matrix4, SquareMatrix, Vector3};
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
 use enum_map::{enum_map, EnumMap};
 use strum::IntoStaticStr;
-use tracing::{debug, warn};
+use tracing::debug;
 
 pub use bustup_layer::BustupLayer;
 pub use layer_group::LayerGroup;
@@ -18,6 +19,7 @@ pub use message_layer::{MessageLayer, MessageboxTextures};
 pub use null_layer::NullLayer;
 pub use picture_layer::PictureLayer;
 pub use root_layer_group::RootLayerGroup;
+pub use tile_layer::TileLayer;
 
 use crate::asset::bustup::Bustup;
 use crate::asset::picture::Picture;
@@ -143,6 +145,7 @@ pub enum UserLayer {
     NullLayer,
     PictureLayer,
     BustupLayer,
+    TileLayer,
 }
 
 impl UserLayer {
@@ -158,8 +161,8 @@ impl UserLayer {
         match layer_ty {
             LayerType::Null => NullLayer::new().into(),
             LayerType::Tile => {
-                warn!("Loading NullLayer instead of TileLayer");
-                NullLayer::new().into()
+                let [tile_color, offset_x, offset_y, width, height, _, _, _] = params;
+                TileLayer::new(resources, tile_color, offset_x, offset_y, width.try_into().unwrap(), height.try_into().unwrap()).into()
             }
             LayerType::Picture => {
                 let [pic_id, _, _, _, _, _, _, _] = params;

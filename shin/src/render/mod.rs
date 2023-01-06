@@ -14,7 +14,7 @@ pub use common_resources::GpuCommonResources;
 pub use pillarbox::Pillarbox;
 pub use pipelines::{Pipelines, PosColTexVertex, PosVertex, TextVertex, VertexSource};
 pub use render_target::RenderTarget;
-pub use vertex_buffer::{IndexBuffer, SpriteVertexBuffer, Vertex, VertexBuffer};
+pub use vertex_buffer::{IndexBuffer, SpriteVertexBuffer, PosVertexBuffer, Vertex, VertexBuffer};
 
 use cgmath::Matrix4;
 use enum_dispatch::enum_dispatch;
