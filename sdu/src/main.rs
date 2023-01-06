@@ -8,7 +8,7 @@ use shin_core::format::picture::SimpleMergedPicture;
 use shin_core::format::rom::IndexEntry;
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
@@ -40,6 +40,9 @@ enum SduAction {
     /// Operations on TXA texture archive files
     #[clap(subcommand, alias("txa"))]
     TextureArchive(TextureArchiveCommand),
+    /// Opeartions on NXA audio files
+    #[clap(subcommand, alias("nxa"))]
+    Audio(AudioCommand),
 }
 
 #[derive(clap::Args, Debug)]
@@ -136,6 +139,17 @@ enum TextureArchiveCommand {
         /// Path to the TXA file
         texture_archive_path: PathBuf,
         /// Path to the output directory
+        output_path: PathBuf,
+    },
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum AudioCommand {
+    /// Convert a NXA file into a WAV file
+    Decode {
+        /// Path to the NXA file
+        audio_path: PathBuf,
+        /// Path to the output WAV file
         output_path: PathBuf,
     },
 }
@@ -472,6 +486,47 @@ fn texture_archive_command(command: TextureArchiveCommand) -> Result<()> {
     }
 }
 
+fn audio_command(command: AudioCommand) -> Result<()> {
+    match command {
+        AudioCommand::Decode {
+            audio_path,
+            output_path,
+        } => {
+            use hound::WavSpec;
+
+            let audio = std::fs::read(audio_path).context("Reading input file")?;
+            let audio = shin_core::format::audio::read_audio(&audio)?;
+
+            let writer = File::create(output_path).context("Creating output file")?;
+            let writer = BufWriter::new(writer);
+            let mut writer = hound::WavWriter::new(
+                writer,
+                WavSpec {
+                    channels: audio.info().channel_count,
+                    sample_rate: audio.info().sample_rate,
+                    bits_per_sample: 32,
+                    sample_format: hound::SampleFormat::Float,
+                },
+            )
+            .context("Creating WAV writer")?;
+
+            let mut decoder = audio.decode().context("Creating decoder")?;
+
+            while let Some(buffer) = decoder.decode_frame() {
+                // writing this is ungodly slow, maybe we could use a different wav library?
+                buffer
+                    .iter()
+                    .try_for_each(|sample| writer.write_sample(*sample))
+                    .context("Writing samples")?;
+            }
+
+            writer.finalize().context("Finalizing the WAV file")?;
+
+            Ok(())
+        }
+    }
+}
+
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -487,5 +542,6 @@ fn main() -> Result<()> {
         SduAction::Font(cmd) => font_command(cmd),
         SduAction::Bustup(cmd) => bustup_command(cmd),
         SduAction::TextureArchive(cmd) => texture_archive_command(cmd),
+        SduAction::Audio(cmd) => audio_command(cmd),
     }
 }

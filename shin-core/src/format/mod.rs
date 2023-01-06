@@ -4,6 +4,7 @@ pub mod text;
 
 pub mod rom;
 
+pub mod audio;
 pub mod bustup;
 pub mod font;
 pub mod picture;
