@@ -64,12 +64,14 @@ enum RomCommand {
         /// Path to the output file
         output_path: PathBuf,
     },
-    /// Extract all files from the archive, creating a directory tree
-    ExtractTree {
+    /// Extract multiple files from the archive, creating a directory tree
+    Extract {
         /// Path to the ROM file
         rom_path: PathBuf,
-        /// Path to the output directory (will be created)
+        /// Path to the output directory (will be created if it does not exist)
         output_dir: PathBuf,
+        /// Names of specific files to be extracted. If none are specified, all files in the ROM will be extracted.
+        file_names: Vec<String>,
     }
 }
 
@@ -195,7 +197,11 @@ fn rom_command(command: RomCommand) -> Result<()> {
             std::fs::write(output_path, buf).context("Writing file")?;
             Ok(())
         }
-        RomCommand::ExtractTree { rom_path, output_dir } => {
+        RomCommand::Extract {
+            rom_path,
+            output_dir,
+            file_names
+        } => {
             use std::io::Read;
             let rom = File::open(rom_path).context("Opening rom file")?;
             let rom = BufReader::new(rom);
@@ -206,7 +212,13 @@ fn rom_command(command: RomCommand) -> Result<()> {
                 .traverse()
                 .filter_map(|(name, entry)| {
                     match entry {
-                        IndexEntry::File(file_entry) => Some((name, *file_entry)),
+                        IndexEntry::File(file_entry) => {
+                            if file_names.is_empty() || file_names.contains(&name) {
+                                Some((name, *file_entry))
+                            } else {
+                                None
+                            }
+                        },
                         IndexEntry::Directory(_) => None
                     }
                 })
