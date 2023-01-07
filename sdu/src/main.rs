@@ -554,13 +554,15 @@ fn audio_command(command: AudioCommand) -> Result<()> {
             let audio = std::fs::read(audio_path).context("Reading input file")?;
             let audio = shin_core::format::audio::read_audio(&audio)?;
 
+            let info = audio.info().clone();
+
             let writer = File::create(output_path).context("Creating output file")?;
             let writer = BufWriter::new(writer);
             let mut writer = hound::WavWriter::new(
                 writer,
                 WavSpec {
-                    channels: audio.info().channel_count,
-                    sample_rate: audio.info().sample_rate,
+                    channels: info.channel_count,
+                    sample_rate: info.sample_rate,
                     bits_per_sample: 32,
                     sample_format: hound::SampleFormat::Float,
                 },
@@ -571,7 +573,7 @@ fn audio_command(command: AudioCommand) -> Result<()> {
 
             while let Some(offset) = decoder.decode_frame() {
                 // writing this is ungodly slow, maybe we could use a different wav library?
-                let buffer = &decoder.buffer()[offset..];
+                let buffer = &decoder.buffer()[offset * info.channel_count as usize..];
                 buffer
                     .iter()
                     .try_for_each(|sample| writer.write_sample(*sample))

@@ -50,7 +50,9 @@ impl SePlayer {
 
         let handle = self.audio_manager.play(kira_data);
 
-        assert!(self.se_slots[slot].is_none());
+        if let Some(mut old_handle) = self.se_slots[slot].take() {
+            old_handle.stop(Tween::default()).unwrap();
+        }
 
         self.se_slots[slot] = Some(handle);
     }

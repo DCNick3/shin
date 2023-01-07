@@ -12,6 +12,10 @@ impl super::StartableCommand for command::runtime::BGMPLAY {
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
+        if self.no_repeat == 0 {
+            warn!("TODO: BGMPLAY: ignoring no_repeat={}", self.no_repeat);
+        }
+
         let (bgm_filename, _bgm_name, _idk) = scenario.get_bgm_data(self.bgm_data_id);
 
         let bgm_path = format!("/bgm/{}.nxa", bgm_filename);

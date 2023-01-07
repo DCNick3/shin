@@ -13,10 +13,13 @@ impl super::StartableCommand for command::runtime::SEPLAY {
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         if self.pan != 0 {
-            warn!("TODO: SEPLAY: ignoring pan={}", self);
+            warn!("TODO: SEPLAY: ignoring pan={}", self.pan);
         }
         if self.play_speed != 1000 {
-            warn!("TODO: SEPLAY: ignoring play_speed={}", self);
+            warn!("TODO: SEPLAY: ignoring play_speed={}", self.play_speed);
+        }
+        if self.no_repeat == 0 {
+            warn!("TODO: SEPLAY: ignoring no_repeat={}", self.no_repeat);
         }
 
         let se_name = scenario.get_se_data(self.se_data_id);

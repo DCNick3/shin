@@ -154,17 +154,24 @@ impl SampleProvider {
 
     fn push_next_frame(&mut self) {
         let buffer = self.decoder.buffer();
-        let buffer = &buffer[self.buffer_offset * 2..];
+        let buffer = &buffer[self.buffer_offset * self.decoder.info().channel_count as usize..];
         if !buffer.is_empty() {
             // TODO: handle non-stereo audio?
             self.buffer_offset += 1;
-            self.resampler.push_frame(
-                Frame {
+
+            let frame = match self.decoder.info().channel_count {
+                1 => Frame {
+                    left: buffer[0],
+                    right: buffer[0],
+                },
+                2 => Frame {
                     left: buffer[0],
                     right: buffer[1],
                 },
-                self.position(),
-            );
+                _ => panic!("Unsupported channel count"),
+            };
+
+            self.resampler.push_frame(frame, self.position());
         } else {
             match self.decoder.decode_frame() {
                 Some(pos) => self.buffer_offset = pos,

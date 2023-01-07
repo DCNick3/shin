@@ -15,7 +15,7 @@ struct NxaHeader {
     info: AudioInfo,
 }
 
-#[derive(BinRead, BinWrite, Debug)]
+#[derive(BinRead, BinWrite, Debug, Clone)]
 pub struct AudioInfo {
     pub sample_rate: u32,
     pub channel_count: u16,
@@ -59,8 +59,14 @@ pub struct AudioDecoder<F: AsRef<AudioFile>> {
 impl<F: AsRef<AudioFile>> AudioDecoder<F> {
     pub fn new(file: F) -> Result<Self> {
         let info = &file.as_ref().info;
-        assert_eq!(info.channel_count, 2);
-        let decoder = opus::Decoder::new(info.sample_rate, Channels::Stereo)?;
+        let decoder = opus::Decoder::new(
+            info.sample_rate,
+            match info.channel_count {
+                1 => Channels::Mono,
+                2 => Channels::Stereo,
+                _ => panic!("Unsupported channel count"),
+            },
+        )?;
         let buffer =
             vec![0.0; info.frame_samples as usize * info.channel_count as usize].into_boxed_slice();
         let pre_skip = info.pre_skip as usize;
@@ -148,7 +154,6 @@ pub fn read_audio(data: &[u8]) -> Result<AudioFile> {
     let header = NxaHeader::read_le(&mut cur)?;
 
     assert_eq!(header.file_size, data.len() as u32);
-    assert_eq!(header.info.channel_count, 2);
     // how are we supposed to loop when the loop end is not in the end of the file?
     assert_eq!(header.info.loop_end, header.info.num_samples);
 
