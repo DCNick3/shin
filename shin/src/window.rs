@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use tracing::{debug, info, trace, warn};
 
-use winit::dpi::{LogicalPosition, LogicalSize};
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::window::Fullscreen;
 use winit::{
     event::*,
@@ -445,6 +445,15 @@ pub async fn run() {
                                     .map_or_else(|| Some(Fullscreen::Borderless(None)), |_| None),
                             );
                         }
+                        WindowEvent::KeyboardInput {
+                            input:
+                                KeyboardInput {
+                                    state: ElementState::Pressed,
+                                    virtual_keycode: Some(VirtualKeyCode::F10),
+                                    ..
+                                },
+                            ..
+                        } => window.set_inner_size(PhysicalSize::new(1920, 1080)),
                         WindowEvent::Resized(physical_size) => {
                             state.resize((*physical_size).into());
                         }
