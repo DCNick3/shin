@@ -14,7 +14,9 @@ use crate::render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{ElementWise, Matrix4, Vector2};
 use shin_core::format::font::GlyphTrait;
-use shin_core::layout::{Action, ActionType, Block, BlockExitCondition, LayoutedMessage};
+use shin_core::layout::{
+    Action, ActionType, Block, BlockExitCondition, LayoutedMessage, MessageMetrics,
+};
 use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
 use shin_core::vm::command::time::Ticks;
 use tracing::warn;
@@ -29,6 +31,7 @@ struct Message {
     sent_signals: u32,
     received_signals: u32,
     completed_blocks: u32,
+    metrics: MessageMetrics,
 }
 
 pub enum MessageStatus {
@@ -50,6 +53,7 @@ impl Message {
         let layout_params = shin_core::layout::LayoutParams {
             font: font_atlas.get_font(),
             layout_width: 1500.0,
+            character_name_layout_width: 384.0,
             base_font_height: 50.0,
             furigana_font_height: 20.0,
             font_horizontal_base_scale: 0.9696999788284302,
@@ -62,6 +66,7 @@ impl Message {
             chars,
             mut actions,
             mut blocks,
+            metrics,
         } = shin_core::layout::layout_text(layout_params, message);
 
         // reverse the blocks & actions so that we can easily pop them off the end in order
@@ -151,6 +156,7 @@ impl Message {
             sent_signals: 0,
             received_signals: 0,
             completed_blocks: 0,
+            metrics,
         }
     }
 
@@ -330,15 +336,19 @@ impl MessageLayer {
         self.messagebox.set_messagebox_type(style.messagebox_type);
     }
 
-    pub fn set_message(&mut self, context: &UpdateContext, message: &str) {
+    pub fn set_message(&mut self, context: &UpdateContext, text: &str) {
         self.messagebox.set_visible(true);
-        self.message = Some(Message::new(
+
+        let message = Message::new(
             context,
             // TODO: actually reuse the atlas
             self.font_atlas.clone(),
             Vector2::new(-740.0 - 9.0, 300.0 - 83.0),
-            message,
-        ));
+            text,
+        );
+
+        self.messagebox.set_metrics(message.metrics);
+        self.message = Some(message);
     }
 
     pub fn close(&mut self) {

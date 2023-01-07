@@ -81,6 +81,7 @@ impl GlyphSize {
 pub struct LayoutParams<'a> {
     pub font: &'a LazyFont,
     pub layout_width: f32,
+    pub character_name_layout_width: f32,
     pub base_font_height: f32,
     pub furigana_font_height: f32,
     pub font_horizontal_base_scale: f32,
@@ -119,14 +120,24 @@ struct Layouter<'a> {
     pending_chars: Vec<LayoutedChar>,
     position: Vector2<f32>,
     time: Ticks,
+    metrics: MessageMetrics,
 }
 
 impl<'a> Layouter<'a> {
-    fn on_char(&mut self, c: char) {
+    fn on_char(&mut self, c: char, character_name: bool) {
         assert!((c as u32) < 0x10000);
         let codepoint = c as u16;
-        let size = self.params.glyph_size(self.state.font_size, codepoint);
-        let fade_time = self.state.text_draw_speed * size.width;
+
+        let size: GlyphSize;
+        let mut fade_time = 0.0_f32;
+
+        if character_name {
+            // font size for the character name is 0.9
+            size = self.params.glyph_size(0.9, codepoint);
+        } else {
+            size = self.params.glyph_size(self.state.font_size, codepoint);
+            fade_time = self.state.text_draw_speed * size.width;
+        }
 
         // TODO: handle special cases for brackets
         // TODO: handle furigana
@@ -141,14 +152,23 @@ impl<'a> Layouter<'a> {
         });
 
         self.position.x += size.advance_width;
-        self.time += Ticks(self.state.text_draw_speed * size.advance_width);
+
+        if !character_name {
+            self.time += Ticks(self.state.text_draw_speed * size.advance_width);
+        }
 
         // TODO: handle full stops (they add more delay)
 
         // TODO: where are overflows handled? On the linefeed?
     }
 
-    fn finalize_line(&mut self, chars: &[LayoutedChar], last_line: bool, x_pos: f32) {
+    fn finalize_line(
+        &mut self,
+        chars: &[LayoutedChar],
+        last_line: bool,
+        x_pos: f32,
+        character_name: bool,
+    ) {
         if chars.is_empty() {
             return;
         }
@@ -199,28 +219,49 @@ impl<'a> Layouter<'a> {
         // TODO: handle hiragana
         // TODO: handle special cases for brackets
 
-        let x_offset = match self.params.text_layout {
-            MessageTextLayout::Left => 0.0,
-            MessageTextLayout::Layout1 => 0.0,
-            MessageTextLayout::Center => (self.params.layout_width - width) / 2.0,
-            MessageTextLayout::Right => self.params.layout_width - width,
+        // Set the width of the character name box to be displayed.
+        // TODO: allow it to expand for very long character names
+        if character_name {
+            self.metrics.character_name_width = self.params.character_name_layout_width;
+        }
+
+        let x_offset = if character_name {
+            (self.params.character_name_layout_width - width) / 2.0
+        } else {
+            match self.params.text_layout {
+                MessageTextLayout::Left => 0.0,
+                MessageTextLayout::Layout1 => 0.0,
+                MessageTextLayout::Center => (self.params.layout_width - width) / 2.0,
+                MessageTextLayout::Right => self.params.layout_width - width,
+            }
         };
 
-        self.chars.extend(chars.iter().cloned().map(|mut c| {
-            // move the text to the beginning of the real line
-            // x might be larger than we want if an overflow happened
-            c.position.x -= x_pos;
+        // Set the height of the message box to be displayed.
+        // TODO: allow it to expand for very long messages
+        self.metrics.height = 360.0;
 
+        self.chars.extend(chars.iter().cloned().map(|mut c| {
             // align the text according to the layout params
             c.position.x += x_offset;
 
-            // move the glyph on its line y coordinate (previously it was zero)
-            c.position.y += self.position.y;
-            // make sure that the glyph is on the baseline (doing it here because font size might change on the line)
-            c.position.y += line_ascent;
-            // leave space for furigana
-            // TODO: we, obviously, should not do this when there is no furigana
-            c.position.y += furigana_height;
+            if character_name {
+                // move the text to where the character name should be placed
+                // TODO: these constants should probably be specified as parameters somewhere
+                c.position.y = -69.0 + line_ascent;
+                c.position.x -= 13.0;
+            } else {
+                // move the text to the beginning of the real line
+                // x might be larger than we want if an overflow happened
+                c.position.x -= x_pos;
+
+                // move the glyph on its line y coordinate (previously it was zero)
+                c.position.y += self.position.y;
+                // make sure that the glyph is on the baseline (doing it here because font size might change on the line)
+                c.position.y += line_ascent;
+                // leave space for furigana
+                // TODO: we, obviously, should not do this when there is no furigana
+                c.position.y += furigana_height;
+            }
 
             // if we are overflowing - make it fit by squishing the text
             c.position.x *= fit_scale;
@@ -239,37 +280,43 @@ impl<'a> Layouter<'a> {
         }));
 
         self.position.x = 0.0;
-        self.position.y += max_line_height + furigana_height + 4.0 /* TODO: this is one of the many obscure line height-type parameters */;
+
+        if !character_name {
+            self.position.y += max_line_height + furigana_height + 4.0 /* TODO: this is one of the many obscure line height-type parameters */;
+        }
     }
 
-    fn on_newline(&mut self) {
+    fn on_newline(&mut self, character_name: bool) {
         let chars = std::mem::take(&mut self.pending_chars);
 
-        // split into lines on overflows
-        // TODO: implement word wrapping?
         let mut start = 0;
         let mut x_pos = 0.0;
-        for (i, c) in chars.iter().enumerate() {
-            // if the start of the character is outside of the layout width
-            if c.position.x - x_pos > self.params.layout_width
-                // or if the end of the character is outside of the layout width * 1.05
-                || c.position.x + c.size.width - x_pos > self.params.layout_width * 1.05
-            /* allow a bit of overflow, the chars will be rescaled */
-            {
-                self.finalize_line(&chars[start..i], false, x_pos);
-                x_pos = c.position.x;
-                start = i;
+
+        if !character_name {
+            // split into lines on overflows
+            // TODO: implement word wrapping?
+            for (i, c) in chars.iter().enumerate() {
+                // if the start of the character is outside of the layout width
+                if c.position.x - x_pos > self.params.layout_width
+                    // or if the end of the character is outside of the layout width * 1.05
+                    || c.position.x + c.size.width - x_pos > self.params.layout_width * 1.05
+                /* allow a bit of overflow, the chars will be rescaled */
+                {
+                    self.finalize_line(&chars[start..i], false, x_pos, false);
+                    x_pos = c.position.x;
+                    start = i;
+                }
             }
         }
 
         // TODO: handle overflows
-        self.finalize_line(&chars[start..], true, x_pos);
+        self.finalize_line(&chars[start..], true, x_pos, character_name);
         self.pending_chars.clear();
     }
 
     fn finalize(mut self) -> Vec<LayoutedChar> {
         // TODO: close furigana
-        self.on_newline();
+        self.on_newline(false);
         self.chars
     }
 }
@@ -317,7 +364,7 @@ struct BlockBuilder {
 
 impl BlockBuilder {
     /// An artificial gap between blocks
-    /// Needed because we don't want the fade-in of the next block to interfere   
+    /// Needed because we don't want the fade-in of the next block to interfere
     const TIME_GAP: Ticks = Ticks(1000.0);
 
     fn new() -> Self {
@@ -391,10 +438,19 @@ impl ActionsBuilder {
     }
 }
 
+/// Calculated global metrics for a message. Used to adjust the sizes of individual parts of
+/// the message box, such that it fits the character name and the entire height of the message
+#[derive(Copy, Clone)]
+pub struct MessageMetrics {
+    pub character_name_width: f32,
+    pub height: f32,
+}
+
 pub struct LayoutedMessage {
     pub chars: Vec<LayoutedChar>,
     pub actions: Vec<Action>,
     pub blocks: Vec<Block>,
+    pub metrics: MessageMetrics,
 }
 
 pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
@@ -406,6 +462,10 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
         pending_chars: Vec::new(),
         position: Vector2::new(0.0, 0.0),
         time: Ticks(0.0),
+        metrics: MessageMetrics {
+            character_name_width: 0.0,
+            height: 360.0,
+        },
     };
 
     let mut block_builder = BlockBuilder::new();
@@ -413,19 +473,18 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
 
     // NOTE: the first line is always the character name, even if the message box does not show it
     // (it's ignored for that case)
-    // TODO: actually parse anything in the character name
-    // TODO: how are state changes handled in the character name? Are they preserved after the name is layouted?
-    // font size for the character name is 0.9
-    for command in layouter.parser.by_ref() {
-        if matches!(command, ParsedCommand::Newline) {
-            break;
-        }
-    }
+    //
+    // State changes in the character name (empirical):
+    //  - font size: is ignored completely
+    //  - colour: is applied for remaining chars in the character name, and for the following message text
+    //  - text draw speed and fade speed: preserved for the message text but do not apply to the character name,
+    //    which is always printed instantly
+    let mut character_name = true; // if we are currently processing the character name (i.e. the first line)
     if layouter.parser.peek().is_some() {
         // Not using a for loop because of borrow checker
         while let Some(command) = layouter.parser.next() {
             match command {
-                ParsedCommand::Char(c) => layouter.on_char(c),
+                ParsedCommand::Char(c) => layouter.on_char(c, character_name),
                 ParsedCommand::EnableLipsync => {
                     actions_builder.action(layouter.time, ActionType::SetLipSync(true))
                 }
@@ -446,7 +505,13 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                 ParsedCommand::VoiceVolume(volume) => {
                     actions_builder.action(layouter.time, ActionType::VoiceVolume(volume))
                 }
-                ParsedCommand::Newline => layouter.on_newline(),
+                ParsedCommand::Newline => {
+                    // If character_name is true, finalise the character name part. Then set
+                    // character_name to false to signify that we are now processing the main message text
+                    // If it was false in the first place, just do a normal newline.
+                    layouter.on_newline(character_name);
+                    character_name = false
+                }
                 ParsedCommand::TextSpeed(_) => todo!(),
                 ParsedCommand::SimultaneousStart => todo!(),
                 ParsedCommand::Voice(filename) => {
@@ -454,7 +519,12 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                 }
                 ParsedCommand::Wait(_) => todo!(),
                 ParsedCommand::Sync => block_builder.sync(&mut layouter.time),
-                ParsedCommand::FontSize(_) => todo!(),
+                ParsedCommand::FontSize(_) => {
+                    // Font size changes in the character name are completely ignored
+                    if !character_name {
+                        todo!();
+                    }
+                }
                 ParsedCommand::Signal => {
                     actions_builder.action(layouter.time, ActionType::SignalSection)
                 }
@@ -467,6 +537,7 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
     }
 
     let blocks = block_builder.finalize(layouter.time);
+    let metrics = layouter.metrics;
     let chars = layouter.finalize();
     let actions = actions_builder.finalize();
 
@@ -474,6 +545,7 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
         chars,
         actions,
         blocks,
+        metrics,
     }
 }
 
@@ -504,6 +576,7 @@ mod tests {
         let params = LayoutParams {
             font: &font,
             layout_width: 1500.0,
+            character_name_layout_width: 384.0,
             base_font_height: 50.0,
             furigana_font_height: 20.0,
             font_horizontal_base_scale: 0.9696999788284302,

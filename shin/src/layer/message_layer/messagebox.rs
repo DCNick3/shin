@@ -3,6 +3,7 @@ use crate::asset::texture_archive::TextureArchive;
 use crate::render::{GpuCommonResources, PosColTexVertex, Renderable, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{Matrix4, Vector2, Vector3, Vector4};
+use shin_core::layout::MessageMetrics;
 use shin_core::vm::command::layer::MessageboxType;
 use std::sync::Arc;
 
@@ -43,11 +44,12 @@ macro_rules! make_vertices {
     };
 }
 
-fn build_message_header_buffer(char_name_width: f32) -> Vec<PosColTexVertex> {
+fn build_message_header_buffer(character_name_width: f32) -> Vec<PosColTexVertex> {
     let mut result = Vec::new();
-    result.reserve(8);
 
-    if char_name_width == 0.0 {
+    if character_name_width == 0.0 {
+        // Draw the header part without a character name box
+        result.reserve(8);
         make_vertices!(
             result,
             [130.0, -32.0, 0.0, 144.0],
@@ -60,7 +62,23 @@ fn build_message_header_buffer(char_name_width: f32) -> Vec<PosColTexVertex> {
             [1790.0, 80.0, 112.0, 256.0]
         );
     } else {
-        todo!("non-zero char name width");
+        // Draw the header part with a character name box
+        result.reserve(12);
+        make_vertices!(
+            result,
+            [130.0, -32.0, 0.0, 0.0],
+            [130.0, 80.0, 0.0, 112.0],
+            [178.0, -32.0, 48.0, 0.0],
+            [178.0, 80.0, 48.0, 112.0],
+            [178.0 + character_name_width, -32.0, 64.0, 0.0],
+            [178.0 + character_name_width, 80.0, 64.0, 112.0],
+            [290.0 + character_name_width, -32.0, 160.0, 0.0],
+            [290.0 + character_name_width, 80.0, 160.0, 112.0],
+            [1742.0, -32.0, 176.0, 0.0],
+            [1742.0, 80.0, 176.0, 112.0],
+            [1790.0, -32.0, 224.0, 0.0],
+            [1790.0, 80.0, 224.0, 112.0]
+        );
     }
 
     result
@@ -106,14 +124,17 @@ fn unwrap_triangle_strip(strip: &[PosColTexVertex], output: &mut Vec<PosColTexVe
     }
 }
 
-fn build_vertex_buffer(char_name_width: f32, height: f32) -> Vec<PosColTexVertex> {
+fn build_vertex_buffer(metrics: MessageMetrics) -> Vec<PosColTexVertex> {
     let mut result = Vec::new();
     result.reserve(MAX_VERTEX_COUNT);
 
-    unwrap_triangle_strip(&build_message_header_buffer(char_name_width), &mut result);
+    unwrap_triangle_strip(
+        &build_message_header_buffer(metrics.character_name_width),
+        &mut result,
+    );
     // let header = 0..result.len() as u32;
 
-    unwrap_triangle_strip(&build_message_body_vertices(height), &mut result);
+    unwrap_triangle_strip(&build_message_body_vertices(metrics.height), &mut result);
     // let body = header.end..result.len() as u32;
 
     assert!(result.len() < MAX_VERTEX_COUNT);
@@ -126,6 +147,7 @@ pub struct Messagebox {
     vertex_buffer: VertexBuffer<PosColTexVertex>,
     messagebox_type: MessageboxType,
     visible: bool,
+    metrics: MessageMetrics,
 }
 
 impl Messagebox {
@@ -140,6 +162,10 @@ impl Messagebox {
             ),
             messagebox_type: MessageboxType::Neutral,
             visible: false,
+            metrics: MessageMetrics {
+                character_name_width: 0.0,
+                height: 360.0,
+            },
         }
     }
 }
@@ -159,16 +185,14 @@ impl Renderable for Messagebox {
             return;
         }
 
-        let height = 360.0;
-
         let transform = transform
             * Matrix4::from_translation(Vector3::new(
                 -960.0,
-                -540.0 + (1080.0 - height) - 32.0,
+                -540.0 + (1080.0 - self.metrics.height) - 32.0,
                 0.0,
             ));
         // TODO: do not upload the vertices if they haven't changed
-        let vertices = build_vertex_buffer(0.0, height);
+        let vertices = build_vertex_buffer(self.metrics);
         self.vertex_buffer.write(&resources.queue, &vertices);
 
         let texture = match self.messagebox_type {
@@ -209,5 +233,9 @@ impl Messagebox {
 
     pub fn set_visible(&mut self, visible: bool) {
         self.visible = visible;
+    }
+
+    pub fn set_metrics(&mut self, metrics: MessageMetrics) {
+        self.metrics = metrics;
     }
 }
