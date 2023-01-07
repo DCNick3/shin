@@ -15,4 +15,6 @@ pub mod asset_paths {
     pub const NEWRODIN_BOLD_FNT: &str = "/newrodin-bold.fnt";
 }
 
-pub use server::{AnyAssetServer, Asset, AssetIo, AssetServer, DirAssetIo, RomAssetIo};
+pub use server::{
+    AnyAssetIo, AnyAssetServer, Asset, AssetIo, AssetServer, DirAssetIo, LayeredAssetIo, RomAssetIo,
+};

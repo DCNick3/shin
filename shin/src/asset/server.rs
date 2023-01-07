@@ -1,8 +1,10 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use bevy_tasks::{AsyncComputeTaskPool, IoTaskPool};
 use bevy_utils::HashMap;
+use derive_more::From;
 use shin_core::format::rom::RomReader;
+use std::fmt::Debug;
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
@@ -110,6 +112,7 @@ pub trait AssetIo {
     async fn read_file(&self, path: &str) -> Result<Vec<u8>>;
 }
 
+#[derive(Debug)]
 pub struct DirAssetIo {
     root_path: PathBuf,
 }
@@ -138,12 +141,22 @@ impl AssetIo for DirAssetIo {
 
 pub struct RomAssetIo<S: io::Read + io::Seek + Send + Sync + 'static> {
     rom: Arc<Mutex<RomReader<S>>>,
+    label: Option<String>,
+}
+
+impl<S: io::Read + io::Seek + Send + Sync + 'static> Debug for RomAssetIo<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("RomAssetIo")
+            .field(&self.label.as_deref().unwrap_or("unnamed"))
+            .finish()
+    }
 }
 
 impl<S: io::Read + io::Seek + Send + Sync + 'static> RomAssetIo<S> {
-    pub fn new(rom: RomReader<S>) -> Self {
+    pub fn new(rom: RomReader<S>, label: Option<&str>) -> Self {
         Self {
             rom: Arc::new(Mutex::new(rom)),
+            label: label.map(|s| s.to_string()),
         }
     }
 }
@@ -176,9 +189,11 @@ impl<S: io::Read + io::Seek + Send + Sync + 'static> AssetIo for RomAssetIo<S> {
     }
 }
 
+#[derive(Debug, From)]
 pub enum AnyAssetIo {
     Dir(DirAssetIo),
     RomFile(RomAssetIo<BufReader<File>>),
+    Layered(LayeredAssetIo),
 }
 
 impl AnyAssetIo {
@@ -187,9 +202,13 @@ impl AnyAssetIo {
     }
 
     pub fn new_rom(rom_path: impl AsRef<Path>) -> Self {
+        let rom_path = rom_path.as_ref();
         let rom =
             RomReader::new(BufReader::new(File::open(rom_path).unwrap())).expect("Opening rom");
-        Self::RomFile(RomAssetIo::new(rom))
+        Self::RomFile(RomAssetIo::new(
+            rom,
+            Some(&format!("{}", rom_path.display())),
+        ))
     }
 }
 
@@ -199,6 +218,79 @@ impl AssetIo for AnyAssetIo {
         match self {
             Self::Dir(io) => io.read_file(path).await,
             Self::RomFile(io) => io.read_file(path).await,
+            Self::Layered(io) => io.read_file(path).await,
         }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct LayeredAssetIo {
+    io: Vec<AnyAssetIo>,
+}
+
+impl LayeredAssetIo {
+    pub fn new() -> Self {
+        Self { io: Vec::new() }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.io.is_empty()
+    }
+
+    pub fn with(&mut self, io: AnyAssetIo) {
+        self.io.push(io);
+    }
+
+    pub fn try_with_dir(&mut self, dir_path: impl AsRef<Path>) -> Result<()> {
+        let dir_path = dir_path.as_ref();
+        let meta = std::fs::metadata(dir_path).with_context(|| {
+            format!(
+                "Failed to get metadata for {:?}, cannot use as asset directory",
+                dir_path
+            )
+        })?;
+        if !meta.is_dir() {
+            bail!(
+                "{:?} is not a directory, cannot use as asset directory",
+                dir_path
+            );
+        }
+        self.with(AnyAssetIo::new_dir(dir_path.to_path_buf()));
+        Ok(())
+    }
+
+    pub fn try_with_rom(&mut self, rom_path: impl AsRef<Path>) -> Result<()> {
+        let rom_path = rom_path.as_ref();
+        let meta = std::fs::metadata(rom_path).with_context(|| {
+            format!(
+                "Failed to get metadata for {:?}, cannot use as asset ROM",
+                rom_path
+            )
+        })?;
+        if !meta.is_file() {
+            bail!("{:?} is not a file, cannot use as asset ROM", rom_path);
+        }
+        self.with(AnyAssetIo::new_rom(rom_path.to_path_buf()));
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl AssetIo for LayeredAssetIo {
+    async fn read_file(&self, path: &str) -> Result<Vec<u8>> {
+        let mut errors = Vec::new();
+
+        for io in &self.io {
+            match io.read_file(path).await {
+                Ok(data) => return Ok(data),
+                Err(err) => errors.push(err),
+            }
+        }
+
+        Err(anyhow!(
+            "Failed to read asset {:?} from all layers: {:?}",
+            path,
+            errors
+        ))
     }
 }

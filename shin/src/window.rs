@@ -10,6 +10,7 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
+use crate::asset::LayeredAssetIo;
 use crate::audio::AudioManager;
 use crate::{
     adv::assets::AdvAssets,
@@ -133,7 +134,24 @@ impl State {
 
         let audio_manager = Arc::new(AudioManager::new());
 
-        let asset_server = Arc::new(AnyAssetServer::new_dir(PathBuf::from("assets/data")));
+        let assets_directory = PathBuf::from("assets");
+
+        let mut asset_io = LayeredAssetIo::new();
+
+        if let Err(e) = asset_io.try_with_dir(assets_directory.join("data")) {
+            warn!("Failed to load data directory: {}", e);
+        }
+        if let Err(e) = asset_io.try_with_rom(assets_directory.join("data.rom")) {
+            warn!("Failed to load rom file: {}", e);
+        }
+
+        if asset_io.is_empty() {
+            panic!("No assets configured, have you copied your game files?");
+        }
+
+        debug!("Asset IO: {:#?}", asset_io);
+
+        let asset_server = Arc::new(AnyAssetServer::new(asset_io.into()));
 
         let adv_assets =
             pollster::block_on(AdvAssets::load(&asset_server)).expect("Loading assets failed");
