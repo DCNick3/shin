@@ -32,8 +32,15 @@ pub struct MessageboxTextures {
 const MAX_VERTEX_COUNT: usize = 120;
 const TEX_SIZE: Vector2<f32> = Vector2::new(1648.0, 288.0);
 
+// https://stackoverflow.com/a/34324856
+macro_rules! count {
+    () => (0usize);
+    ( $x:tt $($xs:tt)* ) => (1usize + count!($($xs)*));
+}
+
 macro_rules! make_vertices {
-    ($r:expr, $([$x:expr, $y:expr, $x_tex:expr, $y_tex: expr]),*) => {
+    ($r:expr, $([$x:expr, $y:expr, $x_tex:expr, $y_tex:expr]),*) => {
+        $r.reserve(count!($($x)*));
         $(
             $r.push(PosColTexVertex {
                 position: Vector3::new($x, $y, 1.0),
@@ -49,7 +56,6 @@ fn build_message_header_buffer(character_name_width: f32) -> Vec<PosColTexVertex
 
     if character_name_width == 0.0 {
         // Draw the header part without a character name box
-        result.reserve(8);
         make_vertices!(
             result,
             [130.0, -32.0, 0.0, 144.0],
@@ -63,7 +69,6 @@ fn build_message_header_buffer(character_name_width: f32) -> Vec<PosColTexVertex
         );
     } else {
         // Draw the header part with a character name box
-        result.reserve(12);
         make_vertices!(
             result,
             [130.0, -32.0, 0.0, 0.0],
@@ -86,7 +91,6 @@ fn build_message_header_buffer(character_name_width: f32) -> Vec<PosColTexVertex
 
 fn build_message_body_vertices(height: f32) -> Vec<PosColTexVertex> {
     let mut result = Vec::new();
-    result.reserve(13);
 
     let mid = height + 32.0 - 256.0;
     let high = height + 32.0;
