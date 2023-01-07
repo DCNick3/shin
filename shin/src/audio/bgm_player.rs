@@ -3,6 +3,7 @@ use kira::tween::Tween;
 use kira::StartTime;
 use shin_core::vm::command::time::Ticks;
 use std::sync::Arc;
+use tracing::warn;
 
 use super::manager::AudioManager;
 use crate::asset::audio::{Audio, AudioHandle, AudioParams};
@@ -53,6 +54,8 @@ impl BgmPlayer {
                     easing: Default::default(),
                 })
                 .unwrap();
+        } else {
+            warn!("Tried to stop bgm, but there was no bgm playing");
         }
     }
 }

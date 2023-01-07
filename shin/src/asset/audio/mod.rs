@@ -13,6 +13,7 @@ use kira::Volume;
 use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
 use shin_core::format::audio::{read_audio, AudioDecoder, AudioFile};
 use std::sync::Arc;
+use tracing::debug;
 
 pub struct Audio(AudioFile);
 
@@ -28,7 +29,7 @@ impl Audio {
 }
 
 impl Asset for Audio {
-    fn load_from_bytes(data: Vec<u8>) -> anyhow::Result<Self> {
+    fn load_from_bytes(data: Vec<u8>) -> Result<Self> {
         read_audio(&data).map(Self).context("Parsing audio file")
     }
 }
@@ -99,6 +100,9 @@ impl SoundData for AudioData {
 impl AudioData {
     fn split(self) -> (AudioSound, AudioHandle) {
         let (command_producer, command_consumer) = HeapRb::new(COMMAND_BUFFER_CAPACITY).split();
+
+        debug!("Creating audio sound for track {:?}", self.1.track);
+
         let sound = AudioSound {
             track_id: self.1.track,
             command_consumer,
@@ -167,6 +171,7 @@ impl SampleProvider {
                 None => {
                     // TODO: start outputting silence instead of just stopping?
                     self.end_of_file = true;
+                    return;
                 }
             }
 
@@ -233,7 +238,11 @@ impl Sound for AudioSound {
         }
 
         match self.sample_provider.next(dt) {
-            None => todo!("finish playing or loop around"),
+            None => {
+                // TODO loop around
+                self.state = PlaybackState::Stopped;
+                Frame::ZERO
+            }
             Some(f) => (f
                 * self.volume_fade.value().as_amplitude() as f32
                 * self.volume.value().as_amplitude() as f32)

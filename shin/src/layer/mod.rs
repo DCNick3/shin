@@ -11,7 +11,7 @@ use derive_more::From;
 use enum_dispatch::enum_dispatch;
 use enum_map::{enum_map, EnumMap};
 use strum::IntoStaticStr;
-use tracing::debug;
+use tracing::{debug, warn};
 
 pub use bustup_layer::BustupLayer;
 pub use layer_group::LayerGroup;
@@ -190,6 +190,12 @@ impl UserLayer {
                     .expect("Failed to load bustup");
 
                 BustupLayer::new(resources, bup, bup_emotion).into()
+            }
+            LayerType::Movie => {
+                let [_movie_id, _volume, _flags, _, _, _, _, _] = params;
+
+                warn!("Loading NullLayer instead of MovieLayer");
+                NullLayer::new().into()
             }
             _ => {
                 todo!("Layer type not implemented: {:?}", layer_ty);

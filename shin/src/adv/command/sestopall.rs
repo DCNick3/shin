@@ -10,9 +10,9 @@ impl super::StartableCommand for command::runtime::SESTOPALL {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        warn!("TODO: SESTOPALL: {:?}", self);
+        adv_state.se_player.stop_all(self.fade_out_time);
         self.token.finish().into()
     }
 }

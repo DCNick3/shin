@@ -304,7 +304,6 @@ impl Drop for Message {
 pub struct MessageLayer {
     props: LayerProperties,
     style: MessageboxStyle,
-    running_time: Ticks,
     font_atlas: Arc<FontAtlas>,
     message: Option<Message>,
     messagebox: Messagebox,
@@ -319,7 +318,6 @@ impl MessageLayer {
         Self {
             props: LayerProperties::new(),
             style: MessageboxStyle::default(),
-            running_time: Ticks::ZERO,
             font_atlas: Arc::new(FontAtlas::new(resources, fonts.medium_font)),
             message: None,
             messagebox: Messagebox::new(textures, resources),
@@ -333,8 +331,6 @@ impl MessageLayer {
     }
 
     pub fn set_message(&mut self, context: &UpdateContext, message: &str) {
-        self.running_time = Ticks::ZERO;
-
         self.messagebox.set_visible(true);
         self.message = Some(Message::new(
             context,
@@ -343,6 +339,11 @@ impl MessageLayer {
             Vector2::new(-740.0 - 9.0, 300.0 - 83.0),
             message,
         ));
+    }
+
+    pub fn close(&mut self) {
+        self.message = None;
+        self.messagebox.set_visible(false);
     }
 
     pub fn is_finished(&self) -> bool {

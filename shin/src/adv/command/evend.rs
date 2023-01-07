@@ -1,8 +1,8 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::SESTOP {
+impl super::StartableCommand for command::runtime::EVEND {
     fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: SESTOP state: {:?}", self);
+        warn!("TODO: EVEND state: {:?}", self);
     }
 
     fn start(
@@ -10,10 +10,9 @@ impl super::StartableCommand for command::runtime::SESTOP {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
-        adv_state: &mut AdvState,
+        _adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        adv_state.se_player.stop(self.se_slot, self.fade_out_time);
-
+        warn!("TODO: EVEND: {:?}", self);
         self.token.finish().into()
     }
 }

@@ -189,6 +189,10 @@ impl Scenario {
         (bgm_name.as_str(), bgm_display_name.as_str(), *bgm_index)
     }
 
+    pub fn get_se_data(&self, se_id: i32) -> &str {
+        self.se_data[se_id as usize].as_str()
+    }
+
     pub fn raw(&self) -> &[u8] {
         &self.raw_data
     }

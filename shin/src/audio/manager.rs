@@ -13,18 +13,6 @@ impl AudioManager {
         let manager = kira::manager::AudioManager::new(AudioManagerSettings::default())
             .expect("Failed to create kira audio manager");
 
-        // let all_se_track = manager
-        //     .add_sub_track(TrackBuilder::new().routes(TrackRoutes::parent(TrackId::Main)))
-        //     .expect("Failed to create all_se track");
-        //
-        // let se_tracks = [(); SE_SLOT_COUNT].map(|_| {
-        //     manager
-        //         .add_sub_track(TrackBuilder::new().routes(TrackRoutes::parent(all_se_track.id())))
-        //         .expect("Failed to create se track")
-        // });
-        //
-        // let se_player = SePlayer::new(all_se_track, se_tracks);
-
         Self {
             manager: Mutex::new(manager),
         }

@@ -18,10 +18,13 @@ mod prelude {
 mod autosave;
 mod bgmplay;
 mod bgmstop;
+mod evbegin;
+mod evend;
 mod layerctrl;
 mod layerinit;
 mod layerload;
 mod layerunload;
+mod moviewait;
 mod msgclose;
 mod msginit;
 mod msgset;
@@ -110,8 +113,8 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::SYSSE(v) => {}
             RuntimeCommand::SAVEINFO(v) => v.apply_state(state),
             RuntimeCommand::AUTOSAVE(v) => v.apply_state(state),
-            // RuntimeCommand::EVBEGIN(v) => {}
-            // RuntimeCommand::EVEND(v) => {}
+            RuntimeCommand::EVBEGIN(v) => v.apply_state(state),
+            RuntimeCommand::EVEND(v) => v.apply_state(state),
             // RuntimeCommand::RESUMESET(v) => {}
             // RuntimeCommand::RESUME(v) => {}
             // RuntimeCommand::SYSCALL(v) => {}
@@ -124,7 +127,7 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::LAYERWAIT(v) => {}
             // RuntimeCommand::LAYERSWAP(v) => {}
             // RuntimeCommand::LAYERSELECT(v) => {}
-            // RuntimeCommand::MOVIEWAIT(v) => {}
+            RuntimeCommand::MOVIEWAIT(v) => v.apply_state(state),
             // RuntimeCommand::TRANSSET(v) => {}
             // RuntimeCommand::TRANSWAIT(v) => {}
             RuntimeCommand::PAGEBACK(v) => v.apply_state(state),
@@ -181,8 +184,8 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::SYSSE(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SAVEINFO(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::AUTOSAVE(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::EVBEGIN(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::EVEND(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::EVBEGIN(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::EVEND(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::RESUMESET(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::RESUME(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SYSCALL(v) => v.start(context, scenario, vm_state, adv_state),
@@ -195,7 +198,7 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::LAYERWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::LAYERSWAP(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::LAYERSELECT(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::MOVIEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::MOVIEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::TRANSSET(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::TRANSWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::PAGEBACK(v) => v.start(context, scenario, vm_state, adv_state),

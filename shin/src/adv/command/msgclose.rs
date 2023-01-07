@@ -11,9 +11,12 @@ impl super::StartableCommand for command::runtime::MSGCLOSE {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
-        _adv_state: &mut AdvState,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
         assert_eq!(self.wait_for_close, 0);
+
+        adv_state.root_layer_group.message_layer_mut().close();
+
         self.token.finish().into()
     }
 }

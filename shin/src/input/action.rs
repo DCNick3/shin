@@ -83,7 +83,11 @@ impl<T: Action> ActionState<T> {
     }
 
     pub fn is_just_pressed(&self, action: T) -> bool {
-        self.action_data[action].state == ButtonState::JustPressed
+        self.action_data[action].state.just_pressed()
+    }
+
+    pub fn is_pressed(&self, action: T) -> bool {
+        self.action_data[action].state.pressed()
     }
 }
 

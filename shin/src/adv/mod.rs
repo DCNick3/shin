@@ -1,12 +1,12 @@
 pub mod assets;
 mod command;
-mod state;
+mod vm_state;
 
 pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
-pub use state::VmState;
+pub use vm_state::VmState;
 
 use crate::adv::assets::AdvAssets;
-use crate::audio::{AudioManager, BgmPlayer};
+use crate::audio::{AudioManager, BgmPlayer, SePlayer};
 use crate::input::actions::AdvMessageAction;
 use crate::input::ActionState;
 use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup};
@@ -59,7 +59,9 @@ impl Updatable for Adv {
     fn update(&mut self, context: &UpdateContext) {
         self.action_state.update(context.raw_input_state);
 
-        if self.action_state.is_just_pressed(AdvMessageAction::Advance) {
+        if self.action_state.is_just_pressed(AdvMessageAction::Advance)
+            || self.action_state.is_pressed(AdvMessageAction::HoldSkip)
+        {
             self.adv_state
                 .root_layer_group
                 .message_layer_mut()
@@ -174,6 +176,7 @@ impl OverlayVisitable for Adv {
 pub struct AdvState {
     pub root_layer_group: RootLayerGroup,
     pub bgm_player: BgmPlayer,
+    pub se_player: SePlayer,
 }
 
 impl AdvState {
@@ -188,7 +191,8 @@ impl AdvState {
                 LayerGroup::new(resources),
                 MessageLayer::new(resources, assets.fonts, assets.messagebox_textures),
             ),
-            bgm_player: BgmPlayer::new(audio_manager),
+            bgm_player: BgmPlayer::new(audio_manager.clone()),
+            se_player: SePlayer::new(audio_manager),
         }
     }
 
