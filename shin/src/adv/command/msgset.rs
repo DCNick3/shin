@@ -46,6 +46,9 @@ impl UpdatableCommand for MSGSET {
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,
+        // TODO: I think we __should__ somehow to react to fast-forwarding here
+        // rn it's kludged in the ADV update function though
+        _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
         if adv_state.root_layer_group.message_layer().is_finished() {
             Some(self.token.take().unwrap().finish())

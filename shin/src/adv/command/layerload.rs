@@ -76,6 +76,7 @@ impl UpdatableCommand for LAYERLOAD {
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         adv_state: &mut AdvState,
+        _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
         if self.load_task.as_ref().unwrap().is_finished() {
             let layer = self.load_task.take().unwrap().block_on();

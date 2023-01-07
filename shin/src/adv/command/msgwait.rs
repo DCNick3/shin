@@ -34,6 +34,7 @@ impl UpdatableCommand for MSGWAIT {
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,
+        _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
         let message_layer = adv_state.root_layer_group.message_layer();
 

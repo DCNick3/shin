@@ -67,6 +67,7 @@ pub trait UpdatableCommand {
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,
+        is_fast_forwarding: bool,
     ) -> Option<CommandResult>;
 }
 

@@ -59,9 +59,11 @@ impl Updatable for Adv {
     fn update(&mut self, context: &UpdateContext) {
         self.action_state.update(context.raw_input_state);
 
-        if self.action_state.is_just_pressed(AdvMessageAction::Advance)
-            || self.action_state.is_pressed(AdvMessageAction::HoldSkip)
-        {
+        let is_fast_forwarding = self
+            .action_state
+            .is_pressed(AdvMessageAction::HoldFastForward);
+
+        if self.action_state.is_just_pressed(AdvMessageAction::Advance) || is_fast_forwarding {
             self.adv_state
                 .root_layer_group
                 .message_layer_mut()
@@ -72,7 +74,13 @@ impl Updatable for Adv {
         loop {
             // TODO: maybe yield if spent too much time in this loop?
             let runtime_command = if let Some(command) = &mut self.current_command {
-                match command.update(context, &self.scenario, &self.vm_state, &mut self.adv_state) {
+                match command.update(
+                    context,
+                    &self.scenario,
+                    &self.vm_state,
+                    &mut self.adv_state,
+                    is_fast_forwarding,
+                ) {
                     None => break,
                     Some(result) => {
                         self.current_command = None;

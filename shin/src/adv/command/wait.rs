@@ -39,11 +39,12 @@ impl UpdatableCommand for WAIT {
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
+        is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
         // trace!("WAIT: {:?} {:?}", self.waiting_left, context.time_delta());
         self.waiting_left = self.waiting_left.saturating_sub(context.time_delta());
         // TODO: short circuit the wait for now
-        if self.waiting_left <= Duration::ZERO {
+        if self.waiting_left <= Duration::ZERO || is_fast_forwarding {
             debug!("WAIT: done");
             // TODO: this is kinda boilerplaty, maybe we want to have a TokenCell type?
             Some(self.token.take().unwrap().finish())

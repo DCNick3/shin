@@ -8,7 +8,7 @@ use enum_map::{enum_map, Enum};
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Enum)]
 pub enum AdvMessageAction {
     Advance,
-    HoldSkip,
+    HoldFastForward,
     Backlog,
     Rollback,
 }
@@ -24,7 +24,9 @@ impl Action for AdvMessageAction {
                 ]
                 .into_iter()
                 .collect(),
-                AdvMessageAction::HoldSkip => [KeyCode::LControl.into()].into_iter().collect(),
+                AdvMessageAction::HoldFastForward => {
+                    [KeyCode::LControl.into()].into_iter().collect()
+                }
                 AdvMessageAction::Backlog => [].into_iter().collect(),
                 AdvMessageAction::Rollback => [].into_iter().collect(),
             }
