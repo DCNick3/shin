@@ -10,7 +10,10 @@ use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
-use layer::{LayerProperty, LayerType, MessageboxStyle, VLayerId};
+use self::{
+    layer::{LayerProperty, LayerType, MessageboxStyle, VLayerId},
+    time::Ticks,
+};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Command, Debug)]
@@ -94,15 +97,20 @@ pub enum Command {
     #[cmd(opcode = 0x90u8)]
     BGMPLAY {
         bgm_data_id: NumberSpec,
+        #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
         no_repeat: NumberSpec,
         volume: NumberSpec,
     },
     #[cmd(opcode = 0x91u8)]
-    BGMSTOP { fade_out_time: NumberSpec },
+    BGMSTOP {
+        #[cmd(rty = "Ticks")]
+        fade_out_time: NumberSpec,
+    },
     #[cmd(opcode = 0x92u8)]
     BGMVOL {
         volume: NumberSpec,
+        #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
     },
     #[cmd(opcode = 0x93u8)]
@@ -113,6 +121,7 @@ pub enum Command {
     SEPLAY {
         se_slot: NumberSpec,
         se_data_id: NumberSpec,
+        #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
         no_repeat: NumberSpec,
         volume: NumberSpec,
@@ -122,20 +131,26 @@ pub enum Command {
     #[cmd(opcode = 0x96u8)]
     SESTOP {
         se_slot: NumberSpec,
+        #[cmd(rty = "Ticks")]
         fade_out_time: NumberSpec,
     },
     #[cmd(opcode = 0x97u8)]
-    SESTOPALL { fade_out_time: NumberSpec },
+    SESTOPALL {
+        #[cmd(rty = "Ticks")]
+        fade_out_time: NumberSpec,
+    },
     #[cmd(opcode = 0x98u8)]
     SEVOL {
         se_slot: NumberSpec,
         volume: NumberSpec,
+        #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
     },
     #[cmd(opcode = 0x99u8)]
     SEPAN {
         se_slot: NumberSpec,
         pan: NumberSpec,
+        #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
     },
     #[cmd(opcode = 0x9au8)]

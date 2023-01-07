@@ -22,7 +22,9 @@ impl super::StartableCommand for command::runtime::BGMPLAY {
             .load_sync(bgm_path)
             .expect("Failed to load BGM track");
 
-        adv_state.bgm_player.play(audio);
+        adv_state
+            .bgm_player
+            .play(audio, (self.volume as f32 / 1000.0).clamp(0.0, 1.0));
 
         self.token.finish().into()
     }

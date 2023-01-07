@@ -1,4 +1,5 @@
 use crate::format::scenario::instructions::NumberSpec;
+use crate::vm::command::time::Ticks;
 use crate::vm::{FromVmCtx, VmCtx};
 use enum_map::Enum;
 use num_derive::FromPrimitive;
@@ -329,5 +330,12 @@ impl FromVmCtx<NumberSpec> for MessageboxStyle {
             text_layout: num_traits::FromPrimitive::from_i32(text_layout)
                 .unwrap_or_else(|| panic!("MsgInit::from: unknown text layout: {}", text_layout)),
         }
+    }
+}
+
+impl FromVmCtx<NumberSpec> for Ticks {
+    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
+        let v = ctx.get_number(input);
+        Self(v as f32)
     }
 }

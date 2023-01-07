@@ -1,4 +1,7 @@
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
+use kira::tween::Tween;
+use kira::StartTime;
+use shin_core::vm::command::time::Ticks;
 use std::sync::Arc;
 
 use super::manager::AudioManager;
@@ -28,9 +31,10 @@ impl BgmPlayer {
         }
     }
 
-    pub fn play(&mut self, bgm: Arc<Audio>) {
+    pub fn play(&mut self, bgm: Arc<Audio>, volume: f32) {
         let kira_data = bgm.to_kira_data(AudioParams {
             track: self.bgm_track.id(),
+            volume,
         });
 
         let handle = self.audio_manager.play(kira_data);
@@ -38,6 +42,18 @@ impl BgmPlayer {
         assert!(self.current_bgm.is_none());
 
         self.current_bgm = Some(handle);
+    }
+
+    pub fn stop(&mut self, fade_out_time: Ticks) {
+        if let Some(mut handle) = self.current_bgm.take() {
+            handle
+                .stop(Tween {
+                    start_time: StartTime::Immediate,
+                    duration: fade_out_time.as_duration(),
+                    easing: Default::default(),
+                })
+                .unwrap();
+        }
     }
 }
 

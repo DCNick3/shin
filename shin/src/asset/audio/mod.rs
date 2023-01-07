@@ -3,6 +3,7 @@ mod resampler;
 use crate::asset::audio::resampler::Resampler;
 use crate::asset::Asset;
 use anyhow::Context;
+use anyhow::{anyhow, Result};
 use kira::clock::clock_info::ClockInfoProvider;
 use kira::dsp::Frame;
 use kira::sound::{Sound, SoundData};
@@ -17,6 +18,7 @@ pub struct Audio(AudioFile);
 
 pub struct AudioParams {
     pub track: TrackId,
+    pub volume: f32,
 }
 
 impl Audio {
@@ -57,6 +59,33 @@ pub struct AudioHandle {
     command_producer: HeapProducer<Command>,
 }
 
+impl AudioHandle {
+    /// Sets the volume of the sound (as a factor of the original volume).
+    pub fn set_volume(&mut self, volume: impl Into<Volume>, tween: Tween) -> Result<()> {
+        self.command_producer
+            .push(Command::SetVolume(volume.into(), tween))
+            .map_err(|_| anyhow!("Command queue full"))
+    }
+
+    /// Sets the panning of the sound, where `0.0` is hard left,
+    /// `0.5` is center, and `1.0` is hard right.
+    pub fn set_panning(&mut self, panning: f64, tween: Tween) -> Result<()> {
+        self.command_producer
+            .push(Command::SetPanning(panning, tween))
+            .map_err(|_| anyhow!("Command queue full"))
+    }
+
+    /// Fades out the sound to silence with the given tween and then
+    /// stops playback.
+    ///
+    /// Once the sound is stopped, it cannot be restarted.
+    pub fn stop(&mut self, tween: Tween) -> Result<()> {
+        self.command_producer
+            .push(Command::Stop(tween))
+            .map_err(|_| anyhow!("Command queue full"))
+    }
+}
+
 impl SoundData for AudioData {
     type Error = anyhow::Error;
     type Handle = AudioHandle;
@@ -74,8 +103,8 @@ impl AudioData {
             track_id: self.1.track,
             command_consumer,
             state: PlaybackState::Playing,
-            volume: Tweener::new(Volume::Amplitude(1.0)),
-            panning: Tweener::new(0.0),
+            volume: Tweener::new(Volume::Amplitude(self.1.volume as f64)),
+            panning: Tweener::new(0.5),
             volume_fade: Tweener::new(Volume::Amplitude(1.0)),
             sample_provider: SampleProvider::new(self.0),
         };
@@ -170,15 +199,45 @@ struct AudioSound {
     volume_fade: Tweener<Volume>,
     sample_provider: SampleProvider,
 }
+
+impl AudioSound {
+    fn stop(&mut self, fade_out_tween: Tween) {
+        self.state = PlaybackState::Stopping;
+        self.volume_fade
+            .set(Volume::Decibels(Volume::MIN_DECIBELS), fade_out_tween);
+    }
+}
+
 impl Sound for AudioSound {
     fn track(&mut self) -> TrackId {
         self.track_id
     }
 
-    fn process(&mut self, dt: f64, _clock_info_provider: &ClockInfoProvider) -> Frame {
+    fn on_start_processing(&mut self) {
+        while let Some(command) = self.command_consumer.pop() {
+            match command {
+                Command::SetVolume(volume, tween) => self.volume.set(volume, tween),
+                Command::SetPanning(panning, tween) => self.panning.set(panning, tween),
+                Command::Stop(tween) => self.stop(tween),
+            }
+        }
+    }
+
+    fn process(&mut self, dt: f64, clock_info_provider: &ClockInfoProvider) -> Frame {
+        // update tweeners
+        self.volume.update(dt, clock_info_provider);
+        self.panning.update(dt, clock_info_provider);
+        if self.volume_fade.update(dt, clock_info_provider) && self.state == PlaybackState::Stopping
+        {
+            self.state = PlaybackState::Stopped
+        }
+
         match self.sample_provider.next(dt) {
-            None => todo!(),
-            Some(f) => f,
+            None => todo!("finish playing or loop around"),
+            Some(f) => (f
+                * self.volume_fade.value().as_amplitude() as f32
+                * self.volume.value().as_amplitude() as f32)
+                .panned(self.panning.value() as f32),
         }
     }
 

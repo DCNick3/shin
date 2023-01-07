@@ -30,6 +30,7 @@ mod msgwait;
 mod pageback;
 mod saveinfo;
 mod seplay;
+mod sestop;
 mod sestopall;
 mod sget;
 mod sset;
@@ -97,7 +98,7 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::BGMWAIT(v) => v.apply_state(state),
             // RuntimeCommand::BGMSYNC(v) => {}
             RuntimeCommand::SEPLAY(v) => v.apply_state(state),
-            // RuntimeCommand::SESTOP(v) => {}
+            RuntimeCommand::SESTOP(v) => v.apply_state(state),
             RuntimeCommand::SESTOPALL(v) => v.apply_state(state),
             // RuntimeCommand::SEVOL(v) => {}
             // RuntimeCommand::SEPAN(v) => {}
@@ -168,7 +169,7 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::BGMWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::BGMSYNC(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SEPLAY(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::SESTOP(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SESTOP(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SESTOPALL(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SEVOL(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SEPAN(v) => v.start(context, scenario, vm_state, adv_state),
