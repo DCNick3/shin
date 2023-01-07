@@ -75,7 +75,7 @@ enum RomCommand {
         output_dir: PathBuf,
         /// Names of specific files to be extracted. If none are specified, all files in the ROM will be extracted.
         file_names: Vec<String>,
-    }
+    },
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -214,7 +214,7 @@ fn rom_command(command: RomCommand) -> Result<()> {
         RomCommand::Extract {
             rom_path,
             output_dir,
-            file_names
+            file_names,
         } => {
             use std::io::Read;
             let rom = File::open(rom_path).context("Opening rom file")?;
@@ -224,17 +224,15 @@ fn rom_command(command: RomCommand) -> Result<()> {
             // First, make a list of all the files in the rom
             let files: Vec<(String, IndexFile)> = reader
                 .traverse()
-                .filter_map(|(name, entry)| {
-                    match entry {
-                        IndexEntry::File(file_entry) => {
-                            if file_names.is_empty() || file_names.contains(&name) {
-                                Some((name, *file_entry))
-                            } else {
-                                None
-                            }
-                        },
-                        IndexEntry::Directory(_) => None
+                .filter_map(|(name, entry)| match entry {
+                    IndexEntry::File(file_entry) => {
+                        if file_names.is_empty() || file_names.contains(&name) {
+                            Some((name, *file_entry))
+                        } else {
+                            None
+                        }
                     }
+                    IndexEntry::Directory(_) => None,
                 })
                 .collect();
 
@@ -244,19 +242,23 @@ fn rom_command(command: RomCommand) -> Result<()> {
                 let mut output_path = output_dir.clone();
                 output_path.extend(name.split('/'));
 
-                let mut file = reader.open_file(file_entry).context("Opening file in rom")?;
+                let mut file = reader
+                    .open_file(file_entry)
+                    .context("Opening file in rom")?;
                 let mut buf = Vec::new();
-                let len = file.read_to_end(&mut buf).context("Reading file data from rom")?;
-                match output_path.parent() {
-                    Some(parent) => std::fs::create_dir_all(parent).context("Creating directory to write file in")?,
-                    None => {},
+                let len = file
+                    .read_to_end(&mut buf)
+                    .context("Reading file data from rom")?;
+                if let Some(parent) = output_path.parent() {
+                    std::fs::create_dir_all(parent)
+                        .context("Creating directory to write file in")?
                 }
                 std::fs::write(output_path.as_path(), buf).context("Writing file")?;
 
                 println!("Wrote file {} ({} bytes)", output_path.display(), len);
             }
             Ok(())
-        },
+        }
     }
 }
 

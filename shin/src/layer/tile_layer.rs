@@ -1,6 +1,6 @@
 use crate::layer::{Layer, LayerProperties};
-use crate::render::{GpuCommonResources, PosVertexBuffer};
 use crate::render::Renderable;
+use crate::render::{GpuCommonResources, PosVertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{Matrix4, Vector4};
 use std::sync::Arc;
@@ -13,12 +13,20 @@ pub struct TileLayer {
 }
 
 impl TileLayer {
-    pub fn new(resources: &GpuCommonResources, tile_color: i32, offset_x: i32, offset_y: i32, width: i32, height: i32) -> Self {
+    #[allow(clippy::identity_op)]
+    pub fn new(
+        resources: &GpuCommonResources,
+        tile_color: i32,
+        offset_x: i32,
+        offset_y: i32,
+        width: i32,
+        height: i32,
+    ) -> Self {
         // tile_color stores the value as 0xARGB — 4 bits for one channel
         let alpha = ((tile_color & 0xf000) >> 12) as u8;
-        let red   = ((tile_color & 0x0f00) >>  8) as u8;
-        let green = ((tile_color & 0x00f0) >>  4) as u8;
-        let blue  = ((tile_color & 0x000f) >>  0) as u8;
+        let red = ((tile_color & 0x0f00) >> 8) as u8;
+        let green = ((tile_color & 0x00f0) >> 4) as u8;
+        let blue = ((tile_color & 0x000f) >> 0) as u8;
 
         let vertex_color = Vector4 {
             x: (red as f32) / (0xf as f32),

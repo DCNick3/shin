@@ -147,7 +147,7 @@ impl GpuTexture {
                 origin: Default::default(),
                 aspect: wgpu::TextureAspect::All,
             },
-            &image,
+            image,
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: NonZeroU32::new(4 * image.width()),

@@ -141,6 +141,7 @@ pub trait Layer: Renderable + Updatable {
 
 #[enum_dispatch(Layer, Renderable, Updatable)]
 #[derive(IntoStaticStr)]
+#[allow(clippy::enum_variant_names)]
 pub enum UserLayer {
     NullLayer,
     PictureLayer,
@@ -162,15 +163,7 @@ impl UserLayer {
             LayerType::Null => NullLayer::new().into(),
             LayerType::Tile => {
                 let [tile_color, offset_x, offset_y, width, height, _, _, _] = params;
-                TileLayer::new(
-                    resources,
-                    tile_color,
-                    offset_x,
-                    offset_y,
-                    width.try_into().unwrap(),
-                    height.try_into().unwrap(),
-                )
-                .into()
+                TileLayer::new(resources, tile_color, offset_x, offset_y, width, height).into()
             }
             LayerType::Picture => {
                 let [pic_id, _, _, _, _, _, _, _] = params;

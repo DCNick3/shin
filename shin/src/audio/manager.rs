@@ -33,9 +33,7 @@ impl AudioManager {
     pub(super) fn play(&self, data: AudioData) -> AudioHandle {
         let mut manager = self.manager.lock().unwrap();
 
-        let instance = manager.play(data).expect("Failed to play instance");
-
-        instance
+        manager.play(data).expect("Failed to start playing audio")
     }
 
     pub(super) fn manager(&self) -> &Mutex<kira::manager::AudioManager<CpalBackend>> {
