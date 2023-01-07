@@ -287,7 +287,7 @@ impl FromVmCtx<NumberSpec> for LayerProperty {
 pub enum MessageboxType {
     Neutral = 0,
     WitchSpace = 1,
-    Ushinomiya = 2,
+    Ushiromiya = 2,
     Transparent = 3,
     Novel = 4,
     NoText = 5,

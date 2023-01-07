@@ -204,7 +204,7 @@ impl Renderable for Messagebox {
         let texture = match self.messagebox_type {
             MessageboxType::Neutral => &self.textures.message_window_1,
             MessageboxType::WitchSpace => &self.textures.message_window_2,
-            MessageboxType::Ushinomiya => &self.textures.message_window_3,
+            MessageboxType::Ushiromiya => &self.textures.message_window_3,
             MessageboxType::Transparent => {
                 todo!()
             }
