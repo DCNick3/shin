@@ -341,7 +341,6 @@ impl MessageLayer {
 
         let message = Message::new(
             context,
-            // TODO: actually reuse the atlas
             self.font_atlas.clone(),
             Vector2::new(-740.0 - 9.0, 300.0 - 83.0),
             text,
