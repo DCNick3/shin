@@ -128,17 +128,17 @@ fn unwrap_triangle_strip(strip: &[PosColTexVertex], output: &mut Vec<PosColTexVe
     }
 }
 
-fn build_vertex_buffer(metrics: MessageMetrics) -> Vec<PosColTexVertex> {
+fn build_vertex_buffer(character_name_width: f32, height: f32) -> Vec<PosColTexVertex> {
     let mut result = Vec::new();
     result.reserve(MAX_VERTEX_COUNT);
 
     unwrap_triangle_strip(
-        &build_message_header_buffer(metrics.character_name_width),
+        &build_message_header_buffer(character_name_width),
         &mut result,
     );
     // let header = 0..result.len() as u32;
 
-    unwrap_triangle_strip(&build_message_body_vertices(metrics.height), &mut result);
+    unwrap_triangle_strip(&build_message_body_vertices(height), &mut result);
     // let body = header.end..result.len() as u32;
 
     assert!(result.len() < MAX_VERTEX_COUNT);
@@ -152,6 +152,7 @@ pub struct Messagebox {
     messagebox_type: MessageboxType,
     visible: bool,
     metrics: MessageMetrics,
+    dynamic_height: f32,
 }
 
 impl Messagebox {
@@ -168,8 +169,9 @@ impl Messagebox {
             visible: false,
             metrics: MessageMetrics {
                 character_name_width: 0.0,
-                height: 360.0,
+                height: 360.0, // Static height: maximum height the message will ever have
             },
+            dynamic_height: 360.0, // Dynamic height: potentially changes as the player clicks through the message
         }
     }
 }
@@ -192,11 +194,11 @@ impl Renderable for Messagebox {
         let transform = transform
             * Matrix4::from_translation(Vector3::new(
                 -960.0,
-                -540.0 + (1080.0 - self.metrics.height) - 32.0,
+                -540.0 + (1080.0 - self.dynamic_height) - 32.0,
                 0.0,
             ));
         // TODO: do not upload the vertices if they haven't changed
-        let vertices = build_vertex_buffer(self.metrics);
+        let vertices = build_vertex_buffer(self.metrics.character_name_width, self.dynamic_height);
         self.vertex_buffer.write(&resources.queue, &vertices);
 
         let texture = match self.messagebox_type {
