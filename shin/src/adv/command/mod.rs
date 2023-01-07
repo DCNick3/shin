@@ -18,6 +18,7 @@ mod prelude {
 mod autosave;
 mod bgmplay;
 mod bgmstop;
+mod chars;
 mod evbegin;
 mod evend;
 mod layerctrl;
@@ -30,12 +31,14 @@ mod msginit;
 mod msgset;
 mod msgsignal;
 mod msgwait;
+mod notifyset;
 mod pageback;
 mod saveinfo;
 mod seplay;
 mod sestop;
 mod sestopall;
 mod sget;
+mod showchars;
 mod sset;
 mod wait;
 mod wipe;
@@ -135,11 +138,11 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::PLANECLEAR(v) => {}
             // RuntimeCommand::MASKLOAD(v) => {}
             // RuntimeCommand::MASKUNLOAD(v) => {}
-            // RuntimeCommand::CHARS(v) => {}
+            RuntimeCommand::CHARS(v) => v.apply_state(state),
             // RuntimeCommand::TIPSGET(v) => {}
             // RuntimeCommand::QUIZ(v) => {}
-            // RuntimeCommand::SHOWCHARS(v) => {}
-            // RuntimeCommand::NOTIFYSET(v) => {}
+            RuntimeCommand::SHOWCHARS(v) => v.apply_state(state),
+            RuntimeCommand::NOTIFYSET(v) => v.apply_state(state),
             // RuntimeCommand::DEBUGOUT(v) => {}
             _ => todo!(),
         }
@@ -206,11 +209,11 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::PLANECLEAR(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::MASKLOAD(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::MASKUNLOAD(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::CHARS(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::CHARS(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::TIPSGET(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::QUIZ(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::SHOWCHARS(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::NOTIFYSET(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SHOWCHARS(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::NOTIFYSET(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::DEBUGOUT(v) => v.start(context, scenario, vm_state, adv_state),
             _ => todo!(),
         }

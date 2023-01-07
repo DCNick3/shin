@@ -50,8 +50,9 @@ impl Renderable for BustupLayer {
         let emotion_gpu_image = self.bustup.face_gpu_image(resources, &self.emotion);
         draw_image(emotion_gpu_image);
 
-        let mouth_gpu_image = self.bustup.mouth_gpu_image(resources, &self.emotion, 0.0);
-        draw_image(mouth_gpu_image);
+        if let Some(mouth_gpu_image) = self.bustup.mouth_gpu_image(resources, &self.emotion, 0.0) {
+            draw_image(mouth_gpu_image);
+        }
     }
 
     fn resize(&mut self, _resources: &GpuCommonResources) {

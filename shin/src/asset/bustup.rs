@@ -35,18 +35,22 @@ impl Bustup {
         resources: &GpuCommonResources,
         emotion: &str,
         mouth_intensity: f32,
-    ) -> &GpuImage {
+    ) -> Option<&GpuImage> {
         let emotion = self
             .emotions
             .get(emotion)
             .with_context(|| format!("No emotion {} in bustup", emotion))
             .unwrap();
 
+        if emotion.mouth_pictures.is_empty() {
+            return None;
+        }
+
         let mouth_intensity = mouth_intensity.clamp(0.0, 1.0);
         let mouth_index =
             ((emotion.mouth_pictures.len() - 1) as f32 * mouth_intensity).round() as usize;
 
-        emotion.mouth_pictures[mouth_index].gpu_image(resources)
+        Some(emotion.mouth_pictures[mouth_index].gpu_image(resources))
     }
 }
 

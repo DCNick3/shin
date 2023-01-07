@@ -245,7 +245,6 @@ impl Updatable for Message {
         if let Some(block) = self.current_block() {
             if !block.completed(self.time) {
                 self.time += context.time_delta_ticks();
-                self.execute_actions();
             } else {
                 match block.exit_condition {
                     BlockExitCondition::None => self.next_block(),
@@ -253,6 +252,7 @@ impl Updatable for Message {
                     _ => {}
                 }
             }
+            self.execute_actions();
         }
     }
 }
