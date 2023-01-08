@@ -454,7 +454,8 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
     let layout_mode = layouter.params.mode;
     match layout_mode {
         LayoutingMode::MessageText => {
-            // Character names are 0.9 font size in message boxes
+            // Character names are 0.9 font size in message boxes, and displayed instantly
+            layouter.state.instant = true;
             layouter.state.font_size = 0.9;
         }
         _ => {}
