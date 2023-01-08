@@ -15,11 +15,19 @@ use crate::update::{Updatable, UpdateContext};
 use cgmath::{ElementWise, Matrix4, Vector2};
 use shin_core::format::font::GlyphTrait;
 use shin_core::layout::{
-    Action, ActionType, Block, BlockExitCondition, LayoutedMessage, MessageMetrics,
+    Action, ActionType, Block, BlockExitCondition, LayoutedMessage, LayoutingMode,
 };
 use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
 use shin_core::vm::command::time::Ticks;
 use tracing::warn;
+
+/// Calculated global metrics for a message. Used to adjust the sizes of individual parts of
+/// the message box, such that it fits the character name and the entire height of the message
+#[derive(Copy, Clone)]
+pub struct MessageMetrics {
+    pub character_name_width: f32,
+    pub height: f32,
+}
 
 struct Message {
     time: Ticks,
@@ -60,22 +68,70 @@ impl Message {
             text_layout: MessageTextLayout::Left,
             default_state: Default::default(),
             has_character_name: true,
+            mode: LayoutingMode::MessageText,
         };
 
         let LayoutedMessage {
+            character_name_chars,
             chars,
             mut actions,
             mut blocks,
-            metrics,
         } = shin_core::layout::layout_text(layout_params, message);
 
         // reverse the blocks & actions so that we can easily pop them off the end in order
         blocks.reverse();
         actions.reverse();
 
+        // Determine position and width of the character name part, if present
+        let (character_name_start_x, character_name_actual_width) = match character_name_chars {
+            Some(ref character_name_chars) => {
+                let start_x = character_name_chars
+                    .first()
+                    .map(|c| c.position.x)
+                    .unwrap_or(0.0_f32);
+                let end_x = character_name_chars
+                    .last()
+                    .map(|c| c.position.x + c.size.advance_width)
+                    .unwrap_or(0.0_f32);
+                (start_x, end_x - start_x)
+            }
+            None => (0.0_f32, 0.0_f32),
+        };
+
+        let metrics = MessageMetrics {
+            character_name_width: if character_name_actual_width > 0.0 {
+                // The character name part is always at least 400 pixels wide
+                character_name_actual_width.max(400.0)
+            } else {
+                0.0
+            },
+
+            // TODO: calculate message height
+            height: 360.0,
+        };
+
+        let character_name_x_offset =
+            (metrics.character_name_width - character_name_actual_width) / 2.0;
+
+        // perform layout post-processing on the character name; chain to form an iterator
+        // over all chars
+        let all_chars_iter = character_name_chars
+            .into_iter()
+            .flatten()
+            .map(|c| {
+                let mut new_c = c.clone();
+                // Here we subtract the start_x so the character name is always layouted identically no matter
+                // where the character name "line" was initially layouted to, to avoid problems with center-/
+                // right-aligned lines
+                new_c.position.x -= character_name_start_x - character_name_x_offset + 20.0;
+                new_c.position.y -= 16.0;
+                new_c
+            })
+            .chain(chars);
+
         let mut used_codepoints = Vec::new();
         let mut vertices = Vec::new();
-        for char in chars.iter() {
+        for char in all_chars_iter {
             // TODO: support for BOLD font
             let glyph_info = font_atlas
                 .get_font()
@@ -342,7 +398,7 @@ impl MessageLayer {
         let message = Message::new(
             context,
             self.font_atlas.clone(),
-            Vector2::new(-740.0 - 9.0, 300.0 - 83.0),
+            Vector2::new(-740.0 - 10.0, 300.0 - 156.0),
             text,
         );
 
