@@ -501,6 +501,8 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                     // If it was false in the first place, just do a normal newline.
                     if character_name {
                         layouter.on_newline(false); // No line wrapping in the character name
+
+                        // We are finishing the character name part, so reset the instant state and font size to the normal values
                         layouter.state.instant = false;
                         layouter.state.font_size = 1.0;
                         character_name = false
