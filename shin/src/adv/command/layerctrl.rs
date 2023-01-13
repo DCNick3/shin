@@ -7,8 +7,8 @@ bitfield! {
         pub easing: i32 @ 0..6,
         pub scale_time: bool @ 6,
         pub delta: bool @ 7,
-        pub flag_8: bool @ 8,
-        pub flag_9: bool @ 9,
+        pub ff_to_current: bool @ 8,
+        pub ff_to_target: bool @ 9,
         pub unused_1: i32 @ 10..12,
         pub prohibit_fast_forwward: bool @ 12,
         pub unused_2: i32 @ 13..16,
@@ -48,13 +48,11 @@ impl StartableCommand for command::runtime::LAYERCTRL {
             warn!("LAYERCTRL: scale_time is set, but not supported");
         }
         if flags.delta() {
+            // note: delta flag has a non-trivial interaction with queue clear flags
             warn!("LAYERCTRL: delta is set, but not supported");
         }
-        if flags.flag_8() {
-            warn!("LAYERCTRL: flag_8 is set, but not supported");
-        }
-        if flags.flag_9() {
-            warn!("LAYERCTRL: flag_9 is set, but not supported");
+        if flags.ff_to_current() && flags.ff_to_target() {
+            panic!("LAYERCTRL: both ff_to_current and ff_to_target flags are set");
         }
         if flags.prohibit_fast_forwward() {
             warn!("LAYERCTRL: prohibit_fast_forwward is set, but not supported");
@@ -79,11 +77,23 @@ impl StartableCommand for command::runtime::LAYERCTRL {
                 changed = true;
             }
 
-            layer.properties_mut().set_property(
-                self.property_id,
-                target_value as f32,
-                Tween { duration, easing },
-            );
+            let tweener = layer
+                .properties_mut()
+                .property_tweener_mut(self.property_id);
+
+            if flags.ff_to_current() {
+                if flags.delta() {
+                    todo!("LAYERCTRL: ff_to_current and delta flags have an interaction that is not yet implemented");
+                }
+
+                let current = tweener.value();
+                tweener.fast_forward_to(current);
+            }
+            if flags.ff_to_target() {
+                tweener.fast_forward();
+            }
+
+            tweener.enqueue(target_value as f32, Tween { duration, easing })
         });
 
         if !self.property_id.is_implemented() && changed {

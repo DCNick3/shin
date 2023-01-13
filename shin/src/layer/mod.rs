@@ -27,7 +27,7 @@ use crate::asset::AnyAssetServer;
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use shin_core::format::scenario::Scenario;
-use shin_core::time::{Tween, Tweener};
+use shin_core::time::Tweener;
 use shin_core::vm::command::layer::{LayerProperty, LayerType};
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
@@ -54,8 +54,8 @@ impl LayerProperties {
         self.properties[property].is_idle()
     }
 
-    pub fn set_property(&mut self, property: LayerProperty, value: f32, tween: Tween) {
-        self.properties[property].enqueue(value, tween);
+    pub fn property_tweener_mut(&mut self, property: LayerProperty) -> &mut Tweener {
+        &mut self.properties[property]
     }
 
     pub fn init(&mut self) {
