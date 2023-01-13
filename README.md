@@ -33,11 +33,15 @@ To try it out you need to have [Rust](https://www.rust-lang.org/) installed.
 
 You would also need to have the game files. Extract the romfs from the game dump, which would give you a `data.rom` file. It's sha256sum should be `6d90eb0bacacf769a7e4634407622b047acd711c47debb28136d7bab3fd0e591`.
 
-Then run the following commands in the `shin` directory:
+You should put this file into the `shin/assets` directory
+
+Then you can start the game with following command ran in the `shin` directory:
 
 ```bash
 cargo run --release
 ```
+
+Note that you should set `shin` as a working directory beforehand!
 
 If you encounter any issues, please open an issue on GitHub.
 
