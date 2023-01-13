@@ -12,7 +12,7 @@ If you know more - reach out!
 
 ## Status
 
-The initial implementation is focused on running switch version of [Umineko When They Cry Saku: Nekobako to Musou no Koukyoukyoku](https://tinfoil.io/Title/01006A300BA2C000), with the intention to support other games in the future.
+The initial implementation is focused on running switch version of Umineko no Naku Koro ni Saku \~Nekobako to Musou no Koukyoukyoku\~ (title id `01006A300BA2C000`), with the intention to support other games in the future.
 
 As of writing, most of the basic game functionality works:
 - Character sprites
