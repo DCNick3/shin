@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::AUTOSAVE {
+impl StartableCommand for command::runtime::AUTOSAVE {
     fn apply_state(&self, _state: &mut VmState) {
         // nothing to do
     }

@@ -1,6 +1,7 @@
 use crate::format::scenario::instructions::{BitmaskNumberArray, MessageId, NumberSpec};
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String, U8FixupString, U8String};
+use crate::vm::command::layer::LayerPropertySmallList;
 use crate::vm::VmCtx;
 use smallvec::SmallVec;
 
@@ -122,4 +123,22 @@ impl FromVmCtx<U8SmallNumberList> for SmallVec<[i32; 6]> {
 }
 impl FromVmCtxDefault for U8SmallNumberList {
     type Output = SmallVec<[i32; 6]>;
+}
+
+impl FromVmCtx<U8SmallNumberList> for LayerPropertySmallList {
+    fn from_vm_ctx(ctx: &VmCtx, input: U8SmallNumberList) -> Self {
+        input
+            .0
+            .into_iter()
+            .map(|n| {
+                let n = ctx.get_number(n);
+                num_traits::FromPrimitive::from_i32(n).unwrap_or_else(|| {
+                    panic!(
+                        "LayerPropertySmallList::from_vm_ctx: invalid layer type: {}",
+                        n
+                    )
+                })
+            })
+            .collect()
+    }
 }

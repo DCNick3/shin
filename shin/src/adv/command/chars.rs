@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::CHARS {
+impl StartableCommand for command::runtime::CHARS {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: CHARS state: {:?}", self);
     }

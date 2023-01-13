@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::EVEND {
+impl StartableCommand for command::runtime::EVEND {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: EVEND state: {:?}", self);
     }

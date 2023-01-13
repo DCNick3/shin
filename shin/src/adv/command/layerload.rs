@@ -2,6 +2,7 @@ use super::prelude::*;
 use crate::layer::UserLayer;
 use bevy_tasks::{AsyncComputeTaskPool, Task};
 use pollster::FutureExt;
+use std::fmt::{Debug, Formatter};
 
 pub struct LAYERLOAD {
     token: Option<command::token::LAYERLOAD>,
@@ -9,7 +10,7 @@ pub struct LAYERLOAD {
     load_task: Option<Task<UserLayer>>,
 }
 
-impl super::StartableCommand for command::runtime::LAYERLOAD {
+impl StartableCommand for command::runtime::LAYERLOAD {
     fn apply_state(&self, state: &mut VmState) {
         assert_eq!(self.leave_uninitialized, 0); // I __think__ this has to do with init props/leave them be, but I'm not sure
 
@@ -100,5 +101,11 @@ impl UpdatableCommand for LAYERLOAD {
         }
 
         None
+    }
+}
+
+impl Debug for LAYERLOAD {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("LAYERLOAD").field(&self.layer_id).finish()
     }
 }

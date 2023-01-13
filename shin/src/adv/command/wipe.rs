@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::WIPE {
+impl StartableCommand for command::runtime::WIPE {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: WIPE state: {:?}", self);
         // we don't track wipes yet

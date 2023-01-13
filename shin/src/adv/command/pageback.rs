@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::PAGEBACK {
+impl StartableCommand for command::runtime::PAGEBACK {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: PAGEBACK state: {:?}", self);
         // TODO: I __think__ we should have a way to store this in the state

@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::MSGSIGNAL {
+impl StartableCommand for command::runtime::MSGSIGNAL {
     fn apply_state(&self, _state: &mut VmState) {
         // nothing to do
     }

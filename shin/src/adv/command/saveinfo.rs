@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::SAVEINFO {
+impl StartableCommand for command::runtime::SAVEINFO {
     fn apply_state(&self, state: &mut VmState) {
         state.save_info.set_save_info(self.level, self.info.clone());
     }

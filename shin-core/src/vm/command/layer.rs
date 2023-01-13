@@ -283,6 +283,8 @@ impl FromVmCtx<NumberSpec> for LayerProperty {
     }
 }
 
+pub type LayerPropertySmallList = smallvec::SmallVec<[LayerProperty; 6]>;
+
 #[derive(FromPrimitive, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Hash)]
 pub enum MessageboxType {
     Neutral = 0,

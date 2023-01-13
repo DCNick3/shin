@@ -16,7 +16,7 @@ enum-map = { git = "https://github.com/DCNick3/enum-map.git", rev = "a04d7e33627
 
 [profile.release]
 debug = true
-lto = 'thin'
+#lto = 'thin'
 
 # optimize deps
 [profile.dev.package."*"]

@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::SESTOP {
+impl StartableCommand for command::runtime::SESTOP {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: SESTOP state: {:?}", self);
     }

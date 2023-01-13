@@ -1,14 +1,14 @@
 use super::prelude::*;
 use crate::update::UpdateContext;
-use std::time::Duration;
+use std::fmt::{Debug, Formatter};
 use tracing::debug;
 
 pub struct WAIT {
     token: Option<command::token::WAIT>,
-    waiting_left: Duration,
+    waiting_left: Ticks,
 }
 
-impl super::StartableCommand for command::runtime::WAIT {
+impl StartableCommand for command::runtime::WAIT {
     fn apply_state(&self, _state: &mut VmState) {
         // nothing to do
     }
@@ -24,7 +24,7 @@ impl super::StartableCommand for command::runtime::WAIT {
         Yield(
             WAIT {
                 token: Some(self.token),
-                waiting_left: self.wait_amount.as_duration(),
+                waiting_left: self.wait_amount,
             }
             .into(),
         )
@@ -40,15 +40,20 @@ impl UpdatableCommand for WAIT {
         _adv_state: &mut AdvState,
         is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        // trace!("WAIT: {:?} {:?}", self.waiting_left, context.time_delta());
-        self.waiting_left = self.waiting_left.saturating_sub(context.time_delta());
+        self.waiting_left -= context.time_delta_ticks();
         // TODO: short circuit the wait for now
-        if self.waiting_left <= Duration::ZERO || is_fast_forwarding {
+        if self.waiting_left <= Ticks::ZERO || is_fast_forwarding {
             debug!("WAIT: done");
             // TODO: this is kinda boilerplaty, maybe we want to have a TokenCell type?
             Some(self.token.take().unwrap().finish())
         } else {
             None
         }
+    }
+}
+
+impl Debug for WAIT {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("WAIT").field(&self.waiting_left).finish()
     }
 }

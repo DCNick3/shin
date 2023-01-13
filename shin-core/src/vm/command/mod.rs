@@ -10,7 +10,7 @@ use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
-use self::layer::{LayerProperty, LayerType, MessageboxStyle, VLayerId};
+use self::layer::{LayerProperty, LayerPropertySmallList, LayerType, MessageboxStyle, VLayerId};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Command, Debug)]
@@ -240,6 +240,7 @@ pub enum Command {
     LAYERWAIT {
         #[cmd(rty = "VLayerId")]
         layer_id: NumberSpec,
+        #[cmd(rty = "LayerPropertySmallList")]
         wait_properties: U8SmallNumberList,
     },
     #[cmd(opcode = 0xc5u8)]

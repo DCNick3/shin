@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::NOTIFYSET {
+impl StartableCommand for command::runtime::NOTIFYSET {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: NOTIFYSET state: {:?}", self);
     }

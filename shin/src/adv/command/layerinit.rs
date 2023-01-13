@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::LAYERINIT {
+impl StartableCommand for command::runtime::LAYERINIT {
     fn apply_state(&self, state: &mut VmState) {
         state
             .layers

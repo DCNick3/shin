@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::LAYERUNLOAD {
+impl StartableCommand for command::runtime::LAYERUNLOAD {
     fn apply_state(&self, state: &mut VmState) {
         // TODO: make another utility function for this
         match self.layer_id.repr() {

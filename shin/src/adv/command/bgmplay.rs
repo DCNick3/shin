@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::BGMPLAY {
+impl StartableCommand for command::runtime::BGMPLAY {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: BGMPLAY state: {:?}", self);
     }

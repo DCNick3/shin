@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::MSGCLOSE {
+impl StartableCommand for command::runtime::MSGCLOSE {
     fn apply_state(&self, state: &mut VmState) {
         state.messagebox_state.messagebox_shown = false;
         state.messagebox_state.text = None;

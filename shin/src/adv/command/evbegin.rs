@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::EVBEGIN {
+impl StartableCommand for command::runtime::EVBEGIN {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: EVBEGIN state: {:?}", self);
     }

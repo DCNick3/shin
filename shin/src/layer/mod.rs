@@ -50,6 +50,9 @@ impl LayerProperties {
     pub fn get_property(&self, property: LayerProperty) -> f32 {
         self.properties[property].value()
     }
+    pub fn is_property_idle(&self, property: LayerProperty) -> bool {
+        self.properties[property].is_idle()
+    }
 
     pub fn set_property(&mut self, property: LayerProperty, value: f32, tween: Tween) {
         self.properties[property].enqueue(value, tween);

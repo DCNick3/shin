@@ -1,11 +1,12 @@
 use super::prelude::*;
+use std::fmt::{Debug, Formatter};
 
 pub struct MSGWAIT {
     token: Option<command::token::MSGWAIT>,
     section_num: i32,
 }
 
-impl super::StartableCommand for command::runtime::MSGWAIT {
+impl StartableCommand for command::runtime::MSGWAIT {
     fn apply_state(&self, _state: &mut VmState) {
         // nothing to do
     }
@@ -50,5 +51,11 @@ impl UpdatableCommand for MSGWAIT {
         } else {
             None
         }
+    }
+}
+
+impl Debug for MSGWAIT {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("MSGWAIT").field(&self.section_num).finish()
     }
 }

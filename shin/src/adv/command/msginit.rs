@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::MSGINIT {
+impl StartableCommand for command::runtime::MSGINIT {
     fn apply_state(&self, state: &mut VmState) {
         state.messagebox_state.msginit = self.messagebox_style;
     }

@@ -1,7 +1,7 @@
 use super::prelude::*;
 use shin_core::format::scenario::Scenario;
 
-impl super::StartableCommand for command::runtime::SGET {
+impl StartableCommand for command::runtime::SGET {
     fn apply_state(&self, _state: &mut VmState) {
         // nothing to do
     }

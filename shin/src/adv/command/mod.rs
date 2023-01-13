@@ -1,8 +1,8 @@
 #![allow(clippy::upper_case_acronyms)]
 
 mod prelude {
-    pub use crate::adv::UpdatableCommand;
     pub use crate::adv::{AdvState, CommandStartResult, VmState};
+    pub use crate::adv::{StartableCommand, UpdatableCommand};
     pub use crate::layer::Layer;
     pub use crate::update::UpdateContext;
     pub use shin_core::format::scenario::Scenario;
@@ -25,6 +25,7 @@ mod layerctrl;
 mod layerinit;
 mod layerload;
 mod layerunload;
+mod layerwait;
 mod moviewait;
 mod msgclose;
 mod msginit;
@@ -44,14 +45,15 @@ mod wait;
 mod wipe;
 
 use layerload::LAYERLOAD;
+use layerwait::LAYERWAIT;
 use msgset::MSGSET;
 use msgwait::MSGWAIT;
 use wait::WAIT;
 
+use derivative::Derivative;
 use enum_dispatch::enum_dispatch;
 use shin_core::format::scenario::Scenario;
 use std::sync::Arc;
-use strum::IntoStaticStr;
 
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 
@@ -75,12 +77,19 @@ pub trait UpdatableCommand {
 // - a type implementing UpdatableCommand
 // - a enum variant for that type here
 #[enum_dispatch(UpdatableCommand)]
-#[derive(IntoStaticStr)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum ExecutingCommand {
+    #[derivative(Debug = "transparent")]
     WAIT,
+    #[derivative(Debug = "transparent")]
     MSGSET,
+    #[derivative(Debug = "transparent")]
     MSGWAIT,
+    #[derivative(Debug = "transparent")]
     LAYERLOAD,
+    #[derivative(Debug = "transparent")]
+    LAYERWAIT,
 }
 
 impl StartableCommand for RuntimeCommand {
@@ -128,7 +137,7 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::LAYERLOAD(v) => v.apply_state(state),
             RuntimeCommand::LAYERUNLOAD(v) => v.apply_state(state),
             RuntimeCommand::LAYERCTRL(v) => v.apply_state(state),
-            // RuntimeCommand::LAYERWAIT(v) => {}
+            RuntimeCommand::LAYERWAIT(v) => v.apply_state(state),
             // RuntimeCommand::LAYERSWAP(v) => {}
             // RuntimeCommand::LAYERSELECT(v) => {}
             RuntimeCommand::MOVIEWAIT(v) => v.apply_state(state),
@@ -199,7 +208,7 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::LAYERLOAD(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::LAYERUNLOAD(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::LAYERCTRL(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::LAYERWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::LAYERWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::LAYERSWAP(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::LAYERSELECT(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::MOVIEWAIT(v) => v.start(context, scenario, vm_state, adv_state),

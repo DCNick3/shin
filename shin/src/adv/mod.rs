@@ -3,6 +3,7 @@ mod command;
 mod vm_state;
 
 pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
+use std::borrow::Cow;
 pub use vm_state::VmState;
 
 use crate::adv::assets::AdvAssets;
@@ -136,12 +137,12 @@ impl OverlayVisitable for Adv {
                 collector.overlay(
                     "Command",
                     |_ctx, top_left| {
-                        let command_name = if let Some(command) = &self.current_command {
-                            command.into()
+                        let command = if let Some(command) = &self.current_command {
+                            Cow::Owned(format!("{:?}", command))
                         } else {
-                            "None"
+                            Cow::Borrowed("None")
                         };
-                        top_left.label(format!("Command: {}", command_name));
+                        top_left.label(format!("Command: {}", command));
                     },
                     true,
                 );
@@ -204,13 +205,57 @@ impl AdvState {
         }
     }
 
+    pub fn current_layer_group(&self, _vm_state: &VmState) -> &LayerGroup {
+        self.root_layer_group.screen_layer()
+    }
+
     pub fn current_layer_group_mut(&mut self, _vm_state: &VmState) -> &mut LayerGroup {
         self.root_layer_group.screen_layer_mut()
     }
 
     #[allow(unused)]
-    pub fn get_vlayer(&self, _vm_state: &VmState, _id: VLayerId) -> impl Iterator<Item = AnyLayer> {
-        todo!() as std::iter::Once<_>
+    pub fn iter_vlayer(&self, vm_state: &VmState, id: VLayerId) -> impl Iterator<Item = AnyLayer> {
+        // TODO: we actually can do this without vectors
+        match id.repr() {
+            VLayerIdRepr::RootLayerGroup => vec![(&self.root_layer_group).into()],
+            VLayerIdRepr::ScreenLayer => vec![self.root_layer_group.screen_layer().into()],
+            VLayerIdRepr::PageLayer => {
+                warn!("Returning ScreenLayer for PageLayer");
+                vec![(&self.root_layer_group).into()]
+            }
+            VLayerIdRepr::PlaneLayerGroup => {
+                warn!("Returning ScreenLayer for PlaneLayerGroup");
+                vec![self.root_layer_group.screen_layer().into()]
+            }
+            VLayerIdRepr::Selected => {
+                if let Some(selection) = vm_state.layers.layer_selection {
+                    selection
+                        .iter()
+                        .filter_map(|id| {
+                            if let Some(layer) = self.current_layer_group(vm_state).get_layer(id) {
+                                Some(layer.into())
+                            } else {
+                                warn!("AdvState::iter_vlayer: Selected layer not found: {:?}", id);
+                                None
+                            }
+                        })
+                        .collect()
+                } else {
+                    warn!("AdvState::iter_vlayer: no layer selected");
+                    vec![]
+                }
+            }
+            VLayerIdRepr::Layer(l) => {
+                let layer = self.current_layer_group(vm_state).get_layer(l);
+                if let Some(layer) = layer {
+                    vec![layer.into()]
+                } else {
+                    warn!("AdvState::iter_vlayer: layer not found: {:?}", l);
+                    vec![]
+                }
+            }
+        }
+        .into_iter()
     }
 
     pub fn for_each_vlayer_mut(
@@ -237,6 +282,11 @@ impl AdvState {
                             self.current_layer_group_mut(vm_state).get_layer_mut(id)
                         {
                             f(layer.into());
+                        } else {
+                            warn!(
+                                "AdvState::for_each_vlayer_mut: Selected layer not found: {:?}",
+                                id
+                            );
                         }
                     }
                 } else {

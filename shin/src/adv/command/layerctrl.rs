@@ -1,7 +1,7 @@
 use super::prelude::*;
 use shin_core::time::{Easing, Tween};
 
-impl super::StartableCommand for command::runtime::LAYERCTRL {
+impl StartableCommand for command::runtime::LAYERCTRL {
     fn apply_state(&self, state: &mut VmState) {
         let [target_value, _time, _flags, _, _, _, _, _] = self.params;
 

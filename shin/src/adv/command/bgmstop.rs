@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::BGMSTOP {
+impl StartableCommand for command::runtime::BGMSTOP {
     fn apply_state(&self, _state: &mut VmState) {
         warn!("TODO: BGMSTOP state: {:?}", self);
     }

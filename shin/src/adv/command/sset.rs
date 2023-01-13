@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-impl super::StartableCommand for command::runtime::SSET {
+impl StartableCommand for command::runtime::SSET {
     fn apply_state(&self, state: &mut VmState) {
         state.globals.set(self.slot_number, self.value);
     }

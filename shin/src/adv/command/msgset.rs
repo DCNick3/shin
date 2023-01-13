@@ -1,11 +1,12 @@
 use super::prelude::*;
+use std::fmt::{Debug, Formatter};
 
 pub struct MSGSET {
     #[allow(unused)]
     token: Option<command::token::MSGSET>,
 }
 
-impl super::StartableCommand for command::runtime::MSGSET {
+impl StartableCommand for command::runtime::MSGSET {
     fn apply_state(&self, state: &mut VmState) {
         // TODO: think about async messages (those where you would use MSGWAIT)
         state.messagebox_state.text = Some(self.text.clone());
@@ -58,8 +59,8 @@ impl UpdatableCommand for MSGSET {
     }
 }
 
-// pub fn system(mut _commands: Commands, mut query: Query<(Entity, &mut MSGSET)>) {
-//     for (_entity, mut _wait) in query.iter_mut() {
-//         // TODO: here we do not finish the command, making the VM wait forever
-//     }
-// }
+impl Debug for MSGSET {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("MSGSET").finish()
+    }
+}
