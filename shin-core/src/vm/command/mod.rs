@@ -1,19 +1,16 @@
 pub mod layer;
-pub mod time;
 
 use crate::format::scenario::instructions::{
     BitmaskNumberArray, MemoryAddress, MessageId, NumberSpec,
 };
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String, U8String};
+use crate::time::Ticks;
 use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
-use self::{
-    layer::{LayerProperty, LayerType, MessageboxStyle, VLayerId},
-    time::Ticks,
-};
+use self::layer::{LayerProperty, LayerType, MessageboxStyle, VLayerId};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Command, Debug)]
@@ -52,6 +49,7 @@ pub enum Command {
     #[cmd(opcode = 0x83u8)]
     WAIT {
         allow_interrupt: u8,
+        #[cmd(rty = "Ticks")]
         wait_amount: NumberSpec,
     },
     // 0x84 is unused

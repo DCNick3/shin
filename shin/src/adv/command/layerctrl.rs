@@ -20,7 +20,7 @@ impl super::StartableCommand for command::runtime::LAYERCTRL {
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         let [target_value, time, flags, _, _, _, _, _] = self.params;
-        let time = Ticks(time as f32);
+        let time = Ticks::from_i32(time);
 
         if flags != 0 {
             warn!("LAYERCTRL: flags are not supported yet (flags={})", flags);

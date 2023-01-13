@@ -1,7 +1,7 @@
 use crate::asset::AnyAssetServer;
 use crate::input::RawInputState;
 use enum_dispatch::enum_dispatch;
-use shin_core::vm::command::time::Ticks;
+use shin_core::time::Ticks;
 use std::sync::Arc;
 use std::time::Duration;
 

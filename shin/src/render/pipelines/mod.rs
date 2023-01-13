@@ -2,6 +2,7 @@ use crate::render;
 use crate::render::bind_groups::{BindGroupLayouts, TextureBindGroup};
 use bytemuck::{Pod, Zeroable};
 use cgmath::{Matrix4, Vector2, Vector3, Vector4};
+use shin_core::time::Ticks;
 use std::mem;
 use std::ops::Range;
 use wgpu::include_wgsl;
@@ -33,8 +34,8 @@ pub struct TextVertex {
     pub tex_position: Vector2<f32>,
     #[f32x3(2)]
     pub color: Vector3<f32>,
-    #[f32(3)]
-    pub time: f32,
+    #[f32(3)] // TODO(ticks): don't forget to change into u32
+    pub time: Ticks,
     #[f32(4)]
     pub fade: f32,
 }
@@ -276,7 +277,7 @@ impl FillPipeline {
 #[repr(C)]
 struct TextParams {
     pub transform: Matrix4<f32>,
-    pub time: f32,
+    pub time: Ticks,
 }
 
 pub struct TextPipeline(wgpu::RenderPipeline);
@@ -316,7 +317,7 @@ impl TextPipeline {
         source: VertexSource<'a, TextVertex>,
         texture: &'a TextureBindGroup,
         transform: Matrix4<f32>,
-        time: f32,
+        time: Ticks,
     ) {
         render_pass.set_pipeline(&self.0);
         render_pass.set_bind_group(0, &texture.0, &[]);
@@ -333,7 +334,7 @@ impl TextPipeline {
 #[repr(C)]
 struct TextOutlineParams {
     pub transform: Matrix4<f32>,
-    pub time: f32,
+    pub time: Ticks,
     pub distance: Vector2<f32>,
 }
 
@@ -374,7 +375,7 @@ impl TextOutlinePipeline {
         source: VertexSource<'a, TextVertex>,
         texture: &'a TextureBindGroup,
         transform: Matrix4<f32>,
-        time: f32,
+        time: Ticks,
         distance: Vector2<f32>,
     ) {
         render_pass.set_pipeline(&self.0);

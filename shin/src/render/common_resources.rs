@@ -4,6 +4,7 @@ use crate::render::{
     VertexSource,
 };
 use cgmath::{Matrix4, Vector2, Vector4};
+use shin_core::time::Ticks;
 use std::sync::RwLock;
 
 pub struct GpuCommonResources {
@@ -60,7 +61,7 @@ impl GpuCommonResources {
         source: VertexSource<'a, TextVertex>,
         texture: &'a TextureBindGroup,
         transform: Matrix4<f32>,
-        time: f32,
+        time: Ticks,
     ) {
         self.pipelines
             .text
@@ -73,7 +74,7 @@ impl GpuCommonResources {
         source: VertexSource<'a, TextVertex>,
         texture: &'a TextureBindGroup,
         transform: Matrix4<f32>,
-        time: f32,
+        time: Ticks,
         distance: Vector2<f32>,
     ) {
         self.pipelines

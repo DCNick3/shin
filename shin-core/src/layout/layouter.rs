@@ -1,7 +1,7 @@
 use crate::format::font::{GlyphTrait, LazyFont};
 use crate::layout::parser::{LayouterParser, ParsedCommand};
+use crate::time::Ticks;
 use crate::vm::command::layer::MessageTextLayout;
-use crate::vm::command::time::Ticks;
 use cgmath::{Vector2, Vector3};
 use float_ord::FloatOrd;
 use std::iter::Peekable;
@@ -166,7 +166,7 @@ impl<'a> Layouter<'a> {
         self.position.x += size.advance_width;
 
         if !self.state.instant {
-            self.time += Ticks(self.state.text_draw_speed * size.advance_width);
+            self.time += Ticks::from_f32(self.state.text_draw_speed * size.advance_width);
         }
 
         // TODO: handle full stops (they add more delay)
@@ -357,12 +357,12 @@ struct BlockBuilder {
 impl BlockBuilder {
     /// An artificial gap between blocks
     /// Needed because we don't want the fade-in of the next block to interfere
-    const TIME_GAP: Ticks = Ticks(1000.0);
+    const TIME_GAP: Ticks = Ticks::from_u32(1000);
 
     fn new() -> Self {
         Self {
             final_wait: true,
-            time_start: Ticks(0.0),
+            time_start: Ticks::ZERO,
             signal_number: 0,
             blocks: Vec::new(),
         }
@@ -445,7 +445,7 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
         chars: Vec::new(),
         pending_chars: Vec::new(),
         position: Vector2::new(0.0, 0.0),
-        time: Ticks(0.0),
+        time: Ticks::ZERO,
     };
 
     let mut block_builder = BlockBuilder::new();

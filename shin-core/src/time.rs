@@ -1,15 +1,38 @@
 use derive_more::{Add, AddAssign, Sub, SubAssign};
 use float_ord::FloatOrd;
+use std::fmt::{Debug, Display};
 use std::ops::Div;
 use std::time::Duration;
+use tracing::warn;
 
-#[derive(Debug, Copy, Clone, Default, Add, AddAssign, Sub, SubAssign)]
-pub struct Ticks(pub f32); // TODO: hide away the f32 to allow changing the representation later
+/// A time value that can be used to store either a duration.
+///
+/// The value is stored as a number of "ticks" (60 tps), in an f32.
+/// This precision should be good enough, if we wouldn't use it to store some global "time elapsed from the start of the game"
+#[derive(
+    Copy, Clone, Default, bytemuck::Pod, bytemuck::Zeroable, Add, AddAssign, Sub, SubAssign,
+)]
+#[repr(transparent)]
+pub struct Ticks(f32);
 
-pub const TICKS_PER_SECOND: f32 = 60.0;
+const TICKS_PER_SECOND: f32 = 60.0;
 
 impl Ticks {
     pub const ZERO: Self = Self(0.0);
+
+    pub fn from_f32(ticks: f32) -> Self {
+        Self(ticks)
+    }
+
+    pub const fn from_u32(ticks: u32) -> Self {
+        Self(ticks as f32)
+    }
+    pub fn from_i32(ticks: i32) -> Self {
+        if ticks < 0 {
+            warn!("Ticks::from_i32: negative value: {}", ticks);
+        }
+        Self(ticks.clamp(0, i32::MAX) as f32)
+    }
 
     pub fn from_seconds(seconds: f32) -> Self {
         Self(seconds * TICKS_PER_SECOND)
@@ -53,5 +76,17 @@ impl PartialOrd for Ticks {
 impl Ord for Ticks {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         FloatOrd(self.0).cmp(&FloatOrd(other.0))
+    }
+}
+
+impl Debug for Ticks {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.01}t", self.0)
+    }
+}
+
+impl Display for Ticks {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
     }
 }

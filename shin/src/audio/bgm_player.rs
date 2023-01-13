@@ -1,7 +1,7 @@
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
 use kira::tween::Tween;
 use kira::StartTime;
-use shin_core::vm::command::time::Ticks;
+use shin_core::time::Ticks;
 use std::sync::Arc;
 use tracing::warn;
 

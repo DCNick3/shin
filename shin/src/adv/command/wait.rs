@@ -1,6 +1,5 @@
 use super::prelude::*;
 use crate::update::UpdateContext;
-use shin_core::vm::command::time::Ticks;
 use std::time::Duration;
 use tracing::debug;
 
@@ -25,7 +24,7 @@ impl super::StartableCommand for command::runtime::WAIT {
         Yield(
             WAIT {
                 token: Some(self.token),
-                waiting_left: Ticks(self.wait_amount as f32).as_duration(),
+                waiting_left: self.wait_amount.as_duration(),
             }
             .into(),
         )

@@ -17,8 +17,8 @@ use shin_core::format::font::GlyphTrait;
 use shin_core::layout::{
     Action, ActionType, Block, BlockExitCondition, LayoutedMessage, LayoutingMode,
 };
+use shin_core::time::Ticks;
 use shin_core::vm::command::layer::{MessageTextLayout, MessageboxStyle};
-use shin_core::vm::command::time::Ticks;
 use tracing::warn;
 
 /// Calculated global metrics for a message. Used to adjust the sizes of individual parts of
@@ -164,7 +164,7 @@ impl Message {
                 );
             let size = char.size.size();
 
-            let time = char.time.0;
+            let time = char.time;
             let fade = char.fade;
             let color = char.color;
 
@@ -338,7 +338,7 @@ impl Renderable for Message {
             self.vertex_buffer.vertex_source(),
             self.font_atlas.texture_bind_group(),
             transform,
-            self.time.0,
+            self.time,
             scaled_distance,
         );
 
@@ -347,7 +347,7 @@ impl Renderable for Message {
             self.vertex_buffer.vertex_source(),
             self.font_atlas.texture_bind_group(),
             transform,
-            self.time.0,
+            self.time,
         );
         render_pass.pop_debug_group();
     }
@@ -495,7 +495,7 @@ impl OverlayVisitable for MessageLayer {
                             .as_ref()
                             .map(|m| m.received_signals)
                             .unwrap_or(0);
-                        let time = self.message.as_ref().map(|v| v.time.0).unwrap_or(0.0);
+                        let time = self.message.as_ref().map(|v| v.time).unwrap_or(Ticks::ZERO);
 
                         top_left.label(format!(
                             "MessageLayer: {} B={} So={} Si={} T={:06.1} AF={:04.1}%",

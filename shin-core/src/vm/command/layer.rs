@@ -1,5 +1,5 @@
 use crate::format::scenario::instructions::NumberSpec;
-use crate::vm::command::time::Ticks;
+use crate::time::Ticks;
 use crate::vm::{FromVmCtx, VmCtx};
 use enum_map::Enum;
 use num_derive::FromPrimitive;
@@ -335,7 +335,6 @@ impl FromVmCtx<NumberSpec> for MessageboxStyle {
 
 impl FromVmCtx<NumberSpec> for Ticks {
     fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        let v = ctx.get_number(input);
-        Self(v as f32)
+        Ticks::from_i32(ctx.get_number(input))
     }
 }

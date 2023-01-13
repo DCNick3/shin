@@ -28,8 +28,8 @@ use crate::interpolator::{Easing, Interpolator};
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use shin_core::format::scenario::Scenario;
+use shin_core::time::Ticks;
 use shin_core::vm::command::layer::{LayerProperty, LayerType};
-use shin_core::vm::command::time::Ticks;
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
     enum_map! {
