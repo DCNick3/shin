@@ -24,11 +24,10 @@ pub use tile_layer::TileLayer;
 use crate::asset::bustup::Bustup;
 use crate::asset::picture::Picture;
 use crate::asset::AnyAssetServer;
-use crate::interpolator::{Easing, Interpolator};
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use shin_core::format::scenario::Scenario;
-use shin_core::time::Ticks;
+use shin_core::time::{Tween, Tweener};
 use shin_core::vm::command::layer::{LayerProperty, LayerType};
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
@@ -38,13 +37,13 @@ fn initial_values() -> EnumMap<LayerProperty, i32> {
 }
 
 pub struct LayerProperties {
-    properties: EnumMap<LayerProperty, Interpolator>,
+    properties: EnumMap<LayerProperty, Tweener>,
 }
 
 impl LayerProperties {
     pub fn new() -> Self {
         Self {
-            properties: initial_values().map(|_, v| Interpolator::new(v as f32)),
+            properties: initial_values().map(|_, v| Tweener::new(v as f32)),
         }
     }
 
@@ -52,19 +51,13 @@ impl LayerProperties {
         self.properties[property].value()
     }
 
-    pub fn set_property(
-        &mut self,
-        property: LayerProperty,
-        value: f32,
-        time: Ticks,
-        easing: Easing,
-    ) {
-        self.properties[property].enqueue(value, time, easing);
+    pub fn set_property(&mut self, property: LayerProperty, value: f32, tween: Tween) {
+        self.properties[property].enqueue(value, tween);
     }
 
     pub fn init(&mut self) {
         for (prop, val) in initial_values() {
-            self.properties[prop].enqueue_force(val as f32);
+            self.properties[prop].fast_forward_to(val as f32);
         }
     }
 
@@ -98,7 +91,7 @@ impl LayerProperties {
 impl Updatable for LayerProperties {
     fn update(&mut self, ctx: &UpdateContext) {
         for property in self.properties.values_mut() {
-            property.update(ctx);
+            property.update(ctx.time_delta_ticks());
         }
     }
 }

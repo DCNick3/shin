@@ -1,9 +1,15 @@
+mod tween;
+mod tweener;
+
 use derive_more::{Add, AddAssign, Sub, SubAssign};
 use float_ord::FloatOrd;
 use std::fmt::{Debug, Display};
 use std::ops::Div;
 use std::time::Duration;
 use tracing::warn;
+
+pub use tween::{Easing, Tween};
+pub use tweener::Tweener;
 
 /// A time value that can be used to store either a duration.
 ///

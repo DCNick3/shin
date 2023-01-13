@@ -6,7 +6,6 @@ mod adv;
 mod audio;
 mod fps_counter;
 mod input;
-mod interpolator;
 mod layer;
 mod render;
 mod update;
