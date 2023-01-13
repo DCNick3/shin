@@ -2833,6 +2833,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
+name = "proc-bitfield"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8ecfb67b750a2bf444480ec637b40f8f9d76d74bf59f7a4bfa26b9a9669a73b"
+dependencies = [
+ "proc-bitfield-macros",
+ "static_assertions",
+]
+
+[[package]]
+name = "proc-bitfield-macros"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f75bb614a4c89e41b25c8875306887991b85b3af62a0017d8e1129652f948bda"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3394,6 +3414,7 @@ dependencies = [
  "once_cell",
  "petitset",
  "pollster",
+ "proc-bitfield",
  "ringbuf",
  "serde",
  "serde_yaml",

@@ -46,6 +46,7 @@ strum = "0.24.1"
 typemap = "0.3.3"
 derivative = "2.2.0"
 serde = "1.0.152"
+proc-bitfield = "0.2.2"
 
 itertools = "0.10.5"
 once_cell = "1.16.0"
