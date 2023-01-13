@@ -26,7 +26,12 @@ impl StartableCommand for command::runtime::LAYERCTRL {
             warn!("LAYERCTRL: flags are not supported yet (flags={})", flags);
         }
 
+        let mut changed = false;
         adv_state.for_each_vlayer_mut(vm_state, self.layer_id, |mut layer| {
+            if layer.properties().get_property(self.property_id) != target_value as f32 {
+                changed = true;
+            }
+
             layer.properties_mut().set_property(
                 self.property_id,
                 target_value as f32,
@@ -36,6 +41,13 @@ impl StartableCommand for command::runtime::LAYERCTRL {
                 },
             );
         });
+
+        if !self.property_id.is_implemented() && changed {
+            warn!(
+                "LAYERCTRL: property is not implemented yet (property_id={:?}, value={})",
+                self.property_id, target_value
+            );
+        }
 
         self.token.finish().into()
     }

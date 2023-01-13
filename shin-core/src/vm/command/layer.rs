@@ -151,7 +151,7 @@ pub enum LayerProperty {
     TranslateZ = 2,
     Prop3 = 3,
     Prop4 = 4,
-    Prop5 = 5,
+    RenderPosition = 5,
     Prop6 = 6,
     Prop7 = 7,
     Prop8 = 8,
@@ -244,35 +244,46 @@ impl LayerProperty {
     // pub const COUNT: usize = <LayerProperty as Enum>::Array::LENGTH;
 
     pub fn initial_value(self) -> i32 {
+        use LayerProperty::*;
         match self {
-            LayerProperty::TranslateZ => 1000,
-            LayerProperty::Prop5 => 1000,
-            LayerProperty::Prop6 => 1000,
-            LayerProperty::Prop7 => 1000,
-            LayerProperty::Prop8 => 1000,
-            LayerProperty::Prop9 => 1000,
-            LayerProperty::Prop12 => 1000,
-            LayerProperty::Prop13 => 1000,
-            LayerProperty::Prop14 => 1000,
-            LayerProperty::Prop15 => 1000,
-            LayerProperty::Prop22 => 1,
-            LayerProperty::Prop27 => 1,
-            LayerProperty::Prop28 => 1000,
-            LayerProperty::Prop29 => 1000,
-            LayerProperty::Prop30 => 1000,
-            LayerProperty::Prop31 => 1000,
-            LayerProperty::Prop43 => 1000,
-            LayerProperty::Prop51 => 1000,
-            LayerProperty::Prop55 => 1000,
-            LayerProperty::Prop57 => 1000,
-            LayerProperty::Prop73 => 1000,
-            LayerProperty::Prop75 => 1000,
+            TranslateZ => 1000,
+            RenderPosition => 1000,
+            Prop6 => 1000,
+            Prop7 => 1000,
+            Prop8 => 1000,
+            Prop9 => 1000,
+            Prop12 => 1000,
+            Prop13 => 1000,
+            Prop14 => 1000,
+            Prop15 => 1000,
+            Prop22 => 1,
+            Prop27 => 1,
+            Prop28 => 1000,
+            Prop29 => 1000,
+            Prop30 => 1000,
+            Prop31 => 1000,
+            Prop43 => 1000,
+            Prop51 => 1000,
+            Prop55 => 1000,
+            Prop57 => 1000,
+            Prop73 => 1000,
+            Prop75 => 1000,
             _ => 0,
         }
     }
 
-    // TODO: add a function to check whether the property is supported
-    // we can print a warning or smth if it's not
+    pub fn is_implemented(&self) -> bool {
+        use LayerProperty::*;
+        matches!(
+            self,
+            TranslateX | TranslateY | Rotation
+
+            // this one is not, actually, implemented
+            // everything seems to work fine, so ignoring it for now
+            // (figuring out how it works is non-trivial tbh)
+            | RenderPosition
+        )
+    }
 }
 
 impl FromVmCtx<NumberSpec> for LayerProperty {
