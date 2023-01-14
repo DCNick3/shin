@@ -5,11 +5,13 @@ mod null_layer;
 mod picture_layer;
 mod root_layer_group;
 mod tile_layer;
+mod wobbler;
 
 use cgmath::{Matrix4, SquareMatrix, Vector3};
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
 use enum_map::{enum_map, EnumMap};
+use std::f32::consts::PI;
 use strum::IntoStaticStr;
 use tracing::{debug, warn};
 
@@ -24,10 +26,11 @@ pub use tile_layer::TileLayer;
 use crate::asset::bustup::Bustup;
 use crate::asset::picture::Picture;
 use crate::asset::AnyAssetServer;
+use crate::layer::wobbler::Wobbler;
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use shin_core::format::scenario::Scenario;
-use shin_core::time::Tweener;
+use shin_core::time::{Ticks, Tweener};
 use shin_core::vm::command::layer::{LayerProperty, LayerType};
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
@@ -38,12 +41,24 @@ fn initial_values() -> EnumMap<LayerProperty, i32> {
 
 pub struct LayerProperties {
     properties: EnumMap<LayerProperty, Tweener>,
+    wobbler_x: Wobbler,
+    wobbler_y: Wobbler,
+    wobbler_alpha: Wobbler,
+    wobbler_rotation: Wobbler,
+    wobbler_scale_x: Wobbler,
+    wobbler_scale_y: Wobbler,
 }
 
 impl LayerProperties {
     pub fn new() -> Self {
         Self {
             properties: initial_values().map(|_, v| Tweener::new(v as f32)),
+            wobbler_x: Wobbler::new(),
+            wobbler_y: Wobbler::new(),
+            wobbler_alpha: Wobbler::new(),
+            wobbler_rotation: Wobbler::new(),
+            wobbler_scale_x: Wobbler::new(),
+            wobbler_scale_y: Wobbler::new(),
         }
     }
 
@@ -77,11 +92,49 @@ impl LayerProperties {
             };
         }
 
+        macro_rules! wobble {
+            ($wobbler_name:ident, $amplitude:ident, $bias:ident) => {
+                self.$wobbler_name.value() * get!($amplitude) + get!($bias)
+            };
+        }
+
         // TODO: actually use all the properties
 
         let transforms = [
+            // apply scale
+            Matrix4::from_translation(-get!(ScaleOriginX, ScaleOriginY, Zero)),
+            Matrix4::from_nonuniform_scale(
+                get!(ScaleX) / 1000.0 * get!(ScaleX2) / 1000.0
+                    * wobble!(wobbler_scale_x, WobbleScaleXAmplitude, WobbleScaleXBias)
+                    / 1000.0,
+                get!(ScaleY) / 1000.0 * get!(ScaleY2) / 1000.0
+                    * wobble!(wobbler_scale_y, WobbleScaleYAmplitude, WobbleScaleYBias)
+                    / 1000.0,
+                1.0,
+            ),
+            Matrix4::from_translation(get!(ScaleOriginX, ScaleOriginY, Zero)),
+            // apply rotation
+            Matrix4::from_translation(-get!(RotationOriginX, RotationOriginY, Zero)),
+            Matrix4::from_angle_z(cgmath::Rad({
+                let rotations = get!(Rotation)
+                    + get!(Rotation2)
+                    + wobble!(
+                        wobbler_rotation,
+                        WobbleRotationAmplitude,
+                        WobbleRotationBias
+                    );
+
+                rotations / 1000.0 * 2.0 * PI
+            })),
+            Matrix4::from_translation(get!(RotationOriginX, RotationOriginY, Zero)),
+            // apply translation
             Matrix4::from_translation(get!(TranslateX, TranslateY, Zero)),
-            Matrix4::from_angle_z(cgmath::Deg(get!(Rotation))), // TODO: handle rotation origin
+            Matrix4::from_translation(get!(TranslateX2, TranslateY2, Zero)),
+            Matrix4::from_translation(Vector3::new(
+                wobble!(wobbler_x, WobbleXAmplitude, WobbleXBias),
+                wobble!(wobbler_y, WobbleYAmplitude, WobbleYBias),
+                0.0,
+            )),
             base_transform,
         ];
 
@@ -93,9 +146,37 @@ impl LayerProperties {
 
 impl Updatable for LayerProperties {
     fn update(&mut self, ctx: &UpdateContext) {
+        let dt = ctx.time_delta_ticks();
+
         for property in self.properties.values_mut() {
-            property.update(ctx.time_delta_ticks());
+            property.update(dt);
         }
+
+        macro_rules! get {
+            ($property:ident) => {
+                self.get_property(LayerProperty::$property)
+            };
+        }
+
+        macro_rules! get_ticks {
+            ($property:ident) => {
+                Ticks::from_f32(get!($property))
+            };
+        }
+
+        macro_rules! wobble {
+            ($wobbler_name:ident, $wobble_mode:ident, $wobble_period:ident) => {
+                self.$wobbler_name
+                    .update(dt, get!($wobble_mode), get_ticks!($wobble_period));
+            };
+        }
+
+        wobble!(wobbler_x, WobbleXMode, WobbleXPeriod);
+        wobble!(wobbler_y, WobbleYMode, WobbleYPeriod);
+        wobble!(wobbler_alpha, WobbleAlphaMode, WobbleAlphaPeriod);
+        wobble!(wobbler_rotation, WobbleRotationMode, WobbleRotationPeriod);
+        wobble!(wobbler_scale_x, WobbleScaleXMode, WobbleScaleXPeriod);
+        wobble!(wobbler_scale_y, WobbleScaleYMode, WobbleScaleYPeriod);
     }
 }
 

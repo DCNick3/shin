@@ -149,27 +149,32 @@ pub enum LayerProperty {
     TranslateY = 1,
     /// Unused by the game (TODO: machine-readable annotations for this)
     TranslateZ = 2,
-    Prop3 = 3,
-    Prop4 = 4,
+    TranslateX2 = 3,
+    TranslateY2 = 4,
     RenderPosition = 5,
+
     Prop6 = 6,
     Prop7 = 7,
     Prop8 = 8,
     Prop9 = 9,
-    Prop10 = 10,
-    Prop11 = 11,
-    Prop12 = 12,
-    Prop13 = 13,
-    Prop14 = 14,
-    Prop15 = 15,
-    Prop16 = 16,
-    Prop17 = 17,
-    /// Rotation of the layer in degrees
+
+    ScaleOriginX = 10,
+    ScaleOriginY = 11,
+    ScaleX = 12,
+    ScaleY = 13,
+    ScaleX2 = 14,
+    ScaleY2 = 15,
+
+    RotationOriginX = 16,
+    RotationOriginY = 17,
+    /// Rotation of the layer in 1000th of rotation
     Rotation = 18,
-    Prop19 = 19,
+    Rotation2 = 19,
+
     Prop20 = 20,
     Prop21 = 21,
-    Prop22 = 22,
+
+    ShowLayer = 22,
     Prop23 = 23,
     Prop24 = 24,
     Prop25 = 25,
@@ -179,35 +184,44 @@ pub enum LayerProperty {
     Prop29 = 29,
     Prop30 = 30,
     Prop31 = 31,
-    Prop32 = 32,
-    Prop33 = 33,
-    Prop34 = 34,
-    Prop35 = 35,
-    Prop36 = 36,
-    Prop37 = 37,
-    Prop38 = 38,
-    Prop39 = 39,
-    Prop40 = 40,
-    Prop41 = 41,
-    Prop42 = 42,
-    Prop43 = 43,
-    Prop44 = 44,
-    Prop45 = 45,
-    Prop46 = 46,
-    Prop47 = 47,
-    Prop48 = 48,
-    Prop49 = 49,
-    Prop50 = 50,
-    Prop51 = 51,
-    Prop52 = 52,
-    Prop53 = 53,
-    Prop54 = 54,
-    Prop55 = 55,
+
+    WobbleXMode = 32,
+    WobbleXPeriod = 33,
+    WobbleXAmplitude = 34,
+    WobbleXBias = 35,
+
+    WobbleYMode = 36,
+    WobbleYPeriod = 37,
+    WobbleYAmplitude = 38,
+    WobbleYBias = 39,
+
+    WobbleAlphaMode = 40,
+    WobbleAlphaPeriod = 41,
+    WobbleAlphaAmplitude = 42,
+    WobbleAlphaBias = 43,
+
+    WobbleScaleXMode = 44,
+    WobbleScaleXPeriod = 45,
+    WobbleScaleXAmplitude = 46,
+    WobbleScaleXBias = 47,
+
+    WobbleScaleYMode = 48,
+    WobbleScaleYPeriod = 49,
+    WobbleScaleYAmplitude = 50,
+    WobbleScaleYBias = 51,
+
+    WobbleRotationMode = 52,
+    WobbleRotationPeriod = 53,
+    WobbleRotationAmplitude = 54,
+    WobbleRotationBias = 55,
+
+    // "Ghosting" effect
     Prop56 = 56,
     Prop57 = 57,
     Prop58 = 58,
     Prop59 = 59,
     Prop60 = 60,
+
     Prop61 = 61,
     Prop62 = 62,
     Prop63 = 63,
@@ -216,22 +230,36 @@ pub enum LayerProperty {
     Prop66 = 66,
     Prop67 = 67,
     Prop68 = 68,
+
+    // "Blur" effect
     Prop69 = 69,
-    Prop70 = 70,
+    // "Pixelize" effect
+    PixelizeSize = 70,
+
+    // "Dissolve" Effect, used by the witch
     Prop71 = 71,
     Prop72 = 72,
+
+    // "Rain" effect
     Prop73 = 73,
     Prop74 = 74,
     Prop75 = 75,
+
+    // "Waves" effect
     Prop76 = 76,
     Prop77 = 77,
     Prop78 = 78,
+
+    // dunno
     Prop79 = 79,
     Prop80 = 80,
     Prop81 = 81,
+
+    // "Ripple" effect
     Prop82 = 82,
     Prop83 = 83,
     Prop84 = 84,
+
     Prop85 = 85,
     Prop86 = 86,
     Prop87 = 87,
@@ -252,19 +280,19 @@ impl LayerProperty {
             Prop7 => 1000,
             Prop8 => 1000,
             Prop9 => 1000,
-            Prop12 => 1000,
-            Prop13 => 1000,
-            Prop14 => 1000,
-            Prop15 => 1000,
-            Prop22 => 1,
+            ScaleX => 1000,
+            ScaleY => 1000,
+            ScaleX2 => 1000,
+            ScaleY2 => 1000,
+            ShowLayer => 1,
             Prop27 => 1,
             Prop28 => 1000,
             Prop29 => 1000,
             Prop30 => 1000,
             Prop31 => 1000,
-            Prop43 => 1000,
-            Prop51 => 1000,
-            Prop55 => 1000,
+            WobbleAlphaBias => 1000,
+            WobbleScaleXBias => 1000,
+            WobbleScaleYBias => 1000,
             Prop57 => 1000,
             Prop73 => 1000,
             Prop75 => 1000,
@@ -276,12 +304,19 @@ impl LayerProperty {
         use LayerProperty::*;
         matches!(
             self,
-            TranslateX | TranslateY | Rotation
+            ScaleOriginX | ScaleOriginY | ScaleX | ScaleY | ScaleX2 | ScaleY2 |
+            WobbleScaleXMode | WobbleScaleXPeriod | WobbleScaleXAmplitude | WobbleScaleXBias |
+            WobbleScaleYMode | WobbleScaleYPeriod | WobbleScaleYAmplitude | WobbleScaleYBias |
+            RotationOriginX | RotationOriginY | Rotation | Rotation2 |
+            WobbleRotationMode | WobbleRotationPeriod | WobbleRotationAmplitude | WobbleRotationBias |
+            TranslateX | TranslateY | TranslateX2 | TranslateY2 |
+            WobbleXMode | WobbleXPeriod | WobbleXAmplitude | WobbleXBias |
+            WobbleYMode | WobbleYPeriod | WobbleYAmplitude | WobbleYBias |
 
             // this one is not, actually, implemented
             // everything seems to work fine, so ignoring it for now
             // (figuring out how it works is non-trivial tbh)
-            | RenderPosition
+            RenderPosition
         )
     }
 }
