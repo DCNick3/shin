@@ -20,6 +20,7 @@ mod bgmplay;
 mod bgmstop;
 mod bgmvol;
 mod chars;
+mod debugout;
 mod evbegin;
 mod evend;
 mod layerctrl;
@@ -159,7 +160,7 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::QUIZ(v) => v.apply_state(state),
             RuntimeCommand::SHOWCHARS(v) => v.apply_state(state),
             RuntimeCommand::NOTIFYSET(v) => v.apply_state(state),
-            // RuntimeCommand::DEBUGOUT(v) => v.apply_state(state),
+            RuntimeCommand::DEBUGOUT(v) => v.apply_state(state),
             _ => todo!(),
         }
     }
@@ -230,7 +231,7 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::QUIZ(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SHOWCHARS(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::NOTIFYSET(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::DEBUGOUT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::DEBUGOUT(v) => v.start(context, scenario, vm_state, adv_state),
             _ => todo!(),
         }
     }
