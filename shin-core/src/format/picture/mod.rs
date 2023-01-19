@@ -1,6 +1,6 @@
 //! Support for decoding PIC format used by the game
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use binrw::prelude::*;
 use binrw::{ReadOptions, WriteOptions};
 use bitflags::bitflags;
@@ -156,7 +156,7 @@ pub struct PictureChunk {
 }
 
 impl PictureChunk {
-    fn new(
+    pub fn new(
         offset_x: u32,
         offset_y: u32,
         width: u32,
@@ -171,6 +171,20 @@ impl PictureChunk {
             transparent_vertices,
             data: ImageBuffer::new(width, height),
         }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            offset_x: 0,
+            offset_y: 0,
+            opaque_vertices: Vec::new(),
+            transparent_vertices: Vec::new(),
+            data: ImageBuffer::new(0, 0),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.width() == 0 && self.data.height() == 0
     }
 }
 
@@ -365,11 +379,21 @@ pub fn read_texture(
     }
 }
 
+/// Read a picture chunk from the data
+///
+/// If the chunk data is an empty slice, the function will return an empry image chunk
+/// (this is used in some bustups)
 pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
     use io::Seek;
 
+    if chunk_data.is_empty() {
+        // the game actually supports "empty" picture chunks...
+        // handle them specially, since they are not really structured the same way
+        return Ok(PictureChunk::empty());
+    }
+
     let mut reader = io::Cursor::new(chunk_data);
-    let header: PicChunkHeader = reader.read_le()?;
+    let header: PicChunkHeader = reader.read_le().context("Reading chunk header")?;
 
     let opaque_vertices = (0..header.opaque_vertex_count)
         .into_iter()

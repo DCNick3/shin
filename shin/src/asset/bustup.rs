@@ -6,7 +6,7 @@ use bevy_utils::HashMap;
 use cgmath::Vector2;
 
 struct BustupExpression {
-    face_picture: LazyGpuImage,
+    face_picture: Option<LazyGpuImage>,
 
     mouth_pictures: Vec<LazyGpuImage>,
 }
@@ -21,13 +21,18 @@ impl Bustup {
         self.base_picture.gpu_image(resources)
     }
 
-    pub fn face_gpu_image(&self, resources: &GpuCommonResources, emotion: &str) -> &GpuImage {
+    pub fn face_gpu_image(
+        &self,
+        resources: &GpuCommonResources,
+        emotion: &str,
+    ) -> Option<&GpuImage> {
         self.emotions
             .get(emotion)
             .with_context(|| format!("No emotion {} in bustup", emotion))
             .unwrap()
             .face_picture
-            .gpu_image(resources)
+            .as_ref()
+            .map(|pic| pic.gpu_image(resources))
     }
 
     pub fn mouth_gpu_image(
@@ -78,11 +83,13 @@ impl Asset for Bustup {
                         )
                     }
 
-                    let image = chunk_to_gpu_image(
-                        expression.face_chunk,
-                        origin,
-                        &format!("Bustup Expression {}", name),
-                    );
+                    let face_picture = (!expression.face_chunk.is_empty()).then(|| {
+                        chunk_to_gpu_image(
+                            expression.face_chunk,
+                            origin,
+                            &format!("Bustup Expression {}", name),
+                        )
+                    });
 
                     let mouth_images = expression
                         .mouth_chunks
@@ -100,7 +107,7 @@ impl Asset for Bustup {
                     (
                         name,
                         BustupExpression {
-                            face_picture: image,
+                            face_picture,
                             mouth_pictures: mouth_images,
                         },
                     )

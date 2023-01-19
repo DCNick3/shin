@@ -498,15 +498,19 @@ fn bustup_command(command: BustupCommand) -> Result<()> {
             bustup.base_image.save(output_path.join("base.png"))?;
 
             for (expression_name, expression) in bustup.expressions.iter() {
-                expression
-                    .face_chunk
-                    .data
-                    .save(output_path.join(format!("{}_face.png", expression_name)))?;
+                if !expression.face_chunk.is_empty() {
+                    expression
+                        .face_chunk
+                        .data
+                        .save(output_path.join(format!("{}_face.png", expression_name)))?;
+                }
 
                 for (i, mouth) in expression.mouth_chunks.iter().enumerate() {
-                    mouth
-                        .data
-                        .save(output_path.join(format!("{}_mouth_{}.png", expression_name, i)))?;
+                    if !mouth.is_empty() {
+                        mouth.data.save(
+                            output_path.join(format!("{}_mouth_{}.png", expression_name, i)),
+                        )?;
+                    }
                 }
             }
 

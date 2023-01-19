@@ -47,8 +47,9 @@ impl Renderable for BustupLayer {
         let base_gpu_image = self.bustup.base_gpu_image(resources);
         draw_image(base_gpu_image);
 
-        let emotion_gpu_image = self.bustup.face_gpu_image(resources, &self.emotion);
-        draw_image(emotion_gpu_image);
+        if let Some(emotion_gpu_image) = self.bustup.face_gpu_image(resources, &self.emotion) {
+            draw_image(emotion_gpu_image);
+        }
 
         if let Some(mouth_gpu_image) = self.bustup.mouth_gpu_image(resources, &self.emotion, 0.0) {
             draw_image(mouth_gpu_image);
