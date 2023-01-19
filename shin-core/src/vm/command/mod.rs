@@ -10,7 +10,9 @@ use shin_derive::Command;
 
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
-use self::layer::{LayerProperty, LayerPropertySmallList, LayerType, MessageboxStyle, VLayerId};
+use self::layer::{
+    LayerId, LayerProperty, LayerPropertySmallList, LayerType, MessageboxStyle, VLayerId,
+};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Command, Debug)]
@@ -249,7 +251,10 @@ pub enum Command {
     /// (TODO: fact check) These can be used as layer_id = -4
     #[cmd(opcode = 0xc6u8)]
     LAYERSELECT {
+        // AFAIK, those can't use the virtual layer numbers
+        #[cmd(rty = "LayerId")]
         selection_start_id: NumberSpec,
+        #[cmd(rty = "LayerId")]
         selection_end_id: NumberSpec,
     },
     #[cmd(opcode = 0xc7u8)]

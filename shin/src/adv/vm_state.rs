@@ -4,6 +4,7 @@ use bevy_utils::StableHashMap;
 use shin_core::vm::command::layer::{
     LayerId, LayerIdOpt, LayerType, MessageboxStyle, VLayerId, VLayerIdRepr, PLANES_COUNT,
 };
+use smallvec::{smallvec, SmallVec};
 use tracing::warn;
 
 pub struct SaveInfo {
@@ -69,6 +70,7 @@ impl Globals {
 #[derive(Debug, Copy, Clone)]
 pub struct LayerSelection {
     // TODO: enforce ordering?
+    // TODO: do the layer plane changes affect the selection?
     pub low: LayerId,
     pub high: LayerId,
 }
@@ -277,6 +279,30 @@ impl LayersState {
                 }
                 LayersIter::Single(v)
             }
+        }
+    }
+
+    pub fn get_vlayer_ids(&self, vlayer_id: VLayerId) -> impl Iterator<Item = LayerId> {
+        match vlayer_id.repr() {
+            VLayerIdRepr::RootLayerGroup
+            | VLayerIdRepr::ScreenLayer
+            | VLayerIdRepr::PageLayer
+            | VLayerIdRepr::PlaneLayerGroup => {
+                panic!("get_vlayer_ids: special layer do not have ids");
+            }
+            VLayerIdRepr::Selected => {
+                if let Some(selection) = self.layer_selection {
+                    selection
+                        .iter()
+                        .filter(|&id| self.get_layer(id).is_some())
+                        .collect::<SmallVec<[LayerId; 0x10]>>()
+                        .into_iter()
+                } else {
+                    warn!("get_vlayer_ids: no selection");
+                    smallvec![].into_iter()
+                }
+            }
+            VLayerIdRepr::Layer(l) => smallvec![l].into_iter(),
         }
     }
 

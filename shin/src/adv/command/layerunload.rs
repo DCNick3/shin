@@ -2,21 +2,9 @@ use super::prelude::*;
 
 impl StartableCommand for command::runtime::LAYERUNLOAD {
     fn apply_state(&self, state: &mut VmState) {
-        // TODO: make another utility function for this
-        match self.layer_id.repr() {
-            VLayerIdRepr::RootLayerGroup
-            | VLayerIdRepr::ScreenLayer
-            | VLayerIdRepr::PageLayer
-            | VLayerIdRepr::PlaneLayerGroup => {
-                unreachable!("You can't unload special layers")
-            }
-            VLayerIdRepr::Selected => {
-                todo!("LAYERUNLOAD: selected");
-            }
-            VLayerIdRepr::Layer(id) => {
-                state.layers.free(id);
-            }
-        }
+        state.layers.get_vlayer_ids(self.layer_id).for_each(|id| {
+            state.layers.free(id);
+        });
     }
 
     fn start(
@@ -26,20 +14,12 @@ impl StartableCommand for command::runtime::LAYERUNLOAD {
         vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        match self.layer_id.repr() {
-            VLayerIdRepr::RootLayerGroup
-            | VLayerIdRepr::ScreenLayer
-            | VLayerIdRepr::PageLayer
-            | VLayerIdRepr::PlaneLayerGroup => {
-                unreachable!("You can't unload special layers")
-            }
-            VLayerIdRepr::Selected => {
-                todo!("LAYERUNLOAD: selected");
-            }
-            VLayerIdRepr::Layer(id) => {
+        vm_state
+            .layers
+            .get_vlayer_ids(self.layer_id)
+            .for_each(|id| {
                 adv_state.current_layer_group_mut(vm_state).remove_layer(id);
-            }
-        }
+            });
         self.token.finish().into()
     }
 }

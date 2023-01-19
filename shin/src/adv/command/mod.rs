@@ -25,6 +25,7 @@ mod evend;
 mod layerctrl;
 mod layerinit;
 mod layerload;
+mod layerselect;
 mod layerunload;
 mod layerwait;
 mod moviewait;
@@ -144,7 +145,7 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::LAYERCTRL(v) => v.apply_state(state),
             RuntimeCommand::LAYERWAIT(v) => v.apply_state(state),
             // RuntimeCommand::LAYERSWAP(v) => v.apply_state(state),
-            // RuntimeCommand::LAYERSELECT(v) => v.apply_state(state),
+            RuntimeCommand::LAYERSELECT(v) => v.apply_state(state),
             RuntimeCommand::MOVIEWAIT(v) => v.apply_state(state),
             // RuntimeCommand::TRANSSET(v) => v.apply_state(state),
             // RuntimeCommand::TRANSWAIT(v) => v.apply_state(state),
@@ -215,7 +216,7 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::LAYERCTRL(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::LAYERWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::LAYERSWAP(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::LAYERSELECT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::LAYERSELECT(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::MOVIEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::TRANSSET(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::TRANSWAIT(v) => v.start(context, scenario, vm_state, adv_state),
