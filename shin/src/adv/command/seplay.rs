@@ -1,4 +1,5 @@
 use super::prelude::*;
+use shin_core::time::Tween;
 
 impl StartableCommand for command::runtime::SEPLAY {
     fn apply_state(&self, _state: &mut VmState) {
@@ -34,7 +35,10 @@ impl StartableCommand for command::runtime::SEPLAY {
         adv_state.se_player.play(
             self.se_slot,
             audio,
+            self.no_repeat == 0,
             (self.volume as f32 / 1000.0).clamp(0.0, 1.0),
+            self.pan as f32 / 1000.0,
+            Tween::linear(self.fade_in_time),
         );
 
         self.token.finish().into()

@@ -1,3 +1,4 @@
+use crate::time::Ticks;
 use cgmath::Vector3;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -33,7 +34,7 @@ pub enum ParsedCommand {
     /// @v
     Voice(String),
     /// @w
-    Wait(f32),
+    Wait(Ticks),
     /// @y
     Sync,
     /// @z
@@ -129,7 +130,11 @@ impl Iterator for LayouterParser<'_> {
             's' => ParsedCommand::TextSpeed(self.read_float_argument(100, 0, 40000.0)),
             't' => ParsedCommand::SimultaneousStart,
             'v' => ParsedCommand::Voice(self.read_argument().to_owned()),
-            'w' => ParsedCommand::Wait(self.read_float_argument(0, u32::MAX, 100.0)),
+            'w' => ParsedCommand::Wait(Ticks::from_f32(self.read_float_argument(
+                0,
+                u32::MAX,
+                1000.0,
+            ))),
             'y' => ParsedCommand::Sync,
             'z' => ParsedCommand::FontSize(self.read_float_argument(10, 200, 100.0)),
             '|' => ParsedCommand::Signal,
@@ -218,7 +223,7 @@ mod tests {
                 ParsedCommand::Char('l'),
                 ParsedCommand::Char('l'),
                 ParsedCommand::Char('o'),
-                ParsedCommand::Wait(4.0),
+                ParsedCommand::Wait(Ticks::from_f32(0.4)),
                 ParsedCommand::Newline,
                 ParsedCommand::Char('W'),
                 ParsedCommand::Char('o'),

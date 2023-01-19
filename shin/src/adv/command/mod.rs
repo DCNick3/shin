@@ -18,6 +18,7 @@ mod prelude {
 mod autosave;
 mod bgmplay;
 mod bgmstop;
+mod bgmvol;
 mod chars;
 mod evbegin;
 mod evend;
@@ -35,12 +36,16 @@ mod msgwait;
 mod notifyset;
 mod pageback;
 mod saveinfo;
+mod sepan;
 mod seplay;
 mod sestop;
 mod sestopall;
+mod sevol;
 mod sget;
 mod showchars;
 mod sset;
+mod trophy;
+mod unlock;
 mod wait;
 mod wipe;
 
@@ -110,50 +115,50 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::WIPEWAIT(v) => v.apply_state(state),
             RuntimeCommand::BGMPLAY(v) => v.apply_state(state),
             RuntimeCommand::BGMSTOP(v) => v.apply_state(state),
-            // RuntimeCommand::BGMVOL(v) => v.apply_state(state),
+            RuntimeCommand::BGMVOL(v) => v.apply_state(state),
             // RuntimeCommand::BGMWAIT(v) => v.apply_state(state),
-            // RuntimeCommand::BGMSYNC(v) => {}
+            // RuntimeCommand::BGMSYNC(v) => v.apply_state(state),
             RuntimeCommand::SEPLAY(v) => v.apply_state(state),
             RuntimeCommand::SESTOP(v) => v.apply_state(state),
             RuntimeCommand::SESTOPALL(v) => v.apply_state(state),
-            // RuntimeCommand::SEVOL(v) => {}
-            // RuntimeCommand::SEPAN(v) => {}
-            // RuntimeCommand::SEWAIT(v) => {}
-            // RuntimeCommand::SEONCE(v) => {}
-            // RuntimeCommand::VOICEPLAY(v) => {}
-            // RuntimeCommand::VOICESTOP(v) => {}
-            // RuntimeCommand::VOICEWAIT(v) => {}
-            // RuntimeCommand::SYSSE(v) => {}
+            RuntimeCommand::SEVOL(v) => v.apply_state(state),
+            RuntimeCommand::SEPAN(v) => v.apply_state(state),
+            // RuntimeCommand::SEWAIT(v) => v.apply_state(state),
+            // RuntimeCommand::SEONCE(v) => v.apply_state(state),
+            // RuntimeCommand::VOICEPLAY(v) => v.apply_state(state),
+            // RuntimeCommand::VOICESTOP(v) => v.apply_state(state),
+            // RuntimeCommand::VOICEWAIT(v) => v.apply_state(state),
+            // RuntimeCommand::SYSSE(v) => v.apply_state(state),
             RuntimeCommand::SAVEINFO(v) => v.apply_state(state),
             RuntimeCommand::AUTOSAVE(v) => v.apply_state(state),
             RuntimeCommand::EVBEGIN(v) => v.apply_state(state),
             RuntimeCommand::EVEND(v) => v.apply_state(state),
-            // RuntimeCommand::RESUMESET(v) => {}
-            // RuntimeCommand::RESUME(v) => {}
-            // RuntimeCommand::SYSCALL(v) => {}
-            // RuntimeCommand::TROPHY(v) => {}
-            // RuntimeCommand::UNLOCK(v) => {}
+            // RuntimeCommand::RESUMESET(v) => v.apply_state(state),
+            // RuntimeCommand::RESUME(v) => v.apply_state(state),
+            // RuntimeCommand::SYSCALL(v) => v.apply_state(state),
+            RuntimeCommand::TROPHY(v) => v.apply_state(state),
+            RuntimeCommand::UNLOCK(v) => v.apply_state(state),
             RuntimeCommand::LAYERINIT(v) => v.apply_state(state),
             RuntimeCommand::LAYERLOAD(v) => v.apply_state(state),
             RuntimeCommand::LAYERUNLOAD(v) => v.apply_state(state),
             RuntimeCommand::LAYERCTRL(v) => v.apply_state(state),
             RuntimeCommand::LAYERWAIT(v) => v.apply_state(state),
-            // RuntimeCommand::LAYERSWAP(v) => {}
-            // RuntimeCommand::LAYERSELECT(v) => {}
+            // RuntimeCommand::LAYERSWAP(v) => v.apply_state(state),
+            // RuntimeCommand::LAYERSELECT(v) => v.apply_state(state),
             RuntimeCommand::MOVIEWAIT(v) => v.apply_state(state),
-            // RuntimeCommand::TRANSSET(v) => {}
-            // RuntimeCommand::TRANSWAIT(v) => {}
+            // RuntimeCommand::TRANSSET(v) => v.apply_state(state),
+            // RuntimeCommand::TRANSWAIT(v) => v.apply_state(state),
             RuntimeCommand::PAGEBACK(v) => v.apply_state(state),
-            // RuntimeCommand::PLANESELECT(v) => {}
-            // RuntimeCommand::PLANECLEAR(v) => {}
-            // RuntimeCommand::MASKLOAD(v) => {}
-            // RuntimeCommand::MASKUNLOAD(v) => {}
+            // RuntimeCommand::PLANESELECT(v) => v.apply_state(state),
+            // RuntimeCommand::PLANECLEAR(v) => v.apply_state(state),
+            // RuntimeCommand::MASKLOAD(v) => v.apply_state(state),
+            // RuntimeCommand::MASKUNLOAD(v) => v.apply_state(state),
             RuntimeCommand::CHARS(v) => v.apply_state(state),
-            // RuntimeCommand::TIPSGET(v) => {}
-            // RuntimeCommand::QUIZ(v) => {}
+            // RuntimeCommand::TIPSGET(v) => v.apply_state(state),
+            // RuntimeCommand::QUIZ(v) => v.apply_state(state),
             RuntimeCommand::SHOWCHARS(v) => v.apply_state(state),
             RuntimeCommand::NOTIFYSET(v) => v.apply_state(state),
-            // RuntimeCommand::DEBUGOUT(v) => {}
+            // RuntimeCommand::DEBUGOUT(v) => v.apply_state(state),
             _ => todo!(),
         }
     }
@@ -181,14 +186,14 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::WIPEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::BGMPLAY(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::BGMSTOP(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::BGMVOL(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::BGMVOL(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::BGMWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::BGMSYNC(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SEPLAY(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SESTOP(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SESTOPALL(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::SEVOL(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::SEPAN(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SEVOL(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SEPAN(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SEONCE(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::VOICEPLAY(v) => v.start(context, scenario, vm_state, adv_state),
@@ -202,8 +207,8 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::RESUMESET(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::RESUME(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SYSCALL(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::TROPHY(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::UNLOCK(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::TROPHY(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::UNLOCK(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::LAYERINIT(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::LAYERLOAD(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::LAYERUNLOAD(v) => v.start(context, scenario, vm_state, adv_state),

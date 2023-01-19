@@ -25,8 +25,9 @@ const TICKS_PER_SECOND: f32 = 60.0;
 
 impl Ticks {
     pub const ZERO: Self = Self(0.0);
+    pub const TICKS_PER_SECOND: f32 = TICKS_PER_SECOND;
 
-    pub fn from_f32(ticks: f32) -> Self {
+    pub const fn from_f32(ticks: f32) -> Self {
         Self(ticks)
     }
 
@@ -42,6 +43,10 @@ impl Ticks {
 
     pub fn from_seconds(seconds: f32) -> Self {
         Self(seconds * TICKS_PER_SECOND)
+    }
+
+    pub fn from_millis(millis: f32) -> Self {
+        Self::from_seconds(millis / 1000.0)
     }
 
     pub fn from_duration(duration: Duration) -> Self {

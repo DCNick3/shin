@@ -515,7 +515,7 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                 ParsedCommand::Voice(filename) => {
                     actions_builder.action(layouter.time, ActionType::Voice(filename))
                 }
-                ParsedCommand::Wait(_) => todo!(),
+                ParsedCommand::Wait(time) => layouter.time += time,
                 ParsedCommand::Sync => block_builder.sync(&mut layouter.time),
                 ParsedCommand::FontSize(_) => {
                     // Font size changes in the character name are completely ignored

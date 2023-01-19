@@ -1,4 +1,5 @@
 use super::prelude::*;
+use shin_core::time::Tween;
 
 impl StartableCommand for command::runtime::SESTOPALL {
     fn apply_state(&self, _state: &mut VmState) {
@@ -12,7 +13,9 @@ impl StartableCommand for command::runtime::SESTOPALL {
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        adv_state.se_player.stop_all(self.fade_out_time);
+        adv_state
+            .se_player
+            .stop_all(Tween::linear(self.fade_out_time));
         self.token.finish().into()
     }
 }

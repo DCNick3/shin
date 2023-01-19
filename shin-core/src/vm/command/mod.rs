@@ -289,8 +289,11 @@ pub enum Command {
         dest: MemoryAddress,
         arg: NumberSpec,
     },
+    /// Show "Characters" menu
     #[cmd(opcode = 0xe3u8)]
     SHOWCHARS {},
+    /// Show notification, like "Characters menu updated"
+    /// the argument seems to be the notification type
     #[cmd(opcode = 0xe4u8)]
     NOTIFYSET { arg: NumberSpec },
 

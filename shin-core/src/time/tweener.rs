@@ -116,4 +116,10 @@ impl Tweener {
         self.state = State::Idle;
         self.value = value;
     }
+
+    /// Enqueue a transition from the current value to the specified value, ignoring the previous queue (it's cleared).
+    pub fn enqueue_now(&mut self, value: Value, tween: Tween) {
+        self.fast_forward_to(self.value);
+        self.enqueue(value, tween);
+    }
 }

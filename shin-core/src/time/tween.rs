@@ -66,6 +66,19 @@ impl Tween {
         easing: Easing::Linear,
     };
 
+    pub const MS_15: Self = Self {
+        // I would use the function from_millis, but it can't be const yet (see https://github.com/rust-lang/rust/issues/57241)
+        duration: Ticks::from_f32(Ticks::TICKS_PER_SECOND as f32 / 1000.0 * 15.0),
+        easing: Easing::Linear,
+    };
+
+    pub fn linear(duration: Ticks) -> Self {
+        Self {
+            duration,
+            easing: Easing::Linear,
+        }
+    }
+
     pub fn value(&self, time: Ticks) -> f32 {
         let x = time / self.duration;
         self.easing.apply(x)

@@ -8,18 +8,22 @@ use kira::clock::clock_info::ClockInfoProvider;
 use kira::dsp::Frame;
 use kira::sound::{Sound, SoundData};
 use kira::track::TrackId;
-use kira::tween::{Tween, Tweener};
-use kira::Volume;
 use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
 use shin_core::format::audio::{read_audio, AudioDecoder, AudioFile};
+use shin_core::time::{Ticks, Tween, Tweener};
+use std::f32::consts::SQRT_2;
 use std::sync::Arc;
-use tracing::debug;
+use tracing::{debug, warn};
 
 pub struct Audio(AudioFile);
 
 pub struct AudioParams {
     pub track: TrackId,
+    pub fade_in: Tween,
+    pub repeat: bool,
     pub volume: f32,
+    pub pan: f32,
+    // TODO: support play speed (needs research)
 }
 
 impl Audio {
@@ -50,8 +54,8 @@ pub struct AudioData(ArcAudio, AudioParams);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Command {
-    SetVolume(Volume, Tween),
-    SetPanning(f64, Tween),
+    SetVolume(f32, Tween),
+    SetPanning(f32, Tween),
     Stop(Tween),
     // TODO: how should BGMWAIT be implemented
 }
@@ -61,16 +65,20 @@ pub struct AudioHandle {
 }
 
 impl AudioHandle {
-    /// Sets the volume of the sound (as a factor of the original volume).
-    pub fn set_volume(&mut self, volume: impl Into<Volume>, tween: Tween) -> Result<()> {
+    /// Sets the volume of the sound.
+    /// The volume is a value between 0.0 and 1.0, on the linear scale.
+    pub fn set_volume(&mut self, volume: f32, tween: Tween) -> Result<()> {
+        let volume = volume.clamp(0.0, 1.0); // TODO: warn if clamped
+
         self.command_producer
-            .push(Command::SetVolume(volume.into(), tween))
+            .push(Command::SetVolume(volume, tween))
             .map_err(|_| anyhow!("Command queue full"))
     }
 
-    /// Sets the panning of the sound, where `0.0` is hard left,
-    /// `0.5` is center, and `1.0` is hard right.
-    pub fn set_panning(&mut self, panning: f64, tween: Tween) -> Result<()> {
+    /// Sets the panning of the sound, where `0.0` is the center and `-1.0` is the hard left and `1.0` is the hard right.
+    pub fn set_panning(&mut self, panning: f32, tween: Tween) -> Result<()> {
+        let panning = panning.clamp(-1.0, 1.0); // TODO: warn if clamped
+
         self.command_producer
             .push(Command::SetPanning(panning, tween))
             .map_err(|_| anyhow!("Command queue full"))
@@ -103,14 +111,17 @@ impl AudioData {
 
         debug!("Creating audio sound for track {:?}", self.1.track);
 
+        let mut volume_fade = Tweener::new(0.0);
+        volume_fade.enqueue_now(1.0, self.1.fade_in);
+
         let sound = AudioSound {
             track_id: self.1.track,
             command_consumer,
             state: PlaybackState::Playing,
-            volume: Tweener::new(Volume::Amplitude(self.1.volume as f64)),
-            panning: Tweener::new(0.5),
-            volume_fade: Tweener::new(Volume::Amplitude(1.0)),
-            sample_provider: SampleProvider::new(self.0),
+            volume: Tweener::new(self.1.volume.clamp(0.0, 1.0)), // TODO: warn if clamped
+            panning: Tweener::new(self.1.pan.clamp(-1.0, 1.0)),  // TODO: warn if clamped
+            volume_fade,
+            sample_provider: SampleProvider::new(self.0, self.1.repeat),
         };
         (sound, AudioHandle { command_producer })
     }
@@ -134,12 +145,14 @@ struct SampleProvider {
     buffer_offset: usize,
     fractional_position: f64,
     end_of_file: bool,
+    repeat: bool,
 }
 
 impl SampleProvider {
-    fn new(audio: ArcAudio) -> Self {
+    fn new(audio: ArcAudio, repeat: bool) -> Self {
         Self {
             decoder: AudioDecoder::new(audio).expect("Could not create audio decoder"),
+            repeat,
             resampler: Resampler::new(0),
             buffer_offset: 0,
             fractional_position: 0.0,
@@ -195,6 +208,9 @@ impl SampleProvider {
         }
 
         if self.end_of_file {
+            if self.repeat {
+                warn!("TODO: repeat audio (need to impl seeking)");
+            }
             None
         } else {
             Some(out)
@@ -206,17 +222,16 @@ struct AudioSound {
     track_id: TrackId,
     command_consumer: HeapConsumer<Command>,
     state: PlaybackState,
-    volume: Tweener<Volume>,
+    volume: Tweener,
     panning: Tweener,
-    volume_fade: Tweener<Volume>,
+    volume_fade: Tweener,
     sample_provider: SampleProvider,
 }
 
 impl AudioSound {
     fn stop(&mut self, fade_out_tween: Tween) {
         self.state = PlaybackState::Stopping;
-        self.volume_fade
-            .set(Volume::Decibels(Volume::MIN_DECIBELS), fade_out_tween);
+        self.volume_fade.enqueue_now(0.0, fade_out_tween);
     }
 }
 
@@ -228,19 +243,25 @@ impl Sound for AudioSound {
     fn on_start_processing(&mut self) {
         while let Some(command) = self.command_consumer.pop() {
             match command {
-                Command::SetVolume(volume, tween) => self.volume.set(volume, tween),
-                Command::SetPanning(panning, tween) => self.panning.set(panning, tween),
+                // note: unlike in the layer props, we do the "enqueue_now" thing here
+                // bacause we don't want to wait for previous audio changes to be applied
+                // ideally, this should never allocate the tweener queue
+                Command::SetVolume(volume, tween) => self.volume.enqueue_now(volume, tween),
+                Command::SetPanning(panning, tween) => self.panning.enqueue_now(panning, tween),
                 Command::Stop(tween) => self.stop(tween),
             }
         }
     }
 
-    fn process(&mut self, dt: f64, clock_info_provider: &ClockInfoProvider) -> Frame {
+    fn process(&mut self, dt: f64, _clock_info_provider: &ClockInfoProvider) -> Frame {
+        let dt_ticks = Ticks::from_seconds(dt as f32);
+
         // update tweeners
-        self.volume.update(dt, clock_info_provider);
-        self.panning.update(dt, clock_info_provider);
-        if self.volume_fade.update(dt, clock_info_provider) && self.state == PlaybackState::Stopping
-        {
+        self.volume.update(dt_ticks);
+        self.panning.update(dt_ticks);
+        self.volume_fade.update(dt_ticks);
+
+        if self.state == PlaybackState::Stopping && self.volume_fade.is_idle() {
             self.state = PlaybackState::Stopped
         }
 
@@ -250,10 +271,14 @@ impl Sound for AudioSound {
                 self.state = PlaybackState::Stopped;
                 Frame::ZERO
             }
-            Some(f) => (f
-                * self.volume_fade.value().as_amplitude() as f32
-                * self.volume.value().as_amplitude() as f32)
-                .panned(self.panning.value() as f32),
+            Some(f) => {
+                let f = f * self.volume_fade.value() as f32 * self.volume.value() as f32;
+                let f = match self.panning.value() {
+                    0.0 => f,
+                    pan => Frame::new(f.left * (1.0 - pan).sqrt(), f.right * pan.sqrt()) * SQRT_2,
+                };
+                f
+            }
         }
     }
 

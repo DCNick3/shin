@@ -1,7 +1,5 @@
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
-use kira::tween::Tween;
-use kira::StartTime;
-use shin_core::time::Ticks;
+use shin_core::time::Tween;
 use std::sync::Arc;
 use tracing::warn;
 
@@ -32,30 +30,37 @@ impl BgmPlayer {
         }
     }
 
-    pub fn play(&mut self, bgm: Arc<Audio>, volume: f32) {
+    pub fn play(&mut self, bgm: Arc<Audio>, repeat: bool, volume: f32, fade_in: Tween) {
         let kira_data = bgm.to_kira_data(AudioParams {
             track: self.bgm_track.id(),
+            fade_in,
+            repeat,
             volume,
+            pan: 0.0,
         });
 
         let handle = self.audio_manager.play(kira_data);
 
-        assert!(self.current_bgm.is_none());
+        if let Some(mut old_handle) = self.current_bgm.take() {
+            old_handle.stop(Tween::MS_15).unwrap();
+        }
 
         self.current_bgm = Some(handle);
     }
 
-    pub fn stop(&mut self, fade_out_time: Ticks) {
-        if let Some(mut handle) = self.current_bgm.take() {
-            handle
-                .stop(Tween {
-                    start_time: StartTime::Immediate,
-                    duration: fade_out_time.as_duration(),
-                    easing: Default::default(),
-                })
-                .unwrap();
+    pub fn set_volume(&mut self, volume: f32, tween: Tween) {
+        if let Some(handle) = self.current_bgm.as_mut() {
+            handle.set_volume(volume, tween).unwrap();
         } else {
-            warn!("Tried to stop bgm, but there was no bgm playing");
+            warn!("Tried to set volume of BGM, but no BGM is currently playing");
+        }
+    }
+
+    pub fn stop(&mut self, fade_out: Tween) {
+        if let Some(mut handle) = self.current_bgm.take() {
+            handle.stop(fade_out).unwrap();
+        } else {
+            warn!("Tried to stop BGM, but no BGM is currently playing");
         }
     }
 }
