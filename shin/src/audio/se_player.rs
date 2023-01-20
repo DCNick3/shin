@@ -1,5 +1,5 @@
 use super::manager::AudioManager;
-use crate::asset::audio::{Audio, AudioHandle, AudioParams};
+use crate::asset::audio::{Audio, AudioHandle, AudioParams, AudioWaitStatus};
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
 use shin_core::time::Tween;
 use std::sync::Arc;
@@ -107,6 +107,16 @@ impl SePlayer {
             if self.se_slots[slot].is_some() {
                 self.stop(slot as i32, fade_out);
             }
+        }
+    }
+
+    pub fn get_wait_status(&self, slot: i32) -> AudioWaitStatus {
+        let slot = slot as usize;
+
+        if let Some(handle) = self.se_slots[slot].as_ref() {
+            handle.get_wait_status()
+        } else {
+            AudioWaitStatus::STOPPED
         }
     }
 }

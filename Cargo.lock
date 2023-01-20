@@ -3391,6 +3391,7 @@ dependencies = [
  "bevy_tasks",
  "bevy_time",
  "bevy_utils",
+ "bitflags",
  "bytemuck",
  "bytes",
  "camino",

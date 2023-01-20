@@ -43,6 +43,7 @@ mod seplay;
 mod sestop;
 mod sestopall;
 mod sevol;
+mod sewait;
 mod sget;
 mod showchars;
 mod sset;
@@ -55,6 +56,7 @@ use layerload::LAYERLOAD;
 use layerwait::LAYERWAIT;
 use msgset::MSGSET;
 use msgwait::MSGWAIT;
+use sewait::SEWAIT;
 use wait::WAIT;
 
 use derivative::Derivative;
@@ -97,6 +99,8 @@ pub enum ExecutingCommand {
     LAYERLOAD,
     #[derivative(Debug = "transparent")]
     LAYERWAIT,
+    #[derivative(Debug = "transparent")]
+    SEWAIT,
 }
 
 impl StartableCommand for RuntimeCommand {
@@ -125,7 +129,7 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::SESTOPALL(v) => v.apply_state(state),
             RuntimeCommand::SEVOL(v) => v.apply_state(state),
             RuntimeCommand::SEPAN(v) => v.apply_state(state),
-            // RuntimeCommand::SEWAIT(v) => v.apply_state(state),
+            RuntimeCommand::SEWAIT(v) => v.apply_state(state),
             // RuntimeCommand::SEONCE(v) => v.apply_state(state),
             // RuntimeCommand::VOICEPLAY(v) => v.apply_state(state),
             // RuntimeCommand::VOICESTOP(v) => v.apply_state(state),
@@ -196,7 +200,7 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::SESTOPALL(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SEVOL(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SEPAN(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::SEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::SEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SEONCE(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::VOICEPLAY(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::VOICESTOP(v) => v.start(context, scenario, vm_state, adv_state),
