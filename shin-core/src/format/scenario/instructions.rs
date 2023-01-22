@@ -8,7 +8,7 @@ use std::fmt::Debug;
 use std::io;
 use std::io::SeekFrom;
 
-#[derive(BinRead, BinWrite, Copy, Clone)]
+#[derive(BinRead, BinWrite, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[brw(little)]
 pub struct CodeAddress(pub u32);
 

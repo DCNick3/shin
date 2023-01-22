@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use tracing::{debug, info, trace, warn};
 
+use shin_core::format::scenario::instructions::CodeAddress;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::window::Fullscreen;
 use winit::{
@@ -156,7 +157,9 @@ impl State {
         let adv_assets =
             pollster::block_on(AdvAssets::load(&asset_server)).expect("Loading assets failed");
 
-        let adv = Adv::new(&resources, audio_manager, adv_assets, 0, 42);
+        let mut adv = Adv::new(&resources, audio_manager, adv_assets, 0, 42);
+
+        adv.fast_forward_to(CodeAddress(0xb03f5));
 
         Self {
             surface,

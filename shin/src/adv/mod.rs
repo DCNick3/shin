@@ -16,14 +16,16 @@ use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::Matrix4;
 use egui::Window;
+use shin_core::format::scenario::instructions::CodeAddress;
 use shin_core::format::scenario::Scenario;
+use shin_core::vm::breakpoint::BreakpointObserver;
 use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
 use shin_core::vm::command::CommandResult;
 use shin_core::vm::Scripter;
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::sync::Arc;
-use tracing::warn;
+use tracing::{debug, warn};
 
 pub struct Adv {
     scenario: Arc<Scenario>,
@@ -32,6 +34,7 @@ pub struct Adv {
     adv_state: AdvState,
     action_state: ActionState<AdvMessageAction>,
     current_command: Option<ExecutingCommand>,
+    fast_forward_to_bp: Option<BreakpointObserver>,
 }
 
 impl Adv {
@@ -54,7 +57,13 @@ impl Adv {
             adv_state,
             action_state: ActionState::new(),
             current_command: None,
+            fast_forward_to_bp: None,
         }
+    }
+
+    pub fn fast_forward_to(&mut self, addr: CodeAddress) {
+        assert!(self.fast_forward_to_bp.is_none());
+        self.fast_forward_to_bp = Some(self.scripter.add_breakpoint(addr).into());
     }
 }
 
@@ -62,7 +71,7 @@ impl Updatable for Adv {
     fn update(&mut self, context: &UpdateContext) {
         self.action_state.update(context.raw_input_state);
 
-        let is_fast_forwarding = self
+        let fast_forward_button_held = self
             .action_state
             .is_pressed(AdvMessageAction::HoldFastForward);
 
@@ -73,7 +82,7 @@ impl Updatable for Adv {
                 .advance();
         }
 
-        if is_fast_forwarding {
+        if fast_forward_button_held || self.fast_forward_to_bp.is_some() {
             self.adv_state
                 .root_layer_group
                 .message_layer_mut()
@@ -82,6 +91,18 @@ impl Updatable for Adv {
 
         let mut result = CommandResult::None;
         loop {
+            // check the fast forward breakpoint; delete if hit
+            if self
+                .fast_forward_to_bp
+                .as_mut()
+                .map_or(false, |bp| bp.update())
+            {
+                debug!("Fast-forward breakpoint hit, stopping the FF");
+                self.fast_forward_to_bp = None;
+            }
+
+            let is_fast_forwarding = fast_forward_button_held || self.fast_forward_to_bp.is_some();
+
             // TODO: maybe yield if spent too much time in this loop?
             let runtime_command = if let Some(command) = &mut self.current_command {
                 match command.update(

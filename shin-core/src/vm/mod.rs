@@ -1,3 +1,4 @@
+pub mod breakpoint;
 pub mod command;
 mod ctx;
 
@@ -8,6 +9,7 @@ use crate::format::scenario::instructions::{
     UnaryOperationType,
 };
 use crate::format::scenario::{InstructionReader, Scenario};
+use crate::vm::breakpoint::{BreakpointHandle, CodeBreakpointSet};
 use crate::vm::command::{CommandResult, RuntimeCommand};
 use anyhow::Result;
 use smallvec::SmallVec;
@@ -21,6 +23,7 @@ pub struct Scripter {
     ctx: VmCtx,
     instruction_reader: InstructionReader,
     position: CodeAddress,
+    breakpoints: CodeBreakpointSet,
 }
 
 impl Scripter {
@@ -29,6 +32,7 @@ impl Scripter {
             ctx: VmCtx::new(init_val, random_seed),
             instruction_reader: scenario.instruction_reader(scenario.entrypoint_address()),
             position: scenario.entrypoint_address(),
+            breakpoints: CodeBreakpointSet::new(),
         }
     }
 
@@ -235,9 +239,14 @@ impl Scripter {
         loop {
             let pc = self.instruction_reader.position();
             let instruction = self.instruction_reader.read()?;
+            self.breakpoints.visit_address(pc);
             if let Some(command) = self.run_instruction(instruction, pc) {
                 return Ok(command);
             }
         }
+    }
+
+    pub fn add_breakpoint(&mut self, address: CodeAddress) -> BreakpointHandle {
+        self.breakpoints.add_breakpoint(address)
     }
 }
