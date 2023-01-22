@@ -3,6 +3,7 @@ use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
 use cgmath::Matrix4;
+use std::fmt::Debug;
 
 pub struct NullLayer {
     props: LayerProperties,
@@ -32,6 +33,12 @@ impl Renderable for NullLayer {
 
 impl Updatable for NullLayer {
     fn update(&mut self, _ctx: &UpdateContext) {}
+}
+
+impl Debug for NullLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("NullLayer").finish()
+    }
 }
 
 impl Layer for NullLayer {

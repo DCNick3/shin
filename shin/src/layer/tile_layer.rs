@@ -3,6 +3,7 @@ use crate::render::Renderable;
 use crate::render::{GpuCommonResources, PosVertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{Matrix4, Vector4};
+use std::fmt::Debug;
 use std::sync::Arc;
 
 pub struct TileLayer {
@@ -76,6 +77,18 @@ impl Renderable for TileLayer {
 impl Updatable for TileLayer {
     fn update(&mut self, ctx: &UpdateContext) {
         self.props.update(ctx);
+    }
+}
+
+impl Debug for TileLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let color = self.vertex_color.map(|v| (v * 255.0) as u8);
+        let color = format!(
+            "#{:02x}{:02x}{:02x}{:02x}",
+            color.x, color.y, color.z, color.w
+        );
+
+        f.debug_tuple("TileLayer").field(&color).finish()
     }
 }
 

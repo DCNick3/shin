@@ -8,6 +8,7 @@ mod tile_layer;
 mod wobbler;
 
 use cgmath::{Matrix4, SquareMatrix, Vector3};
+use derivative::Derivative;
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
 use enum_map::{enum_map, EnumMap};
@@ -218,12 +219,17 @@ pub trait Layer: Renderable + Updatable {
 }
 
 #[enum_dispatch(Layer, Renderable, Updatable)]
-#[derive(IntoStaticStr)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 #[allow(clippy::enum_variant_names)]
 pub enum UserLayer {
+    #[derivative(Debug = "transparent")]
     NullLayer,
+    #[derivative(Debug = "transparent")]
     PictureLayer,
+    #[derivative(Debug = "transparent")]
     BustupLayer,
+    #[derivative(Debug = "transparent")]
     TileLayer,
 }
 
@@ -249,10 +255,10 @@ impl UserLayer {
                 debug!("Load picture: {} -> {} {}", pic_id, pic_name, v1);
                 let pic_path = format!("/picture/{}.pic", pic_name.to_ascii_lowercase());
                 let pic = asset_server
-                    .load::<Picture, _>(pic_path)
+                    .load::<Picture, _>(&pic_path)
                     .await
                     .expect("Failed to load picture");
-                PictureLayer::new(resources, pic).into()
+                PictureLayer::new(resources, pic, Some(pic_name.to_string())).into()
             }
             LayerType::Bustup => {
                 let [bup_id, _, _, _, _, _, _, _] = params;
@@ -263,11 +269,11 @@ impl UserLayer {
                 );
                 let bup_path = format!("/bustup/{}.bup", bup_name.to_ascii_lowercase());
                 let bup = asset_server
-                    .load::<Bustup, _>(bup_path)
+                    .load::<Bustup, _>(&bup_path)
                     .await
                     .expect("Failed to load bustup");
 
-                BustupLayer::new(resources, bup, bup_emotion).into()
+                BustupLayer::new(resources, bup, Some(bup_name.to_string()), bup_emotion).into()
             }
             LayerType::Movie => {
                 let [_movie_id, _volume, _flags, _, _, _, _, _] = params;

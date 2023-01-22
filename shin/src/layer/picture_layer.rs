@@ -4,21 +4,28 @@ use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
 use cgmath::Matrix4;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 pub struct PictureLayer {
     picture: Arc<Picture>,
+    picture_name: Option<String>,
 
     props: LayerProperties,
 }
 
 impl PictureLayer {
-    pub fn new(resources: &GpuCommonResources, picture: Arc<Picture>) -> Self {
+    pub fn new(
+        resources: &GpuCommonResources,
+        picture: Arc<Picture>,
+        picture_name: Option<String>,
+    ) -> Self {
         // ensure the picture is loaded to gpu
         picture.gpu_image(resources);
 
         Self {
             picture,
+            picture_name,
             props: LayerProperties::new(),
         }
     }
@@ -49,6 +56,19 @@ impl Renderable for PictureLayer {
 impl Updatable for PictureLayer {
     fn update(&mut self, ctx: &UpdateContext) {
         self.props.update(ctx);
+    }
+}
+
+impl Debug for PictureLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("PictureLayer")
+            .field(
+                &self
+                    .picture_name
+                    .as_ref()
+                    .map_or("<unnamed>", |v| v.as_str()),
+            )
+            .finish()
     }
 }
 

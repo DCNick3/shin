@@ -5,22 +5,30 @@ use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
 use cgmath::Matrix4;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 pub struct BustupLayer {
     bustup: Arc<Bustup>,
+    bustup_name: Option<String>,
     emotion: String,
 
     props: LayerProperties,
 }
 
 impl BustupLayer {
-    pub fn new(resources: &GpuCommonResources, bustup: Arc<Bustup>, emotion: &str) -> Self {
+    pub fn new(
+        resources: &GpuCommonResources,
+        bustup: Arc<Bustup>,
+        bustup_name: Option<String>,
+        emotion: &str,
+    ) -> Self {
         // ensure the picture is loaded to gpu
         bustup.base_gpu_image(resources);
 
         Self {
             bustup,
+            bustup_name,
             emotion: emotion.to_owned(),
             props: LayerProperties::new(),
         }
@@ -64,6 +72,20 @@ impl Renderable for BustupLayer {
 impl Updatable for BustupLayer {
     fn update(&mut self, ctx: &UpdateContext) {
         self.props.update(ctx);
+    }
+}
+
+impl Debug for BustupLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("BustupLayer")
+            .field(
+                &self
+                    .bustup_name
+                    .as_ref()
+                    .map_or("<unnamed>", |v| v.as_str()),
+            )
+            .field(&self.emotion)
+            .finish()
     }
 }
 

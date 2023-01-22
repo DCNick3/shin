@@ -172,7 +172,11 @@ impl OverlayVisitable for Adv {
                         } else {
                             Cow::Borrowed("None")
                         };
-                        top_left.label(format!("Command: {}", command));
+                        top_left.label(format!(
+                            "Command: {:08x} {}",
+                            self.scripter.position().0,
+                            command
+                        ));
                     },
                     true,
                 );
@@ -193,14 +197,13 @@ impl OverlayVisitable for Adv {
                         layer_ids.sort();
                         Window::new("User Layers").show(ctx, |ui| {
                             for layer_id in layer_ids {
-                                let layer_ty: &'static str = self
+                                let layer = self
                                     .adv_state
                                     .root_layer_group
                                     .screen_layer()
                                     .get_layer(layer_id)
-                                    .unwrap()
-                                    .into();
-                                ui.label(format!("{}: {}", layer_id.raw(), layer_ty));
+                                    .unwrap();
+                                ui.label(format!("{:>2}: {:?}", layer_id.raw(), layer));
                             }
                         });
                     },
