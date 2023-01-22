@@ -159,7 +159,7 @@ impl State {
 
         let mut adv = Adv::new(&resources, audio_manager, adv_assets, 0, 42);
 
-        adv.fast_forward_to(CodeAddress(0xb03f5));
+        adv.fast_forward_to(CodeAddress(0x000b0372));
 
         Self {
             surface,

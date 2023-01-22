@@ -1,12 +1,14 @@
 use crate::asset::gpu_image::LazyGpuTexture;
 use crate::asset::texture_archive::TextureArchive;
-use crate::render::{GpuCommonResources, PosColTexVertex, Renderable, VertexBuffer};
+use crate::render::{
+    GpuCommonResources, PosColTexVertex, PosVertexBuffer, Renderable, VertexBuffer,
+};
 use crate::update::{Updatable, UpdateContext};
 use cgmath::{Matrix4, Vector2, Vector3, Vector4};
 use shin_core::vm::command::layer::MessageboxType;
 use std::sync::Arc;
 
-use super::MessageMetrics;
+use crate::layer::message_layer::message::MessageMetrics;
 
 #[derive(TextureArchive)]
 pub struct MessageboxTextures {
@@ -133,6 +135,8 @@ fn build_vertex_buffer(character_name_width: f32, height: f32) -> Vec<PosColTexV
     let mut result = Vec::new();
     result.reserve(MAX_VERTEX_COUNT);
 
+    // TODO: take opacity into account
+
     unwrap_triangle_strip(
         &build_message_header_buffer(character_name_width),
         &mut result,
@@ -149,7 +153,8 @@ fn build_vertex_buffer(character_name_width: f32, height: f32) -> Vec<PosColTexV
 
 pub struct Messagebox {
     textures: Arc<MessageboxTextures>,
-    vertex_buffer: VertexBuffer<PosColTexVertex>,
+    tex_vertex_buffer: VertexBuffer<PosColTexVertex>,
+    fill_vertex_buffer: PosVertexBuffer,
     messagebox_type: MessageboxType,
     visible: bool,
     metrics: MessageMetrics,
@@ -161,11 +166,12 @@ impl Messagebox {
         Self {
             textures,
             // TODO: reduce the capacity of the vertex buffer
-            vertex_buffer: VertexBuffer::new_updatable(
+            tex_vertex_buffer: VertexBuffer::new_updatable(
                 resources,
                 MAX_VERTEX_COUNT as u32,
                 Some("Messagebox VertexBuffer"),
             ),
+            fill_vertex_buffer: PosVertexBuffer::new_fullscreen(resources),
             messagebox_type: MessageboxType::Neutral,
             visible: false,
             metrics: MessageMetrics {
@@ -192,40 +198,49 @@ impl Renderable for Messagebox {
             return;
         }
 
-        let transform = transform
-            * Matrix4::from_translation(Vector3::new(
-                -960.0,
-                -540.0 + (1080.0 - self.dynamic_height) - 32.0,
-                0.0,
-            ));
-        // TODO: do not upload the vertices if they haven't changed
-        let vertices = build_vertex_buffer(self.metrics.character_name_width, self.dynamic_height);
-        self.vertex_buffer.write(&resources.queue, &vertices);
-
-        let texture = match self.messagebox_type {
-            MessageboxType::Neutral => &self.textures.message_window_1,
-            MessageboxType::WitchSpace => &self.textures.message_window_2,
-            MessageboxType::Ushiromiya => &self.textures.message_window_3,
-            MessageboxType::Transparent => {
-                todo!()
-            }
-            MessageboxType::Novel => {
-                todo!()
-            }
-            MessageboxType::NoText => {
-                todo!()
-            }
-        }
-        .gpu_texture(resources);
-
         render_pass.push_debug_group("Messagebox");
 
-        resources.draw_sprite(
-            render_pass,
-            self.vertex_buffer.vertex_source(),
-            texture.bind_group(),
-            transform,
-        );
+        match self.messagebox_type {
+            MessageboxType::Neutral | MessageboxType::WitchSpace | MessageboxType::Ushiromiya => {
+                let transform = transform
+                    * Matrix4::from_translation(Vector3::new(
+                        -960.0,
+                        -540.0 + (1080.0 - self.dynamic_height) - 32.0,
+                        0.0,
+                    ));
+
+                // TODO: do not upload the vertices if they haven't changed
+                let vertices =
+                    build_vertex_buffer(self.metrics.character_name_width, self.dynamic_height);
+                self.tex_vertex_buffer.write(&resources.queue, &vertices);
+
+                let texture = match self.messagebox_type {
+                    MessageboxType::Neutral => &self.textures.message_window_1,
+                    MessageboxType::WitchSpace => &self.textures.message_window_2,
+                    MessageboxType::Ushiromiya => &self.textures.message_window_3,
+                    _ => unreachable!(),
+                }
+                .gpu_texture(resources);
+
+                resources.draw_sprite(
+                    render_pass,
+                    self.tex_vertex_buffer.vertex_source(),
+                    texture.bind_group(),
+                    transform,
+                );
+            }
+            MessageboxType::Transparent | MessageboxType::NoText => {
+                // the messagebox is invisible, no need to render anything (I think)
+            }
+            MessageboxType::Novel => {
+                resources.draw_fill(
+                    render_pass,
+                    self.fill_vertex_buffer.vertex_source(),
+                    transform,
+                    Vector4::new(0.0, 0.0, 0.0, 0.7),
+                );
+            }
+        }
 
         render_pass.pop_debug_group();
     }
