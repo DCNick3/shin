@@ -3,10 +3,10 @@ mod command;
 mod vm_state;
 
 pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
-use std::borrow::Cow;
-pub use vm_state::VmState;
+pub use vm_state::{LayerSelection, VmState};
 
 use crate::adv::assets::AdvAssets;
+use crate::adv::vm_state::ITER_VLAYER_SMALL_VECTOR_SIZE;
 use crate::audio::{AudioManager, BgmPlayer, SePlayer};
 use crate::input::actions::AdvMessageAction;
 use crate::input::ActionState;
@@ -20,6 +20,8 @@ use shin_core::format::scenario::Scenario;
 use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
 use shin_core::vm::command::CommandResult;
 use shin_core::vm::Scripter;
+use smallvec::{smallvec, SmallVec};
+use std::borrow::Cow;
 use std::sync::Arc;
 use tracing::warn;
 
@@ -64,11 +66,18 @@ impl Updatable for Adv {
             .action_state
             .is_pressed(AdvMessageAction::HoldFastForward);
 
-        if self.action_state.is_just_pressed(AdvMessageAction::Advance) || is_fast_forwarding {
+        if self.action_state.is_just_pressed(AdvMessageAction::Advance) {
             self.adv_state
                 .root_layer_group
                 .message_layer_mut()
                 .advance();
+        }
+
+        if is_fast_forwarding {
+            self.adv_state
+                .root_layer_group
+                .message_layer_mut()
+                .fast_forward();
         }
 
         let mut result = CommandResult::None;
@@ -214,94 +223,82 @@ impl AdvState {
     }
 
     #[allow(unused)]
-    pub fn iter_vlayer(&self, vm_state: &VmState, id: VLayerId) -> impl Iterator<Item = AnyLayer> {
-        // TODO: we actually can do this without vectors
+    pub fn get_vlayer(&self, vm_state: &VmState, id: VLayerId) -> impl Iterator<Item = AnyLayer> {
+        // I could implement a special iterator for this, but it's not really worth it IMO
+        // small vector will save A LOT of complexity
         match id.repr() {
-            VLayerIdRepr::RootLayerGroup => vec![(&self.root_layer_group).into()],
-            VLayerIdRepr::ScreenLayer => vec![self.root_layer_group.screen_layer().into()],
+            VLayerIdRepr::RootLayerGroup => smallvec![(&self.root_layer_group).into()],
+            VLayerIdRepr::ScreenLayer => smallvec![self.root_layer_group.screen_layer().into()],
             VLayerIdRepr::PageLayer => {
                 warn!("Returning ScreenLayer for PageLayer");
-                vec![(&self.root_layer_group).into()]
+                smallvec![self.root_layer_group.screen_layer().into()]
             }
             VLayerIdRepr::PlaneLayerGroup => {
                 warn!("Returning ScreenLayer for PlaneLayerGroup");
-                vec![self.root_layer_group.screen_layer().into()]
+                smallvec![self.root_layer_group.screen_layer().into()]
             }
             VLayerIdRepr::Selected => {
                 if let Some(selection) = vm_state.layers.layer_selection {
-                    selection
-                        .iter()
-                        .filter_map(|id| {
-                            if let Some(layer) = self.current_layer_group(vm_state).get_layer(id) {
-                                Some(layer.into())
-                            } else {
-                                warn!("AdvState::iter_vlayer: Selected layer not found: {:?}", id);
-                                None
-                            }
-                        })
-                        .collect()
+                    self.current_layer_group(vm_state)
+                        .get_layers(selection)
+                        .map(|v| v.into())
+                        .collect::<SmallVec<[AnyLayer; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
                 } else {
                     warn!("AdvState::iter_vlayer: no layer selected");
-                    vec![]
+                    smallvec![]
                 }
             }
             VLayerIdRepr::Layer(l) => {
                 let layer = self.current_layer_group(vm_state).get_layer(l);
                 if let Some(layer) = layer {
-                    vec![layer.into()]
+                    smallvec![layer.into()]
                 } else {
                     warn!("AdvState::iter_vlayer: layer not found: {:?}", l);
-                    vec![]
+                    smallvec![]
                 }
             }
         }
         .into_iter()
     }
 
-    pub fn for_each_vlayer_mut(
+    pub fn get_vlayer_mut(
         &mut self,
         vm_state: &VmState,
         id: VLayerId,
-        mut f: impl FnMut(AnyLayerMut),
-    ) {
+    ) -> impl Iterator<Item = AnyLayerMut> {
         match id.repr() {
-            VLayerIdRepr::RootLayerGroup => f((&mut self.root_layer_group).into()),
-            VLayerIdRepr::ScreenLayer => f(self.root_layer_group.screen_layer_mut().into()),
+            VLayerIdRepr::RootLayerGroup => smallvec![(&mut self.root_layer_group).into()],
+            VLayerIdRepr::ScreenLayer => smallvec![self.root_layer_group.screen_layer_mut().into()],
             VLayerIdRepr::PageLayer => {
                 warn!("Returning ScreenLayer for PageLayer");
-                f((&mut self.root_layer_group).into())
+                smallvec![self.root_layer_group.screen_layer_mut().into()]
             }
             VLayerIdRepr::PlaneLayerGroup => {
                 warn!("Returning ScreenLayer for PlaneLayerGroup");
-                f(self.root_layer_group.screen_layer_mut().into())
+                smallvec![self.root_layer_group.screen_layer_mut().into()]
             }
             VLayerIdRepr::Selected => {
                 if let Some(selection) = vm_state.layers.layer_selection {
-                    for id in selection.iter() {
-                        if let Some(layer) =
-                            self.current_layer_group_mut(vm_state).get_layer_mut(id)
-                        {
-                            f(layer.into());
-                        } else {
-                            warn!(
-                                "AdvState::for_each_vlayer_mut: Selected layer not found: {:?}",
-                                id
-                            );
-                        }
-                    }
+                    self.current_layer_group_mut(vm_state)
+                        .get_layers_mut(selection)
+                        .map(|v| v.into())
+                        .collect::<SmallVec<[AnyLayerMut; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
                 } else {
-                    warn!("AdvState::for_each_vlayer_mut: no layer selected");
+                    warn!("AdvState::get_vlayer_mut: no layer selected");
+                    smallvec![]
                 }
             }
             VLayerIdRepr::Layer(l) => {
                 let layer = self.current_layer_group_mut(vm_state).get_layer_mut(l);
                 if let Some(layer) = layer {
-                    f(layer.into());
+                    smallvec![layer.into()]
                 } else {
-                    warn!("AdvState::for_each_vlayer_mut: layer not found: {:?}", l);
+                    warn!("AdvState::get_vlayer_mut: layer not found: {:?}", l);
+                    smallvec![]
                 }
             }
         }
+        .into_iter()
     }
 }
 

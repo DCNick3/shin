@@ -62,11 +62,12 @@ impl LayerProperties {
         }
     }
 
-    pub fn get_property(&self, property: LayerProperty) -> f32 {
+    pub fn get_property_value(&self, property: LayerProperty) -> f32 {
         self.properties[property].value()
     }
-    pub fn is_property_idle(&self, property: LayerProperty) -> bool {
-        self.properties[property].is_idle()
+    #[allow(unused)]
+    pub fn property_tweener(&self, property: LayerProperty) -> &Tweener {
+        &self.properties[property]
     }
 
     pub fn property_tweener_mut(&mut self, property: LayerProperty) -> &mut Tweener {
@@ -85,7 +86,7 @@ impl LayerProperties {
                 0.0
             };
             ($property:ident) => {
-                self.get_property(LayerProperty::$property)
+                self.get_property_value(LayerProperty::$property)
             };
             ($x_property:ident, $y_property:ident, $z_property:ident) => {
                 Vector3::new(get!($x_property), get!($y_property), get!($z_property))
@@ -154,7 +155,7 @@ impl Updatable for LayerProperties {
 
         macro_rules! get {
             ($property:ident) => {
-                self.get_property(LayerProperty::$property)
+                self.get_property_value(LayerProperty::$property)
             };
         }
 

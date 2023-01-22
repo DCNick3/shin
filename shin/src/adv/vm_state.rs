@@ -71,6 +71,7 @@ impl Globals {
 pub struct LayerSelection {
     // TODO: enforce ordering?
     // TODO: do the layer plane changes affect the selection?
+    // TODO: how to make an empty selection?
     pub low: LayerId,
     pub high: LayerId,
 }
@@ -81,6 +82,10 @@ impl LayerSelection {
             current: LayerIdOpt::some(self.low),
             high: self.high,
         }
+    }
+
+    pub fn contains(&self, id: LayerId) -> bool {
+        self.low <= id && id <= self.high
     }
 }
 
@@ -161,7 +166,9 @@ impl PlaneState {
 
     pub fn free(&mut self, layer_id: LayerId) {
         if self.layers.remove(&layer_id).is_none() {
-            warn!("LayerState::free: layer not allocated");
+            // this warning is too noisy to be useful IMO
+            // this needs to be more specific
+            // warn!("LayerState::free: layer not allocated");
         }
     }
 }
@@ -178,46 +185,8 @@ pub struct LayersState {
     pub plane_layer_group: LayerState,
 }
 
-pub enum LayersIter<'a> {
-    Single(Option<&'a LayerState>),
-    Selection {
-        done: bool,
-        plane: &'a PlaneState,
-        low: LayerId,
-        high: LayerId,
-    },
-}
-
-impl<'a> Iterator for LayersIter<'a> {
-    type Item = &'a LayerState;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            LayersIter::Single(layer) => layer.take(),
-            LayersIter::Selection {
-                done,
-                plane,
-                low,
-                high,
-            } => loop {
-                if *done {
-                    return None;
-                }
-
-                let id = *low;
-                if *low == *high {
-                    *done = true;
-                } else {
-                    *low = low.next();
-                }
-
-                if let Some(l) = plane.layers.get(&id) {
-                    return Some(l);
-                }
-            },
-        }
-    }
-}
+/// can be whatever, just an optimization. Ideally, most selections made by the script should fit in
+pub const ITER_VLAYER_SMALL_VECTOR_SIZE: usize = 0x10;
 
 impl LayersState {
     pub fn new() -> Self {
@@ -248,40 +217,51 @@ impl LayersState {
         self.planes[self.current_plane as usize].get_layer_mut(layer_id)
     }
 
-    /// Get layer by id, handling the special layers & selection
+    /// Get layer by virtual id, handling the special layers & selection
+    ///
+    /// Returs an iterator over states of the layers corresponding to the vlayer
     #[allow(unused)]
-    pub fn get_vlayer(&self, vlayer_id: VLayerId) -> LayersIter {
+    pub fn get_vlayer(&self, vlayer_id: VLayerId) -> impl Iterator<Item = &LayerState> {
         // if a special layer - return a single layer
         // if a normal layer id - return it if exists, otherwise print a warning and return an empty iterator
         // if a selection - return all layers in the selection and warn if the selection is empty
         match vlayer_id.repr() {
-            VLayerIdRepr::RootLayerGroup => LayersIter::Single(Some(&self.root_layer_group)),
-            VLayerIdRepr::ScreenLayer => LayersIter::Single(Some(&self.screen_layer)),
-            VLayerIdRepr::PageLayer => LayersIter::Single(Some(&self.page_layer)),
-            VLayerIdRepr::PlaneLayerGroup => LayersIter::Single(Some(&self.plane_layer_group)),
+            VLayerIdRepr::RootLayerGroup => smallvec![&self.root_layer_group],
+            VLayerIdRepr::ScreenLayer => smallvec![&self.screen_layer],
+            VLayerIdRepr::PageLayer => smallvec![&self.page_layer],
+            VLayerIdRepr::PlaneLayerGroup => smallvec![&self.plane_layer_group],
             VLayerIdRepr::Selected => {
                 if let Some(selection) = self.layer_selection {
-                    LayersIter::Selection {
-                        done: false,
-                        plane: &self.planes[self.current_plane as usize],
-                        low: selection.low,
-                        high: selection.high,
-                    }
+                    self.planes[self.current_plane as usize]
+                        .layers
+                        .iter()
+                        .filter(move |(id, _)| selection.contains(**id))
+                        .map(|(_, l)| l)
+                        .collect::<SmallVec<[&LayerState; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
                 } else {
                     warn!("LayersState::get_vlayer: no selection");
-                    LayersIter::Single(None)
+                    smallvec![]
                 }
             }
             VLayerIdRepr::Layer(l) => {
                 let v = self.get_layer(l);
-                if v.is_none() {
-                    warn!("get_vlayer: layer not found: {:?}", l);
+                match v {
+                    None => {
+                        warn!("get_vlayer: layer not found: {:?}", l);
+                        smallvec![]
+                    }
+                    Some(v) => smallvec![v],
                 }
-                LayersIter::Single(v)
             }
         }
+        .into_iter()
     }
 
+    /// Get layer ids corresponding to the virtual id, handling the selection
+    ///
+    /// Note that this can return layer ids for layers that are not loaded (in case of using a selection)
+    ///
+    /// Attempt to get a layer id for a special layer panics (they have no "real" layer id)
     pub fn get_vlayer_ids(&self, vlayer_id: VLayerId) -> impl Iterator<Item = LayerId> {
         match vlayer_id.repr() {
             VLayerIdRepr::RootLayerGroup
@@ -294,8 +274,11 @@ impl LayersState {
                 if let Some(selection) = self.layer_selection {
                     selection
                         .iter()
-                        .filter(|&id| self.get_layer(id).is_some())
-                        .collect::<SmallVec<[LayerId; 0x10]>>()
+                        // do not filter the selection, for the sake of LAYERUNLOAD
+                        // it unloads the layers in the VmState first
+                        // and then it sucks ass, because it wouldn't unload
+                        // .filter(|&id| self.get_layer(id).is_some())
+                        .collect::<SmallVec<[LayerId; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
                         .into_iter()
                 } else {
                     warn!("get_vlayer_ids: no selection");
@@ -306,31 +289,40 @@ impl LayersState {
         }
     }
 
-    /// Get layer by id, handling the special layers & selection (mutable)
-    pub fn for_each_vlayer_mut(&mut self, vlayer_id: VLayerId, mut f: impl FnMut(&mut LayerState)) {
+    /// Get layer by virtual id, handling the special layers & selection
+    ///
+    /// Returs an iterator over (mutable) states of the layers corresponding to the vlayer
+    pub fn get_vlayer_mut(&mut self, vlayer_id: VLayerId) -> impl Iterator<Item = &mut LayerState> {
         // same as get_vlayer, but mutable
         match vlayer_id.repr() {
-            VLayerIdRepr::RootLayerGroup => f(&mut self.root_layer_group),
-            VLayerIdRepr::ScreenLayer => f(&mut self.screen_layer),
-            VLayerIdRepr::PageLayer => f(&mut self.page_layer),
-            VLayerIdRepr::PlaneLayerGroup => f(&mut self.plane_layer_group),
+            VLayerIdRepr::RootLayerGroup => smallvec![&mut self.root_layer_group],
+            VLayerIdRepr::ScreenLayer => smallvec![&mut self.screen_layer],
+            VLayerIdRepr::PageLayer => smallvec![&mut self.page_layer],
+            VLayerIdRepr::PlaneLayerGroup => smallvec![&mut self.plane_layer_group],
             VLayerIdRepr::Selected => {
+                // NOTE: usually, there are not that much layers present
+                // so it's okay to do an O(N) iteration here
                 if let Some(selection) = self.layer_selection {
-                    let plane = &mut self.planes[self.current_plane as usize];
-                    for id in selection.iter() {
-                        if let Some(l) = plane.layers.get_mut(&id) {
-                            f(l);
-                        }
-                    }
+                    self.planes[self.current_plane as usize]
+                        .layers
+                        .iter_mut()
+                        .filter(|&(&id, _)| selection.contains(id))
+                        .map(|(_, v)| v)
+                        .collect::<SmallVec<[&mut LayerState; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
                 } else {
-                    warn!("LayersState::get_vlayer: no selection");
+                    warn!("LayersState::get_vlayer_mut: no selection");
+                    smallvec![]
                 }
             }
             VLayerIdRepr::Layer(l) => match self.get_layer_mut(l) {
-                None => warn!("get_vlayer: layer not found: {:?}", l),
-                Some(l) => f(l),
+                None => {
+                    warn!("get_vlayer_mut: layer not found: {:?}", l);
+                    smallvec![]
+                }
+                Some(l) => smallvec![l],
             },
         }
+        .into_iter()
     }
 
     pub fn alloc(&mut self, layer_id: LayerId) -> &mut LayerState {

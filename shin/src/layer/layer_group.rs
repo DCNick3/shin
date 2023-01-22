@@ -1,8 +1,8 @@
+use crate::adv::LayerSelection;
 use bevy_utils::hashbrown::HashMap;
 use cgmath::Matrix4;
 use itertools::Itertools;
 use shin_core::vm::command::layer::LayerId;
-use tracing::warn;
 
 use crate::layer::{Layer, LayerProperties, UserLayer};
 use crate::render::{GpuCommonResources, SpriteVertexBuffer};
@@ -43,17 +43,35 @@ impl LayerGroup {
 
     pub fn remove_layer(&mut self, id: LayerId) {
         if self.layers.remove(&id).is_none() {
-            warn!("LayerGroup::remove_layer: layer not found");
+            // this warning is too noisy
+            // needs to be more specific to be useful
+            // warn!("LayerGroup::remove_layer: layer not found");
         }
     }
 
-    #[allow(unused)]
     pub fn get_layer(&self, id: LayerId) -> Option<&UserLayer> {
         self.layers.get(&id)
     }
 
+    pub fn get_layers(&self, selection: LayerSelection) -> impl Iterator<Item = &UserLayer> {
+        self.layers
+            .iter()
+            .filter(move |&(&id, _)| selection.contains(id))
+            .map(|(_, v)| v)
+    }
+
     pub fn get_layer_mut(&mut self, id: LayerId) -> Option<&mut UserLayer> {
         self.layers.get_mut(&id)
+    }
+
+    pub fn get_layers_mut(
+        &mut self,
+        selection: LayerSelection,
+    ) -> impl Iterator<Item = &mut UserLayer> {
+        self.layers
+            .iter_mut()
+            .filter(move |&(&id, _)| selection.contains(id))
+            .map(|(_, v)| v)
     }
 }
 

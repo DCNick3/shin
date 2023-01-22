@@ -272,6 +272,22 @@ impl Message {
         }
     }
 
+    pub fn fast_forward(&mut self) {
+        while let Some(block) = self.current_block() {
+            if block.completed(self.time) {
+                if matches!(block.exit_condition, BlockExitCondition::ClickWait) {
+                    self.next_block();
+                } else {
+                    break;
+                }
+            } else {
+                // skip to the end of the current block
+                // NOTE: we may want to have a separate control for that
+                self.time = block.end_time;
+            }
+        }
+    }
+
     pub fn signal(&mut self) {
         self.received_signals += 1;
     }
@@ -434,6 +450,12 @@ impl MessageLayer {
     pub fn advance(&mut self) {
         if let Some(m) = self.message.as_mut() {
             m.advance()
+        }
+    }
+
+    pub fn fast_forward(&mut self) {
+        if let Some(m) = self.message.as_mut() {
+            m.fast_forward()
         }
     }
 }

@@ -76,6 +76,7 @@ impl AudioHandle {
         )
     }
 
+    #[allow(unused)] // TODO: use it for lip-sync
     pub fn get_amplitude(&self) -> f32 {
         f32::from_bits(
             self.shared

@@ -95,7 +95,7 @@ impl Tweener {
 
     /// Fast-forwards the tweener to the last enqueue value.
     pub fn fast_forward(&mut self) {
-        let last_queue_value = self.tween_queue.pop_back();
+        let last_queue_value = self.tween_queue.pop_front();
         self.tween_queue.clear();
 
         let value = match last_queue_value {

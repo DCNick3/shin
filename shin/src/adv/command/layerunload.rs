@@ -1,4 +1,5 @@
 use super::prelude::*;
+use tracing::debug;
 
 impl StartableCommand for command::runtime::LAYERUNLOAD {
     fn apply_state(&self, state: &mut VmState) {
@@ -18,6 +19,7 @@ impl StartableCommand for command::runtime::LAYERUNLOAD {
             .layers
             .get_vlayer_ids(self.layer_id)
             .for_each(|id| {
+                debug!("Unloading {:?}", id);
                 adv_state.current_layer_group_mut(vm_state).remove_layer(id);
             });
         self.token.finish().into()

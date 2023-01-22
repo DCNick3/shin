@@ -21,11 +21,14 @@ impl StartableCommand for command::runtime::LAYERCTRL {
     fn apply_state(&self, state: &mut VmState) {
         let [target_value, _time, _flags, _, _, _, _, _] = self.params;
 
-        state.layers.for_each_vlayer_mut(self.layer_id, |layer| {
-            layer
-                .properties
-                .set_property(self.property_id, target_value);
-        });
+        state
+            .layers
+            .get_vlayer_mut(self.layer_id)
+            .for_each(|layer| {
+                layer
+                    .properties
+                    .set_property(self.property_id, target_value);
+            });
     }
 
     fn start(
@@ -72,8 +75,8 @@ impl StartableCommand for command::runtime::LAYERCTRL {
         };
 
         let mut changed = false;
-        adv_state.for_each_vlayer_mut(vm_state, self.layer_id, |mut layer| {
-            if layer.properties().get_property(self.property_id) != target_value as f32 {
+        adv_state.get_vlayer_mut(vm_state, self.layer_id).for_each(|mut layer| {
+            if layer.properties().get_property_value(self.property_id) != target_value as f32 {
                 changed = true;
             }
 

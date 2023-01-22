@@ -38,13 +38,20 @@ impl UpdatableCommand for LAYERWAIT {
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         adv_state: &mut AdvState,
-        _is_fast_forwarding: bool,
+        is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        if adv_state.iter_vlayer(vm_state, self.layer_id).all(|l| {
-            self.properties
-                .iter()
-                .all(|&prop_id| l.properties().is_property_idle(prop_id))
-        }) {
+        if adv_state
+            .get_vlayer_mut(vm_state, self.layer_id)
+            .all(|mut l| {
+                self.properties.iter().all(|&prop_id| {
+                    let prop = l.properties_mut().property_tweener_mut(prop_id);
+                    if is_fast_forwarding {
+                        prop.fast_forward();
+                    }
+                    prop.is_idle()
+                })
+            })
+        {
             Some(self.token.take().unwrap().finish())
         } else {
             None

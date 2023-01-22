@@ -198,10 +198,7 @@ pub struct PosVertexBuffer {
 }
 
 impl PosVertexBuffer {
-    pub fn new(
-        resources: &GpuCommonResources,
-        (l, t, r, b): (f32, f32, f32, f32),
-    ) -> Self {
+    pub fn new(resources: &GpuCommonResources, (l, t, r, b): (f32, f32, f32, f32)) -> Self {
         let vertices = [
             // 0
             PosVertex {
@@ -237,6 +234,7 @@ impl PosVertexBuffer {
         }
     }
 
+    #[allow(unused)]
     pub fn new_fullscreen(resources: &GpuCommonResources) -> Self {
         let w = render::VIRTUAL_WIDTH as f32 / 2.0;
         let h = render::VIRTUAL_HEIGHT as f32 / 2.0;
