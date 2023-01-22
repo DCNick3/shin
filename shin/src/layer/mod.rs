@@ -280,6 +280,12 @@ impl UserLayer {
                 warn!("Loading NullLayer instead of MovieLayer");
                 NullLayer::new().into()
             }
+            LayerType::Rain => {
+                let [_always_zero, _min_distance, _max_distance, _, _, _, _, _] = params;
+
+                warn!("Loading NullLayer instead of RainLayer");
+                NullLayer::new().into()
+            }
             _ => {
                 todo!("Layer type not implemented: {:?}", layer_ty);
             }

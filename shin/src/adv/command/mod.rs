@@ -47,8 +47,10 @@ mod sewait;
 mod sget;
 mod showchars;
 mod sset;
+mod tipsget;
 mod trophy;
 mod unlock;
+mod voiceplay;
 mod wait;
 mod wipe;
 
@@ -131,7 +133,7 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::SEPAN(v) => v.apply_state(state),
             RuntimeCommand::SEWAIT(v) => v.apply_state(state),
             // RuntimeCommand::SEONCE(v) => v.apply_state(state),
-            // RuntimeCommand::VOICEPLAY(v) => v.apply_state(state),
+            RuntimeCommand::VOICEPLAY(v) => v.apply_state(state),
             // RuntimeCommand::VOICESTOP(v) => v.apply_state(state),
             // RuntimeCommand::VOICEWAIT(v) => v.apply_state(state),
             // RuntimeCommand::SYSSE(v) => v.apply_state(state),
@@ -160,7 +162,7 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::MASKLOAD(v) => v.apply_state(state),
             // RuntimeCommand::MASKUNLOAD(v) => v.apply_state(state),
             RuntimeCommand::CHARS(v) => v.apply_state(state),
-            // RuntimeCommand::TIPSGET(v) => v.apply_state(state),
+            RuntimeCommand::TIPSGET(v) => v.apply_state(state),
             // RuntimeCommand::QUIZ(v) => v.apply_state(state),
             RuntimeCommand::SHOWCHARS(v) => v.apply_state(state),
             RuntimeCommand::NOTIFYSET(v) => v.apply_state(state),
@@ -202,7 +204,7 @@ impl StartableCommand for RuntimeCommand {
             RuntimeCommand::SEPAN(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SEONCE(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::VOICEPLAY(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::VOICEPLAY(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::VOICESTOP(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::VOICEWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::SYSSE(v) => v.start(context, scenario, vm_state, adv_state),
@@ -231,7 +233,7 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::MASKLOAD(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::MASKUNLOAD(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::CHARS(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::TIPSGET(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::TIPSGET(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::QUIZ(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::SHOWCHARS(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::NOTIFYSET(v) => v.start(context, scenario, vm_state, adv_state),

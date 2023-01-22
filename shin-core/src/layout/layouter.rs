@@ -488,8 +488,10 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                 ParsedCommand::FuriganaEnd => {
                     warn!("FuriganaEnd layout command is not implemented")
                 }
-                ParsedCommand::SetFade(_) => todo!(),
-                ParsedCommand::SetColor(_) => todo!(),
+                ParsedCommand::SetFade(fade) => layouter.state.fade = fade,
+                ParsedCommand::SetColor(color) => {
+                    layouter.state.text_color = color.unwrap_or(Vector3::new(1.0, 1.0, 1.0))
+                }
                 ParsedCommand::NoFinalClickWait => block_builder.no_final_wait(),
                 ParsedCommand::ClickWait => block_builder.click_wait(&mut layouter.time),
                 ParsedCommand::VoiceVolume(volume) => {
@@ -510,17 +512,17 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                         layouter.on_newline(true);
                     }
                 }
-                ParsedCommand::TextSpeed(_) => todo!(),
+                ParsedCommand::TextSpeed(speed) => layouter.state.text_draw_speed = speed,
                 ParsedCommand::SimultaneousStart => todo!(),
                 ParsedCommand::Voice(filename) => {
                     actions_builder.action(layouter.time, ActionType::Voice(filename))
                 }
                 ParsedCommand::Wait(time) => layouter.time += time,
                 ParsedCommand::Sync => block_builder.sync(&mut layouter.time),
-                ParsedCommand::FontSize(_) => {
+                ParsedCommand::FontSize(size) => {
                     // Font size changes in the character name are completely ignored
                     if !character_name {
-                        todo!();
+                        layouter.state.font_size = size;
                     }
                 }
                 ParsedCommand::Signal => {
