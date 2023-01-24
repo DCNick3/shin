@@ -63,6 +63,7 @@ pub enum Command {
     #[cmd(opcode = 0x86u8)]
     MSGSET {
         msg_id: MessageId,
+        #[cmd(rty = "bool")]
         auto_wait: u8,
         text: U16FixupString,
     }, // TODO: this string needs a fixup (see ShinDataUtil's OpcodeDefinitions.NeedsStringFixup)
@@ -99,6 +100,7 @@ pub enum Command {
         bgm_data_id: NumberSpec,
         #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
+        #[cmd(rty = "bool")]
         no_repeat: NumberSpec,
         volume: NumberSpec,
     },
@@ -123,6 +125,7 @@ pub enum Command {
         se_data_id: NumberSpec,
         #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
+        #[cmd(rty = "bool")]
         no_repeat: NumberSpec,
         volume: NumberSpec,
         pan: NumberSpec,

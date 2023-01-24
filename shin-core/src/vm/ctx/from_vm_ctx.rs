@@ -61,6 +61,16 @@ impl FromVmCtx<NumberSpec> for i32 {
 impl FromVmCtxDefault for NumberSpec {
     type Output = i32;
 }
+impl FromVmCtx<NumberSpec> for bool {
+    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
+        ctx.get_number(input) != 0
+    }
+}
+impl FromVmCtx<u8> for bool {
+    fn from_vm_ctx(_: &VmCtx, input: u8) -> Self {
+        input != 0
+    }
+}
 
 impl FromVmCtx<U8String> for String {
     fn from_vm_ctx(_: &VmCtx, input: U8String) -> Self {

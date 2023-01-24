@@ -20,14 +20,12 @@ impl StartableCommand for command::runtime::MSGSET {
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        assert!(matches!(self.auto_wait, 0 | 1));
-
         adv_state
             .root_layer_group
             .message_layer_mut()
             .set_message(context, &self.text);
 
-        if self.auto_wait == 1 {
+        if self.auto_wait {
             Yield(
                 MSGSET {
                     token: Some(self.token),

@@ -19,9 +19,6 @@ impl StartableCommand for command::runtime::SEPLAY {
         if self.play_speed != 1000 {
             warn!("TODO: SEPLAY: ignoring play_speed={}", self.play_speed);
         }
-        if self.no_repeat == 0 {
-            warn!("TODO: SEPLAY: ignoring no_repeat={}", self.no_repeat);
-        }
 
         let se_name = scenario.get_se_data(self.se_data_id);
         let se_path = format!("/se/{}.nxa", se_name);
@@ -35,7 +32,7 @@ impl StartableCommand for command::runtime::SEPLAY {
         adv_state.se_player.play(
             self.se_slot,
             audio,
-            self.no_repeat == 0,
+            !self.no_repeat,
             (self.volume as f32 / 1000.0).clamp(0.0, 1.0),
             self.pan as f32 / 1000.0,
             Tween::linear(self.fade_in_time),
