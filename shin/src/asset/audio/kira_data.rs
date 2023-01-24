@@ -6,12 +6,12 @@ use kira::dsp::Frame;
 use kira::sound::{Sound, SoundData};
 use kira::track::TrackId;
 use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
-use shin_core::format::audio::{AudioDecoder, AudioFile};
+use shin_core::format::audio::{AudioDecoder, AudioDecoderIterator, AudioFile};
 use shin_core::time::{Ticks, Tween, Tweener};
 use std::f32::consts::SQRT_2;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
-use tracing::{debug, warn};
+use tracing::debug;
 
 use super::resampler::Resampler;
 use super::{Audio, AudioParams, AudioWaitStatus};
@@ -168,81 +168,57 @@ pub enum PlaybackState {
 }
 
 struct SampleProvider {
-    decoder: AudioDecoder<ArcAudio>,
-    resampler: Resampler,
-    buffer_offset: usize,
-    fractional_position: f64,
-    end_of_file: bool,
+    decoder: AudioDecoderIterator<ArcAudio>,
     repeat: bool,
+    resampler: Resampler,
+    fractional_position: f64,
+    reached_eof: bool,
 }
 
 impl SampleProvider {
     fn new(audio: ArcAudio, repeat: bool) -> Self {
         Self {
-            decoder: AudioDecoder::new(audio).expect("Could not create audio decoder"),
+            decoder: AudioDecoderIterator::new(
+                AudioDecoder::new(audio).expect("Could not create audio decoder"),
+            ),
             repeat,
             resampler: Resampler::new(0),
-            buffer_offset: 0,
             fractional_position: 0.0,
-            end_of_file: false,
+            reached_eof: false,
         }
     }
 
-    fn position(&self) -> i64 {
-        // TODO: seeking???
-        self.decoder.samples_position() + self.buffer_offset as i64
-    }
+    fn push_frame_to_resampler(&mut self) {
+        let frame = match self.decoder.next() {
+            Some((left, right)) => Frame { left, right },
+            None => {
+                if self.repeat {
+                    self.decoder.seek(self.decoder.info().loop_start as u64);
 
-    fn push_next_frame(&mut self) {
-        let buffer = self.decoder.buffer();
-        let buffer = &buffer[self.buffer_offset * self.decoder.info().channel_count as usize..];
-        if !buffer.is_empty() {
-            // TODO: handle non-stereo audio?
-            self.buffer_offset += 1;
-
-            let frame = match self.decoder.info().channel_count {
-                1 => Frame {
-                    left: buffer[0],
-                    right: buffer[0],
-                },
-                2 => Frame {
-                    left: buffer[0],
-                    right: buffer[1],
-                },
-                _ => panic!("Unsupported channel count"),
-            };
-
-            self.resampler.push_frame(frame, self.position());
-        } else {
-            match self.decoder.decode_frame() {
-                Some(pos) => self.buffer_offset = pos,
-                None => {
-                    // TODO: start outputting silence instead of just stopping?
-                    self.end_of_file = true;
-                    return;
+                    return self.push_frame_to_resampler();
+                } else {
+                    self.reached_eof = true;
+                    Frame::ZERO
                 }
             }
+        };
 
-            self.push_next_frame()
-        }
+        self.resampler.push_frame(frame, self.decoder.position());
     }
 
-    fn next(&mut self, dt: f64) -> Option<Frame> {
+    fn next(&mut self, dt: f64) -> Frame {
         let out = self.resampler.get(self.fractional_position as f32);
         self.fractional_position += dt * self.decoder.info().sample_rate as f64;
         while self.fractional_position >= 1.0 {
             self.fractional_position -= 1.0;
-            self.push_next_frame();
+            self.push_frame_to_resampler();
         }
 
-        if self.end_of_file {
-            if self.repeat {
-                warn!("TODO: repeat audio (need to impl seeking)");
-            }
-            None
-        } else {
-            Some(out)
-        }
+        out
+    }
+
+    fn reached_eof(&self) -> bool {
+        self.reached_eof
     }
 }
 
@@ -320,24 +296,24 @@ impl Sound for AudioSound {
             self.state = PlaybackState::Stopped
         }
 
-        match self.sample_provider.next(dt) {
-            None => {
-                // TODO loop around
-                self.state = PlaybackState::Stopped;
-                Frame::ZERO
-            }
-            Some(f) => {
-                let f = f * self.volume_fade.value() as f32 * self.volume.value() as f32;
-                let f = match self.panning.value() {
-                    0.0 => f,
-                    pan => Frame::new(f.left * (1.0 - pan).sqrt(), f.right * pan.sqrt()) * SQRT_2,
-                };
-                f
-            }
+        let mut f = self.sample_provider.next(dt);
+
+        if self.sample_provider.reached_eof {
+            self.state = PlaybackState::Stopped;
         }
+
+        let pan = self.panning.value();
+        let volume = self.volume_fade.value() * self.volume.value();
+
+        f *= volume;
+        if pan != 0.0 {
+            f = Frame::new(f.left * (1.0 - pan).sqrt(), f.right * pan.sqrt()) * SQRT_2
+        }
+
+        f
     }
 
     fn finished(&self) -> bool {
-        self.state == PlaybackState::Stopped
+        self.state == PlaybackState::Stopped && self.sample_provider.resampler.outputting_silence()
     }
 }
