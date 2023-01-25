@@ -20,13 +20,12 @@ impl StartableCommand for command::runtime::SEPLAY {
             warn!("TODO: SEPLAY: ignoring play_speed={}", self.play_speed);
         }
 
-        let se_name = scenario.get_se_data(self.se_data_id);
-        let se_path = format!("/se/{}.nxa", se_name);
+        let se_info = scenario.info_tables().se_info(self.se_data_id);
 
         let audio = context
             .asset_server
             // TODO: sync - bad!!
-            .load_sync(se_path)
+            .load_sync(se_info.path())
             .expect("Failed to load BGM track");
 
         adv_state.se_player.play(

@@ -216,10 +216,6 @@ impl SampleProvider {
 
         out
     }
-
-    fn reached_eof(&self) -> bool {
-        self.reached_eof
-    }
 }
 
 struct AudioSound {

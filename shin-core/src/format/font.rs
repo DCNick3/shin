@@ -363,7 +363,7 @@ impl<G: GlyphTrait> BinRead for Font<G> {
             };
             let known_glyph = known_glyph_offsets.contains_key(&glyph_offset.ptr);
             if !known_glyph {
-                glyph_offset.after_parse(reader, options, ())?;
+                glyph_offset.after_parse(reader, options, Default::default())?;
             }
 
             let next_glyph_id = GlyphId(known_glyph_offsets.len() as u32);

@@ -1,6 +1,7 @@
 use crate::format::text;
 use binrw::{BinRead, BinResult, BinWrite, ReadOptions, WriteOptions};
 use smallvec::SmallVec;
+use std::fmt::Debug;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::marker::PhantomData;
 
@@ -60,7 +61,6 @@ impl StringLengthDesc for () {
 /// `L` specifies how the length will be encoded in the file.
 /// `F` describes the fixup to be applied to the string (an additional transform that is applied to the string before it is written to the file).
 ///     Entergram uses it to convert hiragana to half-width katakana in some places, probably saving a bit of space.
-#[derive(Debug)]
 pub struct SJisString<L: StringLengthDesc, F: StringFixup + 'static = NoFixup>(
     pub String,
     pub PhantomData<(L, F)>,
@@ -108,6 +108,16 @@ impl<L: StringLengthDesc, F: StringFixup> BinWrite for SJisString<L, F> {
 impl<L: StringLengthDesc, F: StringFixup> AsRef<str> for SJisString<L, F> {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+impl<L: StringLengthDesc, F: StringFixup> Debug for SJisString<L, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.0, f)
+    }
+}
+impl<L: StringLengthDesc, F: StringFixup> std::fmt::Display for SJisString<L, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
     }
 }
 impl<L: StringLengthDesc, F: StringFixup> SJisString<L, F> {

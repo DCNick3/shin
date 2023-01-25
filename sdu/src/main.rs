@@ -104,6 +104,13 @@ enum ScenarioCommand {
         #[clap(default_value = "64")]
         top_k: usize,
     },
+    /// Dump (known) header information tables from the scenario
+    ///
+    /// This includes stuff like picture names, sound names, etc.
+    DumpInfo {
+        scenario_path: PathBuf,
+        output_filename: Option<PathBuf>,
+    },
     /// [WIP] Decompile a scenario into an assembly-like language
     Decompile { scenario_path: PathBuf },
 }
@@ -375,6 +382,85 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                     .sorted()
                     .join("")
             );
+            Ok(())
+        }
+        ScenarioCommand::DumpInfo {
+            scenario_path,
+            output_filename,
+        } => {
+            let scenario = std::fs::read(scenario_path)?;
+            let scenario = Bytes::from(scenario);
+            let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
+
+            let mut output: Box<dyn std::io::Write> = match output_filename {
+                None => Box::new(std::io::stdout().lock()),
+                Some(filename) => Box::new(File::create(filename).context("Opening output file")?),
+            };
+
+            let tables = scenario.info_tables();
+            // I kinda hate it. Can we have a macro-based solution?
+
+            writeln!(output, "Masks:")?;
+            for (i, mask) in tables.mask_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?}", i, mask.name)?;
+            }
+            writeln!(output, "Pictures:")?;
+            for (i, picture) in tables.picture_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?} {:?}", i, picture.name, picture.unk1)?;
+            }
+            writeln!(output, "Bustups:")?;
+            for (i, bustup) in tables.bustup_info.iter().enumerate() {
+                writeln!(
+                    output,
+                    "  {}: {:?} {:?} {:?}",
+                    i, bustup.name, bustup.emotion, bustup.unk1
+                )?;
+            }
+            writeln!(output, "Bgms:")?;
+            for (i, bgm) in tables.bgm_info.iter().enumerate() {
+                writeln!(
+                    output,
+                    "  {}: {:?} {:?} {:?}",
+                    i, bgm.name, bgm.display_name, bgm.unk1
+                )?;
+            }
+            writeln!(output, "Ses:")?;
+            for (i, se) in tables.se_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?}", i, se.name)?;
+            }
+            writeln!(output, "Movies:")?;
+            for (i, movie) in tables.movie_info.iter().enumerate() {
+                writeln!(
+                    output,
+                    "  {}: {:?} {:?} {:?} {:?}",
+                    i, movie.name, movie.unk1, movie.unk2, movie.unk3
+                )?;
+            }
+            writeln!(output, "Voice Mappings:")?;
+            for (_, mapping) in tables.voice_mapping_info.iter().enumerate() {
+                writeln!(output, "  {:?}: {:?}", mapping.name_prefix, mapping.unk1)?;
+            }
+            writeln!(output, "VSection64:")?;
+            for (i, item) in tables.section64_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?} {:?}", i, item.unk1, item.unk2)?;
+            }
+            writeln!(output, "VSection68:")?;
+            for (i, item) in tables.section68_info.iter().enumerate() {
+                writeln!(
+                    output,
+                    "  {}: {:?} {:?} {:?}",
+                    i, item.unk1, item.unk2, item.unk3
+                )?;
+            }
+            writeln!(output, "Tips:")?;
+            for (i, tip) in tables.tips_info.iter().enumerate() {
+                writeln!(
+                    output,
+                    "  {}: {:?} {:?} {:?} {:?}",
+                    i, tip.unk1, tip.unk2, tip.unk3, tip.unk4
+                )?;
+            }
+
             Ok(())
         }
         ScenarioCommand::Decompile { scenario_path: _ } => {

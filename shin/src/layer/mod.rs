@@ -21,6 +21,7 @@ pub use message_layer::{MessageLayer, MessageboxTextures};
 pub use null_layer::NullLayer;
 pub use picture_layer::PictureLayer;
 pub use root_layer_group::RootLayerGroup;
+use shin_core::format::scenario::info::{BustupInfoItem, PictureInfoItem};
 pub use tile_layer::TileLayer;
 
 use crate::asset::bustup::Bustup;
@@ -250,29 +251,29 @@ impl UserLayer {
             }
             LayerType::Picture => {
                 let [pic_id, _, _, _, _, _, _, _] = params;
-                let (pic_name, v1) = scenario.get_picture_data(pic_id);
-                debug!("Load picture: {} -> {} {}", pic_id, pic_name, v1);
-                let pic_path = format!("/picture/{}.pic", pic_name.to_ascii_lowercase());
+                let pic_info @ PictureInfoItem { name, unk1 } =
+                    scenario.info_tables().picture_info(pic_id);
+                debug!("Load picture: {} -> {} {}", pic_id, name, unk1);
                 let pic = asset_server
-                    .load::<Picture, _>(&pic_path)
+                    .load::<Picture, _>(pic_info.path())
                     .await
                     .expect("Failed to load picture");
-                PictureLayer::new(resources, pic, Some(pic_name.to_string())).into()
+                PictureLayer::new(resources, pic, Some(name.to_string())).into()
             }
             LayerType::Bustup => {
                 let [bup_id, _, _, _, _, _, _, _] = params;
-                let (bup_name, bup_emotion, v1) = scenario.get_bustup_data(bup_id);
-                debug!(
-                    "Load bustup: {} -> {} {} {}",
-                    bup_id, bup_name, bup_emotion, v1
-                );
-                let bup_path = format!("/bustup/{}.bup", bup_name.to_ascii_lowercase());
+                let bup_info @ BustupInfoItem {
+                    name,
+                    emotion,
+                    unk1,
+                } = scenario.info_tables().bustup_info(bup_id);
+                debug!("Load bustup: {} -> {} {} {}", bup_id, name, emotion, unk1);
                 let bup = asset_server
-                    .load::<Bustup, _>(&bup_path)
+                    .load::<Bustup, _>(bup_info.path())
                     .await
                     .expect("Failed to load bustup");
 
-                BustupLayer::new(resources, bup, Some(bup_name.to_string()), bup_emotion).into()
+                BustupLayer::new(resources, bup, Some(name.to_string()), emotion.as_str()).into()
             }
             LayerType::Movie => {
                 let [_movie_id, _volume, _flags, _, _, _, _, _] = params;

@@ -30,7 +30,14 @@ impl BgmPlayer {
         }
     }
 
-    pub fn play(&mut self, bgm: Arc<Audio>, repeat: bool, volume: f32, fade_in: Tween) {
+    pub fn play(
+        &mut self,
+        bgm: Arc<Audio>,
+        _display_name: &str,
+        repeat: bool,
+        volume: f32,
+        fade_in: Tween,
+    ) {
         let kira_data = bgm.to_kira_data(AudioParams {
             track: self.bgm_track.id(),
             fade_in,
