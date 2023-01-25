@@ -76,13 +76,23 @@ impl StartableCommand for command::runtime::LAYERCTRL {
 
         let mut changed = false;
         adv_state.get_vlayer_mut(vm_state, self.layer_id).for_each(|mut layer| {
-            if layer.properties().get_property_value(self.property_id) != target_value as f32 {
-                changed = true;
-            }
-
             let tweener = layer
                 .properties_mut()
                 .property_tweener_mut(self.property_id);
+
+            let from_value = tweener.target_value();
+            let to_value = target_value as f32;
+            let mut duration = duration;
+
+            if tweener.value() != to_value {
+                changed = true;
+            }
+
+            if flags.scale_time() {
+                // this flag makes "duration" actually mean change rate (in value per tick)
+                let change = (to_value - from_value).abs();
+                duration = Ticks::from_f32(change / duration.as_f32());
+            }
 
             if flags.ff_to_current() {
                 if flags.delta() {

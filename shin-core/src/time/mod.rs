@@ -53,6 +53,10 @@ impl Ticks {
         Self::from_seconds(duration.as_secs_f32())
     }
 
+    pub fn as_f32(&self) -> f32 {
+        self.0
+    }
+
     pub fn as_seconds(&self) -> f32 {
         self.0 / TICKS_PER_SECOND
     }

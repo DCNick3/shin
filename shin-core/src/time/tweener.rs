@@ -34,6 +34,18 @@ impl Tweener {
         self.value
     }
 
+    pub fn target_value(&self) -> Value {
+        match self.state {
+            State::Idle => self.value,
+            State::Tweening {
+                values: (_, value), ..
+            } => match self.tween_queue.front() {
+                None => value,
+                Some(&(value, _)) => value,
+            },
+        }
+    }
+
     pub fn is_idle(&self) -> bool {
         matches!(self.state, State::Idle)
     }
