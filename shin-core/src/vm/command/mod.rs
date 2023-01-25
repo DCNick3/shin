@@ -4,7 +4,7 @@ use crate::format::scenario::instructions::{
     BitmaskNumberArray, MemoryAddress, MessageId, NumberSpec,
 };
 use crate::format::scenario::types::U8SmallNumberList;
-use crate::format::text::{StringArray, U16FixupString, U16String, U8String};
+use crate::format::text::{StringArray, U16FixupString, U16String};
 use crate::time::Ticks;
 use shin_derive::Command;
 
@@ -307,7 +307,7 @@ pub enum Command {
 
     #[cmd(opcode = 0xffu8)]
     DEBUGOUT {
-        format: U8String,
+        format: U16String,
         args: U8SmallNumberList,
     },
 }
