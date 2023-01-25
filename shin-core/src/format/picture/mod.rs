@@ -16,8 +16,8 @@ use std::sync::Mutex;
 struct PicHeader {
     version: u32,
     file_size: u32,
-    origin_x: u16,
-    origin_y: u16,
+    origin_x: i16,
+    origin_y: i16,
     effective_width: u16,
     effective_height: u16,
     field_20: u32,
@@ -136,8 +136,8 @@ pub trait PictureBuilder<'d>: Send {
         args: Self::Args,
         effective_width: u32,
         effective_height: u32,
-        origin_x: u32,
-        origin_y: u32,
+        origin_x: i32,
+        origin_y: i32,
         picture_id: u32,
     ) -> Self;
 
@@ -190,8 +190,8 @@ impl PictureChunk {
 
 pub struct SimpleMergedPicture {
     pub image: RgbaImage,
-    pub origin_x: u32,
-    pub origin_y: u32,
+    pub origin_x: i32,
+    pub origin_y: i32,
     pub picture_id: u32,
 }
 
@@ -203,8 +203,8 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
         _: (),
         effective_width: u32,
         effective_height: u32,
-        origin_x: u32,
-        origin_y: u32,
+        origin_x: i32,
+        origin_y: i32,
         picture_id: u32,
     ) -> Self {
         SimpleMergedPicture {
@@ -236,8 +236,8 @@ pub struct SimplePicture {
     pub chunks: Vec<((u32, u32), PictureChunk)>,
     pub effective_width: u32,
     pub effective_height: u32,
-    pub origin_x: u32,
-    pub origin_y: u32,
+    pub origin_x: i32,
+    pub origin_y: i32,
     pub picture_id: u32,
 }
 
@@ -249,8 +249,8 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
         _: (),
         effective_width: u32,
         effective_height: u32,
-        origin_x: u32,
-        origin_y: u32,
+        origin_x: i32,
+        origin_y: i32,
         picture_id: u32,
     ) -> Self {
         Self {
@@ -467,8 +467,8 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
         builder_args,
         header.effective_width as u32,
         header.effective_height as u32,
-        header.origin_x as u32,
-        header.origin_y as u32,
+        header.origin_x as i32,
+        header.origin_y as i32,
         header.picture_id,
     );
     // TODO: how should be parallelize it in bevy?
