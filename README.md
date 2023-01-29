@@ -20,7 +20,7 @@ As of writing, most of the basic game functionality works:
 - BGM & SFX
 - Text
 
-However, there are still a lot of missing advanced features and shortcuts in the above. It's not playable yet.
+However, there are still a lot of missing advanced features. It's not fully playable yet.
 
 The intent is to follow the engine as closely as possible, so that it can be used to run the original games.
 
@@ -44,6 +44,10 @@ cargo run --release
 Note that you should set `shin` as a working directory beforehand!
 
 If you encounter any issues, please open an issue on GitHub.
+
+## Docs
+
+While there is no comprehensive documentation of the engine, as I reverse engineer it, I try to document the findings mainly in [this spreadsheet](https://docs.google.com/spreadsheets/d/1BGGZ1Wjnx5FXgjDjhKgwhRxSAY_HYX_6U0q679IVUi8/edit?usp=share_link)
 
 ## What else is in the box
 
