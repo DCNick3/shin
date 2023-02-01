@@ -2094,6 +2094,7 @@ dependencies = [
  "binrw",
  "clap",
  "derive_more",
+ "image",
  "linkle",
  "once_cell",
  "regex",

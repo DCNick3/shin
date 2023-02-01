@@ -12,3 +12,4 @@ binrw = "0.10.0"
 derive_more = "0.99.17"
 clap = { version = "4.0.32", features = ["derive"] }
 linkle = "0.2.11"
+image = "0.24.5"
