@@ -184,7 +184,7 @@ impl Updatable for LayerProperties {
 
 /// Stores only target property values.
 /// Used to implement save/load (to quickly restore the state of the scene).
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct LayerPropertiesSnapshot {
     // The game can actually only set integer values
     // hence the the use of i32 instead of f32

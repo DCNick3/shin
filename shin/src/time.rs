@@ -67,6 +67,7 @@ impl Default for Time {
     }
 }
 
+#[allow(unused)]
 impl Time {
     /// Constructs a new `Time` instance with a specific startup `Instant`.
     pub fn new(startup: Instant) -> Self {

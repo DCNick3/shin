@@ -1,5 +1,4 @@
-use clap::{Args, Parser, Subcommand};
-use std::path::PathBuf;
+use clap::{Parser, Subcommand};
 
 mod buffer_parser;
 mod debug_tex_parser;

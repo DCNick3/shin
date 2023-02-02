@@ -51,7 +51,10 @@ pub struct ActionState<T: Action> {
     action_data: EnumMap<T, ActionData>,
 }
 
-impl<T: Action> ActionState<T> {
+impl<T: Action> ActionState<T>
+where
+    T::Array<PetitSet<UserInput, 8>>: Clone,
+{
     pub fn new() -> Self {
         Self::with_action_map(T::default_action_map())
     }
@@ -123,13 +126,16 @@ pub struct ActionMap<A: Action> {
 
 pub type InputSet = PetitSet<UserInput, 8>;
 
-impl<A: Action> ActionMap<A> {
+impl<A: Action> ActionMap<A>
+where
+    A::Array<PetitSet<UserInput, 8>>: Clone,
+{
     pub fn new(action_map: EnumMap<A, PetitSet<UserInput, 8>>) -> Self {
         Self { action_map }
     }
 
     pub fn which_pressed(&self, input_state: &RawInputState) -> EnumMap<A, Option<f32>> {
-        self.action_map.map_ref(|_action, inputs| {
+        self.action_map.clone().map(|_action, inputs| {
             inputs
                 .iter()
                 // flat map acts as an OR

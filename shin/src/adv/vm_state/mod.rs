@@ -1,7 +1,7 @@
 pub mod layers;
 
 use layers::LayersState;
-use shin_core::vm::command::layer::{MessageboxStyle, VLayerId, VLayerIdRepr};
+use shin_core::vm::command::layer::MessageboxStyle;
 
 pub struct SaveInfo {
     pub info: [String; 4],

@@ -10,8 +10,9 @@ resolver = "2"
 
 [workspace.dependencies]
 glam = "0.22.0"
-# git version for GATs and a map_ref function
-enum-map = { git = "https://github.com/DCNick3/enum-map.git", rev = "a04d7e336275c5d3796dff157b756af2dab268d7" }
+# git version for GATs
+enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "942b6f0fefc41d1e9626f952e60ea88386838e68" }
+#enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
 
 [profile.release]
 debug = true
@@ -29,3 +30,4 @@ split-debuginfo = "packed"
 
 [workspace.metadata.release]
 shared-version = true
+publish = false # can't publish yet because of enum-map git dep

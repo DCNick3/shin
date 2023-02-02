@@ -1243,16 +1243,16 @@ dependencies = [
 
 [[package]]
 name = "enum-map"
-version = "2.4.1"
-source = "git+https://github.com/DCNick3/enum-map.git?rev=a04d7e336275c5d3796dff157b756af2dab268d7#a04d7e336275c5d3796dff157b756af2dab268d7"
+version = "2.4.2"
+source = "git+https://github.com/xfix/enum-map.git?rev=942b6f0fefc41d1e9626f952e60ea88386838e68#942b6f0fefc41d1e9626f952e60ea88386838e68"
 dependencies = [
  "enum-map-derive",
 ]
 
 [[package]]
 name = "enum-map-derive"
-version = "0.10.0"
-source = "git+https://github.com/DCNick3/enum-map.git?rev=a04d7e336275c5d3796dff157b756af2dab268d7#a04d7e336275c5d3796dff157b756af2dab268d7"
+version = "0.11.0"
+source = "git+https://github.com/xfix/enum-map.git?rev=942b6f0fefc41d1e9626f952e60ea88386838e68#942b6f0fefc41d1e9626f952e60ea88386838e68"
 dependencies = [
  "proc-macro2",
  "quote",

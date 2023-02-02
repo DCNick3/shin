@@ -2,7 +2,7 @@ use crate::asset::gpu_image::{GpuImage, LazyGpuImage};
 use crate::asset::Asset;
 use crate::render::GpuCommonResources;
 use anyhow::Result;
-use glam::{vec2, Vec2};
+use glam::vec2;
 use shin_core::format::picture::SimpleMergedPicture;
 
 /// A Picture, uploaded to GPU on demand (because doing it in the asset loading context is awkward)

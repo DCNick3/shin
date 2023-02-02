@@ -7,7 +7,7 @@ use bevy_utils::HashMap;
 use egui::style::WidgetVisuals;
 use egui::{
     ClippedPrimitive, CollapsingHeader, Color32, Context, FontFamily, FontId, InnerResponse, Pos2,
-    Rect, Rounding, Stroke, TextureId, Ui, Vec2,
+    Rect, Rounding, Stroke, TextureId, Ui,
 };
 use egui_wgpu::renderer::ScreenDescriptor;
 use egui_wgpu::Renderer;

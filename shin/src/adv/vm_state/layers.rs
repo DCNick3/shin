@@ -57,7 +57,7 @@ impl Iterator for LayerSelectionIter {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct LayerState {
     pub layerinit_params: Option<(LayerType, [i32; 0x8])>,
     pub properties: LayerPropertiesSnapshot,
