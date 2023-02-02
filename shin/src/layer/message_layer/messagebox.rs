@@ -4,7 +4,7 @@ use crate::render::{
     GpuCommonResources, PosColTexVertex, PosVertexBuffer, Renderable, VertexBuffer,
 };
 use crate::update::{Updatable, UpdateContext};
-use cgmath::{Matrix4, Vector2, Vector3, Vector4};
+use glam::{vec2, vec3, vec4, Mat4, Vec2};
 use shin_core::vm::command::layer::MessageboxType;
 use std::sync::Arc;
 
@@ -33,7 +33,7 @@ pub struct MessageboxTextures {
 // }
 
 const MAX_VERTEX_COUNT: usize = 120;
-const TEX_SIZE: Vector2<f32> = Vector2::new(1648.0, 288.0);
+const TEX_SIZE: Vec2 = vec2(1648.0, 288.0);
 
 // https://stackoverflow.com/a/34324856
 macro_rules! count {
@@ -46,9 +46,9 @@ macro_rules! make_vertices {
         $r.reserve(count!($($x)*));
         $(
             $r.push(PosColTexVertex {
-                position: Vector3::new($x, $y, 1.0),
-                color: Vector4::new(1.0, 1.0, 1.0, 0.85),
-                texture_coordinate: Vector2::new($x_tex / TEX_SIZE.x, $y_tex / TEX_SIZE.y),
+                position: vec3($x, $y, 1.0),
+                color: vec4(1.0, 1.0, 1.0, 0.85),
+                texture_coordinate: vec2($x_tex / TEX_SIZE.x, $y_tex / TEX_SIZE.y),
             });
         )*
     };
@@ -192,7 +192,7 @@ impl Renderable for Messagebox {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         if !self.visible {
             return;
@@ -203,7 +203,7 @@ impl Renderable for Messagebox {
         match self.messagebox_type {
             MessageboxType::Neutral | MessageboxType::WitchSpace | MessageboxType::Ushiromiya => {
                 let transform = transform
-                    * Matrix4::from_translation(Vector3::new(
+                    * Mat4::from_translation(vec3(
                         -960.0,
                         -540.0 + (1080.0 - self.dynamic_height) - 32.0,
                         0.0,
@@ -237,7 +237,7 @@ impl Renderable for Messagebox {
                     render_pass,
                     self.fill_vertex_buffer.vertex_source(),
                     transform,
-                    Vector4::new(0.0, 0.0, 0.0, 0.7),
+                    vec4(0.0, 0.0, 0.0, 0.7),
                 );
             }
         }

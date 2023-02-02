@@ -2,7 +2,7 @@ use crate::render;
 use crate::render::{
     GpuCommonResources, PosColTexVertex, SpriteVertexBuffer, TextureBindGroup, VertexSource,
 };
-use cgmath::{Vector2, Vector4};
+use glam::{vec4, Vec2};
 use image::RgbaImage;
 use once_cell::sync::OnceCell;
 use std::borrow::Cow;
@@ -10,13 +10,13 @@ use std::num::NonZeroU32;
 
 pub struct LazyGpuImage {
     image: RgbaImage,
-    origin: Vector2<f32>,
+    origin: Vec2,
     label: Option<String>,
     gpu_image: OnceCell<GpuImage>,
 }
 
 impl LazyGpuImage {
-    pub fn new(image: RgbaImage, origin: Vector2<f32>, label: Option<&str>) -> Self {
+    pub fn new(image: RgbaImage, origin: Vec2, label: Option<&str>) -> Self {
         Self {
             image,
             origin,
@@ -64,7 +64,7 @@ impl GpuImage {
     pub fn load(
         resources: &GpuCommonResources,
         image: &RgbaImage,
-        origin: Vector2<f32>,
+        origin: Vec2,
         label: Option<&str>,
     ) -> Self {
         let label = label
@@ -84,7 +84,7 @@ impl GpuImage {
                 origin_translate.y + image.height() as f32,
             ),
             // TODO: do we even want colored vertices?..
-            Vector4::new(1.0, 1.0, 1.0, 1.0),
+            vec4(1.0, 1.0, 1.0, 1.0),
         );
 
         GpuImage {

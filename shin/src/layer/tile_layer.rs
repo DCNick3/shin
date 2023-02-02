@@ -2,12 +2,12 @@ use crate::layer::{Layer, LayerProperties};
 use crate::render::Renderable;
 use crate::render::{GpuCommonResources, PosVertexBuffer};
 use crate::update::{Updatable, UpdateContext};
-use cgmath::{Matrix4, Vector4};
+use glam::{vec4, Mat4, Vec4};
 use std::fmt::Debug;
 use std::sync::Arc;
 
 pub struct TileLayer {
-    vertex_color: Vector4<f32>,
+    vertex_color: Vec4,
     vertex_buffer: Arc<PosVertexBuffer>,
 
     props: LayerProperties,
@@ -29,12 +29,12 @@ impl TileLayer {
         let green = ((tile_color & 0x00f0) >> 4) as u8;
         let blue = ((tile_color & 0x000f) >> 0) as u8;
 
-        let vertex_color = Vector4 {
-            x: (red as f32) / (0xf as f32),
-            y: (green as f32) / (0xf as f32),
-            z: (blue as f32) / (0xf as f32),
-            w: (alpha as f32) / (0xf as f32),
-        };
+        let vertex_color = vec4(
+            (red as f32) / (0xf as f32),
+            (green as f32) / (0xf as f32),
+            (blue as f32) / (0xf as f32),
+            (alpha as f32) / (0xf as f32),
+        );
 
         let rect = (
             offset_x as f32,
@@ -59,7 +59,7 @@ impl Renderable for TileLayer {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         resources.draw_fill(
             render_pass,
@@ -82,10 +82,10 @@ impl Updatable for TileLayer {
 
 impl Debug for TileLayer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let color = self.vertex_color.map(|v| (v * 255.0) as u8);
+        let color = self.vertex_color.to_array().map(|v| (v * 255.0) as u8);
         let color = format!(
             "#{:02x}{:02x}{:02x}{:02x}",
-            color.x, color.y, color.z, color.w
+            color[0], color[1], color[2], color[3]
         );
 
         f.debug_tuple("TileLayer").field(&color).finish()

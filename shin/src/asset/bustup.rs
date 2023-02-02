@@ -3,7 +3,7 @@ use crate::asset::Asset;
 use crate::render::GpuCommonResources;
 use anyhow::{Context, Result};
 use bevy_utils::HashMap;
-use cgmath::Vector2;
+use glam::{vec2, Vec2};
 
 struct BustupExpression {
     face_picture: Option<LazyGpuImage>,
@@ -63,7 +63,7 @@ impl Asset for Bustup {
     fn load_from_bytes(data: Vec<u8>) -> Result<Self> {
         let bustup = shin_core::format::bustup::read_bustup(&data)?;
 
-        let origin = Vector2::new(bustup.origin.0 as f32, bustup.origin.1 as f32);
+        let origin = vec2(bustup.origin.0 as f32, bustup.origin.1 as f32);
 
         Ok(Self {
             base_picture: LazyGpuImage::new(bustup.base_image, origin, Some("Bustup Base")),
@@ -73,12 +73,12 @@ impl Asset for Bustup {
                 .map(|(name, expression)| {
                     fn chunk_to_gpu_image(
                         chunk: shin_core::format::picture::PictureChunk,
-                        origin: Vector2<f32>,
+                        origin: Vec2,
                         label: &str,
                     ) -> LazyGpuImage {
                         LazyGpuImage::new(
                             chunk.data,
-                            origin - Vector2::new(chunk.offset_x as f32, chunk.offset_y as f32),
+                            origin - vec2(chunk.offset_x as f32, chunk.offset_y as f32),
                             Some(label),
                         )
                     }

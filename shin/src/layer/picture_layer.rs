@@ -3,7 +3,7 @@ use crate::layer::{Layer, LayerProperties};
 use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
-use cgmath::Matrix4;
+use glam::Mat4;
 use std::fmt::Debug;
 use std::sync::Arc;
 
@@ -36,7 +36,7 @@ impl Renderable for PictureLayer {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         // TODO: there should be a generic function to render a layer (from texture?)
         let gpu_image = self.picture.gpu_image(resources);

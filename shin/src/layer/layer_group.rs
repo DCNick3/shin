@@ -1,6 +1,6 @@
 use crate::adv::LayerSelection;
 use bevy_utils::hashbrown::HashMap;
-use cgmath::Matrix4;
+use glam::Mat4;
 use itertools::Itertools;
 use shin_core::vm::command::layer::LayerId;
 
@@ -89,7 +89,7 @@ impl Renderable for LayerGroup {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         {
             let mut encoder = resources.start_encoder();

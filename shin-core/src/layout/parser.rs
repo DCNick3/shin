@@ -1,5 +1,5 @@
 use crate::time::Ticks;
-use cgmath::Vector3;
+use glam::Vec3;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParsedCommand {
@@ -18,7 +18,7 @@ pub enum ParsedCommand {
     /// @a
     SetFade(f32),
     /// @c
-    SetColor(Option<Vector3<f32>>),
+    SetColor(Option<Vec3>),
     /// @e
     NoFinalClickWait,
     /// @k
@@ -79,7 +79,7 @@ impl<'a> LayouterParser<'a> {
         value as f32 / scale
     }
 
-    fn read_color_argument(&mut self) -> Option<Vector3<f32>> {
+    fn read_color_argument(&mut self) -> Option<Vec3> {
         let argument = self.read_argument();
         if argument.is_empty() {
             None
@@ -89,7 +89,7 @@ impl<'a> LayouterParser<'a> {
             let g = chars.next().unwrap().to_digit(10).unwrap() as f32 / 9.0;
             let b = chars.next().unwrap().to_digit(10).unwrap() as f32 / 9.0;
             assert!(chars.next().is_none());
-            Some(Vector3::new(r, g, b))
+            Some(Vec3::new(r, g, b))
         }
     }
 }
@@ -198,7 +198,7 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                ParsedCommand::SetColor(Some(Vector3::new(1.0, 4.0 / 9.0, 0.0))),
+                ParsedCommand::SetColor(Some(vec3(1.0, 4.0 / 9.0, 0.0))),
                 ParsedCommand::Newline,
                 ParsedCommand::Char('H'),
                 ParsedCommand::Char('e'),
@@ -248,7 +248,7 @@ mod tests {
                 ParsedCommand::Sync,
                 ParsedCommand::Char('｢'),
                 ParsedCommand::Char('｢'),
-                ParsedCommand::SetColor(Some(Vector3::new(1.0, 0.0, 0.0))),
+                ParsedCommand::SetColor(Some(vec3(1.0, 0.0, 0.0))),
                 ParsedCommand::InstantTextStart,
                 ParsedCommand::Char('謹'),
                 ParsedCommand::Char('啓'),

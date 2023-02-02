@@ -2,7 +2,7 @@ use crate::layer::message_layer::font_atlas::FontAtlas;
 use crate::render::dynamic_atlas::AtlasImage;
 use crate::render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
-use cgmath::{ElementWise, Matrix4, Vector2};
+use glam::{vec2, Mat4, Vec2};
 use shin_core::format::font::GlyphTrait;
 use shin_core::layout::{
     Action, ActionType, Block, BlockExitCondition, LayoutedMessage, LayoutingMode,
@@ -44,7 +44,7 @@ impl Message {
     pub fn new(
         context: &UpdateContext,
         font_atlas: Arc<FontAtlas>,
-        base_position: Vector2<f32>,
+        base_position: Vec2,
         show_character_name: bool,
         message: &str,
     ) -> Self {
@@ -135,7 +135,7 @@ impl Message {
                 .get_info();
 
             let atlas_size = font_atlas.texture_size();
-            let atlas_size = Vector2::new(atlas_size.0 as f32, atlas_size.1 as f32);
+            let atlas_size = vec2(atlas_size.0 as f32, atlas_size.1 as f32);
 
             let AtlasImage {
                 position: tex_position,
@@ -146,15 +146,15 @@ impl Message {
 
             // just use the actual size of the glyph
             let tex_size = glyph_info.actual_size();
-            let tex_size = Vector2::new(tex_size.0 as f32, tex_size.1 as f32);
+            let tex_size = vec2(tex_size.0 as f32, tex_size.1 as f32);
 
             // scale texture coordinates to the size of the texture
-            let tex_position = tex_position.div_element_wise(atlas_size);
-            let tex_size = tex_size.div_element_wise(atlas_size);
+            let tex_position = tex_position / atlas_size;
+            let tex_size = tex_size / atlas_size;
 
             let position = base_position
                 + char.position
-                + Vector2::new(
+                + vec2(
                     glyph_info.bearing_x as f32 * char.size.horizontal_scale,
                     -glyph_info.bearing_y as f32 * char.size.scale,
                 );
@@ -170,9 +170,8 @@ impl Message {
             macro_rules! v {
                 (($x:expr, $y:expr), ($tex_x:expr, $tex_y:expr)) => {
                     TextVertex {
-                        position: position + Vector2::new($x, $y).mul_element_wise(size),
-                        tex_position: tex_position
-                            + Vector2::new($tex_x, $tex_y).mul_element_wise(tex_size),
+                        position: position + vec2($x, $y) * size,
+                        tex_position: tex_position + vec2($tex_x, $tex_y) * tex_size,
                         color,
                         time,
                         fade,
@@ -348,13 +347,12 @@ impl Renderable for Message {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         const OUTLINE_DISTANCE: f32 = 3.5;
 
         let atlas_size = self.font_atlas.texture_size();
-        let scaled_distance =
-            Vector2::new(atlas_size.0 as f32, atlas_size.1 as f32).map(|x| OUTLINE_DISTANCE / x);
+        let scaled_distance = OUTLINE_DISTANCE / vec2(atlas_size.0 as f32, atlas_size.1 as f32);
 
         render_pass.push_debug_group("Message");
         resources.draw_text_outline(

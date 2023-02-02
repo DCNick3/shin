@@ -14,10 +14,10 @@ pub use common_resources::GpuCommonResources;
 pub use pillarbox::Pillarbox;
 pub use pipelines::{Pipelines, PosColTexVertex, PosVertex, TextVertex, VertexSource};
 pub use render_target::RenderTarget;
-pub use vertex_buffer::{IndexBuffer, SpriteVertexBuffer, PosVertexBuffer, Vertex, VertexBuffer};
+pub use vertex_buffer::{IndexBuffer, PosVertexBuffer, SpriteVertexBuffer, Vertex, VertexBuffer};
 
-use cgmath::Matrix4;
 use enum_dispatch::enum_dispatch;
+use glam::Mat4;
 use std::ops::{Deref, DerefMut};
 
 use crate::layer::UserLayer;
@@ -56,7 +56,7 @@ pub trait Renderable {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     );
     fn resize(&mut self, resources: &GpuCommonResources);
 }

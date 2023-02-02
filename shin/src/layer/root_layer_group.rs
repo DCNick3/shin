@@ -1,8 +1,7 @@
-use cgmath::Matrix4;
-
 use crate::layer::{Layer, LayerGroup, LayerProperties, MessageLayer};
 use crate::render::{GpuCommonResources, RenderTarget, Renderable, SpriteVertexBuffer};
 use crate::update::{Updatable, UpdateContext};
+use glam::Mat4;
 
 type ScreenLayer = LayerGroup;
 
@@ -67,7 +66,7 @@ impl Renderable for RootLayerGroup {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         {
             let mut encoder = resources.start_encoder();

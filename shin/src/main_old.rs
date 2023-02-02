@@ -11,20 +11,20 @@ use shin_core::vm::command::CommandResult;
 
 fn add_pillarbox_rects(commands: &mut Commands) {
     let bottom_rect = shapes::Rectangle {
-        extents: Vec2::new(1920.0, 9999.0),
-        origin: RectangleOrigin::CustomCenter(Vec2::new(0.0, -540.0 - 9999.0 / 2.0)),
+        extents: vec2(1920.0, 9999.0),
+        origin: RectangleOrigin::CustomCenter(vec2(0.0, -540.0 - 9999.0 / 2.0)),
     };
     let top_rect = shapes::Rectangle {
-        extents: Vec2::new(1920.0, 9999.0),
-        origin: RectangleOrigin::CustomCenter(Vec2::new(0.0, 540.0 + 9999.0 / 2.0)),
+        extents: vec2(1920.0, 9999.0),
+        origin: RectangleOrigin::CustomCenter(vec2(0.0, 540.0 + 9999.0 / 2.0)),
     };
     let left_rect = shapes::Rectangle {
-        extents: Vec2::new(9999.0, 1080.0),
-        origin: RectangleOrigin::CustomCenter(Vec2::new(-960.0 - 9999.0 / 2.0, 0.0)),
+        extents: vec2(9999.0, 1080.0),
+        origin: RectangleOrigin::CustomCenter(vec2(-960.0 - 9999.0 / 2.0, 0.0)),
     };
     let right_rect = shapes::Rectangle {
-        extents: Vec2::new(9999.0, 1080.0),
-        origin: RectangleOrigin::CustomCenter(Vec2::new(960.0 + 9999.0 / 2.0, 0.0)),
+        extents: vec2(9999.0, 1080.0),
+        origin: RectangleOrigin::CustomCenter(vec2(960.0 + 9999.0 / 2.0, 0.0)),
     };
 
     commands.spawn_bundle(

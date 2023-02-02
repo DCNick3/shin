@@ -26,12 +26,15 @@ wrld = "1.0.0"
 # git version for integer overflow fix https://github.com/nical/etagere/pull/21
 etagere = { git = "https://github.com/DCNick3/etagere", rev = "53c7ba67256408af78b66909bad7bb905648ec97" }
 
-cgmath = { workspace = true, features = ["bytemuck"] }
+glam = { workspace = true, features = [
+    # "scalar-math" disables the 16-byte alignment requirement for some types
+    # this is required for bytemuck to work
+    "bytemuck", "scalar-math"
+] }
 bytemuck = { version = "1.12.3", features = ["derive"] }
 image = "0.24.5"
 
-# TODO: this is kinda heavy... We can definitely live without all the ECS code
-bevy_time = "0.9.1"
+# Theese parts of bevy do not depend on ECS or the reflection, so it's not a big problem to use them
 bevy_utils = "0.9.1"
 bevy_tasks = "0.9.1"
 

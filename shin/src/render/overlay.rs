@@ -2,6 +2,7 @@ use crate::input::actions::OverlayManagerAction;
 use crate::input::inputs::MouseButton;
 use crate::input::{ActionState, RawInputState};
 use crate::render::GpuCommonResources;
+use crate::time::Time;
 use bevy_utils::HashMap;
 use egui::style::WidgetVisuals;
 use egui::{
@@ -10,6 +11,7 @@ use egui::{
 };
 use egui_wgpu::renderer::ScreenDescriptor;
 use egui_wgpu::Renderer;
+use glam::vec2;
 use std::cell::RefCell;
 use wgpu::{RenderPass, TextureFormat};
 
@@ -101,9 +103,10 @@ impl OverlayManager {
 
         let pixels_per_point = ctx.pixels_per_point();
         let size = ctx.input().screen_rect().size();
+        let size = vec2(size.x, size.y); // convert from egui Vec2 to glam Vec2
         assert_ne!(
             size,
-            Vec2::new(10000.0, 10000.0),
+            vec2(10000.0, 10000.0),
             "Screen size is not set, was the update method called?"
         );
         ScreenDescriptor {
@@ -114,7 +117,7 @@ impl OverlayManager {
 
     pub fn start_update(
         &mut self,
-        time: &bevy_time::Time,
+        time: &Time,
         // yes, we can mutate the input state
         // this is needed to consume the mouse events
         raw_input_state: &RawInputState,

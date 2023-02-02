@@ -13,8 +13,8 @@ use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGro
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
-use cgmath::Matrix4;
 use egui::Window;
+use glam::Mat4;
 use shin_core::format::scenario::instructions::CodeAddress;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::breakpoint::BreakpointObserver;
@@ -150,7 +150,7 @@ impl Renderable for Adv {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         self.adv_state.render(resources, render_pass, transform);
     }
@@ -339,7 +339,7 @@ impl Renderable for AdvState {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         self.root_layer_group
             .render(resources, render_pass, transform);

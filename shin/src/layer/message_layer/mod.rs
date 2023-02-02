@@ -2,6 +2,7 @@ mod font_atlas;
 mod message;
 mod messagebox;
 
+use glam::{vec2, Mat4};
 pub use messagebox::MessageboxTextures;
 use std::sync::Arc;
 
@@ -12,7 +13,6 @@ use crate::layer::{Layer, LayerProperties};
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
-use cgmath::{Matrix4, Vector2};
 use message::{Message, MessageStatus};
 use shin_core::time::Ticks;
 use shin_core::vm::command::layer::{MessageboxStyle, MessageboxType};
@@ -54,8 +54,8 @@ impl MessageLayer {
             MessageboxType::Neutral
             | MessageboxType::WitchSpace
             | MessageboxType::Ushiromiya
-            | MessageboxType::Transparent => (Vector2::new(-740.0 - 10.0, 300.0 - 156.0), true),
-            MessageboxType::Novel => (Vector2::new(-740.0 - 10.0, 300.0 - 156.0 - 450.0), false),
+            | MessageboxType::Transparent => (vec2(-740.0 - 10.0, 300.0 - 156.0), true),
+            MessageboxType::Novel => (vec2(-740.0 - 10.0, 300.0 - 156.0 - 450.0), false),
             MessageboxType::NoText => {
                 todo!()
             }
@@ -116,7 +116,7 @@ impl Renderable for MessageLayer {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         let transform = self.props.compute_transform(transform);
         self.messagebox.render(resources, render_pass, transform);

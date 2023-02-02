@@ -2,16 +2,16 @@ use crate::format::font::{GlyphTrait, LazyFont};
 use crate::layout::parser::{LayouterParser, ParsedCommand};
 use crate::time::Ticks;
 use crate::vm::command::layer::MessageTextLayout;
-use cgmath::{Vector2, Vector3};
 use float_ord::FloatOrd;
+use glam::{vec2, Vec2, Vec3};
 use std::iter::Peekable;
 use tracing::warn;
 
 #[derive(Debug, Clone, Copy)]
 pub struct LayoutedChar {
     pub time: Ticks,
-    pub position: Vector2<f32>,
-    pub color: Vector3<f32>,
+    pub position: Vec2,
+    pub color: Vec3,
     pub size: GlyphSize,
     pub fade: f32,
     pub codepoint: u16,
@@ -36,7 +36,7 @@ pub struct Action {
 pub struct LayouterState {
     /// Font size, in relative units (0.1 - 2.0)
     pub font_size: f32,
-    pub text_color: Vector3<f32>,
+    pub text_color: Vec3,
     /// Text draw speed (well, actually it's time to draw one pixel)
     pub text_draw_speed: f32,
     pub fade: f32,
@@ -48,7 +48,7 @@ impl Default for LayouterState {
     fn default() -> Self {
         Self {
             font_size: 1.0,
-            text_color: Vector3::new(1.0, 1.0, 1.0),
+            text_color: Vec3::new(1.0, 1.0, 1.0),
             // TODO: those are not correct
             // TODO: make those into newtypes
             text_draw_speed: 0.1,
@@ -69,8 +69,8 @@ pub struct GlyphSize {
 }
 
 impl GlyphSize {
-    pub fn size(&self) -> Vector2<f32> {
-        Vector2::new(self.width, self.height)
+    pub fn size(&self) -> Vec2 {
+        vec2(self.width, self.height)
     }
 
     pub fn scale_horizontal(&mut self, scale: f32) {
@@ -135,7 +135,7 @@ struct Layouter<'a> {
     /// Layouted chars, grouped by line
     chars: Vec<Vec<LayoutedChar>>,
     pending_chars: Vec<LayoutedChar>,
-    position: Vector2<f32>,
+    position: Vec2,
     time: Ticks,
 }
 
@@ -156,7 +156,7 @@ impl<'a> Layouter<'a> {
 
         self.pending_chars.push(LayoutedChar {
             time: self.time,
-            position: Vector2::new(self.position.x, 0.0), // do not set y position yet, it will be set when we know which line this char is on
+            position: vec2(self.position.x, 0.0), // do not set y position yet, it will be set when we know which line this char is on
             color: self.state.text_color,
             size,
             fade: fade_time,
@@ -444,7 +444,7 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
         state: params.default_state,
         chars: Vec::new(),
         pending_chars: Vec::new(),
-        position: Vector2::new(0.0, 0.0),
+        position: vec2(0.0, 0.0),
         time: Ticks::ZERO,
     };
 
@@ -490,7 +490,7 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                 }
                 ParsedCommand::SetFade(fade) => layouter.state.fade = fade,
                 ParsedCommand::SetColor(color) => {
-                    layouter.state.text_color = color.unwrap_or(Vector3::new(1.0, 1.0, 1.0))
+                    layouter.state.text_color = color.unwrap_or(Vec3::new(1.0, 1.0, 1.0))
                 }
                 ParsedCommand::NoFinalClickWait => block_builder.no_final_wait(),
                 ParsedCommand::ClickWait => block_builder.click_wait(&mut layouter.time),

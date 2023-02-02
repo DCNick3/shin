@@ -1,6 +1,6 @@
 use crate::render;
 use crate::render::{GpuCommonResources, PosColTexVertex, PosVertex, TextVertex, VertexSource};
-use cgmath::{Vector2, Vector3, Vector4};
+use glam::{vec2, vec3, vec4, Vec4};
 use std::sync::atomic::{AtomicU32, Ordering};
 use wgpu::util::DeviceExt;
 
@@ -133,32 +133,32 @@ impl SpriteVertexBuffer {
     pub fn new(
         resources: &GpuCommonResources,
         (l, t, r, b): (f32, f32, f32, f32),
-        color: Vector4<f32>,
+        color: Vec4,
     ) -> Self {
         let vertices = [
             // 0
             PosColTexVertex {
-                position: Vector3::new(l, b, 0.0),
+                position: vec3(l, b, 0.0),
                 color,
-                texture_coordinate: Vector2::new(0.0, 1.0),
+                texture_coordinate: vec2(0.0, 1.0),
             },
             // 1
             PosColTexVertex {
-                position: Vector3::new(l, t, 0.0),
+                position: vec3(l, t, 0.0),
                 color,
-                texture_coordinate: Vector2::new(0.0, 0.0),
+                texture_coordinate: vec2(0.0, 0.0),
             },
             // 2
             PosColTexVertex {
-                position: Vector3::new(r, b, 0.0),
+                position: vec3(r, b, 0.0),
                 color,
-                texture_coordinate: Vector2::new(1.0, 1.0),
+                texture_coordinate: vec2(1.0, 1.0),
             },
             // 3
             PosColTexVertex {
-                position: Vector3::new(r, t, 0.0),
+                position: vec3(r, t, 0.0),
                 color,
-                texture_coordinate: Vector2::new(1.0, 0.0),
+                texture_coordinate: vec2(1.0, 0.0),
             },
         ];
 
@@ -182,7 +182,7 @@ impl SpriteVertexBuffer {
         let w = render::VIRTUAL_WIDTH as f32 / 2.0;
         let h = render::VIRTUAL_HEIGHT as f32 / 2.0;
 
-        Self::new(resources, (-w, -h, w, h), Vector4::new(1.0, 1.0, 1.0, 1.0))
+        Self::new(resources, (-w, -h, w, h), vec4(1.0, 1.0, 1.0, 1.0))
     }
 
     pub fn vertex_source(&self) -> VertexSource<PosColTexVertex> {
@@ -202,19 +202,19 @@ impl PosVertexBuffer {
         let vertices = [
             // 0
             PosVertex {
-                position: Vector3::new(l, b, 0.0),
+                position: vec3(l, b, 0.0),
             },
             // 1
             PosVertex {
-                position: Vector3::new(l, t, 0.0),
+                position: vec3(l, t, 0.0),
             },
             // 2
             PosVertex {
-                position: Vector3::new(r, b, 0.0),
+                position: vec3(r, b, 0.0),
             },
             // 3
             PosVertex {
-                position: Vector3::new(r, t, 0.0),
+                position: vec3(r, t, 0.0),
             },
         ];
 

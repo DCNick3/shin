@@ -3,7 +3,7 @@ use crate::render::{
     BindGroupLayouts, PosColTexVertex, PosVertex, SubmittingEncoder, TextVertex, TextureBindGroup,
     VertexSource,
 };
-use cgmath::{Matrix4, Vector2, Vector4};
+use glam::{Mat4, Vec2, Vec4};
 use shin_core::time::Ticks;
 use std::sync::RwLock;
 
@@ -35,7 +35,7 @@ impl GpuCommonResources {
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, PosColTexVertex>,
         texture: &'a TextureBindGroup,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         self.pipelines
             .sprite
@@ -47,8 +47,8 @@ impl GpuCommonResources {
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, PosVertex>,
-        transform: Matrix4<f32>,
-        color: Vector4<f32>,
+        transform: Mat4,
+        color: Vec4,
     ) {
         self.pipelines
             .fill
@@ -60,7 +60,7 @@ impl GpuCommonResources {
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, TextVertex>,
         texture: &'a TextureBindGroup,
-        transform: Matrix4<f32>,
+        transform: Mat4,
         time: Ticks,
     ) {
         self.pipelines
@@ -73,9 +73,9 @@ impl GpuCommonResources {
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, TextVertex>,
         texture: &'a TextureBindGroup,
-        transform: Matrix4<f32>,
+        transform: Mat4,
         time: Ticks,
-        distance: Vector2<f32>,
+        distance: Vec2,
     ) {
         self.pipelines
             .text_outline

@@ -1,39 +1,39 @@
 use crate::render;
 use crate::render::bind_groups::{BindGroupLayouts, TextureBindGroup};
 use bytemuck::{Pod, Zeroable};
-use cgmath::{Matrix4, Vector2, Vector3, Vector4};
+use glam::{Mat4, Vec2, Vec3, Vec4};
 use shin_core::time::Ticks;
 use std::mem;
 use std::ops::Range;
 use wgpu::include_wgsl;
 
-#[repr(C)]
 #[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C)]
 pub struct PosColTexVertex {
     #[f32x3(0)]
-    pub position: Vector3<f32>,
+    pub position: Vec3,
     #[f32x4(1)]
-    pub color: Vector4<f32>,
+    pub color: Vec4,
     #[f32x2(2)]
-    pub texture_coordinate: Vector2<f32>,
+    pub texture_coordinate: Vec2,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PosVertex {
     #[f32x3(0)]
-    pub position: Vector3<f32>,
+    pub position: Vec3,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct TextVertex {
     #[f32x2(0)]
-    pub position: Vector2<f32>,
+    pub position: Vec2,
     #[f32x2(1)]
-    pub tex_position: Vector2<f32>,
+    pub tex_position: Vec2,
     #[f32x3(2)]
-    pub color: Vector3<f32>,
+    pub color: Vec3,
     #[f32(3)] // TODO(ticks): don't forget to change into u32
     pub time: Ticks,
     #[f32(4)]
@@ -159,7 +159,7 @@ fn make_pipeline(
 #[derive(Pod, Zeroable, Copy, Clone, Debug)]
 #[repr(C)]
 struct SpriteParams {
-    pub transform: Matrix4<f32>,
+    pub transform: Mat4,
 }
 
 pub struct SpritePipeline(wgpu::RenderPipeline);
@@ -207,7 +207,7 @@ impl SpritePipeline {
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, PosColTexVertex>,
         texture: &'a TextureBindGroup,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         render_pass.set_pipeline(&self.0);
         render_pass.set_bind_group(0, &texture.0, &[]);
@@ -223,8 +223,8 @@ impl SpritePipeline {
 #[derive(Pod, Zeroable, Copy, Clone, Debug)]
 #[repr(C)]
 struct FillParams {
-    pub transform: Matrix4<f32>,
-    pub color: Vector4<f32>,
+    pub transform: Mat4,
+    pub color: Vec4,
 }
 
 pub struct FillPipeline(wgpu::RenderPipeline);
@@ -260,8 +260,8 @@ impl FillPipeline {
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, PosVertex>,
-        transform: Matrix4<f32>,
-        color: Vector4<f32>,
+        transform: Mat4,
+        color: Vec4,
     ) {
         render_pass.set_pipeline(&self.0);
         render_pass.set_push_constants(
@@ -276,7 +276,7 @@ impl FillPipeline {
 #[derive(Pod, Zeroable, Copy, Clone, Debug)]
 #[repr(C)]
 struct TextParams {
-    pub transform: Matrix4<f32>,
+    pub transform: Mat4,
     pub time: Ticks,
 }
 
@@ -316,7 +316,7 @@ impl TextPipeline {
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, TextVertex>,
         texture: &'a TextureBindGroup,
-        transform: Matrix4<f32>,
+        transform: Mat4,
         time: Ticks,
     ) {
         render_pass.set_pipeline(&self.0);
@@ -333,9 +333,9 @@ impl TextPipeline {
 #[derive(Pod, Zeroable, Copy, Clone, Debug)]
 #[repr(C)]
 struct TextOutlineParams {
-    pub transform: Matrix4<f32>,
+    pub transform: Mat4,
     pub time: Ticks,
-    pub distance: Vector2<f32>,
+    pub distance: Vec2,
 }
 
 pub struct TextOutlinePipeline(wgpu::RenderPipeline);
@@ -374,9 +374,9 @@ impl TextOutlinePipeline {
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, TextVertex>,
         texture: &'a TextureBindGroup,
-        transform: Matrix4<f32>,
+        transform: Mat4,
         time: Ticks,
-        distance: Vector2<f32>,
+        distance: Vec2,
     ) {
         render_pass.set_pipeline(&self.0);
         render_pass.set_bind_group(0, &texture.0, &[]);

@@ -3,7 +3,7 @@
 use crate::format::lz77;
 use anyhow::anyhow;
 use binrw::{BinRead, BinResult, BinWrite, FilePtr32, ReadOptions, VecArgs};
-use cgmath::Vector2;
+use glam::{vec2, Vec2};
 use image::GrayImage;
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
@@ -76,8 +76,8 @@ impl GlyphInfo {
         (self.texture_width as u32, self.texture_height as u32)
     }
 
-    pub fn actual_size_relative(&self) -> Vector2<f32> {
-        Vector2::new(
+    pub fn actual_size_relative(&self) -> Vec2 {
+        vec2(
             self.actual_width as f32 / self.texture_width as f32,
             self.actual_height as f32 / self.texture_height as f32,
         )

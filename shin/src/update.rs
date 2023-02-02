@@ -7,9 +7,10 @@ use std::time::Duration;
 
 use crate::layer::UserLayer;
 use crate::render::GpuCommonResources;
+use crate::time::Time;
 
 pub struct UpdateContext<'a> {
-    pub time: &'a bevy_time::Time,
+    pub time: &'a Time,
     pub gpu_resources: &'a Arc<GpuCommonResources>,
     pub asset_server: &'a Arc<AnyAssetServer>,
     pub raw_input_state: &'a RawInputState,

@@ -1,7 +1,7 @@
 use crate::render::{
     GpuCommonResources, PosVertex, Renderable, VertexSource, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
 };
-use cgmath::{Matrix4, Vector3, Vector4};
+use glam::{vec3, vec4, Mat4};
 use wgpu::util::DeviceExt;
 
 pub struct Pillarbox {
@@ -27,52 +27,52 @@ impl Pillarbox {
         let vertices = [
             // 0
             PosVertex {
-                position: Vector3::new(left, top, 0.0),
+                position: vec3(left, top, 0.0),
             },
             // 1
             PosVertex {
-                position: Vector3::new(left, bottom, 0.0),
+                position: vec3(left, bottom, 0.0),
             },
             // 2
             PosVertex {
-                position: Vector3::new(right, top, 0.0),
+                position: vec3(right, top, 0.0),
             },
             // 3
             PosVertex {
-                position: Vector3::new(right, bottom, 0.0),
+                position: vec3(right, bottom, 0.0),
             },
             // ====
             // 4
             PosVertex {
-                position: Vector3::new(ultra_left, top, 0.0),
+                position: vec3(ultra_left, top, 0.0),
             },
             // 5
             PosVertex {
-                position: Vector3::new(ultra_left, bottom, 0.0),
+                position: vec3(ultra_left, bottom, 0.0),
             },
             // 6
             PosVertex {
-                position: Vector3::new(ultra_right, top, 0.0),
+                position: vec3(ultra_right, top, 0.0),
             },
             // 7
             PosVertex {
-                position: Vector3::new(ultra_right, bottom, 0.0),
+                position: vec3(ultra_right, bottom, 0.0),
             },
             // 8
             PosVertex {
-                position: Vector3::new(left, ultra_top, 0.0),
+                position: vec3(left, ultra_top, 0.0),
             },
             // 9
             PosVertex {
-                position: Vector3::new(right, ultra_top, 0.0),
+                position: vec3(right, ultra_top, 0.0),
             },
             // 10
             PosVertex {
-                position: Vector3::new(left, ultra_bottom, 0.0),
+                position: vec3(left, ultra_bottom, 0.0),
             },
             // 11
             PosVertex {
-                position: Vector3::new(right, ultra_bottom, 0.0),
+                position: vec3(right, ultra_bottom, 0.0),
             },
         ];
 
@@ -113,7 +113,7 @@ impl Renderable for Pillarbox {
         &'enc self,
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Matrix4<f32>,
+        transform: Mat4,
     ) {
         render_pass.push_debug_group("Pillarbox");
         resources.pipelines.fill_screen.draw(
@@ -125,7 +125,7 @@ impl Renderable for Pillarbox {
                 instances: 0..1,
             },
             transform,
-            Vector4::new(0.0, 0.0, 0.0, 1.0),
+            vec4(0.0, 0.0, 0.0, 1.0),
         );
         render_pass.pop_debug_group();
     }

@@ -1,8 +1,8 @@
 use crate::input::action::UserInput;
 use crate::input::inputs::{KeyCode, MouseButton};
 use crate::render::overlay::OverlayVisitable;
-use cgmath::Vector2;
 use enum_map::{enum_map, EnumMap};
+use glam::{vec2, Vec2};
 use itertools::Itertools;
 use petitset::PetitSet;
 use std::fmt::Display;
@@ -14,7 +14,7 @@ pub struct RawInputState {
     pub keyboard: PetitSet<KeyCode, 16>,
     /// Mouse buttons state, simple state of each button
     pub mouse_buttons: EnumMap<MouseButton, bool>,
-    pub mouse_position: Vector2<f32>,
+    pub mouse_position: Vec2,
     pub mouse_scroll_amount: f32,
     // TODO: dummy gamepad state for now
     gamepad: (),
@@ -27,7 +27,7 @@ impl RawInputState {
         Self {
             keyboard: PetitSet::new(),
             mouse_buttons: enum_map! { _ => false },
-            mouse_position: Vector2::new(0.0, 0.0),
+            mouse_position: vec2(0.0, 0.0),
             mouse_scroll_amount: 0.0,
             gamepad: (),
         }
@@ -60,7 +60,7 @@ impl RawInputState {
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                self.mouse_position = Vector2::new(position.x as f32, position.y as f32);
+                self.mouse_position = vec2(position.x as f32, position.y as f32);
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 // press virtual mouse buttons

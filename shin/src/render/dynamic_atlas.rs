@@ -1,8 +1,7 @@
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::render::{GpuCommonResources, TextureBindGroup};
 use bevy_utils::{Entry, HashMap};
-use cgmath::Vector2;
-use egui::Vec2;
+use glam::{vec2, Vec2};
 use std::num::NonZeroU32;
 use std::ops::Deref;
 use std::sync::{Mutex, RwLock};
@@ -28,16 +27,16 @@ impl AtlasAllocation {
         let size = self.allocation.rectangle.size();
 
         AtlasImage {
-            position: Vector2::new(pos.x as f32, pos.y as f32),
-            size: Vector2::new(size.width as f32, size.height as f32),
+            position: vec2(pos.x as f32, pos.y as f32),
+            size: vec2(size.width as f32, size.height as f32),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AtlasImage {
-    pub position: Vector2<f32>,
-    pub size: Vector2<f32>,
+    pub position: Vec2,
+    pub size: Vec2,
 }
 
 /// Dynamic texture atlas, (for now) used for text rendering.
@@ -451,7 +450,7 @@ impl<P: ImageProvider> OverlayVisitable for DynamicAtlas<P> {
                         let svg =
                             usvg::Tree::from_data(&svg_bytes, &usvg::Options::default()).unwrap();
 
-                        let svg_size = Vec2::new(svg.size.width() as f32, svg.size.height() as f32);
+                        let svg_size = vec2(svg.size.width() as f32, svg.size.height() as f32);
                         let min_scale = 1.0 / 12.0;
                         let min_size = svg_size * min_scale;
 

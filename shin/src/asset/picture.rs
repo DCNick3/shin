@@ -2,7 +2,7 @@ use crate::asset::gpu_image::{GpuImage, LazyGpuImage};
 use crate::asset::Asset;
 use crate::render::GpuCommonResources;
 use anyhow::Result;
-use cgmath::Vector2;
+use glam::{vec2, Vec2};
 use shin_core::format::picture::SimpleMergedPicture;
 
 /// A Picture, uploaded to GPU on demand (because doing it in the asset loading context is awkward)
@@ -22,7 +22,7 @@ impl Asset for Picture {
         let picture_id = picture.picture_id;
         let picture = LazyGpuImage::new(
             picture.image,
-            Vector2::new(picture.origin_x as f32, picture.origin_y as f32),
+            vec2(picture.origin_x as f32, picture.origin_y as f32),
             Some(&format!("Picture {:08x}", picture_id)),
         );
 

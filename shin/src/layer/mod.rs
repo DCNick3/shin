@@ -7,11 +7,11 @@ mod root_layer_group;
 mod tile_layer;
 mod wobbler;
 
-use cgmath::{Matrix4, SquareMatrix, Vector3};
 use derivative::Derivative;
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
 use enum_map::{enum_map, EnumMap};
+use glam::{vec3, Mat4};
 use std::f32::consts::PI;
 use tracing::{debug, warn};
 
@@ -81,7 +81,7 @@ impl LayerProperties {
         }
     }
 
-    pub fn compute_transform(&self, base_transform: Matrix4<f32>) -> Matrix4<f32> {
+    pub fn compute_transform(&self, base_transform: Mat4) -> Mat4 {
         macro_rules! get {
             (Zero) => {
                 0.0
@@ -90,7 +90,7 @@ impl LayerProperties {
                 self.get_property_value(LayerProperty::$property)
             };
             ($x_property:ident, $y_property:ident, $z_property:ident) => {
-                Vector3::new(get!($x_property), get!($y_property), get!($z_property))
+                vec3(get!($x_property), get!($y_property), get!($z_property))
             };
         }
 
@@ -104,8 +104,8 @@ impl LayerProperties {
 
         let transforms = [
             // apply scale
-            Matrix4::from_translation(-get!(ScaleOriginX, ScaleOriginY, Zero)),
-            Matrix4::from_nonuniform_scale(
+            Mat4::from_translation(-get!(ScaleOriginX, ScaleOriginY, Zero)),
+            Mat4::from_scale(vec3(
                 get!(ScaleX) / 1000.0 * get!(ScaleX2) / 1000.0
                     * wobble!(wobbler_scale_x, WobbleScaleXAmplitude, WobbleScaleXBias)
                     / 1000.0,
@@ -113,11 +113,11 @@ impl LayerProperties {
                     * wobble!(wobbler_scale_y, WobbleScaleYAmplitude, WobbleScaleYBias)
                     / 1000.0,
                 1.0,
-            ),
-            Matrix4::from_translation(get!(ScaleOriginX, ScaleOriginY, Zero)),
+            )),
+            Mat4::from_translation(get!(ScaleOriginX, ScaleOriginY, Zero)),
             // apply rotation
-            Matrix4::from_translation(-get!(RotationOriginX, RotationOriginY, Zero)),
-            Matrix4::from_angle_z(cgmath::Rad({
+            Mat4::from_translation(-get!(RotationOriginX, RotationOriginY, Zero)),
+            Mat4::from_rotation_z({
                 let rotations = get!(Rotation)
                     + get!(Rotation2)
                     + wobble!(
@@ -127,12 +127,12 @@ impl LayerProperties {
                     );
 
                 rotations / 1000.0 * 2.0 * PI
-            })),
-            Matrix4::from_translation(get!(RotationOriginX, RotationOriginY, Zero)),
+            }),
+            Mat4::from_translation(get!(RotationOriginX, RotationOriginY, Zero)),
             // apply translation
-            Matrix4::from_translation(get!(TranslateX, TranslateY, Zero)),
-            Matrix4::from_translation(get!(TranslateX2, TranslateY2, Zero)),
-            Matrix4::from_translation(Vector3::new(
+            Mat4::from_translation(get!(TranslateX, TranslateY, Zero)),
+            Mat4::from_translation(get!(TranslateX2, TranslateY2, Zero)),
+            Mat4::from_translation(vec3(
                 wobble!(wobbler_x, WobbleXAmplitude, WobbleXBias),
                 wobble!(wobbler_y, WobbleYAmplitude, WobbleYBias),
                 0.0,
@@ -142,7 +142,7 @@ impl LayerProperties {
 
         transforms
             .into_iter()
-            .fold(Matrix4::identity(), |acc, t| t * acc)
+            .fold(Mat4::IDENTITY, |acc, t| t * acc)
     }
 }
 

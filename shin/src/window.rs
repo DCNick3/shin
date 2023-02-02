@@ -13,6 +13,7 @@ use winit::{
 
 use crate::asset::LayeredAssetIo;
 use crate::audio::AudioManager;
+use crate::time::Time;
 use crate::{
     adv::assets::AdvAssets,
     adv::Adv,
@@ -38,7 +39,7 @@ struct State {
     resources: Arc<GpuCommonResources>,
     camera: Camera,
     // TODO: do we want to pull the bevy deps?
-    time: bevy_time::Time,
+    time: Time,
     screen_vertices: SpriteVertexBuffer,
     render_target: RenderTarget,
     pillarbox: Pillarbox,
@@ -167,7 +168,7 @@ impl State {
             window_size,
             resources,
             camera,
-            time: bevy_time::Time::default(),
+            time: Time::default(),
             screen_vertices,
             render_target,
             pillarbox,

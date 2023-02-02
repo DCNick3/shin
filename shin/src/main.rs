@@ -8,6 +8,7 @@ mod fps_counter;
 mod input;
 mod layer;
 mod render;
+mod time;
 mod update;
 mod window;
 

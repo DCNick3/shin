@@ -2,7 +2,7 @@ use crate::layer::{Layer, LayerProperties};
 use crate::render::GpuCommonResources;
 use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
-use cgmath::Matrix4;
+use glam::Mat4;
 use std::fmt::Debug;
 
 pub struct NullLayer {
@@ -22,7 +22,7 @@ impl Renderable for NullLayer {
         &'enc self,
         _resources: &'enc GpuCommonResources,
         _render_pass: &mut wgpu::RenderPass<'enc>,
-        _transform: Matrix4<f32>,
+        _transform: Mat4,
     ) {
     }
 
