@@ -2,6 +2,10 @@
 name = "shin"
 version = "0.1.0"
 edition = "2021"
+description = "A visual novel engine used by some entergram games"
+repository = "https://github.com/DCNick3/shin"
+license = "MPL-2.0"
+authors = ["DCNick3"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
@@ -70,3 +74,8 @@ ringbuf = "0.3.1"
 
 [features]
 default = []
+
+[package.metadata.release]
+# this crate is not ready for publishing yet
+# (it has git dependencies)
+publish = false

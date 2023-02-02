@@ -2,6 +2,10 @@
 name = "shin-derive"
 version = "0.1.0"
 edition = "2021"
+description = "Shin derive macros"
+repository = "https://github.com/DCNick3/shin"
+license = "MPL-2.0"
+authors = ["DCNick3"]
 
 [lib]
 proc-macro = true

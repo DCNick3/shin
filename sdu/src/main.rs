@@ -13,6 +13,8 @@ use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
 #[derive(clap::Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+/// A tool for working with file formats of shin engine games
 struct Args {
     #[clap(subcommand)]
     action: SduAction,
