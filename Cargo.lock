@@ -2619,7 +2619,7 @@ dependencies = [
 
 [[package]]
 name = "sdu"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2725,7 +2725,7 @@ dependencies = [
 
 [[package]]
 name = "shin"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "arrayvec 0.7.2",
@@ -2777,7 +2777,7 @@ dependencies = [
 
 [[package]]
 name = "shin-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2806,7 +2806,7 @@ dependencies = [
 
 [[package]]
 name = "shin-derive"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "darling",
  "itertools",
