@@ -31,3 +31,4 @@ split-debuginfo = "packed"
 [workspace.metadata.release]
 shared-version = true
 publish = false # can't publish yet because of enum-map git dep
+tag-prefix = ""
