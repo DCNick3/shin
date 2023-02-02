@@ -35,7 +35,7 @@ on:
 
 env:
   ALL_CARGO_DIST_TARGET_ARGS: --target=x86_64-unknown-linux-gnu --target=x86_64-apple-darwin --target=x86_64-pc-windows-msvc 
-  ALL_CARGO_DIST_INSTALLER_ARGS: --installer=github-shell 
+  ALL_CARGO_DIST_INSTALLER_ARGS: --installer=github-shell --verbose=off # verbose=off is a workaround for https://github.com/axodotdev/cargo-dist/issues/90
 
 jobs:
   # Create the Github Release™️ so the packages have something to be uploaded to
