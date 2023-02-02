@@ -1,0 +1,57 @@
+# CI that:
+#
+# * builds rust docs
+# * adds a dummy index.html file
+# * publishes the docs to gitHub pages using actions/deploy-pages@v1 action
+
+name: Rustdoc CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: rui314/setup-mold@v1 # we use mold on Linux and rustdoc wants to have a linker for some reason
+        if: runner.os == 'Linux'
+        with:
+          make-default: false
+      - name: Install packages (Linux)
+        run: sudo apt-get update && sudo apt-get install libasound2-dev
+      - name: cargo doc --no-deps
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --no-deps
+      - name: Create dummy index.html
+        run: |
+          echo "<meta http-equiv=refresh content=0;url=shin/index.html>" > target/doc/index.html
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: target/doc
+    deploy:
+        needs: build
+
+        permissions:
+          contents: read
+          pages: write
+          id-token: write
+
+        environment:
+          name: github-pages
+          url: ${{ steps.deployment.outputs.page_url }}
+
+        runs-on: ubuntu-latest
+        steps:
+          - name: Deploy to GitHub Pages
+            id: deployment
+            uses: actions/deploy-pages@v1

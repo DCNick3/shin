@@ -29,9 +29,21 @@ The intent is to follow the engine as closely as possible, so that it can be use
 
 ## Try it
 
-To try it out you need to have [Rust](https://www.rust-lang.org/) installed.
+*download the latest release*
 
-You would also need to have the game files. Extract the romfs from the game dump, which would give you a `data.rom` file. It's sha256sum should be `6d90eb0bacacf769a7e4634407622b047acd711c47debb28136d7bab3fd0e591`.
+To try it out you would need to have romfs of Umineko no Naku Koro ni Saku \~Nekobako to Musou no Koukyoukyoku\~ game (title id `01006A300BA2C000`).
+
+It can be dumped from the switch using [nxdumptool](https://github.com/DarkMatterCore/nxdumptool).
+
+You can use [hactoonet](https://github.com/Thealexbarney/LibHac) to dump the romfs from the game:
+
+```bash
+hactoolnet -t pfs0 "Umineko no Naku Koro ni Saku ~Nekobako to Musou no Koukyoukyoku~ [01006A300BA2C000][v0][BASE].nsp" --romfs=assets
+```
+
+In the `assets` directory you should find a `data.rom` file. It's sha256sum should be `6d90eb0bacacf769a7e4634407622b047acd711c47debb28136d7bab3fd0e591`.
+
+You can put then put the `assets` directory next to the executable or another location (see [comments here](shin/src/asset/locate.rs) for details)
 
 You should put this file into the `shin/assets` directory
 
