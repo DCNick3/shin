@@ -1,7 +1,8 @@
 use std::sync::{Arc, RwLock};
-use tracing::{debug, info, trace, warn};
 
+use anyhow::{Context, Result};
 use shin_core::format::scenario::instructions::CodeAddress;
+use tracing::{debug, info, trace, warn};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::window::Fullscreen;
 use winit::{
@@ -50,7 +51,7 @@ struct State {
 }
 
 impl State {
-    async fn new(window: &Window, cli: &Cli) -> Self {
+    async fn new(window: &Window, cli: &Cli) -> Result<Self> {
         let window_size = window.inner_size();
         let window_size = (window_size.width, window_size.height);
 
@@ -67,7 +68,7 @@ impl State {
             Some(&surface),
         )
         .await
-        .unwrap();
+        .context("Failed to find appropriate wgpu adapter")?;
 
         info!("Selected an adapter {:?}", adapter.get_info(),);
         debug!("Adapter limits: {:?}", adapter.limits());
@@ -91,7 +92,7 @@ impl State {
                 None,
             )
             .await
-            .unwrap();
+            .context("Failed to create wgpu device")?;
 
         // TODO: make a better selection?
         // TODO: rn we don't really support switching this
@@ -135,7 +136,7 @@ impl State {
 
         let audio_manager = Arc::new(AudioManager::new());
 
-        let asset_io = locate_assets(cli.assets_dir.as_deref()).expect("Failed to locate assets. Consult the README for instructions on how to set up the game.");
+        let asset_io = locate_assets(cli.assets_dir.as_deref()).context("Failed to locate assets. Consult the README for instructions on how to set up the game.")?;
 
         debug!("Asset IO: {:#?}", asset_io);
 
@@ -146,9 +147,12 @@ impl State {
 
         let mut adv = Adv::new(&resources, audio_manager, adv_assets, 0, 42);
 
-        adv.fast_forward_to(CodeAddress(0x000bac1c));
+        if let Some(addr) = cli.fast_forward_to {
+            debug!("Fast forwarding to {}", addr);
+            adv.fast_forward_to(CodeAddress(addr));
+        }
 
-        Self {
+        Ok(Self {
             surface,
             surface_config: config,
             window_size,
@@ -163,7 +167,7 @@ impl State {
             overlay_manager: overlay,
             fps_counter: FpsCounter::new(),
             adv,
-        }
+        })
     }
 
     fn reconfigure_surface(&mut self) {
@@ -416,7 +420,9 @@ pub async fn run(cli: Cli) {
     }
 
     // State::new uses async code, so we're going to wait for it to finish
-    let mut state = State::new(&window, &cli).await;
+    let mut state = State::new(&window, &cli)
+        .await
+        .expect("Failed to initialize the game"); // TODO: report error in a better way
 
     event_loop.run(move |event, _, control_flow| {
         match event {
