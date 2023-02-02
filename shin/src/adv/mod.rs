@@ -3,10 +3,9 @@ mod command;
 mod vm_state;
 
 pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
-pub use vm_state::{LayerSelection, VmState};
+pub use vm_state::VmState;
 
 use crate::adv::assets::AdvAssets;
-use crate::adv::vm_state::ITER_VLAYER_SMALL_VECTOR_SIZE;
 use crate::audio::{AudioManager, BgmPlayer, SePlayer};
 use crate::input::actions::AdvMessageAction;
 use crate::input::ActionState;
@@ -26,6 +25,8 @@ use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::sync::Arc;
 use tracing::{debug, warn};
+pub use vm_state::layers::LayerSelection;
+use vm_state::layers::ITER_VLAYER_SMALL_VECTOR_SIZE;
 
 pub struct Adv {
     scenario: Arc<Scenario>,

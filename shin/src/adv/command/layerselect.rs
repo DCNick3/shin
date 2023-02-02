@@ -1,5 +1,5 @@
 use super::prelude::*;
-use crate::adv::vm_state::LayerSelection;
+use crate::adv::vm_state::layers::LayerSelection;
 
 impl StartableCommand for command::runtime::LAYERSELECT {
     fn apply_state(&self, state: &mut VmState) {
