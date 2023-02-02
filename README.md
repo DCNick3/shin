@@ -71,7 +71,7 @@ Aside from the game engine, this repo also includes `shin-core` - a library for 
 
 There is also `sdu` - a CLI interface for the `shin-core` library. It can be used to extract game data, and to convert it to other more conventional formats.
 
-You can install it with `cargo install --path sdu`.
+You can download it from the [releases](https://github.com/dcnick3/shin/releases) page.
 
 For now, we have support for extracting the following data:
 - `.rom` - Game data archive
