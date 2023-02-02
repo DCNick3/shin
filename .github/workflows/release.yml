@@ -34,8 +34,10 @@ on:
       - v[0-9]+.*
 
 env:
-  ALL_CARGO_DIST_TARGET_ARGS: --target=x86_64-unknown-linux-gnu --target=x86_64-apple-darwin --target=x86_64-pc-windows-msvc 
-  ALL_CARGO_DIST_INSTALLER_ARGS: --installer=github-shell --verbose=off # verbose=off is a workaround for https://github.com/axodotdev/cargo-dist/issues/90
+  ALL_CARGO_DIST_TARGET_ARGS: --target=x86_64-unknown-linux-gnu --target=x86_64-apple-darwin --target=x86_64-pc-windows-msvc
+  # verbose=off is a workaround for https://github.com/axodotdev/cargo-dist/issues/90
+  # no installers for now: https://github.com/axodotdev/cargo-dist/issues/91
+  ALL_CARGO_DIST_INSTALLER_ARGS: # --installer=github-shell --verbose=off
 
 jobs:
   # Create the Github Release™️ so the packages have something to be uploaded to
@@ -78,14 +80,23 @@ jobs:
         run: rustup update stable && rustup default stable
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
+      - name: Install packages (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install libasound2-dev
+      - uses: rui314/setup-mold@v1
+        if: runner.os == 'Linux'
+        with:
+          make-default: false
       - name: Run cargo-dist
+        env:
+          OPUS_STATIC: 1 # statically link libopus (mostly for linux)
         # This logic is a bit janky because it's trying to be a polyglot between
         # powershell and bash since this will run on windows, macos, and linux!
         # The two platforms don't agree on how to talk about env vars but they
         # do agree on 'cat' and '$()' so we use that to marshal values between commmands.
         run: |
           # Actually do builds and make zips and whatnot
-          cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
+          cargo dist --target=${{ matrix.target }} --output-format=json --verbose=off > dist-manifest.json # verbose=off is a workaround for https://github.com/axodotdev/cargo-dist/issues/90
           echo "dist ran successfully"
           cat dist-manifest.json
           # Parse out what we just built and upload it to the Github Release™️
@@ -121,20 +132,21 @@ jobs:
           cat dist-manifest.json | jq --raw-output ".releases[].changelog_body" > new_dist_changelog.md
           gh release edit ${{ needs.create-release.outputs.tag }} --title="$CHANGELOG_TITLE" --notes-file=new_dist_changelog.md
           echo "updated release notes!"
-      - name: Run cargo-dist --installer=...
-        run: |
-          # Run cargo dist with --no-builds to get agnostic artifacts like installers
-          cargo dist --output-format=json --no-builds $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
-          echo "dist ran successfully"
-          cat dist-manifest.json
-          # Grab the installers that were generated and upload them.
-          # This filter is working around the fact that --no-builds is kinds hacky
-          # and still makes/reports malformed zips that we don't want to upload.
-          cat dist-manifest.json | jq --raw-output '.releases[].artifacts[] | select(.kind == "installer") | .path' > uploads.txt
-          echo "uploading..."
-          cat uploads.txt
-          gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
-          echo "uploaded installers!"
+# Installers do not really work for our use-case right now: https://github.com/axodotdev/cargo-dist/issues/91
+#      - name: Run cargo-dist --installer=...
+#        run: |
+#          # Run cargo dist with --no-builds to get agnostic artifacts like installers
+#          cargo dist --output-format=json --no-builds $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
+#          echo "dist ran successfully"
+#          cat dist-manifest.json
+#          # Grab the installers that were generated and upload them.
+#          # This filter is working around the fact that --no-builds is kinds hacky
+#          # and still makes/reports malformed zips that we don't want to upload.
+#          cat dist-manifest.json | jq --raw-output '.releases[].artifacts[] | select(.kind == "installer") | .path' > uploads.txt
+#          echo "uploading..."
+#          cat uploads.txt
+#          gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
+#          echo "uploaded installers!"
 
   # Mark the Github Release™️ as a non-draft now that everything has succeeded!
   publish-release:
