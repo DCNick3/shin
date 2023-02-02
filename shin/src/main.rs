@@ -1,9 +1,12 @@
 extern crate self as shin;
 
+use clap::Parser;
+
 mod asset;
 // mod camera;
 mod adv;
 mod audio;
+mod cli;
 mod fps_counter;
 mod input;
 mod layer;
@@ -13,6 +16,7 @@ mod update;
 mod window;
 
 fn main() {
-    // old_main()
-    pollster::block_on(window::run());
+    let cli = cli::Cli::parse();
+
+    pollster::block_on(window::run(cli));
 }

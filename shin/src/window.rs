@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use tracing::{debug, info, trace, warn};
 
@@ -11,8 +10,9 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-use crate::asset::LayeredAssetIo;
+use crate::asset::locate_assets;
 use crate::audio::AudioManager;
+use crate::cli::Cli;
 use crate::time::Time;
 use crate::{
     adv::assets::AdvAssets,
@@ -38,7 +38,6 @@ struct State {
     window_size: (u32, u32),
     resources: Arc<GpuCommonResources>,
     camera: Camera,
-    // TODO: do we want to pull the bevy deps?
     time: Time,
     screen_vertices: SpriteVertexBuffer,
     render_target: RenderTarget,
@@ -51,7 +50,7 @@ struct State {
 }
 
 impl State {
-    async fn new(window: &Window) -> Self {
+    async fn new(window: &Window, cli: &Cli) -> Self {
         let window_size = window.inner_size();
         let window_size = (window_size.width, window_size.height);
 
@@ -136,20 +135,7 @@ impl State {
 
         let audio_manager = Arc::new(AudioManager::new());
 
-        let assets_directory = PathBuf::from("assets");
-
-        let mut asset_io = LayeredAssetIo::new();
-
-        if let Err(e) = asset_io.try_with_dir(assets_directory.join("data")) {
-            warn!("Failed to load data directory: {}", e);
-        }
-        if let Err(e) = asset_io.try_with_rom(assets_directory.join("data.rom")) {
-            warn!("Failed to load rom file: {}", e);
-        }
-
-        if asset_io.is_empty() {
-            panic!("No assets configured, have you copied your game files?");
-        }
+        let asset_io = locate_assets(cli.assets_dir.as_deref()).expect("Failed to locate assets. Consult the README for instructions on how to set up the game.");
 
         debug!("Asset IO: {:#?}", asset_io);
 
@@ -390,7 +376,7 @@ fn create_task_pools() {
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
-pub async fn run() {
+pub async fn run(cli: Cli) {
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -430,7 +416,7 @@ pub async fn run() {
     }
 
     // State::new uses async code, so we're going to wait for it to finish
-    let mut state = State::new(&window).await;
+    let mut state = State::new(&window, &cli).await;
 
     event_loop.run(move |event, _, control_flow| {
         match event {

@@ -270,7 +270,7 @@ impl LayeredAssetIo {
         if !meta.is_file() {
             bail!("{:?} is not a file, cannot use as asset ROM", rom_path);
         }
-        self.with(AnyAssetIo::new_rom(rom_path.to_path_buf()));
+        self.with(AnyAssetIo::new_rom(rom_path));
         Ok(())
     }
 }

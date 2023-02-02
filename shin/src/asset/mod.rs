@@ -2,6 +2,7 @@ pub mod audio;
 pub mod bustup;
 mod font;
 pub mod gpu_image;
+mod locate;
 pub mod picture;
 mod scenario;
 mod server;
@@ -15,6 +16,7 @@ pub mod asset_paths {
     pub const NEWRODIN_BOLD_FNT: &str = "/newrodin-bold.fnt";
 }
 
+pub use locate::locate_assets;
 pub use server::{
     AnyAssetIo, AnyAssetServer, Asset, AssetIo, AssetServer, DirAssetIo, LayeredAssetIo, RomAssetIo,
 };
