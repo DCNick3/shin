@@ -2622,6 +2622,7 @@ name = "sdu"
 version = "0.2.1"
 dependencies = [
  "anyhow",
+ "audiopus_sys",
  "bytes",
  "clap",
  "clap_complete",
@@ -2730,6 +2731,7 @@ dependencies = [
  "anyhow",
  "arrayvec 0.7.2",
  "async-trait",
+ "audiopus_sys",
  "bevy_tasks",
  "bevy_utils",
  "bitflags",

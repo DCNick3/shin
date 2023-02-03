@@ -74,6 +74,9 @@ usvg = "0.28.0"
 kira = { version = "0.7.1", default-features = false, features = ["cpal"] }
 ringbuf = "0.3.1"
 
+# make stuff statically-linked
+audiopus_sys = { version = "0.2.2", features = ["static"] }
+
 [features]
 default = []
 

@@ -10,6 +10,10 @@ authors = ["DCNick3"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 shin-core = { path = "../shin-core" }
+
+# make stuff statically-linked
+audiopus_sys = { version = "0.2.2", features = ["static"] }
+
 anyhow = "1.0.66"
 clap = { version = "4.0.15", features = ["derive"] }
 futures = "0.3.25"
