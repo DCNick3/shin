@@ -40,5 +40,6 @@ bitvec = "1.0.1"
 opus = "0.3.0"
 
 [dev-dependencies]
+hex = "0.4.3"
 insta = "1.26.0"
 rand = "0.8.5"

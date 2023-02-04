@@ -1,0 +1,5 @@
+---
+source: shin-core/src/format/save/crypto.rs
+expression: "decode_once(&data, key)"
+---
+"4be02d45c369"

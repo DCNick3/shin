@@ -79,7 +79,10 @@ mod tests {
             let data = (0..len).map(|_| rng.gen::<u8>()).collect::<Vec<_>>();
 
             let init = rng.next_u32();
-            insta::assert_debug_snapshot!(crc32(&data, init))
+            insta::assert_debug_snapshot!(
+                format!("crc_random_{}", hex::encode(data)),
+                crc32(&data, init)
+            )
         }
     }
 }

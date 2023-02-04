@@ -1,3 +1,4 @@
+pub mod audio;
 pub mod layers;
 
 use layers::LayersState;
