@@ -62,6 +62,17 @@ pub fn decode(data: &[u8], key: u32) -> Result<Vec<u8>> {
     Ok(stage1)
 }
 
+pub fn encode(data: &[u8], key: u32) -> Vec<u8> {
+    let mut data = data.to_vec();
+    let crc = crc32(&data, 0);
+    encode_once(&mut data, crc);
+    data.extend(&crc.to_le_bytes());
+
+    encode_once(&mut data, key);
+
+    data
+}
+
 #[cfg(test)]
 mod test {
     use insta::assert_debug_snapshot;
@@ -117,6 +128,22 @@ mod test {
             let data = (0..len).map(|_| rng.gen::<u8>()).collect::<Vec<_>>();
 
             assert_encode_decode_once(&data, rng.next_u32());
+        }
+    }
+
+    #[test]
+    fn test_encode_decode_random() {
+        // generate random test cases
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x42);
+
+        for _ in 0..100 {
+            let len = rng.gen_range(1..20);
+            let data = (0..len).map(|_| rng.gen::<u8>()).collect::<Vec<_>>();
+
+            let key = rng.next_u32();
+            let encoded = super::encode(&data, key);
+            let decoded = super::decode(&encoded, key).unwrap();
+            assert_eq!(decoded, data);
         }
     }
 }

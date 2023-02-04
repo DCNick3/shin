@@ -25,4 +25,14 @@ impl Savedata {
     pub fn deobfuscate_with_key(data: &[u8], key: u32) -> Result<Vec<u8>> {
         obfuscation::decode(data, key)
     }
+
+    /// Same as [Savedata::obfuscate_with_key], but with fixed game key.
+    pub fn obfuscate(data: &[u8]) -> Vec<u8> {
+        Self::obfuscate_with_key(data, *GAME_KEY)
+    }
+
+    /// Encrypts the game data, returning the raw encrypted bytes.
+    pub fn obfuscate_with_key(data: &[u8], key: u32) -> Vec<u8> {
+        obfuscation::encode(data, key)
+    }
 }

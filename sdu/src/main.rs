@@ -191,6 +191,20 @@ enum SavedataCommand {
         #[clap(long)]
         key_seed: Option<String>,
     },
+    /// Obfuscate the save file
+    Obfuscate {
+        /// Path to the save file
+        save_path: PathBuf,
+        /// Path to the output encrypted file
+        output_path: PathBuf,
+        /// Key to use for obfuscation (defaults to a game-specific key)
+        #[clap(long)]
+        key: Option<u32>,
+        /// Key seed to use for obfuscation (defaults to a game-specific key)
+        /// It is run through a hash function to produce the actual key
+        #[clap(long)]
+        key_seed: Option<String>,
+    },
 }
 
 fn generate_command(command: GenerateCommand) -> Result<()> {
@@ -718,6 +732,25 @@ fn savedata_command(command: SavedataCommand) -> Result<()> {
                 None => Savedata::deobfuscate(&savedata),
                 Some(key) => Savedata::deobfuscate_with_key(&savedata, key),
             }?;
+
+            std::fs::write(output_path, savedata)?;
+
+            Ok(())
+        }
+        SavedataCommand::Obfuscate {
+            save_path,
+            output_path,
+            key,
+            key_seed,
+        } => {
+            let savedata = std::fs::read(save_path)?;
+
+            let key = key.or_else(|| key_seed.as_deref().map(Savedata::obfuscation_key_from_seed));
+
+            let savedata = match key {
+                None => Savedata::obfuscate(&savedata),
+                Some(key) => Savedata::obfuscate_with_key(&savedata, key),
+            };
 
             std::fs::write(output_path, savedata)?;
 
