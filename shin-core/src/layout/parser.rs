@@ -151,6 +151,7 @@ impl Iterator for LayouterParser<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use glam::vec3;
 
     fn parse(message: &str) -> Vec<ParsedCommand> {
         LayouterParser::new(message).collect()

@@ -1,0 +1,5 @@
+---
+source: shin-core/src/format/save/crc32.rs
+expression: "crc32(&data, init)"
+---
+892386315

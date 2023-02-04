@@ -8,5 +8,6 @@ pub mod audio;
 pub mod bustup;
 pub mod font;
 pub mod picture;
+pub mod save;
 pub mod scenario;
 pub mod texture_archive;
