@@ -205,6 +205,13 @@ enum SavedataCommand {
         #[clap(long)]
         key_seed: Option<String>,
     },
+    /// Decode the save file into a human-readable format
+    Decode {
+        /// Path to the save file
+        save_path: PathBuf,
+        /// Path to the output yaml file
+        output_path: PathBuf,
+    },
 }
 
 fn generate_command(command: GenerateCommand) -> Result<()> {
@@ -753,6 +760,23 @@ fn savedata_command(command: SavedataCommand) -> Result<()> {
             };
 
             std::fs::write(output_path, savedata)?;
+
+            Ok(())
+        }
+
+        SavedataCommand::Decode {
+            save_path,
+            output_path,
+        } => {
+            let savedata = std::fs::read(save_path)?;
+            let savedata = Savedata::decode(&savedata)?;
+
+            ron::ser::to_writer_pretty(
+                File::create(output_path).context("Creating output file")?,
+                &savedata,
+                ron::ser::PrettyConfig::default().compact_arrays(true),
+            )
+            .context("Writing human-readable savedata")?;
 
             Ok(())
         }
