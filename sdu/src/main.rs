@@ -42,9 +42,12 @@ enum SduAction {
     /// Operations on TXA texture archive files
     #[clap(subcommand, alias("txa"))]
     TextureArchive(TextureArchiveCommand),
-    /// Opeartions on NXA audio files
+    /// Operations on NXA audio files
     #[clap(subcommand, alias("nxa"))]
     Audio(AudioCommand),
+    /// Operations on shin save files
+    #[clap(subcommand, alias("save"))]
+    Savedata(SavedataCommand),
 }
 
 #[derive(clap::Args, Debug)]
@@ -169,6 +172,24 @@ enum AudioCommand {
         audio_path: PathBuf,
         /// Path to the output WAV file
         output_path: PathBuf,
+    },
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum SavedataCommand {
+    /// Deobfuscates the save file
+    Deobfuscate {
+        /// Path to the save file
+        save_path: PathBuf,
+        /// Path to the output decrypted file
+        output_path: PathBuf,
+        /// Key to use for deobfuscation (defaults to a game-specific key)
+        #[clap(long)]
+        key: Option<u32>,
+        /// Key seed to use for deobfuscation (defaults to a game-specific key)
+        /// It is run through a hash function to produce the actual key
+        #[clap(long)]
+        key_seed: Option<String>,
     },
 }
 
@@ -679,6 +700,32 @@ fn audio_command(command: AudioCommand) -> Result<()> {
     }
 }
 
+fn savedata_command(command: SavedataCommand) -> Result<()> {
+    use shin_core::format::save::Savedata;
+
+    match command {
+        SavedataCommand::Deobfuscate {
+            save_path,
+            output_path,
+            key,
+            key_seed,
+        } => {
+            let savedata = std::fs::read(save_path)?;
+
+            let key = key.or_else(|| key_seed.as_deref().map(Savedata::obfuscation_key_from_seed));
+
+            let savedata = match key {
+                None => Savedata::deobfuscate(&savedata),
+                Some(key) => Savedata::deobfuscate_with_key(&savedata, key),
+            }?;
+
+            std::fs::write(output_path, savedata)?;
+
+            Ok(())
+        }
+    }
+}
+
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -695,5 +742,6 @@ fn main() -> Result<()> {
         SduAction::Bustup(cmd) => bustup_command(cmd),
         SduAction::TextureArchive(cmd) => texture_archive_command(cmd),
         SduAction::Audio(cmd) => audio_command(cmd),
+        SduAction::Savedata(cmd) => savedata_command(cmd),
     }
 }
