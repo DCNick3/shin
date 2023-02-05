@@ -16,7 +16,7 @@ pub struct RawInputState {
     pub mouse_buttons: EnumMap<MouseButton, bool>,
     pub mouse_position: Vec2,
     pub mouse_scroll_amount: f32,
-    // TODO: dummy gamepad state for now
+    #[allow(unused)] // TODO: implement gamepad input
     gamepad: (),
     // TODO: mouse position?
     // How do we even handle mouse position?

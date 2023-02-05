@@ -42,12 +42,12 @@ enum Command {
     SetVolume(Volume, Tween),
     SetPanning(Pan, Tween),
     Stop(Tween),
-    // TODO: how should BGMWAIT be implemented
 }
 
 struct Shared {
     wait_status: AtomicU32,
     // TODO: in what unit
+    #[allow(unused)] // TODO: use it to implement BGMSYNC (I don't know which unit it uses)
     position: AtomicU32,
     // used for lip sync
     amplitude: AtomicU32,

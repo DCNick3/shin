@@ -79,6 +79,7 @@ where
         }
     }
 
+    #[allow(unused)] // It will be used... maybe eventually
     pub fn reset(&mut self) {
         for action_data in self.action_data.values_mut() {
             action_data.reset();

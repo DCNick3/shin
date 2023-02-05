@@ -51,6 +51,7 @@ impl Resampler {
     /// `self.frames[2]`. `self.frames[0]` and `self.frames[3]`
     /// are used to provide additional information to the interpolation
     /// algorithm to get a smoother result.
+    #[allow(unused)] // TODO: use to implement BGMSYNC
     pub fn current_frame_index(&self) -> u64 {
         self.frames[1].frame_index
     }

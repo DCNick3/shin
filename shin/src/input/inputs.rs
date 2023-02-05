@@ -201,6 +201,7 @@ pub enum KeyCode {
     Cut,
 }
 
+#[allow(unused)] // It will be used... eventually
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 pub enum GamepadAxisType {
     LeftStickX,
@@ -212,6 +213,7 @@ pub enum GamepadAxisType {
     // Other(u8),
 }
 
+#[allow(unused)] // It will be used... eventually
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 pub enum GamepadButtonType {
     South,

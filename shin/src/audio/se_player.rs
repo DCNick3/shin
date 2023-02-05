@@ -10,7 +10,6 @@ pub const SE_SLOT_COUNT: usize = 32;
 
 pub struct SePlayer {
     audio_manager: Arc<AudioManager>,
-    all_se_track: TrackHandle,
     se_tracks: [TrackHandle; SE_SLOT_COUNT],
     se_slots: [Option<AudioHandle>; SE_SLOT_COUNT],
 }
@@ -19,13 +18,9 @@ impl SePlayer {
     pub fn new(audio_manager: Arc<AudioManager>) -> Self {
         let mut manager = audio_manager.manager().lock().unwrap();
 
-        let all_se_track = manager
-            .add_sub_track(TrackBuilder::new().routes(TrackRoutes::parent(TrackId::Main)))
-            .expect("Failed to create all_se track");
-
         let se_tracks = [(); SE_SLOT_COUNT].map(|_| {
             manager
-                .add_sub_track(TrackBuilder::new().routes(TrackRoutes::parent(all_se_track.id())))
+                .add_sub_track(TrackBuilder::new().routes(TrackRoutes::parent(TrackId::Main)))
                 .expect("Failed to create se track")
         });
 
@@ -33,7 +28,6 @@ impl SePlayer {
 
         Self {
             audio_manager,
-            all_se_track,
             se_tracks,
             se_slots: [(); SE_SLOT_COUNT].map(|_| None),
         }

@@ -248,6 +248,7 @@ pub enum CommandStartResult {
     Continue(CommandResult),
     /// Yield to the game loop, run the command to completion, execution continued with the result
     Yield(ExecutingCommand),
+    #[allow(unused)] // TODO: it will be used for implementing the "EXIT" command
     Exit,
 }
 
