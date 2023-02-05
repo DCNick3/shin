@@ -31,20 +31,17 @@ impl<T: Asset> DerefMut for AssetMap<T> {
         &mut self.0
     }
 }
-impl<T: Asset> typemap::Key for AssetMap<T> {
-    type Value = AssetMap<T>;
-}
 
 pub struct AssetServer<Io: AssetIo> {
     io: Io,
-    loaded_assets: RwLock<typemap::ShareMap>,
+    loaded_assets: RwLock<anymap::Map<dyn core::any::Any + Send + Sync>>,
 }
 
 impl<Io: AssetIo> AssetServer<Io> {
     pub fn new(io: Io) -> Self {
         Self {
             io,
-            loaded_assets: RwLock::new(typemap::ShareMap::custom()),
+            loaded_assets: RwLock::new(anymap::Map::new()),
         }
     }
 
