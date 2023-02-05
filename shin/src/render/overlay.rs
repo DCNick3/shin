@@ -45,6 +45,7 @@ impl OverlayManager {
                 widgets: egui::style::Widgets {
                     noninteractive: WidgetVisuals {
                         bg_fill: from_gray(248),
+                        weak_bg_fill: from_gray(248),
                         bg_stroke: Stroke::new(1.0, from_gray(190)), // separators, indentation lines
                         fg_stroke: Stroke::new(1.0, Color32::from_gray(180)), // normal text color
                         rounding: Rounding::same(2.0),
@@ -52,6 +53,7 @@ impl OverlayManager {
                     },
                     inactive: WidgetVisuals {
                         bg_fill: from_gray(230), // button background
+                        weak_bg_fill: from_gray(230),
                         bg_stroke: Default::default(),
                         fg_stroke: Stroke::new(1.0, Color32::from_gray(180)), // button text
                         rounding: Rounding::same(2.0),
@@ -59,6 +61,7 @@ impl OverlayManager {
                     },
                     hovered: WidgetVisuals {
                         bg_fill: from_gray(220),
+                        weak_bg_fill: from_gray(220),
                         bg_stroke: Stroke::new(1.0, from_gray(105)), // e.g. hover over window edge or button
                         fg_stroke: Stroke::new(1.5, Color32::BLACK),
                         rounding: Rounding::same(3.0),
@@ -66,6 +69,7 @@ impl OverlayManager {
                     },
                     active: WidgetVisuals {
                         bg_fill: from_gray(165),
+                        weak_bg_fill: from_gray(165),
                         bg_stroke: Stroke::new(1.0, from_gray(255)),
                         fg_stroke: Stroke::new(2.0, Color32::BLACK),
                         rounding: Rounding::same(2.0),
@@ -73,6 +77,7 @@ impl OverlayManager {
                     },
                     open: WidgetVisuals {
                         bg_fill: from_gray(220),
+                        weak_bg_fill: from_gray(220),
                         bg_stroke: Stroke::new(1.0, from_gray(160)),
                         fg_stroke: Stroke::new(1.0, Color32::BLACK),
                         rounding: Rounding::same(2.0),
@@ -102,7 +107,7 @@ impl OverlayManager {
         let ctx = &self.context;
 
         let pixels_per_point = ctx.pixels_per_point();
-        let size = ctx.input().screen_rect().size();
+        let size = ctx.input(|i| i.screen_rect.size());
         let size = vec2(size.x, size.y); // convert from egui Vec2 to glam Vec2
         assert_ne!(
             size,

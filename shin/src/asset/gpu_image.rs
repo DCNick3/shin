@@ -138,6 +138,7 @@ impl GpuTexture {
             dimension: wgpu::TextureDimension::D2,
             format: render::TEXTURE_FORMAT,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
         });
 
         resources.queue.write_texture(

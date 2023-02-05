@@ -27,7 +27,7 @@ clap-num = "1.0.2"
 dirs-next = "2.0.0"
 
 winit = "0.28.1"
-wgpu = "0.14.0"
+wgpu = "0.15.0"
 # TODO: this can be reimplemented in shin-derive (I want to have my own traits for this anyways)
 wrld = "1.0.0"
 # git version for integer overflow fix https://github.com/nical/etagere/pull/21
@@ -66,9 +66,10 @@ camino = "1.1.1"
 serde_yaml = "0.9.16"
 
 # egui used for debug overlays
-egui = { version = "0.20.1", features = [] }
-egui_extras = { version = "0.20.0", features = ["svg"] }
-egui-wgpu = { version = "0.20.0", features = [] }
+# git version for wgpu 0.15 support
+egui = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = [] }
+egui_extras = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = ["svg"] }
+egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = [] }
 usvg = "0.28.0"
 
 # kira for audio output

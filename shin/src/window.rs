@@ -57,12 +57,15 @@ impl State {
 
         // The instance is a handle to our GPU
         // BackendBit::PRIMARY => Vulkan + Metal + DX12 + Browser WebGPU
-        let backend_bits = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all());
-        let instance = wgpu::Instance::new(backend_bits);
-        let surface = unsafe { instance.create_surface(window) };
+        let backends = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all());
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends,
+            ..Default::default()
+        });
+        let surface = unsafe { instance.create_surface(window) }.context("Creating surface")?;
         let adapter = wgpu::util::initialize_adapter_from_env_or_default(
             &instance,
-            backend_bits,
+            backends,
             // NOTE: this select the low-power GPU by default
             // it's fine, but if we want to use the high-perf one in the future we will have to ditch this function
             Some(&surface),
@@ -98,7 +101,7 @@ impl State {
         // TODO: rn we don't really support switching this
         // it may be worth to add one more pass to convert from internal (Rgba8) to the preferred output format
         // or support having everything in the preferred format? (sounds hard)
-        let surface_texture_format = surface.get_supported_formats(&adapter)[0];
+        let surface_texture_format = surface.get_capabilities(&adapter).formats[0];
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -107,6 +110,7 @@ impl State {
             height: window_size.1,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            view_formats: vec![],
         };
         surface.configure(&device, &config);
 
