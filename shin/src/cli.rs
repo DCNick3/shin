@@ -1,4 +1,5 @@
 use clap::Parser;
+use clap_num::maybe_hex;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -12,6 +13,6 @@ pub struct Cli {
     #[clap(short, long)]
     pub assets_dir: Option<PathBuf>,
     /// Automatically fast-forward the scenario to the specified address (useful for debugging)
-    #[clap(long)]
+    #[clap(long, value_parser=maybe_hex::<u32>)]
     pub fast_forward_to: Option<u32>,
 }
