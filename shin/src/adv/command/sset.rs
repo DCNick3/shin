@@ -2,7 +2,7 @@ use super::prelude::*;
 
 impl StartableCommand for command::runtime::SSET {
     fn apply_state(&self, state: &mut VmState) {
-        state.globals.set(self.slot_number, self.value);
+        state.persist.set(self.slot_number, self.value);
     }
 
     fn start(

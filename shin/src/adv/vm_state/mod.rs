@@ -1,9 +1,9 @@
 pub mod audio;
 pub mod layers;
 
+use crate::adv::vm_state::audio::AudioState;
 use layers::LayersState;
 use shin_core::vm::command::types::MessageboxStyle;
-use crate::adv::vm_state::audio::AudioState;
 
 pub struct SaveInfo {
     pub info: [String; 4],
@@ -37,11 +37,11 @@ impl MessageState {
     }
 }
 
-pub struct Globals {
+pub struct Persist {
     globals: [i32; 0x100],
 }
 
-impl Globals {
+impl Persist {
     pub fn new() -> Self {
         Self {
             globals: [0; 0x100],
@@ -49,18 +49,12 @@ impl Globals {
     }
 
     pub fn get(&self, id: i32) -> i32 {
-        assert!(
-            (0x0..0x100).contains(&id),
-            "GlobalsInfo::get: id out of range"
-        );
+        assert!((0x0..0x100).contains(&id), "Persist::get: id out of range");
         self.globals[id as usize]
     }
 
     pub fn set(&mut self, id: i32, value: i32) {
-        assert!(
-            (0x0..0x100).contains(&id),
-            "GlobalsInfo::set: id out of range"
-        );
+        assert!((0x0..0x100).contains(&id), "Persist::set: id out of range");
         self.globals[id as usize] = value;
     }
 }
@@ -68,7 +62,7 @@ impl Globals {
 pub struct VmState {
     pub save_info: SaveInfo,
     pub messagebox_state: MessageState,
-    pub globals: Globals,
+    pub persist: Persist,
     pub layers: LayersState,
     pub audio: AudioState,
 }
@@ -80,7 +74,7 @@ impl VmState {
                 info: ["", "", "", ""].map(|v| v.to_string()),
             },
             messagebox_state: MessageState::new(),
-            globals: Globals::new(),
+            persist: Persist::new(),
             layers: LayersState::new(),
             audio: AudioState::new(),
         }

@@ -1,9 +1,7 @@
 use super::prelude::*;
 
 impl StartableCommand for command::runtime::SHOWCHARS {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: SHOWCHARS state: {:?}", self);
-    }
+    fn apply_state(&self, _state: &mut VmState) {}
 
     fn start(
         self,
