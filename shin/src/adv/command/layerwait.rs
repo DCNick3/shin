@@ -1,5 +1,5 @@
 use super::prelude::*;
-use shin_core::vm::command::layer::LayerPropertySmallList;
+use shin_core::vm::command::types::LayerPropertySmallList;
 use std::fmt::{Debug, Formatter};
 
 pub struct LAYERWAIT {

@@ -1,5 +1,6 @@
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
 use shin_core::time::Tween;
+use shin_core::vm::command::types::{Pan, Volume};
 use std::sync::Arc;
 use tracing::warn;
 
@@ -35,7 +36,7 @@ impl BgmPlayer {
         bgm: Arc<Audio>,
         _display_name: &str,
         repeat: bool,
-        volume: f32,
+        volume: Volume,
         fade_in: Tween,
     ) {
         let kira_data = bgm.to_kira_data(AudioParams {
@@ -43,7 +44,7 @@ impl BgmPlayer {
             fade_in,
             repeat,
             volume,
-            pan: 0.0,
+            pan: Pan::default(),
         });
 
         let handle = self.audio_manager.play(kira_data);
@@ -55,7 +56,7 @@ impl BgmPlayer {
         self.current_bgm = Some(handle);
     }
 
-    pub fn set_volume(&mut self, volume: f32, tween: Tween) {
+    pub fn set_volume(&mut self, volume: Volume, tween: Tween) {
         if let Some(handle) = self.current_bgm.as_mut() {
             handle.set_volume(volume, tween).unwrap();
         } else {

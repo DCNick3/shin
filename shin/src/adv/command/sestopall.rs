@@ -2,8 +2,8 @@ use super::prelude::*;
 use shin_core::time::Tween;
 
 impl StartableCommand for command::runtime::SESTOPALL {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: SESTOPALL state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        state.audio.se.iter_mut().for_each(|v| *v = None);
     }
 
     fn start(

@@ -8,6 +8,7 @@ use kira::track::TrackId;
 use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
 use shin_core::format::audio::{AudioDecoder, AudioDecoderIterator, AudioFile};
 use shin_core::time::{Ticks, Tween, Tweener};
+use shin_core::vm::command::types::{Pan, Volume};
 use std::f32::consts::SQRT_2;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
@@ -38,8 +39,8 @@ pub struct AudioData(ArcAudio, AudioParams);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Command {
-    SetVolume(f32, Tween),
-    SetPanning(f32, Tween),
+    SetVolume(Volume, Tween),
+    SetPanning(Pan, Tween),
     Stop(Tween),
     // TODO: how should BGMWAIT be implemented
 }
@@ -87,18 +88,14 @@ impl AudioHandle {
 
     /// Sets the volume of the sound.
     /// The volume is a value between 0.0 and 1.0, on the linear scale.
-    pub fn set_volume(&mut self, volume: f32, tween: Tween) -> Result<()> {
-        let volume = volume.clamp(0.0, 1.0); // TODO: warn if clamped
-
+    pub fn set_volume(&mut self, volume: Volume, tween: Tween) -> Result<()> {
         self.command_producer
             .push(Command::SetVolume(volume, tween))
             .map_err(|_| anyhow!("Command queue full"))
     }
 
-    /// Sets the panning of the sound, where `0.0` is the center and `-1.0` is the hard left and `1.0` is the hard right.
-    pub fn set_panning(&mut self, panning: f32, tween: Tween) -> Result<()> {
-        let panning = panning.clamp(-1.0, 1.0); // TODO: warn if clamped
-
+    /// Sets the panning of the sound
+    pub fn set_panning(&mut self, panning: Pan, tween: Tween) -> Result<()> {
         self.command_producer
             .push(Command::SetPanning(panning, tween))
             .map_err(|_| anyhow!("Command queue full"))
@@ -140,8 +137,8 @@ impl AudioData {
             command_consumer,
             shared: shared.clone(),
             state: PlaybackState::Playing,
-            volume: Tweener::new(self.1.volume.clamp(0.0, 1.0)), // TODO: warn if clamped
-            panning: Tweener::new(self.1.pan.clamp(-1.0, 1.0)),  // TODO: warn if clamped
+            volume: Tweener::new(self.1.volume.0),
+            panning: Tweener::new(self.1.pan.0),
             volume_fade,
             sample_provider: SampleProvider::new(self.0, self.1.repeat),
         };
@@ -267,8 +264,8 @@ impl Sound for AudioSound {
                 // note: unlike in the layer props, we do the "enqueue_now" thing here
                 // bacause we don't want to wait for previous audio changes to be applied
                 // ideally, this should never allocate the tweener queue
-                Command::SetVolume(volume, tween) => self.volume.enqueue_now(volume, tween),
-                Command::SetPanning(panning, tween) => self.panning.enqueue_now(panning, tween),
+                Command::SetVolume(volume, tween) => self.volume.enqueue_now(volume.0, tween),
+                Command::SetPanning(panning, tween) => self.panning.enqueue_now(panning.0, tween),
                 Command::Stop(tween) => self.stop(tween),
             }
         }

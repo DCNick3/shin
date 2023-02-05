@@ -1,9 +1,8 @@
 use crate::layer::LayerPropertiesSnapshot;
 use bevy_utils::hashbrown::hash_map::Entry;
 use bevy_utils::StableHashMap;
-use shin_core::vm::command::layer::{
-    LayerId, LayerIdOpt, LayerType, VLayerId, VLayerIdRepr, PLANES_COUNT,
-};
+use shin_core::vm::command::types::LayerType;
+use shin_core::vm::command::types::{LayerId, LayerIdOpt, VLayerId, VLayerIdRepr, PLANES_COUNT};
 use smallvec::{smallvec, SmallVec};
 use tracing::warn;
 

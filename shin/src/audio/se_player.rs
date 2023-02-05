@@ -2,6 +2,7 @@ use super::manager::AudioManager;
 use crate::asset::audio::{Audio, AudioHandle, AudioParams, AudioWaitStatus};
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
 use shin_core::time::Tween;
+use shin_core::vm::command::types::{Pan, Volume};
 use std::sync::Arc;
 use tracing::warn;
 
@@ -43,8 +44,8 @@ impl SePlayer {
         slot: i32,
         se: Arc<Audio>,
         repeat: bool,
-        volume: f32,
-        pan: f32,
+        volume: Volume,
+        pan: Pan,
         fade_in: Tween,
     ) {
         let slot = slot as usize;
@@ -66,7 +67,7 @@ impl SePlayer {
         self.se_slots[slot] = Some(handle);
     }
 
-    pub fn set_volume(&mut self, slot: i32, volume: f32, tween: Tween) {
+    pub fn set_volume(&mut self, slot: i32, volume: Volume, tween: Tween) {
         let slot = slot as usize;
 
         if let Some(handle) = self.se_slots[slot].as_mut() {
@@ -79,7 +80,7 @@ impl SePlayer {
         }
     }
 
-    pub fn set_panning(&mut self, slot: i32, pan: f32, tween: Tween) {
+    pub fn set_panning(&mut self, slot: i32, pan: Pan, tween: Tween) {
         let slot = slot as usize;
 
         if let Some(handle) = self.se_slots[slot].as_mut() {

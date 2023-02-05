@@ -8,7 +8,7 @@ use shin_core::layout::{
     Action, ActionType, Block, BlockExitCondition, LayoutedMessage, LayoutingMode,
 };
 use shin_core::time::Ticks;
-use shin_core::vm::command::layer::MessageTextLayout;
+use shin_core::vm::command::types::MessageTextLayout;
 use std::sync::Arc;
 use tracing::warn;
 

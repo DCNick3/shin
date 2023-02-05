@@ -15,7 +15,7 @@ use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use message::{Message, MessageStatus};
 use shin_core::time::Ticks;
-use shin_core::vm::command::layer::{MessageboxStyle, MessageboxType};
+use shin_core::vm::command::types::{MessageboxStyle, MessageboxType};
 
 pub struct MessageLayer {
     props: LayerProperties,

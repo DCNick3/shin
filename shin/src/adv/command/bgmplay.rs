@@ -1,10 +1,15 @@
 use super::prelude::*;
+use crate::adv::vm_state::audio::BgmState;
 use shin_core::format::scenario::info::BgmInfoItem;
 use shin_core::time::Tween;
+use std::ops::Not;
 
 impl StartableCommand for command::runtime::BGMPLAY {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: BGMPLAY state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        state.audio.bgm = self.no_repeat.not().then_some(BgmState {
+            bgm_id: self.bgm_data_id,
+            volume: self.volume,
+        });
     }
 
     fn start(
@@ -30,7 +35,7 @@ impl StartableCommand for command::runtime::BGMPLAY {
             audio,
             display_name.as_str(),
             !self.no_repeat,
-            self.volume as f32 / 1000.0,
+            self.volume,
             Tween::linear(self.fade_in_time),
         );
 

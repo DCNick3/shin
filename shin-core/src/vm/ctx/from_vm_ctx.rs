@@ -1,13 +1,17 @@
+//! Defines `FromVmCtx` and `FromVmCtxDefault` traits, that are used to convert from compile-time (e.g. `NumberSpec`) to runtime (e.g. `i32`) representations of command parameters
+//!
+//! Also contains implementation for std types & stuff defined in `shin_core::format`, like `U8String` -> `String` stuff
+
 use crate::format::scenario::instructions::{BitmaskNumberArray, MessageId, NumberSpec};
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String, U8FixupString, U8String};
-use crate::vm::command::layer::LayerPropertySmallList;
+use crate::time::Ticks;
 use crate::vm::VmCtx;
 use smallvec::SmallVec;
 
-/// Defines how to convert I to Self
+/// Defines how to convert a compile-time representation `I` to a runtime representation `Self`
 ///
-/// I is a compile time representation (e.g. a NumberSpec), while Self is a runtime representation (e.g. an i32)
+/// For example this is used to convey that a NumberSpec can be converted to i32 (by inspecting the VmCtx)
 pub trait FromVmCtx<I>
 where
     Self: Sized,
@@ -135,20 +139,8 @@ impl FromVmCtxDefault for U8SmallNumberList {
     type Output = SmallVec<[i32; 6]>;
 }
 
-impl FromVmCtx<U8SmallNumberList> for LayerPropertySmallList {
-    fn from_vm_ctx(ctx: &VmCtx, input: U8SmallNumberList) -> Self {
-        input
-            .0
-            .into_iter()
-            .map(|n| {
-                let n = ctx.get_number(n);
-                num_traits::FromPrimitive::from_i32(n).unwrap_or_else(|| {
-                    panic!(
-                        "LayerPropertySmallList::from_vm_ctx: invalid layer type: {}",
-                        n
-                    )
-                })
-            })
-            .collect()
+impl FromVmCtx<NumberSpec> for Ticks {
+    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
+        Ticks::from_i32(ctx.get_number(input))
     }
 }

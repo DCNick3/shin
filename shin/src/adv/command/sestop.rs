@@ -2,8 +2,8 @@ use super::prelude::*;
 use shin_core::time::Tween;
 
 impl StartableCommand for command::runtime::SESTOP {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: SESTOP state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        state.audio.se[self.se_slot as usize] = None;
     }
 
     fn start(

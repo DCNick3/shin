@@ -2,7 +2,8 @@ pub mod audio;
 pub mod layers;
 
 use layers::LayersState;
-use shin_core::vm::command::layer::MessageboxStyle;
+use shin_core::vm::command::types::MessageboxStyle;
+use crate::adv::vm_state::audio::AudioState;
 
 pub struct SaveInfo {
     pub info: [String; 4],
@@ -69,6 +70,7 @@ pub struct VmState {
     pub messagebox_state: MessageState,
     pub globals: Globals,
     pub layers: LayersState,
+    pub audio: AudioState,
 }
 
 impl VmState {
@@ -80,6 +82,7 @@ impl VmState {
             messagebox_state: MessageState::new(),
             globals: Globals::new(),
             layers: LayersState::new(),
+            audio: AudioState::new(),
         }
     }
 }

@@ -2,8 +2,8 @@ use super::prelude::*;
 use shin_core::time::Tween;
 
 impl StartableCommand for command::runtime::BGMSTOP {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: BGMSTOP state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        state.audio.bgm = None;
     }
 
     fn start(

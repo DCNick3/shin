@@ -8,6 +8,7 @@ use bitflags::bitflags;
 use kira::track::TrackId;
 use shin_core::format::audio::{read_audio, AudioFile};
 use shin_core::time::Tween;
+use shin_core::vm::command::types::{Pan, Volume};
 
 pub use kira_data::{AudioData, AudioHandle};
 
@@ -17,8 +18,8 @@ pub struct AudioParams {
     pub track: TrackId,
     pub fade_in: Tween,
     pub repeat: bool,
-    pub volume: f32,
-    pub pan: f32,
+    pub volume: Volume,
+    pub pan: Pan,
     // TODO: support play speed (needs research)
 }
 

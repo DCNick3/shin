@@ -2,8 +2,10 @@ use super::prelude::*;
 use shin_core::time::Tween;
 
 impl StartableCommand for command::runtime::SEPAN {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: SEPAN state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        if let Some(state) = state.audio.se[self.se_slot as usize].as_mut() {
+            state.pan = self.pan;
+        }
     }
 
     fn start(
@@ -13,11 +15,9 @@ impl StartableCommand for command::runtime::SEPAN {
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        adv_state.se_player.set_panning(
-            self.se_slot,
-            self.pan as f32 / 1000.0,
-            Tween::linear(self.fade_in_time),
-        );
+        adv_state
+            .se_player
+            .set_panning(self.se_slot, self.pan, Tween::linear(self.fade_in_time));
 
         self.token.finish().into()
     }

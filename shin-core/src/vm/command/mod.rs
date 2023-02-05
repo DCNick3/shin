@@ -1,4 +1,4 @@
-pub mod layer;
+pub mod types;
 
 use crate::format::scenario::instructions::{
     BitmaskNumberArray, MemoryAddress, MessageId, NumberSpec,
@@ -7,11 +7,11 @@ use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String};
 use crate::time::Ticks;
 use shin_derive::Command;
-
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
-use self::layer::{
-    LayerId, LayerProperty, LayerPropertySmallList, LayerType, MessageboxStyle, VLayerId,
+use types::{
+    LayerId, LayerProperty, LayerPropertySmallList, LayerType, MessageboxStyle, Pan, VLayerId,
+    Volume,
 };
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
@@ -102,6 +102,7 @@ pub enum Command {
         fade_in_time: NumberSpec,
         #[cmd(rty = "bool")]
         no_repeat: NumberSpec,
+        #[cmd(rty = "Volume")]
         volume: NumberSpec,
     },
     #[cmd(opcode = 0x91u8)]
@@ -111,6 +112,7 @@ pub enum Command {
     },
     #[cmd(opcode = 0x92u8)]
     BGMVOL {
+        #[cmd(rty = "Volume")]
         volume: NumberSpec,
         #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
@@ -127,7 +129,9 @@ pub enum Command {
         fade_in_time: NumberSpec,
         #[cmd(rty = "bool")]
         no_repeat: NumberSpec,
+        #[cmd(rty = "Volume")]
         volume: NumberSpec,
+        #[cmd(rty = "Pan")]
         pan: NumberSpec,
         play_speed: NumberSpec,
     },
@@ -145,6 +149,7 @@ pub enum Command {
     #[cmd(opcode = 0x98u8)]
     SEVOL {
         se_slot: NumberSpec,
+        #[cmd(rty = "Volume")]
         volume: NumberSpec,
         #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
@@ -152,6 +157,7 @@ pub enum Command {
     #[cmd(opcode = 0x99u8)]
     SEPAN {
         se_slot: NumberSpec,
+        #[cmd(rty = "Pan")]
         pan: NumberSpec,
         #[cmd(rty = "Ticks")]
         fade_in_time: NumberSpec,
@@ -172,6 +178,7 @@ pub enum Command {
     #[cmd(opcode = 0x9cu8)]
     VOICEPLAY {
         name: U16String,
+        #[cmd(rty = "Volume")]
         volume: NumberSpec,
         flags: NumberSpec,
     },

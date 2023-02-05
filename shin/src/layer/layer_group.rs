@@ -2,7 +2,7 @@ use crate::adv::LayerSelection;
 use bevy_utils::hashbrown::HashMap;
 use glam::Mat4;
 use itertools::Itertools;
-use shin_core::vm::command::layer::LayerId;
+use shin_core::vm::command::types::LayerId;
 
 use crate::layer::{Layer, LayerProperties, UserLayer};
 use crate::render::{GpuCommonResources, SpriteVertexBuffer};

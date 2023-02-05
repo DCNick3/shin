@@ -18,7 +18,7 @@ use glam::Mat4;
 use shin_core::format::scenario::instructions::CodeAddress;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::breakpoint::BreakpointObserver;
-use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
+use shin_core::vm::command::types::{VLayerId, VLayerIdRepr};
 use shin_core::vm::command::CommandResult;
 use shin_core::vm::Scripter;
 use smallvec::{smallvec, SmallVec};

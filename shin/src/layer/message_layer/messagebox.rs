@@ -5,7 +5,7 @@ use crate::render::{
 };
 use crate::update::{Updatable, UpdateContext};
 use glam::{vec2, vec3, vec4, Mat4, Vec2};
-use shin_core::vm::command::layer::MessageboxType;
+use shin_core::vm::command::types::MessageboxType;
 use std::sync::Arc;
 
 use crate::layer::message_layer::message::MessageMetrics;

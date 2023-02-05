@@ -2,8 +2,10 @@ use super::prelude::*;
 use shin_core::time::Tween;
 
 impl StartableCommand for command::runtime::SEVOL {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: SEVOL state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        if let Some(state) = state.audio.se[self.se_slot as usize].as_mut() {
+            state.volume = self.volume;
+        }
     }
 
     fn start(
@@ -13,11 +15,9 @@ impl StartableCommand for command::runtime::SEVOL {
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        adv_state.se_player.set_volume(
-            self.se_slot,
-            self.volume as f32 / 1000.0,
-            Tween::linear(self.fade_in_time),
-        );
+        adv_state
+            .se_player
+            .set_volume(self.se_slot, self.volume, Tween::linear(self.fade_in_time));
 
         self.token.finish().into()
     }

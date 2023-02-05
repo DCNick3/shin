@@ -1,9 +1,16 @@
 use super::prelude::*;
+use crate::adv::vm_state::audio::SeState;
 use shin_core::time::Tween;
+use std::ops::Not;
 
 impl StartableCommand for command::runtime::SEPLAY {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: SEPLAY state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        state.audio.se[self.se_slot as usize] = self.no_repeat.not().then_some(SeState {
+            se_id: self.se_data_id,
+            volume: self.volume,
+            pan: self.pan,
+            play_speed: self.play_speed as f32 / 1000.0,
+        });
     }
 
     fn start(
@@ -13,9 +20,6 @@ impl StartableCommand for command::runtime::SEPLAY {
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        if self.pan != 0 {
-            warn!("TODO: SEPLAY: ignoring pan={}", self.pan);
-        }
         if self.play_speed != 1000 {
             warn!("TODO: SEPLAY: ignoring play_speed={}", self.play_speed);
         }
@@ -32,8 +36,8 @@ impl StartableCommand for command::runtime::SEPLAY {
             self.se_slot,
             audio,
             !self.no_repeat,
-            (self.volume as f32 / 1000.0).clamp(0.0, 1.0),
-            self.pan as f32 / 1000.0,
+            self.volume,
+            self.pan,
             Tween::linear(self.fade_in_time),
         );
 

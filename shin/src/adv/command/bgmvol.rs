@@ -2,8 +2,10 @@ use super::prelude::*;
 use shin_core::time::Tween;
 
 impl StartableCommand for command::runtime::BGMVOL {
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: BGMVOL state: {:?}", self);
+    fn apply_state(&self, state: &mut VmState) {
+        if let Some(state) = state.audio.bgm.as_mut() {
+            state.volume = self.volume;
+        }
     }
 
     fn start(
@@ -13,10 +15,9 @@ impl StartableCommand for command::runtime::BGMVOL {
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        adv_state.bgm_player.set_volume(
-            self.volume as f32 / 1000.0,
-            Tween::linear(self.fade_in_time),
-        );
+        adv_state
+            .bgm_player
+            .set_volume(self.volume, Tween::linear(self.fade_in_time));
         self.token.finish().into()
     }
 }

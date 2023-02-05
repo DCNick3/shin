@@ -8,7 +8,7 @@ mod prelude {
     pub use shin_core::format::scenario::Scenario;
     pub use shin_core::time::Ticks;
     pub use shin_core::vm::command;
-    pub use shin_core::vm::command::layer::{VLayerId, VLayerIdRepr};
+    pub use shin_core::vm::command::types::{VLayerId, VLayerIdRepr};
     pub use shin_core::vm::command::CommandResult;
     pub use std::sync::Arc;
     pub use tracing::warn;

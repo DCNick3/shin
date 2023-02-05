@@ -1,7 +1,7 @@
 use crate::format::font::{GlyphTrait, LazyFont};
 use crate::layout::parser::{LayouterParser, ParsedCommand};
 use crate::time::Ticks;
-use crate::vm::command::layer::MessageTextLayout;
+use crate::vm::command::types::MessageTextLayout;
 use float_ord::FloatOrd;
 use glam::{vec2, Vec2, Vec3};
 use std::iter::Peekable;
