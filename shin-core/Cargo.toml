@@ -40,6 +40,8 @@ opus = "0.3.0"
 bitreader = "0.3.6"
 serde = { version = "1.0.130", features = ["derive"] }
 serde-big-array = "0.4.1"
+num-integer = "0.1.45"
+chrono = { version = "0.4.23", features = ["serde"] }
 
 [dev-dependencies]
 hex = "0.4.3"

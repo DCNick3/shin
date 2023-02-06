@@ -1,7 +1,9 @@
 //! Support for decrypting and decoding save files.
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use bitreader::BitReader;
+use chrono::{NaiveDate, NaiveDateTime};
+use num_integer::Integer;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
@@ -149,10 +151,16 @@ impl Savedata {
     }
 }
 
+/// Stores the persistent variables used by the VM.
+/// They are independent of the save slots, used for stuff like global progression.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistData(pub Vec<i16>);
 
 impl PersistData {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
     fn parse(reader: &mut BitReader) -> Result<Self> {
         let count = reader.read_u32(16)?;
 
@@ -162,6 +170,23 @@ impl PersistData {
         }
 
         Ok(Self(vec))
+    }
+
+    pub fn get(&self, index: i32) -> i32 {
+        if index < 0 || index >= self.0.len() as i32 {
+            0
+        } else {
+            self.0[index as usize] as i32
+        }
+    }
+
+    pub fn set(&mut self, index: i32, value: i32) {
+        if self.0.len() <= index as usize {
+            // allocate more space, round up to 64
+            let new_len = Integer::div_ceil(&(index as usize), &64) * 64;
+            self.0.resize(new_len, 0);
+        }
+        self.0[index as usize] = value.try_into().expect("value too large");
     }
 }
 
@@ -195,6 +220,7 @@ impl SaveVectors {
     }
 }
 
+/// Stores game settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub v0_bgmvol: u8,
@@ -248,15 +274,16 @@ impl Settings {
     }
 }
 
+/// Stores minimal info necessary to load a save.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameData {
-    date_time: DateTime,
+    date_time: NaiveDateTime,
     entry: GameDataEntry,
 }
 
 impl GameData {
     fn parse(reader: &mut BitReader) -> Result<Self> {
-        let date = DateTime::parse(reader)?;
+        let date = parse_date_time(reader)?;
         let v6_arr_count = reader.read_u32(1)?;
         assert_eq!(v6_arr_count, 0);
 
@@ -269,27 +296,17 @@ impl GameData {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DateTime {
-    pub year: u16,
-    pub month: u8,
-    pub day: u8,
-    pub hour: u8,
-    pub minute: u8,
-    pub second: u8,
-}
+fn parse_date_time(reader: &mut BitReader) -> Result<NaiveDateTime> {
+    let year = reader.read_u16(12)?;
+    let month = reader.read_u8(4)?;
+    let day = reader.read_u8(5)?;
+    let hour = reader.read_u8(5)?;
+    let minute = reader.read_u8(6)?;
+    let second = reader.read_u8(6)?;
 
-impl DateTime {
-    fn parse(reader: &mut BitReader) -> Result<Self> {
-        Ok(Self {
-            year: reader.read_u16(12)?,
-            month: reader.read_u8(4)?,
-            day: reader.read_u8(5)?,
-            hour: reader.read_u8(5)?,
-            minute: reader.read_u8(6)?,
-            second: reader.read_u8(6)?,
-        })
-    }
+    NaiveDate::from_ymd_opt(year as i32, month as u32, day as u32)
+        .and_then(|date| date.and_hms_opt(hour as u32, minute as u32, second as u32))
+        .ok_or_else(|| anyhow!("Invalid date"))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

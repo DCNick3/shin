@@ -3,6 +3,7 @@ pub mod layers;
 
 use crate::adv::vm_state::audio::AudioState;
 use layers::LayersState;
+use shin_core::format::save::PersistData;
 use shin_core::vm::command::types::MessageboxStyle;
 
 pub struct SaveInfo {
@@ -37,32 +38,10 @@ impl MessageState {
     }
 }
 
-pub struct Persist {
-    globals: [i32; 0x100],
-}
-
-impl Persist {
-    pub fn new() -> Self {
-        Self {
-            globals: [0; 0x100],
-        }
-    }
-
-    pub fn get(&self, id: i32) -> i32 {
-        assert!((0x0..0x100).contains(&id), "Persist::get: id out of range");
-        self.globals[id as usize]
-    }
-
-    pub fn set(&mut self, id: i32, value: i32) {
-        assert!((0x0..0x100).contains(&id), "Persist::set: id out of range");
-        self.globals[id as usize] = value;
-    }
-}
-
 pub struct VmState {
     pub save_info: SaveInfo,
     pub messagebox_state: MessageState,
-    pub persist: Persist,
+    pub persist: PersistData,
     pub layers: LayersState,
     pub audio: AudioState,
 }
@@ -74,7 +53,7 @@ impl VmState {
                 info: ["", "", "", ""].map(|v| v.to_string()),
             },
             messagebox_state: MessageState::new(),
-            persist: Persist::new(),
+            persist: PersistData::new(),
             layers: LayersState::new(),
             audio: AudioState::new(),
         }
