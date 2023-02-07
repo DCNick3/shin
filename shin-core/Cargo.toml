@@ -37,7 +37,8 @@ smartstring = "1.0.1"
 once_cell = "1.16.0"
 bitvec = "1.0.1"
 opus = "0.3.0"
-bitreader = "0.3.6"
+# git version for align method & attribute support
+bitbuffer = { git = "https://github.com/icewind1991/bitbuffer.git", rev = "80a1c7cc2204023aa554e05f258c57e79e532fe8" }
 serde = { version = "1.0.130", features = ["derive"] }
 serde-big-array = "0.4.1"
 num-integer = "0.1.45"
