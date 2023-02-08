@@ -37,6 +37,8 @@ mod msgsignal;
 mod msgwait;
 mod notifyset;
 mod pageback;
+mod planeclear;
+mod planeselect;
 mod saveinfo;
 mod sepan;
 mod seplay;
@@ -157,8 +159,8 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::TRANSSET(v) => v.apply_state(state),
             // RuntimeCommand::TRANSWAIT(v) => v.apply_state(state),
             RuntimeCommand::PAGEBACK(v) => v.apply_state(state),
-            // RuntimeCommand::PLANESELECT(v) => v.apply_state(state),
-            // RuntimeCommand::PLANECLEAR(v) => v.apply_state(state),
+            RuntimeCommand::PLANESELECT(v) => v.apply_state(state),
+            RuntimeCommand::PLANECLEAR(v) => v.apply_state(state),
             // RuntimeCommand::MASKLOAD(v) => v.apply_state(state),
             // RuntimeCommand::MASKUNLOAD(v) => v.apply_state(state),
             RuntimeCommand::CHARS(v) => v.apply_state(state),
@@ -228,8 +230,8 @@ impl StartableCommand for RuntimeCommand {
             // RuntimeCommand::TRANSSET(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::TRANSWAIT(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::PAGEBACK(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::PLANESELECT(v) => v.start(context, scenario, vm_state, adv_state),
-            // RuntimeCommand::PLANECLEAR(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::PLANESELECT(v) => v.start(context, scenario, vm_state, adv_state),
+            RuntimeCommand::PLANECLEAR(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::MASKLOAD(v) => v.start(context, scenario, vm_state, adv_state),
             // RuntimeCommand::MASKUNLOAD(v) => v.start(context, scenario, vm_state, adv_state),
             RuntimeCommand::CHARS(v) => v.start(context, scenario, vm_state, adv_state),
