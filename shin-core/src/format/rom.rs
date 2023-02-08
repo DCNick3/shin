@@ -7,7 +7,7 @@
 //! When using BufReader, the startup time is about 300 ms on my machine, so it's not a big deal.
 
 use anyhow::{anyhow, bail, Context, Result};
-use binrw::{BinRead, BinResult, BinWrite, NullString, ReadOptions};
+use binrw::{BinRead, BinResult, BinWrite, Endian, NullString};
 use itertools::Itertools;
 use smartstring::alias::CompactString;
 use std::collections::BTreeMap;
@@ -56,15 +56,15 @@ struct RawEntry {
 }
 
 impl BinRead for Entry {
-    type Args = ReadContext;
+    type Args<'a> = ReadContext;
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        ro: &ReadOptions,
-        ctx: Self::Args,
+        endian: Endian,
+        ctx: Self::Args<'_>,
     ) -> BinResult<Entry> {
         // let entry_pos = reader.stream_position()?;
-        let entry: RawEntry = <_>::read_options(reader, ro, ())?;
+        let entry: RawEntry = <_>::read_options(reader, endian, ())?;
 
         let leave_pos = reader.stream_position()?;
 
@@ -75,7 +75,7 @@ impl BinRead for Entry {
         ))?;
         // NullString does an extra heap alloc =(
         // better write one ourselves it seems
-        let name: NullString = <_>::read_options(reader, ro, ())?;
+        let name: NullString = <_>::read_options(reader, endian, ())?;
         let name: String = name.try_into().unwrap();
         let name: CompactString = name.into();
 
@@ -161,14 +161,14 @@ impl<'a> Iterator for IndexDirectoryIter<'a> {
 struct NamedEntry(CompactString, IndexEntry);
 
 impl BinRead for NamedEntry {
-    type Args = ReadContext;
+    type Args<'a> = ReadContext;
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        ro: &ReadOptions,
-        ctx: Self::Args,
+        endian: Endian,
+        ctx: Self::Args<'_>,
     ) -> BinResult<NamedEntry> {
-        let entry: Entry = <_>::read_options(reader, ro, ctx)?;
+        let entry: Entry = <_>::read_options(reader, endian, ctx)?;
         let leave_pos = reader.stream_position()?;
         let res = match entry {
             Entry::Directory {
@@ -186,7 +186,7 @@ impl BinRead for NamedEntry {
                     )
                 } else {
                     reader.seek(SeekFrom::Start(ctx.index_offset + entries_offset))?;
-                    let entry = <_>::read_options(reader, ro, ctx)?;
+                    let entry = <_>::read_options(reader, endian, ctx)?;
 
                     NamedEntry(name, IndexEntry::Directory(entry))
                 }
@@ -210,19 +210,20 @@ impl BinRead for NamedEntry {
 }
 
 impl BinRead for IndexDirectory {
-    type Args = ReadContext;
+    type Args<'a> = ReadContext;
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        ro: &ReadOptions,
-        ctx: Self::Args,
+        endian: Endian,
+        ctx: Self::Args<'_>,
     ) -> BinResult<IndexDirectory> {
         let dir_offset = reader.stream_position()?;
-        let entry_count: u32 = <_>::read_options(reader, ro, ())?;
+        let entry_count: u32 = <_>::read_options(reader, endian, ())?;
 
         let mut entries = BTreeMap::new();
         for _ in 0..entry_count {
-            let entry: NamedEntry = <_>::read_options(reader, ro, ctx.with_dir_offset(dir_offset))?;
+            let entry: NamedEntry =
+                <_>::read_options(reader, endian, ctx.with_dir_offset(dir_offset))?;
             if matches!(entry.0.as_str(), "." | "..") {
                 continue;
             }

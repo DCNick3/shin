@@ -2,7 +2,7 @@
 
 use anyhow::{bail, Context, Result};
 use binrw::prelude::*;
-use binrw::{ReadOptions, WriteOptions};
+use binrw::Endian;
 use bitflags::bitflags;
 use bytemuck::{Pod, Zeroable};
 use image::{ImageBuffer, RgbaImage};
@@ -47,14 +47,14 @@ bitflags! {
 }
 
 impl BinRead for CompressionFlags {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+        endian: Endian,
         _: (),
     ) -> BinResult<Self> {
-        let flags = u16::read_options(reader, options, ())?;
+        let flags = u16::read_options(reader, endian, ())?;
         CompressionFlags::from_bits(flags).ok_or_else(|| {
             binrw::Error::Io(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -64,15 +64,15 @@ impl BinRead for CompressionFlags {
     }
 }
 impl BinWrite for CompressionFlags {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
+        endian: Endian,
         _: (),
     ) -> BinResult<()> {
-        self.bits().write_options(writer, options, ())
+        self.bits().write_options(writer, endian, ())
     }
 }
 

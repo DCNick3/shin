@@ -2,7 +2,7 @@
 
 use crate::format::lz77;
 use anyhow::anyhow;
-use binrw::{BinRead, BinResult, BinWrite, FilePtr32, ReadOptions, VecArgs};
+use binrw::{BinRead, BinResult, BinWrite, Endian, FilePtr32, VecArgs};
 use glam::{vec2, Vec2};
 use image::GrayImage;
 use std::borrow::Cow;
@@ -164,32 +164,32 @@ impl LazyGlyph {
 }
 
 impl BinRead for LazyGlyph {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: Read + Seek>(
         reader: &mut R,
-        options: &ReadOptions,
-        _: Self::Args,
+        endian: Endian,
+        _: Self::Args<'_>,
     ) -> BinResult<Self> {
-        let header = GlyphHeader::read_options(reader, options, ())?;
+        let header = GlyphHeader::read_options(reader, endian, ())?;
         let texture_size = (header.texture_width, header.texture_height);
         let compressed_size = header.compressed_size as usize;
         let uncompressed_size = header.texture_width as usize * header.texture_height as usize;
         let info = header.into();
 
         let data = if compressed_size == 0 {
-            GlyphData::Raw(Vec::read_options(
+            GlyphData::Raw(Vec::<u8>::read_options(
                 reader,
-                options,
+                endian,
                 VecArgs {
                     count: uncompressed_size,
                     inner: (),
                 },
             )?)
         } else {
-            GlyphData::Compressed(Vec::read_options(
+            GlyphData::Compressed(Vec::<u8>::read_options(
                 reader,
-                options,
+                endian,
                 VecArgs {
                     count: compressed_size,
                     inner: (),
@@ -225,19 +225,19 @@ impl Glyph {
 }
 
 impl BinRead for Glyph {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: Read + Seek>(
         reader: &mut R,
-        options: &ReadOptions,
-        _: Self::Args,
+        endian: Endian,
+        _: Self::Args<'_>,
     ) -> BinResult<Self> {
-        let glyph = LazyGlyph::read_options(reader, options, ())?;
+        let glyph = LazyGlyph::read_options(reader, endian, ())?;
         Ok(glyph.decompress())
     }
 }
 
-pub trait GlyphTrait: BinRead<Args = ()> {
+pub trait GlyphTrait: for<'a> BinRead<Args<'a> = ()> {
     fn get_info(&self) -> GlyphInfo;
 }
 impl GlyphTrait for Glyph {
@@ -325,16 +325,16 @@ macro_rules! box_array {
 }
 
 impl<G: GlyphTrait> BinRead for Font<G> {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: Read + Seek>(
         reader: &mut R,
-        options: &ReadOptions,
-        _: Self::Args,
+        endian: Endian,
+        _: Self::Args<'_>,
     ) -> BinResult<Self> {
         let stream_position = reader.stream_position()?;
 
-        let header = FontHeader::read_options(reader, options, ())?;
+        let header = FontHeader::read_options(reader, endian, ())?;
 
         let size = stream_size(reader)?;
         if header.size != size as u32 {
@@ -348,7 +348,7 @@ impl<G: GlyphTrait> BinRead for Font<G> {
 
         let mut character_table = box_array![0u32; 0x10000];
         for c in character_table.iter_mut() {
-            *c = u32::read_options(reader, options, ())?;
+            *c = u32::read_options(reader, endian, ())?;
         }
 
         let mut known_glyph_offsets = HashMap::new();
@@ -363,7 +363,7 @@ impl<G: GlyphTrait> BinRead for Font<G> {
             };
             let known_glyph = known_glyph_offsets.contains_key(&glyph_offset.ptr);
             if !known_glyph {
-                glyph_offset.after_parse(reader, options, Default::default())?;
+                glyph_offset.after_parse(reader, endian, Default::default())?;
             }
 
             let next_glyph_id = GlyphId(known_glyph_offsets.len() as u32);

@@ -1,5 +1,5 @@
 use crate::format::text;
-use binrw::{BinRead, BinResult, BinWrite, ReadOptions, WriteOptions};
+use binrw::{BinRead, BinResult, BinWrite, Endian};
 use smallvec::SmallVec;
 use std::fmt::Debug;
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -33,7 +33,9 @@ impl StringFixup for WithFixup {
     }
 }
 
-pub trait StringLengthDesc: BinRead<Args = ()> + BinWrite<Args = ()> + Sized + 'static {
+pub trait StringLengthDesc:
+    for<'a> BinRead<Args<'a> = ()> + for<'a> BinWrite<Args<'a> = ()> + Sized + 'static
+{
     /// Should return the length of the string, in bytes, including the null terminator.
     fn get_length(&self) -> Option<usize>;
 }
@@ -70,14 +72,10 @@ pub struct SJisString<L: StringLengthDesc, F: StringFixup + 'static = NoFixup>(
 pub struct StringArray(pub SmallVec<[String; 4]>);
 
 impl<L: StringLengthDesc, F: StringFixup> BinRead for SJisString<L, F> {
-    type Args = ();
+    type Args<'a> = ();
 
-    fn read_options<R: Read + Seek>(
-        reader: &mut R,
-        options: &ReadOptions,
-        _: (),
-    ) -> BinResult<Self> {
-        let len = L::read_options(reader, options, ())?;
+    fn read_options<R: Read + Seek>(reader: &mut R, endian: Endian, _: ()) -> BinResult<Self> {
+        let len = L::read_options(reader, endian, ())?;
         // "- 1" to strip the null terminator
 
         let res = Self(
@@ -94,12 +92,12 @@ impl<L: StringLengthDesc, F: StringFixup> BinRead for SJisString<L, F> {
     }
 }
 impl<L: StringLengthDesc, F: StringFixup> BinWrite for SJisString<L, F> {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: Write + Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()
@@ -127,14 +125,10 @@ impl<L: StringLengthDesc, F: StringFixup> SJisString<L, F> {
 }
 
 impl BinRead for StringArray {
-    type Args = ();
+    type Args<'a> = ();
 
-    fn read_options<R: Read + Seek>(
-        reader: &mut R,
-        options: &ReadOptions,
-        _: (),
-    ) -> BinResult<Self> {
-        let size = u16::read_options(reader, options, ())?;
+    fn read_options<R: Read + Seek>(reader: &mut R, endian: Endian, _: ()) -> BinResult<Self> {
+        let size = u16::read_options(reader, endian, ())?;
         let pos = reader.stream_position()?;
         let mut res = SmallVec::new();
         loop {
@@ -142,7 +136,7 @@ impl BinRead for StringArray {
 
             res.push(s);
 
-            let v = u8::read_options(reader, options, ())?;
+            let v = u8::read_options(reader, endian, ())?;
             if v == 0x00 {
                 break;
             } else {
@@ -157,12 +151,12 @@ impl BinRead for StringArray {
 }
 
 impl BinWrite for StringArray {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: Write + Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()

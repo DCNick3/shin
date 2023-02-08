@@ -2,7 +2,8 @@
 
 use crate::format::scenario::types::{U16List, U8List};
 use crate::format::text::U16String;
-use binrw::{BinRead, BinResult, BinWrite, FilePtr32, ReadOptions};
+use binrw::file_ptr::FilePtrArgs;
+use binrw::{BinRead, BinResult, BinWrite, Endian, FilePtr32};
 use std::io::{Read, Seek};
 
 #[derive(Debug, BinRead, BinWrite)]
@@ -107,7 +108,7 @@ pub struct TipsInfoItem {
 
 #[derive(Debug, BinRead)]
 #[allow(dead_code)] // this stuff is declarative
-struct SimpleTable<T: BinRead<Args = ()>> {
+struct SimpleTable<T: for<'a> BinRead<Args<'a> = ()> + 'static> {
     element_count: u32,
     #[br(count = element_count)]
     elements: Vec<T>,
@@ -115,28 +116,28 @@ struct SimpleTable<T: BinRead<Args = ()>> {
 
 #[derive(Debug, BinRead)]
 #[allow(dead_code)] // this stuff is declarative
-struct SizedTable<T: BinRead<Args = ()>> {
+struct SizedTable<T: for<'a> BinRead<Args<'a> = ()> + 'static> {
     byte_size: u32,
     element_count: u32,
     #[br(count = element_count)]
     elements: Vec<T>,
 }
 
-fn parse_simple_section_ptr<R: Read + Seek, T: BinRead<Args = ()>>(
+fn parse_simple_section_ptr<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + 'static>(
     reader: &mut R,
-    options: &ReadOptions,
-    args: <FilePtr32<T> as BinRead>::Args,
+    endian: Endian,
+    args: FilePtrArgs<()>,
 ) -> BinResult<Vec<T>> {
-    FilePtr32::<SimpleTable<T>>::parse(reader, options, args).map(|x| x.elements)
+    FilePtr32::<SimpleTable<T>>::parse(reader, endian, args).map(|x| x.elements)
 }
 
-fn parse_sized_section_ptr<R: Read + Seek, T: BinRead<Args = ()>>(
+fn parse_sized_section_ptr<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + 'static>(
     reader: &mut R,
-    options: &ReadOptions,
-    args: <FilePtr32<T> as BinRead>::Args,
+    endian: Endian,
+    args: FilePtrArgs<()>,
 ) -> BinResult<Vec<T>> {
     // maybe check that the size matches for our own sanity?
-    FilePtr32::<SizedTable<T>>::parse(reader, options, args).map(|x| x.elements)
+    FilePtr32::<SizedTable<T>>::parse(reader, endian, args).map(|x| x.elements)
 }
 
 // parses the sections from offsets

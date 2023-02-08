@@ -1,6 +1,6 @@
 use crate::format::scenario::types::{U16SmallList, U8SmallList, U8SmallNumberList};
 use crate::vm::command::CompiletimeCommand;
-use binrw::{BinRead, BinResult, BinWrite, ReadOptions, WriteOptions};
+use binrw::{BinRead, BinResult, BinWrite, Endian};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use smallvec::SmallVec;
@@ -76,15 +76,15 @@ pub enum NumberSpec {
 }
 
 impl BinRead for NumberSpec {
-    type Args = ();
+    type Args<'a> = ();
 
     //noinspection SpellCheckingInspection
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+        endian: Endian,
         _: (),
     ) -> BinResult<Self> {
-        let t = u8::read_options(reader, options, ())?;
+        let t = u8::read_options(reader, endian, ())?;
         // t=TXXXXXXX
         // T=0 => XXXXXXX is a 7-bit signed constant
         // T=1 => futher processing needed
@@ -101,23 +101,23 @@ impl BinRead for NumberSpec {
             // P=4 => 12-bit Mem1 address, KKKK denotes the upper 4 bits, lsb is read from the next byte
             // P=5 => 4-bit Mem3 address, KKKK + 1 is the address
             match p {
-                0 => Self::Constant(u8::read_options(reader, options, ())? as i32 | (k_sext << 8)),
+                0 => Self::Constant(u8::read_options(reader, endian, ())? as i32 | (k_sext << 8)),
                 1 => {
                     // it's big endian......
-                    let b1 = u8::read_options(reader, options, ())? as i32;
-                    let b2 = u8::read_options(reader, options, ())? as i32;
+                    let b1 = u8::read_options(reader, endian, ())? as i32;
+                    let b2 = u8::read_options(reader, endian, ())? as i32;
                     Self::Constant(b2 | (b1 << 8) | (k_sext << 16))
                 }
                 2 => {
                     // it's big endian......
-                    let b1 = u8::read_options(reader, options, ())? as i32;
-                    let b2 = u8::read_options(reader, options, ())? as i32;
-                    let b3 = u8::read_options(reader, options, ())? as i32;
+                    let b1 = u8::read_options(reader, endian, ())? as i32;
+                    let b2 = u8::read_options(reader, endian, ())? as i32;
+                    let b3 = u8::read_options(reader, endian, ())? as i32;
                     Self::Constant(b3 | (b2 << 8) | (b1 << 16) | (k_sext << 24))
                 }
                 3 => Self::Memory(MemoryAddress::from_memory_addr(k as u16)),
                 4 => Self::Memory(MemoryAddress::from_memory_addr(
-                    u8::read_options(reader, options, ())? as u16 | (k as u16) << 8,
+                    u8::read_options(reader, endian, ())? as u16 | (k as u16) << 8,
                 )),
                 5 => Self::Memory(MemoryAddress::from_stack_offset(k as u16 + 1)),
                 _ => unreachable!("unknown number spec type: P={}", p),
@@ -132,12 +132,12 @@ impl BinRead for NumberSpec {
 }
 
 impl BinWrite for NumberSpec {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()
@@ -165,23 +165,24 @@ pub struct UnaryOperation {
 }
 
 impl BinRead for UnaryOperation {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+
+        endian: Endian,
         _: (),
     ) -> BinResult<Self> {
-        let temp = u8::read_options(reader, options, ())?;
+        let temp = u8::read_options(reader, endian, ())?;
         let ty = UnaryOperationType::from_u8(temp & 0x7f).ok_or_else(|| {
             binrw::Error::Io(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("unknown binary operation type: {}", temp & 0x7f),
             ))
         })?;
-        let destination = MemoryAddress::read_options(reader, options, ())?;
+        let destination = MemoryAddress::read_options(reader, endian, ())?;
         let source = if temp & 0x80 != 0 {
-            NumberSpec::read_options(reader, options, ())?
+            NumberSpec::read_options(reader, endian, ())?
         } else {
             NumberSpec::Memory(destination)
         };
@@ -194,12 +195,12 @@ impl BinRead for UnaryOperation {
 }
 
 impl BinWrite for UnaryOperation {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()
@@ -254,27 +255,28 @@ pub struct BinaryOperation {
 }
 
 impl BinRead for BinaryOperation {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+
+        endian: Endian,
         _: (),
     ) -> BinResult<Self> {
-        let temp = u8::read_options(reader, options, ())?;
+        let temp = u8::read_options(reader, endian, ())?;
         let ty = BinaryOperationType::from_u8(temp & 0x7F).ok_or_else(|| {
             binrw::Error::Io(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("unknown binary operation type: {}", temp & 0x7f),
             ))
         })?;
-        let destination = MemoryAddress::read_options(reader, options, ())?;
+        let destination = MemoryAddress::read_options(reader, endian, ())?;
         let left = if temp & 0x80 != 0 {
-            NumberSpec::read_options(reader, options, ())?
+            NumberSpec::read_options(reader, endian, ())?
         } else {
             NumberSpec::Memory(destination)
         };
-        let right = NumberSpec::read_options(reader, options, ())?;
+        let right = NumberSpec::read_options(reader, endian, ())?;
 
         Ok(Self {
             ty,
@@ -286,12 +288,12 @@ impl BinRead for BinaryOperation {
 }
 
 impl BinWrite for BinaryOperation {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()
@@ -330,14 +332,15 @@ pub struct JumpCond {
 }
 
 impl BinRead for JumpCond {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+
+        endian: Endian,
         _: (),
     ) -> BinResult<Self> {
-        let temp = u8::read_options(reader, options, ())?;
+        let temp = u8::read_options(reader, endian, ())?;
         let is_negated = temp & 0x80 != 0;
         let condition = temp & 0x7F;
         let condition = JumpCondType::from_u8(condition).ok_or_else(|| {
@@ -355,12 +358,12 @@ impl BinRead for JumpCond {
 }
 
 impl BinWrite for JumpCond {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()
@@ -409,21 +412,22 @@ pub enum ExpressionTerm {
 pub struct Expression(pub SmallVec<[ExpressionTerm; 6]>);
 
 impl BinRead for Expression {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+
+        endian: Endian,
         _: (),
     ) -> BinResult<Self> {
         let mut res = SmallVec::new();
         loop {
-            let v = u8::read_options(reader, options, ())?;
+            let v = u8::read_options(reader, endian, ())?;
             if v == 0xff {
                 break;
             } else {
                 reader.seek(SeekFrom::Current(-1))?;
-                res.push(ExpressionTerm::read_options(reader, options, ())?);
+                res.push(ExpressionTerm::read_options(reader, endian, ())?);
             }
         }
         Ok(Self(res))
@@ -431,12 +435,12 @@ impl BinRead for Expression {
 }
 
 impl BinWrite for Expression {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()
@@ -450,18 +454,19 @@ impl BinWrite for Expression {
 pub struct BitmaskNumberArray(pub [NumberSpec; 8]);
 
 impl BinRead for BitmaskNumberArray {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+
+        endian: Endian,
         _: (),
     ) -> BinResult<Self> {
         let mut res = [NumberSpec::Constant(0); 8];
-        let mut mask = u8::read_options(reader, options, ())?;
+        let mut mask = u8::read_options(reader, endian, ())?;
         for res in res.iter_mut() {
             if mask & 1 != 0 {
-                *res = NumberSpec::read_options(reader, options, ())?;
+                *res = NumberSpec::read_options(reader, endian, ())?;
             }
             mask >>= 1;
         }
@@ -470,12 +475,12 @@ impl BinRead for BitmaskNumberArray {
 }
 
 impl BinWrite for BitmaskNumberArray {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()
@@ -488,17 +493,18 @@ impl BinWrite for BitmaskNumberArray {
 pub struct MessageId(pub u32);
 
 impl BinRead for MessageId {
-    type Args = ();
+    type Args<'a> = ();
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+
+        endian: Endian,
         _: (),
     ) -> BinResult<Self> {
         // MessageId is a 24-bit (sic!) integer
-        let b0 = u8::read_options(reader, options, ())?;
-        let b1 = u8::read_options(reader, options, ())?;
-        let b2 = u8::read_options(reader, options, ())?;
+        let b0 = u8::read_options(reader, endian, ())?;
+        let b1 = u8::read_options(reader, endian, ())?;
+        let b2 = u8::read_options(reader, endian, ())?;
 
         let id = (b0 as u32) | ((b1 as u32) << 8) | ((b2 as u32) << 16);
 
@@ -507,12 +513,12 @@ impl BinRead for MessageId {
 }
 
 impl BinWrite for MessageId {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &WriteOptions,
+        _endian: Endian,
         _: (),
     ) -> BinResult<()> {
         todo!()
