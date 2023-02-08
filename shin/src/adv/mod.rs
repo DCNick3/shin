@@ -9,16 +9,17 @@ use crate::adv::assets::AdvAssets;
 use crate::audio::{AudioManager, BgmPlayer, SePlayer};
 use crate::input::actions::AdvMessageAction;
 use crate::input::ActionState;
-use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup};
+use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup, ScreenLayer};
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use egui::Window;
 use glam::Mat4;
+use itertools::Itertools;
 use shin_core::format::scenario::instructions::CodeAddress;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::breakpoint::BreakpointObserver;
-use shin_core::vm::command::types::{VLayerId, VLayerIdRepr};
+use shin_core::vm::command::types::{VLayerId, VLayerIdRepr, PLANES_COUNT};
 use shin_core::vm::command::CommandResult;
 use shin_core::vm::Scripter;
 use smallvec::{smallvec, SmallVec};
@@ -190,23 +191,24 @@ impl OverlayVisitable for Adv {
                 collector.overlay(
                     "User Layers",
                     |ctx, _top_left| {
-                        let mut layer_ids = self
-                            .adv_state
-                            .root_layer_group
-                            .screen_layer()
-                            .get_layer_ids()
-                            .cloned()
-                            .collect::<Vec<_>>();
-                        layer_ids.sort();
+                        let page_layer =
+                            self.adv_state.root_layer_group.screen_layer().page_layer();
                         Window::new("User Layers").show(ctx, |ui| {
-                            for layer_id in layer_ids {
-                                let layer = self
-                                    .adv_state
-                                    .root_layer_group
-                                    .screen_layer()
-                                    .get_layer(layer_id)
-                                    .unwrap();
-                                ui.label(format!("{:>2}: {:?}", layer_id.raw(), layer));
+                            for plane in 0..PLANES_COUNT {
+                                let layer_group = page_layer.plane(plane as u32);
+                                let layer_ids =
+                                    layer_group.get_layer_ids().sorted().collect::<Vec<_>>();
+                                if !layer_ids.is_empty() {
+                                    ui.monospace(format!("Plane {}:", plane));
+                                    for layer_id in layer_ids {
+                                        let layer = layer_group.get_layer(layer_id).unwrap();
+                                        ui.monospace(format!(
+                                            "  {:>2}: {:?}",
+                                            layer_id.raw(),
+                                            layer
+                                        ));
+                                    }
+                                }
                             }
                         });
                     },
@@ -233,7 +235,7 @@ impl AdvState {
         Self {
             root_layer_group: RootLayerGroup::new(
                 resources,
-                LayerGroup::new(resources),
+                ScreenLayer::new(resources),
                 MessageLayer::new(resources, assets.fonts, assets.messagebox_textures),
             ),
             bgm_player: BgmPlayer::new(audio_manager.clone()),
@@ -241,12 +243,18 @@ impl AdvState {
         }
     }
 
-    pub fn current_layer_group(&self, _vm_state: &VmState) -> &LayerGroup {
-        self.root_layer_group.screen_layer()
+    pub fn current_plane_layer_group(&self, vm_state: &VmState) -> &LayerGroup {
+        self.root_layer_group
+            .screen_layer()
+            .page_layer()
+            .plane(vm_state.layers.current_plane)
     }
 
-    pub fn current_layer_group_mut(&mut self, _vm_state: &VmState) -> &mut LayerGroup {
-        self.root_layer_group.screen_layer_mut()
+    pub fn current_plane_layer_group_mut(&mut self, vm_state: &VmState) -> &mut LayerGroup {
+        self.root_layer_group
+            .screen_layer_mut()
+            .page_layer_mut()
+            .plane_mut(vm_state.layers.current_plane)
     }
 
     #[allow(unused)]
@@ -257,16 +265,14 @@ impl AdvState {
             VLayerIdRepr::RootLayerGroup => smallvec![(&self.root_layer_group).into()],
             VLayerIdRepr::ScreenLayer => smallvec![self.root_layer_group.screen_layer().into()],
             VLayerIdRepr::PageLayer => {
-                warn!("Returning ScreenLayer for PageLayer");
-                smallvec![self.root_layer_group.screen_layer().into()]
+                smallvec![self.root_layer_group.screen_layer().page_layer().into()]
             }
             VLayerIdRepr::PlaneLayerGroup => {
-                warn!("Returning ScreenLayer for PlaneLayerGroup");
-                smallvec![self.root_layer_group.screen_layer().into()]
+                smallvec![self.current_plane_layer_group(vm_state).into()]
             }
             VLayerIdRepr::Selected => {
                 if let Some(selection) = vm_state.layers.layer_selection {
-                    self.current_layer_group(vm_state)
+                    self.current_plane_layer_group(vm_state)
                         .get_layers(selection)
                         .map(|v| v.into())
                         .collect::<SmallVec<[AnyLayer; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
@@ -276,7 +282,7 @@ impl AdvState {
                 }
             }
             VLayerIdRepr::Layer(l) => {
-                let layer = self.current_layer_group(vm_state).get_layer(l);
+                let layer = self.current_plane_layer_group(vm_state).get_layer(l);
                 if let Some(layer) = layer {
                     smallvec![layer.into()]
                 } else {
@@ -306,7 +312,7 @@ impl AdvState {
             }
             VLayerIdRepr::Selected => {
                 if let Some(selection) = vm_state.layers.layer_selection {
-                    self.current_layer_group_mut(vm_state)
+                    self.current_plane_layer_group_mut(vm_state)
                         .get_layers_mut(selection)
                         .map(|v| v.into())
                         .collect::<SmallVec<[AnyLayerMut; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
@@ -316,7 +322,9 @@ impl AdvState {
                 }
             }
             VLayerIdRepr::Layer(l) => {
-                let layer = self.current_layer_group_mut(vm_state).get_layer_mut(l);
+                let layer = self
+                    .current_plane_layer_group_mut(vm_state)
+                    .get_layer_mut(l);
                 if let Some(layer) = layer {
                     smallvec![layer.into()]
                 } else {

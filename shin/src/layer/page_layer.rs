@@ -1,22 +1,17 @@
-use crate::layer::screen_layer::ScreenLayer;
-use crate::layer::{Layer, LayerProperties, MessageLayer};
+use crate::layer::{Layer, LayerGroup, LayerProperties};
 use crate::render::{GpuCommonResources, RenderTarget, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use glam::Mat4;
+use shin_core::vm::command::types::PLANES_COUNT;
 
-pub struct RootLayerGroup {
-    screen_layer: ScreenLayer,
-    message_layer: MessageLayer,
-    render_target: RenderTarget,
+pub struct PageLayer {
+    planes: [LayerGroup; PLANES_COUNT],
     properties: LayerProperties,
+    render_target: RenderTarget,
 }
 
-impl RootLayerGroup {
-    pub fn new(
-        resources: &GpuCommonResources,
-        screen_layer: ScreenLayer,
-        message_layer: MessageLayer,
-    ) -> Self {
+impl PageLayer {
+    pub fn new(resources: &GpuCommonResources) -> Self {
         let render_target = RenderTarget::new(
             resources,
             resources.current_render_buffer_size(),
@@ -24,39 +19,35 @@ impl RootLayerGroup {
         );
 
         Self {
-            screen_layer,
-            message_layer,
+            planes: [
+                LayerGroup::new(resources),
+                LayerGroup::new(resources),
+                LayerGroup::new(resources),
+                LayerGroup::new(resources),
+            ],
             render_target,
             properties: LayerProperties::new(),
         }
     }
 
-    pub fn screen_layer(&self) -> &ScreenLayer {
-        &self.screen_layer
+    pub fn plane(&self, index: u32) -> &LayerGroup {
+        &self.planes[index as usize]
     }
 
-    pub fn screen_layer_mut(&mut self) -> &mut ScreenLayer {
-        &mut self.screen_layer
-    }
-
-    pub fn message_layer(&self) -> &MessageLayer {
-        &self.message_layer
-    }
-
-    pub fn message_layer_mut(&mut self) -> &mut MessageLayer {
-        &mut self.message_layer
+    pub fn plane_mut(&mut self, index: u32) -> &mut LayerGroup {
+        &mut self.planes[index as usize]
     }
 }
 
-impl Updatable for RootLayerGroup {
+impl Updatable for PageLayer {
     fn update(&mut self, context: &UpdateContext) {
-        self.properties.update(context);
-        self.screen_layer.update(context);
-        self.message_layer.update(context);
+        for plane in self.planes.iter_mut() {
+            plane.update(context);
+        }
     }
 }
 
-impl Renderable for RootLayerGroup {
+impl Renderable for PageLayer {
     fn render<'enc>(
         &'enc self,
         resources: &'enc GpuCommonResources,
@@ -68,23 +59,21 @@ impl Renderable for RootLayerGroup {
             let mut encoder = resources.start_encoder();
             let mut render_pass = self
                 .render_target
-                .begin_render_pass(&mut encoder, Some("RootLayerGroup RenderPass"));
+                .begin_render_pass(&mut encoder, Some("PageLayer RenderPass"));
 
             let transform = self.properties.compute_transform(transform);
             let projection = self.render_target.projection_matrix();
 
-            render_pass.push_debug_group("ScreenLayer");
-            self.screen_layer
-                .render(resources, &mut render_pass, transform, projection);
-            render_pass.pop_debug_group();
+            for (i, plane) in self.planes.iter().enumerate() {
+                render_pass.push_debug_group(&format!("Plane {}", i));
 
-            render_pass.push_debug_group("MessageLayer");
-            self.message_layer
-                .render(resources, &mut render_pass, transform, projection);
-            render_pass.pop_debug_group();
+                plane.render(resources, &mut render_pass, transform, projection);
+
+                render_pass.pop_debug_group();
+            }
         }
 
-        render_pass.push_debug_group("RootLayerGroup Render");
+        render_pass.push_debug_group("PageLayer Render");
         // TODO use layer pseudo-pipeline
         resources.draw_sprite(
             render_pass,
@@ -101,7 +90,7 @@ impl Renderable for RootLayerGroup {
     }
 }
 
-impl Layer for RootLayerGroup {
+impl Layer for PageLayer {
     fn properties(&self) -> &LayerProperties {
         &self.properties
     }

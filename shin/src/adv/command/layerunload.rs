@@ -20,7 +20,9 @@ impl StartableCommand for command::runtime::LAYERUNLOAD {
             .get_vlayer_ids(self.layer_id)
             .for_each(|id| {
                 debug!("Unloading {:?}", id);
-                adv_state.current_layer_group_mut(vm_state).remove_layer(id);
+                adv_state
+                    .current_plane_layer_group_mut(vm_state)
+                    .remove_layer(id);
             });
         self.token.finish().into()
     }

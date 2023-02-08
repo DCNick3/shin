@@ -1,6 +1,8 @@
 use super::TextureBindGroup;
 use crate::render::common_resources::GpuCommonResources;
-use crate::render::{VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
+use crate::render::{
+    PosColTexVertex, SpriteVertexBuffer, VertexSource, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
+};
 use glam::Mat4;
 use std::borrow::Cow;
 
@@ -10,6 +12,7 @@ pub struct RenderTarget {
     view: wgpu::TextureView,
     sampler: wgpu::Sampler,
     bind_group: TextureBindGroup,
+    vertices: SpriteVertexBuffer,
     label: Cow<'static, str>,
 }
 
@@ -55,11 +58,13 @@ impl RenderTarget {
             &sampler,
             Some(&format!("{} TextureBindGroup", label)),
         );
+        let vertices = SpriteVertexBuffer::new_fullscreen(resources);
         Self {
             texture,
             view,
             sampler,
             bind_group,
+            vertices,
             label,
         }
     }
@@ -99,6 +104,10 @@ impl RenderTarget {
         projection.w_axis.w = 1.0;
 
         projection
+    }
+
+    pub fn vertex_source(&self) -> VertexSource<PosColTexVertex> {
+        self.vertices.vertex_source()
     }
 
     pub fn begin_render_pass<'a>(

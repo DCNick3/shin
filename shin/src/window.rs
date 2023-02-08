@@ -28,7 +28,7 @@ use crate::{
     render::GpuCommonResources,
     render::Pillarbox,
     render::Pipelines,
-    render::{RenderTarget, Renderable, SpriteVertexBuffer},
+    render::{RenderTarget, Renderable},
     update::{Updatable, UpdateContext},
 };
 #[cfg(target_arch = "wasm32")]
@@ -41,7 +41,6 @@ struct State {
     resources: Arc<GpuCommonResources>,
     camera: Camera,
     time: Time,
-    screen_vertices: SpriteVertexBuffer,
     render_target: RenderTarget,
     pillarbox: Pillarbox,
     asset_server: Arc<AnyAssetServer>,
@@ -130,7 +129,6 @@ impl State {
 
         let overlay = OverlayManager::new(&resources, surface_texture_format);
 
-        let screen_vertices = SpriteVertexBuffer::new_fullscreen(&resources);
         let render_target = RenderTarget::new(
             &resources,
             camera.render_buffer_size(),
@@ -164,7 +162,6 @@ impl State {
             resources,
             camera,
             time: Time::default(),
-            screen_vertices,
             render_target,
             pillarbox,
             asset_server,
@@ -278,7 +275,7 @@ impl State {
 
             self.resources.pipelines.sprite_screen.draw(
                 &mut render_pass,
-                self.screen_vertices.vertex_source(),
+                self.render_target.vertex_source(),
                 self.render_target.bind_group(),
                 self.camera.screen_projection_matrix(),
             );

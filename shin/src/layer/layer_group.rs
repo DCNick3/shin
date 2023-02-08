@@ -5,7 +5,7 @@ use itertools::Itertools;
 use shin_core::vm::command::types::LayerId;
 
 use crate::layer::{Layer, LayerProperties, UserLayer};
-use crate::render::{GpuCommonResources, SpriteVertexBuffer};
+use crate::render::GpuCommonResources;
 use crate::render::{RenderTarget, Renderable};
 use crate::update::{Updatable, UpdateContext};
 
@@ -13,7 +13,6 @@ pub struct LayerGroup {
     layers: HashMap<LayerId, UserLayer>,
     render_target: RenderTarget,
     properties: LayerProperties,
-    vertices: SpriteVertexBuffer,
 }
 
 impl LayerGroup {
@@ -23,18 +22,16 @@ impl LayerGroup {
             resources.current_render_buffer_size(),
             Some("LayerGroup RenderTarget"),
         );
-        let vertices = SpriteVertexBuffer::new_fullscreen(resources);
 
         Self {
             layers: HashMap::new(),
             render_target,
             properties: LayerProperties::new(),
-            vertices,
         }
     }
 
-    pub fn get_layer_ids(&self) -> impl Iterator<Item = &LayerId> {
-        self.layers.keys()
+    pub fn get_layer_ids(&self) -> impl Iterator<Item = LayerId> + '_ {
+        self.layers.keys().cloned()
     }
 
     pub fn add_layer(&mut self, id: LayerId, layer: UserLayer) {
@@ -121,7 +118,7 @@ impl Renderable for LayerGroup {
         // TODO use layer pseudo-pipeline
         resources.draw_sprite(
             render_pass,
-            self.vertices.vertex_source(),
+            self.render_target.vertex_source(),
             self.render_target.bind_group(),
             projection,
         );

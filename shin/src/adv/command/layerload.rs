@@ -93,7 +93,7 @@ impl UpdatableCommand for LAYERLOAD {
                     todo!("LAYERLOAD: selected");
                 }
                 VLayerIdRepr::Layer(id) => adv_state
-                    .current_layer_group_mut(vm_state)
+                    .current_plane_layer_group_mut(vm_state)
                     .add_layer(id, layer),
             }
 

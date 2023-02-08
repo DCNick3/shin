@@ -2,8 +2,10 @@ mod bustup_layer;
 mod layer_group;
 mod message_layer;
 mod null_layer;
+mod page_layer;
 mod picture_layer;
 mod root_layer_group;
+mod screen_layer;
 mod tile_layer;
 mod wobbler;
 
@@ -19,8 +21,10 @@ pub use bustup_layer::BustupLayer;
 pub use layer_group::LayerGroup;
 pub use message_layer::{MessageLayer, MessageboxTextures};
 pub use null_layer::NullLayer;
+pub use page_layer::PageLayer;
 pub use picture_layer::PictureLayer;
 pub use root_layer_group::RootLayerGroup;
+pub use screen_layer::ScreenLayer;
 use shin_core::format::scenario::info::{BustupInfoItem, PictureInfoItem};
 pub use tile_layer::TileLayer;
 
@@ -147,8 +151,8 @@ impl LayerProperties {
 }
 
 impl Updatable for LayerProperties {
-    fn update(&mut self, ctx: &UpdateContext) {
-        let dt = ctx.time_delta_ticks();
+    fn update(&mut self, context: &UpdateContext) {
+        let dt = context.time_delta_ticks();
 
         for property in self.properties.values_mut() {
             property.update(dt);
@@ -298,7 +302,8 @@ impl UserLayer {
 pub enum AnyLayer<'a> {
     UserLayer(&'a UserLayer),
     RootLayerGroup(&'a RootLayerGroup),
-    MessageLayer(&'a MessageLayer),
+    ScreenLayer(&'a ScreenLayer),
+    PageLayer(&'a PageLayer),
     LayerGroup(&'a LayerGroup),
 }
 
@@ -308,7 +313,8 @@ impl<'a> AnyLayer<'a> {
         match self {
             Self::UserLayer(layer) => layer.properties(),
             Self::RootLayerGroup(layer) => layer.properties(),
-            Self::MessageLayer(layer) => layer.properties(),
+            Self::ScreenLayer(layer) => layer.properties(),
+            Self::PageLayer(layer) => layer.properties(),
             Self::LayerGroup(layer) => layer.properties(),
         }
     }
@@ -318,7 +324,8 @@ impl<'a> AnyLayer<'a> {
 pub enum AnyLayerMut<'a> {
     UserLayer(&'a mut UserLayer),
     RootLayerGroup(&'a mut RootLayerGroup),
-    MessageLayer(&'a mut MessageLayer),
+    ScreenLayer(&'a mut ScreenLayer),
+    PageLayer(&'a mut PageLayer),
     LayerGroup(&'a mut LayerGroup),
 }
 
@@ -328,7 +335,8 @@ impl<'a> AnyLayerMut<'a> {
         match self {
             Self::UserLayer(layer) => layer.properties(),
             Self::RootLayerGroup(layer) => layer.properties(),
-            Self::MessageLayer(layer) => layer.properties(),
+            Self::ScreenLayer(layer) => layer.properties(),
+            Self::PageLayer(layer) => layer.properties(),
             Self::LayerGroup(layer) => layer.properties(),
         }
     }
@@ -337,7 +345,8 @@ impl<'a> AnyLayerMut<'a> {
         match self {
             Self::UserLayer(layer) => layer.properties_mut(),
             Self::RootLayerGroup(layer) => layer.properties_mut(),
-            Self::MessageLayer(layer) => layer.properties_mut(),
+            Self::ScreenLayer(layer) => layer.properties_mut(),
+            Self::PageLayer(layer) => layer.properties_mut(),
             Self::LayerGroup(layer) => layer.properties_mut(),
         }
     }

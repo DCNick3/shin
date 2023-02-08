@@ -1,3 +1,6 @@
+// this is noisy & not well-supported by IDEs
+#![allow(clippy::uninlined_format_args)]
+
 extern crate self as shin;
 
 use clap::Parser;
