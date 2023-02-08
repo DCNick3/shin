@@ -1,10 +1,12 @@
+//! Contains breakpoint functionality for the VM
+
 use crate::format::scenario::instructions::CodeAddress;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Weak};
 
-pub struct Breakpoint {
+pub(crate) struct Breakpoint {
     hit_count: AtomicU32,
 }
 
@@ -16,7 +18,7 @@ impl Breakpoint {
     }
 }
 
-pub struct CodeBreakpointSet(HashMap<CodeAddress, Weak<Breakpoint>>);
+pub(crate) struct CodeBreakpointSet(HashMap<CodeAddress, Weak<Breakpoint>>);
 
 impl CodeBreakpointSet {
     pub fn new() -> Self {
@@ -63,6 +65,11 @@ impl CodeBreakpointSet {
     }
 }
 
+/// A handle to a breakpoint
+///
+/// It allows to check how many times the breakpoint was hit
+///
+/// When it is dropped, the breakpoint is removed from the VM (lazily)
 #[derive(Clone)]
 pub struct BreakpointHandle(Arc<Breakpoint>);
 

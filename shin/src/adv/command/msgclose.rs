@@ -13,7 +13,7 @@ impl StartableCommand for command::runtime::MSGCLOSE {
         _vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        assert_eq!(self.wait_for_close, 0);
+        assert!(!self.wait_for_close);
 
         adv_state.root_layer_group.message_layer_mut().close();
 

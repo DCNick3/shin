@@ -8,18 +8,26 @@ use crate::format::scenario::instructions::{
 use smallvec::SmallVec;
 use tracing::warn;
 
+/// Contains the full VM state
+///
+/// It consists of a memory, two stacks (call and data)
 pub struct VmCtx {
     /// Memory (aka registers I guess)
     memory: [i32; 0x1000],
     /// Call stack
+    ///
     /// Stores the return address for each call instruction
-    /// Also push instruction pushes here for some reason
+    ///
+    /// Also [push](super::Instruction::push) uses this stack for some reason
     call_stack: Vec<CodeAddress>,
     /// Data stack
+    ///
     /// Stores the arguments for each call instruction
-    /// Can be addresses via MemoryAddress with addresses > 0x1000
+    ///
+    /// Can be addressed via [MemoryAddress] with addresses > 0x1000
+    ///
     /// Also called mem3 in ShinDataUtil
-    data_stack: Vec<i32>,
+    arguments_stack: Vec<i32>,
     /// PRNG state, updated on each instruction executed
     prng_state: u32,
 }
@@ -32,7 +40,7 @@ impl VmCtx {
         Self {
             memory,
             call_stack: Vec::new(),
-            data_stack: vec![0; 0x16], // Umineko scenario writes out of bounds of the stack so we add some extra space
+            arguments_stack: vec![0; 0x16], // Umineko scenario writes out of bounds of the stack so we add some extra space
             prng_state: random_seed,
         }
     }
@@ -47,7 +55,7 @@ impl VmCtx {
     #[inline]
     pub fn get_memory(&self, addr: MemoryAddress) -> i32 {
         if let Some(offset) = addr.as_stack_offset() {
-            self.data_stack[self.data_stack.len() - 1 - (offset) as usize]
+            self.arguments_stack[self.arguments_stack.len() - 1 - (offset) as usize]
         } else {
             self.memory[addr.raw() as usize]
         }
@@ -59,10 +67,10 @@ impl VmCtx {
     #[inline]
     pub fn set_memory(&mut self, addr: MemoryAddress, val: i32) {
         if let Some(offset) = addr.as_stack_offset() {
-            let len = self.data_stack.len();
+            let len = self.arguments_stack.len();
             // the top of the data stack is always the frame size
             // so we need to subtract 1 to get the actual top of the stack
-            self.data_stack[len - 1 - (offset) as usize] = val;
+            self.arguments_stack[len - 1 - (offset) as usize] = val;
         } else {
             self.memory[addr.raw() as usize] = val;
         }
@@ -107,15 +115,15 @@ impl VmCtx {
 
     pub fn push_data_stack_frame(&mut self, val: &[i32]) {
         for &v in val.iter().rev() {
-            self.data_stack.push(v);
+            self.arguments_stack.push(v);
         }
-        self.data_stack.push(val.len() as i32);
+        self.arguments_stack.push(val.len() as i32);
     }
 
     pub fn pop_data_stack_frame(&mut self) {
-        let count = self.data_stack.pop().unwrap() as usize;
+        let count = self.arguments_stack.pop().unwrap() as usize;
         for _ in 0..count {
-            self.data_stack.pop().unwrap();
+            self.arguments_stack.pop().unwrap();
         }
     }
 
@@ -176,15 +184,18 @@ impl VmCtx {
         stack.pop().unwrap()
     }
 
-    /// Update the PRNG state
-    /// This is called after each instruction is executed
+    /// Update the PRNG state.
+    /// This is called after each instruction is executed.
     pub fn update_prng(&mut self) {
         self.prng_state = self.prng_state.wrapping_mul(0x343fd).wrapping_add(0x269ec3);
     }
 
     /// Generate a random number in the range [a, b]
+    ///
     /// This is called by the `rand` instruction
+    ///
     /// The PRNG state is **NOT** updated after this call
+    ///
     /// (it is updated by AdvVm via [Self::update_prng] after each the instruction is executed)
     pub fn run_prng(&self, a: i32, b: i32) -> i32 {
         let state = self.prng_state;

@@ -38,7 +38,7 @@ impl StartableCommand for command::runtime::LAYERCTRL {
         if flags.ff_to_current() && flags.ff_to_target() {
             panic!("LAYERCTRL: both ff_to_current and ff_to_target flags are set");
         }
-        if flags.prohibit_fast_forwward() {
+        if flags.prohibit_fast_forward() {
             warn!("LAYERCTRL: prohibit_fast_forwward is set, but not supported");
         }
         if flags.ignore_wait() {

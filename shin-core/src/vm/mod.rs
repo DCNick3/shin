@@ -1,3 +1,49 @@
+//! This module implements the virtual machine that can run the scenario.
+//!
+//! # Execution environment
+//!
+//! The virtual machine is a register-based machine with a stack (two stacks, actually). The VM state is stored in the [`VmCtx`] struct.
+//!
+//! # Execution model
+//!
+//! The VM executes instructions from a scenario. They are represented as [`Instruction`] enum.
+//!
+//! There are instructions for integer arithmetic, control flow, and more.
+//!
+//! A special kind of instruction is the [`Instruction::Command`]. Those are not executed by the VM, but instead are passed to the game engine.
+//!
+//! Most commands do not have any feedback to the VM, except for [SGET](command::runtime::SGET), [SELECT](command::runtime::SELECT) and [QUIZ](command::runtime::QUIZ).
+//!
+//! # Usage
+//!
+//! The [`Scripter`] struct is the main entry point for the VM. It reads a scenario, executes the instructions and returns commands for engine to execute.
+//!
+//! ```
+//! use shin_core::format::scenario::Scenario;
+//! use shin_core::vm::Scripter;
+//! use shin_core::vm::command::CommandResult;
+//!
+//! let min_scenario = b"SNR \xd0\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xb4\x00\x00\x00X\x00\x00\x00`\x00\x00\x00h\x00\x00\x00\x00\x00\x00\x00p\x00\x00\x00x\x00\x00\x00\x80\x00\x00\x00\x88\x00\x00\x00\x8c\x00\x00\x00\x90\x00\x00\x00\x94\x00\x00\x00\x9c\x00\x00\x00\xa0\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00F\x02\xb0\x00\xbc\x00\x00\x00\xff\r\x00Hello world!\x00\x00\x00\x00\x00";
+//! let scenario = bytes::Bytes::from_static(min_scenario);
+//! let scenario = Scenario::new(scenario).unwrap();
+//!
+//! let mut scripter = Scripter::new(&scenario, 0, 42);
+//!
+//! // Execute the scenario
+//! let mut prev_command_result = CommandResult::None;
+//! loop {
+//!    let command = scripter.run(prev_command_result).unwrap();
+//!    println!("Command: {:?}", command);
+//!    if let Some(result) = command.execute_dummy() {
+//!        prev_command_result = result;
+//!    } else {
+//!        break;
+//!    }     
+//! }
+//!
+//! ```
+//!
+
 pub mod breakpoint;
 pub mod command;
 mod ctx;
@@ -27,6 +73,13 @@ pub struct Scripter {
 }
 
 impl Scripter {
+    /// Create a scripter for the given scenario
+    ///
+    /// # Arguments
+    ///
+    /// * `scenario` - The scenario to run
+    /// * `init_val` - The initial value of the memory cell at address 0, used to dispatch different episodes
+    /// * `random_seed` - The initial value of the PRNG
     pub fn new(scenario: &Scenario, init_val: i32, random_seed: u32) -> Self {
         Self {
             ctx: VmCtx::new(init_val, random_seed),
@@ -109,15 +162,15 @@ impl Scripter {
                 trace!(?pc, ?dest, ?result, ?expr, "exp");
                 self.ctx.set_memory(dest, result);
             }
-            Instruction::gt { dest, value, table } => {
-                let value = self.ctx.get_number(value);
+            Instruction::gt { dest, index, table } => {
+                let index = self.ctx.get_number(index);
 
-                let result = if value >= 0 && value < table.0.len() as i32 {
-                    self.ctx.get_number(table.0[value as usize])
+                let result = if index >= 0 && index < table.0.len() as i32 {
+                    self.ctx.get_number(table.0[index as usize])
                 } else {
                     0
                 };
-                trace!(?pc, ?value, ?result, ?dest, table_len = ?table.0.len(), "gt");
+                trace!(?pc, ?index, ?result, ?dest, table_len = ?table.0.len(), "gt");
                 self.ctx.set_memory(dest, result);
             }
             Instruction::jc {
@@ -149,17 +202,15 @@ impl Scripter {
                 trace!(?pc, ?target, "retsub");
                 self.instruction_reader.set_position(target);
             }
-            Instruction::jt { value, table } => {
-                let value = self.ctx.get_number(value);
+            Instruction::jt { index, table } => {
+                let index = self.ctx.get_number(index);
 
-                trace!(?pc, ?value, table_len = ?table.0.len(), "jt");
+                let target =
+                    (index >= 0 && index < table.0.len() as i32).then(|| table.0[index as usize]);
 
-                // if value < 0 {
-                //     panic!("jump table command with negative value");
-                // }
-                if value >= 0 && value < table.0.len() as i32 {
-                    self.instruction_reader
-                        .set_position(table.0[value as usize]);
+                trace!(?pc, ?index, ?target, table_len = ?table.0.len(), "jt");
+                if let Some(target) = target {
+                    self.instruction_reader.set_position(target);
                 }
             }
             Instruction::rnd { dest, min, max } => {
@@ -222,11 +273,17 @@ impl Scripter {
         None
     }
 
+    /// Get the current position of the VM
+    ///
+    /// This is the address of the next instruction to be executed
     #[inline]
     pub fn position(&self) -> CodeAddress {
         self.position
     }
 
+    /// Run the VM until a command is encountered
+    ///
+    /// You should pass the result of the previous command to this function (use `CommandResult::None` if the VM is just starting)
     #[inline]
     pub fn run(&mut self, prev_command_result: CommandResult) -> Result<RuntimeCommand> {
         match prev_command_result {
@@ -246,6 +303,7 @@ impl Scripter {
         }
     }
 
+    /// Install a breakpoint at the given code address
     pub fn add_breakpoint(&mut self, address: CodeAddress) -> BreakpointHandle {
         self.breakpoints.add_breakpoint(address)
     }

@@ -29,6 +29,7 @@ struct CommandVariant {
     name: syn::Ident,
     meta: CommandVariantMeta,
     fields: Vec<CommandField>,
+    doc: Option<syn::Attribute>,
 }
 
 fn parse_command_variant(input: &VariantInfo) -> CommandVariant {
@@ -73,10 +74,18 @@ fn parse_command_variant(input: &VariantInfo) -> CommandVariant {
         .unwrap()
         .unwrap();
 
+    let doc = input
+        .ast()
+        .attrs
+        .iter()
+        .find(|a| a.path.is_ident("doc"))
+        .cloned();
+
     CommandVariant {
         name: input.ast().ident.clone(),
         meta,
         fields,
+        doc,
     }
 }
 
@@ -177,9 +186,15 @@ fn codegen_command_runtime_type(input: &CommandVariant) -> TokenStream {
                 }
             }
         });
+    let doc = input
+        .doc
+        .as_ref()
+        .map(|a| quote!(#a))
+        .unwrap_or_else(|| quote!());
 
     quote! {
         #[derive(Debug)]
+        #doc
         pub struct #name {
             pub token: super::token::#name,
             #(#fields),*
@@ -216,8 +231,15 @@ fn codegen_command_compiletime_type(input: &CommandVariant) -> TokenStream {
 
     let magic = input.meta.opcode;
 
+    let doc = input
+        .doc
+        .as_ref()
+        .map(|a| quote!(#a))
+        .unwrap_or_else(|| quote!());
+
     quote! {
         #[derive(#BIN_READ, #BIN_WRITE, Debug)]
+        #doc
         #[brw(little, magic(#magic))]
         pub struct #name {
             #(#fields),*
@@ -289,25 +311,38 @@ pub fn impl_command(input: Structure) -> TokenStream {
     let from_vm_ctx = &FROM_VM_CTX;
 
     quote! {
+        /// This module contains compile-time representation of commands.
+        ///
+        /// This mostly means that the `token` field is not present and `NumberSpec` is stored as-is.
         pub mod compiletime {
             use super::*;
             #compiletime_types
         }
 
+        /// This module contains compile-time representation of commands.
+        ///
+        /// Unlike compile-time representation, this one contains `token` field and `NumberSpec` values are resolved to `i32` or other strongly-typed values.
         pub mod runtime {
             use super::*;
             #runtime_types
         }
 
+        /// This module contains types for command tokens.
+        ///
+        /// Each command has a corresponding token type that is used to finish the command.
+        ///
+        /// The idea is to enforce in compile-time that the commands that require writing to memory (like `SELECT` or `SGET`) do write to memory.
         pub mod token {
             #token_types
         }
 
+        /// Enum over all possible commands (compile-time representation).
         #[derive(#BIN_READ, #BIN_WRITE, Debug)]
         pub enum CompiletimeCommand {
             #(#variant_names(compiletime::#variant_names)),*
         }
 
+        /// Enum over all possible commands (runtime representation).
         #[derive(Debug)]
         pub enum RuntimeCommand {
             #(#variant_names(runtime::#variant_names)),*

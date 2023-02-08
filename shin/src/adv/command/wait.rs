@@ -20,7 +20,7 @@ impl StartableCommand for command::runtime::WAIT {
         _vm_state: &VmState,
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        assert_eq!(self.allow_interrupt, 0);
+        assert!(!self.allow_interrupt);
         Yield(
             WAIT {
                 token: Some(self.token),

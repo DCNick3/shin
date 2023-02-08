@@ -1,3 +1,5 @@
+//! Types used in commands.
+
 mod flags;
 mod id;
 mod property;

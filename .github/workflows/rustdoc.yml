@@ -30,7 +30,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: doc
-          args: --no-deps
+          args: --no-deps --document-private-items
       - name: Create dummy index.html
         run: |
           echo "<meta http-equiv=refresh content=0;url=shin/index.html>" > target/doc/index.html

@@ -8,6 +8,7 @@ use std::fmt::Debug;
 use std::io;
 use std::io::SeekFrom;
 
+/// Code address - offset into the scenario file
 #[derive(BinRead, BinWrite, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[brw(little)]
 pub struct CodeAddress(pub u32);
@@ -18,6 +19,9 @@ impl Debug for CodeAddress {
     }
 }
 
+/// Memory address in the VM
+///
+/// It can refer to the global memory (for values smaller than [`MemoryAddress::STACK_ADDR_START`]) or to the stack
 #[derive(BinRead, BinWrite, Copy, Clone)]
 #[brw(little)]
 pub struct MemoryAddress(u16);
@@ -33,7 +37,7 @@ impl Debug for MemoryAddress {
 }
 
 impl MemoryAddress {
-    /// addresses larger than 0x1000 are treated as relative to the stack top (Aka mem3)
+    /// Addresses larger than 0x1000 are treated as relative to the stack top (Aka mem3)
     pub const STACK_ADDR_START: u16 = 0x1000;
 
     pub fn as_stack_offset(&self) -> Option<u16> {
@@ -59,12 +63,15 @@ impl MemoryAddress {
     }
 }
 
+/// Specifies how to get a 32-bit signed number at runtime
+///
+/// It can be a constant or a reference to memory
+///
+/// [FromVmCtx](crate::vm::FromVmCtx) trait is used to convert it to runtime representation in command definitions (see [crate::vm::command])
 #[derive(Debug, Copy, Clone)]
 pub enum NumberSpec {
+    /// A constant number
     Constant(i32),
-    // technically there are two kinds of memories in the VM...
-    // I think one is linear memory and another one is stack (known as Mem1 and Mem3 in ShinDataUtil)
-    // but I didn't see stack used much...
     Memory(MemoryAddress),
 }
 
@@ -139,15 +146,21 @@ impl BinWrite for NumberSpec {
 
 #[derive(Debug, FromPrimitive)]
 pub enum UnaryOperationType {
+    /// Ignore the source and return 0
     Zero = 0,
+    /// Xor the input with 0xFFFF
     XorFFFF = 1,
+    /// Negate the input
     Negate = 2,
+    /// Take the absolute value of the input
     Abs = 3,
 }
 #[derive(Debug)]
 pub struct UnaryOperation {
     pub ty: UnaryOperationType,
+    /// Where to write the result to
     pub destination: MemoryAddress,
+    /// The input value
     pub source: NumberSpec,
 }
 
@@ -195,19 +208,37 @@ impl BinWrite for UnaryOperation {
 
 #[derive(Debug, FromPrimitive)]
 pub enum BinaryOperationType {
+    /// `R`: Ignore the left operand and return the right operand
     MovRight = 0,
+    /// `0`: Ignore both operands and return 0
     Zero = 1,
+    /// `L + R`: Add the left and right operands
     Add = 2,
+    /// `L - R`: Subtract the right operand from the left operand
     Subtract = 3,
+    /// `L * R`: Multiply the left and right operands
     Multiply = 4,
+    /// `L / R`: Divide the left operand by the right operand
     Divide = 5,
+    /// `L % R`: Return the remainder of the left operand divided by the right operand
     Remainder = 6,
+    /// `L & R`: Bitwise AND the left and right operands
     BitwiseAnd = 7,
+    /// `L | R`: Bitwise OR the left and right operands
     BitwiseOr = 8,
+    /// `L ^ R`: Bitwise XOR the left and right operands
     BitwiseXor = 9,
+    /// `L << R`: Shift the left operand left by the right operand
     LeftShift = 10,
+    /// `L >> R`: Shift the left operand right by the right operand
     RightShift = 11,
+    /// `real(L) * real(R)`: Add the left and right operands as real numbers
+    ///
+    /// Real numbers are represented as fixed point numbers with 3 decimal places. (e.g. `1.234` is represented as `1234`)
     MultiplyReal = 12,
+    /// `real(L) / real(R)`: Divide the left operand by the right operand as real numbers
+    ///
+    /// Real numbers are represented as fixed point numbers with 3 decimal places. (e.g. `1.234` is represented as `1234`)
     DivideReal = 13,
     // TODO
     // 14: right = (int)(float)((float)(atan2f_0((float)left * 0.001, (float)right * 0.001) * 1000.0) / 6.2832);
@@ -269,19 +300,32 @@ impl BinWrite for BinaryOperation {
 
 #[derive(FromPrimitive, Debug)]
 pub enum JumpCondType {
+    /// `L == R`
     Equal = 0x0,
-    NotEqual = 0x01,
-    GreaterOrEqual = 0x02,
-    Greater = 0x03,
-    LessOrEqual = 0x04,
-    Less = 0x05,
-    BitwiseAndNotZero = 0x06,
+    /// `L != R`
+    NotEqual = 0x1,
+    /// `L >= R`
+    GreaterOrEqual = 0x2,
+    /// `L > R`
+    Greater = 0x3,
+    /// `L <= R`
+    LessOrEqual = 0x4,
+    /// `L < R`
+    Less = 0x5,
+    /// `L & R != 0`
+    BitwiseAndNotZero = 0x6,
+    /// (TODO: fact-check) `L & (1 << R) != 0`
     BitSet = 0x7,
 }
 
+/// Jump condition
+///
+/// Describes how to get a boolean value from two numbers
 #[derive(Debug)]
 pub struct JumpCond {
+    /// If true, the condition is negated
     pub is_negated: bool,
+    /// The condition to check
     pub condition: JumpCondType,
 }
 
@@ -326,24 +370,35 @@ impl BinWrite for JumpCond {
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little)]
 pub enum ExpressionTerm {
+    /// Push a number onto the stack
     #[brw(magic(0x00u8))]
     Push(NumberSpec),
+    /// `L=pop(), R=pop(), push(L + R)`
     #[brw(magic(0x01u8))]
     Add,
+    /// `L=pop(), R=pop(), push(L - R)`
     #[brw(magic(0x02u8))]
     Subtract,
+    /// `L=pop(), R=pop(), push(L * R)`
     #[brw(magic(0x03u8))]
     Multiply,
+    /// `L=pop(), R=pop(), push(L / R)`
     #[brw(magic(0x04u8))]
     Divide,
+    /// `L=pop(), R=pop(), push(L % R)`
     #[brw(magic(0x05u8))]
     Remainder,
 
+    /// `L=pop(), R=pop(), push(real(L) * real(R))`
+    ///
+    /// Real numbers are represented as fixed point numbers with 3 decimal places. (e.g. `1.234` is represented as `1234`)
     #[brw(magic(0x1au8))]
     MultiplyReal,
 
+    /// `L=pop(), R=pop(), push(min(L, R))`
     #[brw(magic(0x1eu8))]
     Min,
+    /// `L=pop(), R=pop(), push(max(L, R))`
     #[brw(magic(0x1fu8))]
     Max,
 }
@@ -388,6 +443,9 @@ impl BinWrite for Expression {
     }
 }
 
+/// Represents 8 numbers, each of which may or may not be present.
+///
+/// If the number is not present, it is represented as `NumberSpec::Constant(0)`.
 #[derive(Debug)]
 pub struct BitmaskNumberArray(pub [NumberSpec; 8]);
 
@@ -424,6 +482,9 @@ impl BinWrite for BitmaskNumberArray {
     }
 }
 
+/// Message ID - a 24-bit integer
+///
+/// It is used to check whether a message was seen before.
 pub struct MessageId(pub u32);
 
 impl BinRead for MessageId {
@@ -464,27 +525,45 @@ impl Debug for MessageId {
     }
 }
 
+/// Represents an instruction read from a script.
 #[allow(non_camel_case_types)]
 #[derive(BinRead, BinWrite, Debug)]
 #[br(little)]
 pub enum Instruction {
+    /// Unary operation
+    ///
+    /// Loads one argument, computes a single result and stores the result at the destination address.
     #[brw(magic(0x40u8))]
     uo(UnaryOperation),
+    /// Binary operation
+    ///
+    /// Loads two arguments, computes a single result and stores the result at the destination address.
     #[brw(magic(0x41u8))]
     bo(BinaryOperation),
+
+    /// Complex expression
+    ///
+    /// This can load multiple arguments, compute a single result and store the result at the destination address.
+    ///
+    /// The expression itself is encoded as a reverse polish notation expression.
     #[brw(magic(0x42u8))]
     exp {
         dest: MemoryAddress,
         expr: Expression,
     },
 
+    /// Get Table
+    ///
+    /// This selects a number from a table based on the value of the index and stores the result at the destination address.
     #[brw(magic(0x44u8))]
     gt {
         dest: MemoryAddress,
-        value: NumberSpec,
+        index: NumberSpec,
         table: U16SmallList<[NumberSpec; 32]>,
     },
     /// Jump Conditional
+    ///
+    /// Compares two numbers and jumps to a target address if the condition is true.
     #[brw(magic(0x46u8))]
     jc {
         cond: JumpCond,
@@ -495,29 +574,33 @@ pub enum Instruction {
 
     /// Jump Unconditional
     #[brw(magic(0x47u8))]
-    j {
-        target: CodeAddress,
-    },
+    j { target: CodeAddress },
     // ShinDataUtil is using names "call" and "return" for opcodes 0x48 and 0x49
     // while this is kinda true, there are instructions that are much more like "call" and "return"
     // I think I will rename these to gosub or smth, because they do not pass any parameters
     // (Higurashi does not use mem3 aka data stack at all, maybe because the script was converted)
-    /// Call a Subroutine without Parameters
+    /// Call a Subroutine without Parameters (legacy call?)
+    ///
+    /// It appears that this is the older way of calling functions (before the introduction of [call](Instruction::call)).
+    ///
+    /// The umi scenario still uses this (a bit).
+    ///
+    /// The return must be done with [retsub](Instruction::retsub).
     #[brw(magic(0x48u8))]
-    gosub {
-        target: CodeAddress,
-    },
-    /// Return from a Subroutine called with `gosub`
+    gosub { target: CodeAddress },
+    /// Return from a Subroutine called with [gosub](Instruction::gosub)
     #[brw(magic(0x49u8))]
     retsub {},
     /// Jump via Table
-    /// Used to implement switch statements
+    ///
+    /// Jump to a target address based on the value of the index.
     #[brw(magic(0x4au8))]
     jt {
-        value: NumberSpec,
+        index: NumberSpec,
         table: U16SmallList<[CodeAddress; 32]>,
     },
     // 0x4b not implemented
+    /// Generate a random number between min and max (inclusive)
     #[brw(magic(0x4cu8))]
     rnd {
         dest: MemoryAddress,
@@ -525,25 +608,29 @@ pub enum Instruction {
         max: NumberSpec,
     },
     /// Push Values to call stack
-    /// Used to preserve values of memory probably
+    ///
+    /// Used to preserve values of memory in the function. Must be restored with [pop](Instruction::pop) before using [return](`Instruction::return`) or [retsub](Instruction::retsub)
     #[brw(magic(0x4du8))]
-    push {
-        values: U8SmallNumberList,
-    },
+    push { values: U8SmallNumberList },
     /// Pop Values from call stack
-    /// Used to restore values of memory previously pushed by push
+    ///
+    /// Used to restore values of memory previously pushed by [push](Instruction::push)
     #[brw(magic(0x4eu8))]
     pop {
         dest: U8SmallList<[MemoryAddress; 6]>,
     },
     /// Call Subroutine with Parameters
+    ///
+    /// The return must be done with [return](`Instruction::return`).
     #[brw(magic(0x4fu8))]
     call {
         target: CodeAddress,
         args: U8SmallNumberList,
     },
-    /// Return from Subroutine called with `call`
+    /// Return from Subroutine called with [call](Instruction::call)
     #[brw(magic(0x50u8))]
     r#return {},
+
+    /// Send command to the game engine
     Command(CompiletimeCommand),
 }
