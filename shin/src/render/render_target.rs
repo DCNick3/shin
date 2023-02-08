@@ -1,7 +1,10 @@
 use super::TextureBindGroup;
 use crate::render::common_resources::GpuCommonResources;
+use crate::render::{VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
+use glam::Mat4;
 use std::borrow::Cow;
 
+/// Describes a fullscreen intermediate render target.
 pub struct RenderTarget {
     texture: wgpu::Texture,
     view: wgpu::TextureView,
@@ -86,6 +89,16 @@ impl RenderTarget {
             &self.sampler,
             Some(&format!("{} TextureBindGroup", self.label)),
         );
+    }
+
+    pub fn projection_matrix(&self) -> Mat4 {
+        let mut projection = Mat4::IDENTITY;
+        projection.x_axis.x = 2.0 / VIRTUAL_WIDTH;
+        projection.y_axis.y = -2.0 / VIRTUAL_HEIGHT; // in wgpu y is up, so we need to flip the y axis
+        projection.z_axis.z = 1.0 / 1000.0;
+        projection.w_axis.w = 1.0;
+
+        projection
     }
 
     pub fn begin_render_pass<'a>(

@@ -114,6 +114,7 @@ impl Renderable for Pillarbox {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
         render_pass.push_debug_group("Pillarbox");
         resources.pipelines.fill_screen.draw(
@@ -124,7 +125,7 @@ impl Renderable for Pillarbox {
                 indices: 0..self.num_indices,
                 instances: 0..1,
             },
-            transform,
+            projection * transform,
             vec4(0.0, 0.0, 0.0, 1.0),
         );
         render_pass.pop_debug_group();

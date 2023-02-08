@@ -37,14 +37,16 @@ impl Renderable for PictureLayer {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
+        let total_transform = projection * self.props.compute_transform(transform);
         // TODO: there should be a generic function to render a layer (from texture?)
         let gpu_image = self.picture.gpu_image(resources);
         resources.draw_sprite(
             render_pass,
             gpu_image.vertex_source(),
             gpu_image.bind_group(),
-            self.props.compute_transform(transform),
+            total_transform,
         );
     }
 

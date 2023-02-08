@@ -23,6 +23,7 @@ impl Renderable for NullLayer {
         _resources: &'enc GpuCommonResources,
         _render_pass: &mut wgpu::RenderPass<'enc>,
         _transform: Mat4,
+        _projection: Mat4,
     ) {
     }
 

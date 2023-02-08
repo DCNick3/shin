@@ -193,6 +193,7 @@ impl Renderable for Messagebox {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
         if !self.visible {
             return;
@@ -202,7 +203,8 @@ impl Renderable for Messagebox {
 
         match self.messagebox_type {
             MessageboxType::Neutral | MessageboxType::WitchSpace | MessageboxType::Ushiromiya => {
-                let transform = transform
+                let total_transform = projection
+                    * transform
                     * Mat4::from_translation(vec3(
                         -960.0,
                         -540.0 + (1080.0 - self.dynamic_height) - 32.0,
@@ -226,7 +228,7 @@ impl Renderable for Messagebox {
                     render_pass,
                     self.tex_vertex_buffer.vertex_source(),
                     texture.bind_group(),
-                    transform,
+                    total_transform,
                 );
             }
             MessageboxType::Transparent | MessageboxType::NoText => {
@@ -236,7 +238,7 @@ impl Renderable for Messagebox {
                 resources.draw_fill(
                     render_pass,
                     self.fill_vertex_buffer.vertex_source(),
-                    transform,
+                    projection * transform,
                     vec4(0.0, 0.0, 0.0, 0.7),
                 );
             }

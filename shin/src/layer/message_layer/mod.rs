@@ -117,11 +117,13 @@ impl Renderable for MessageLayer {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
         let transform = self.props.compute_transform(transform);
-        self.messagebox.render(resources, render_pass, transform);
+        self.messagebox
+            .render(resources, render_pass, transform, projection);
         if let Some(message) = &self.message {
-            message.render(resources, render_pass, transform);
+            message.render(resources, render_pass, transform, projection);
         }
     }
 

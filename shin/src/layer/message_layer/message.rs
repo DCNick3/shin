@@ -348,8 +348,11 @@ impl Renderable for Message {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
         const OUTLINE_DISTANCE: f32 = 3.5;
+
+        let total_transform = projection * transform;
 
         let atlas_size = self.font_atlas.texture_size();
         let scaled_distance = OUTLINE_DISTANCE / vec2(atlas_size.0 as f32, atlas_size.1 as f32);
@@ -359,7 +362,7 @@ impl Renderable for Message {
             render_pass,
             self.vertex_buffer.vertex_source(),
             self.font_atlas.texture_bind_group(),
-            transform,
+            total_transform,
             self.time,
             scaled_distance,
         );
@@ -368,7 +371,7 @@ impl Renderable for Message {
             render_pass,
             self.vertex_buffer.vertex_source(),
             self.font_atlas.texture_bind_group(),
-            transform,
+            total_transform,
             self.time,
         );
         render_pass.pop_debug_group();

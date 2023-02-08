@@ -13,7 +13,7 @@ pub struct BustupLayer {
     bustup_name: Option<String>,
     emotion: String,
 
-    props: LayerProperties,
+    properties: LayerProperties,
 }
 
 impl BustupLayer {
@@ -30,7 +30,7 @@ impl BustupLayer {
             bustup,
             bustup_name,
             emotion: emotion.to_owned(),
-            props: LayerProperties::new(),
+            properties: LayerProperties::new(),
         }
     }
 }
@@ -41,14 +41,18 @@ impl Renderable for BustupLayer {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
+        let transform = self.properties.compute_transform(transform);
+        let total_transform = projection * transform;
+
         let mut draw_image = |image: &'enc GpuImage| {
             // TODO: there should be a generic function to render a layer (from texture?)
             resources.draw_sprite(
                 render_pass,
                 image.vertex_source(),
                 image.bind_group(),
-                self.props.compute_transform(transform),
+                total_transform,
             );
         };
 
@@ -71,7 +75,7 @@ impl Renderable for BustupLayer {
 
 impl Updatable for BustupLayer {
     fn update(&mut self, ctx: &UpdateContext) {
-        self.props.update(ctx);
+        self.properties.update(ctx);
     }
 }
 
@@ -91,10 +95,10 @@ impl Debug for BustupLayer {
 
 impl Layer for BustupLayer {
     fn properties(&self) -> &LayerProperties {
-        &self.props
+        &self.properties
     }
 
     fn properties_mut(&mut self) -> &mut LayerProperties {
-        &mut self.props
+        &mut self.properties
     }
 }

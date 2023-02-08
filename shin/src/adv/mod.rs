@@ -151,8 +151,10 @@ impl Renderable for Adv {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
-        self.adv_state.render(resources, render_pass, transform);
+        self.adv_state
+            .render(resources, render_pass, transform, projection);
     }
 
     fn resize(&mut self, resources: &GpuCommonResources) {
@@ -340,9 +342,10 @@ impl Renderable for AdvState {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
         self.root_layer_group
-            .render(resources, render_pass, transform);
+            .render(resources, render_pass, transform, projection);
     }
 
     fn resize(&mut self, resources: &GpuCommonResources) {

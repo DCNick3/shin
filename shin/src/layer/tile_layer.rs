@@ -60,11 +60,14 @@ impl Renderable for TileLayer {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
+        let total_transform = projection * self.props.compute_transform(transform);
+
         resources.draw_fill(
             render_pass,
             self.vertex_buffer.vertex_source(),
-            self.props.compute_transform(transform),
+            total_transform,
             self.vertex_color,
         );
     }

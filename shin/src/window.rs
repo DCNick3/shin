@@ -1,6 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use anyhow::{Context, Result};
+use glam::Mat4;
 use shin_core::format::scenario::instructions::CodeAddress;
 use tracing::{debug, info, trace, warn};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
@@ -250,7 +251,8 @@ impl State {
             self.adv.render(
                 &self.resources,
                 &mut render_pass,
-                self.camera.projection_matrix(),
+                Mat4::IDENTITY,
+                self.render_target.projection_matrix(),
             );
         }
 
@@ -283,6 +285,7 @@ impl State {
             self.pillarbox.render(
                 &self.resources,
                 &mut render_pass,
+                Mat4::IDENTITY,
                 self.camera.screen_projection_matrix(),
             );
 

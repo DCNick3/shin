@@ -67,6 +67,7 @@ impl Renderable for RootLayerGroup {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
         {
             let mut encoder = resources.start_encoder();
@@ -74,20 +75,17 @@ impl Renderable for RootLayerGroup {
                 .render_target
                 .begin_render_pass(&mut encoder, Some("RootLayerGroup RenderPass"));
 
+            let transform = self.properties.compute_transform(transform);
+            let projection = self.render_target.projection_matrix();
+
             render_pass.push_debug_group("ScreenLayer");
-            self.screen_layer.render(
-                resources,
-                &mut render_pass,
-                self.properties.compute_transform(transform),
-            );
+            self.screen_layer
+                .render(resources, &mut render_pass, transform, projection);
             render_pass.pop_debug_group();
 
             render_pass.push_debug_group("MessageLayer");
-            self.message_layer.render(
-                resources,
-                &mut render_pass,
-                self.properties.compute_transform(transform),
-            );
+            self.message_layer
+                .render(resources, &mut render_pass, transform, projection);
             render_pass.pop_debug_group();
         }
 
@@ -97,7 +95,7 @@ impl Renderable for RootLayerGroup {
             render_pass,
             self.vertices.vertex_source(),
             self.render_target.bind_group(),
-            transform,
+            projection,
         );
         render_pass.pop_debug_group();
     }

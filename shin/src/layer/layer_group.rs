@@ -90,6 +90,7 @@ impl Renderable for LayerGroup {
         resources: &'enc GpuCommonResources,
         render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
+        projection: Mat4,
     ) {
         {
             let mut encoder = resources.start_encoder();
@@ -105,13 +106,13 @@ impl Renderable for LayerGroup {
                     *id
                 })
                 .collect::<Vec<_>>();
+
+            let transform = self.properties.compute_transform(transform);
+            let projection = self.render_target.projection_matrix();
+
             for (id, l) in ordered_layers {
                 render_pass.push_debug_group(&format!("Layer {:?}", id));
-                l.render(
-                    resources,
-                    &mut render_pass,
-                    self.properties.compute_transform(transform),
-                );
+                l.render(resources, &mut render_pass, transform, projection);
                 render_pass.pop_debug_group();
             }
         }
@@ -122,7 +123,7 @@ impl Renderable for LayerGroup {
             render_pass,
             self.vertices.vertex_source(),
             self.render_target.bind_group(),
-            transform,
+            projection,
         );
         render_pass.pop_debug_group();
     }
