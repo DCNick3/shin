@@ -1,3 +1,6 @@
+// this is noisy & not well-supported by IDEs
+#![allow(clippy::uninlined_format_args)]
+
 mod command;
 pub(crate) mod sanitization;
 mod texture_archive;

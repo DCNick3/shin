@@ -1,5 +1,5 @@
 use super::prelude::*;
-use crate::asset::audio::AudioWaitStatus;
+use shin_core::vm::command::types::AudioWaitStatus;
 use std::fmt::{Debug, Formatter};
 
 pub struct SEWAIT {
@@ -24,8 +24,7 @@ impl StartableCommand for command::runtime::SEWAIT {
             SEWAIT {
                 token: Some(self.token),
                 slot: self.se_slot,
-                target_status: AudioWaitStatus::from_bits(self.wait_mask as u32)
-                    .expect("invalid wait mask"),
+                target_status: self.target_status,
             }
             .into(),
         )

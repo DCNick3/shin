@@ -1,8 +1,8 @@
 use super::manager::AudioManager;
-use crate::asset::audio::{Audio, AudioHandle, AudioParams, AudioWaitStatus};
+use crate::asset::audio::{Audio, AudioHandle, AudioParams};
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
 use shin_core::time::Tween;
-use shin_core::vm::command::types::{Pan, Volume};
+use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
 use std::sync::Arc;
 use tracing::warn;
 

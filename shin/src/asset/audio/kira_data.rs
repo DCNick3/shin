@@ -8,14 +8,14 @@ use kira::track::TrackId;
 use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
 use shin_core::format::audio::{AudioDecoder, AudioDecoderIterator, AudioFile};
 use shin_core::time::{Ticks, Tween, Tweener};
-use shin_core::vm::command::types::{Pan, Volume};
+use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
 use std::f32::consts::SQRT_2;
-use std::sync::atomic::AtomicU32;
+use std::sync::atomic::{AtomicI32, AtomicU32};
 use std::sync::Arc;
 use tracing::debug;
 
 use super::resampler::Resampler;
-use super::{Audio, AudioParams, AudioWaitStatus};
+use super::{Audio, AudioParams};
 
 impl Audio {
     pub fn to_kira_data(self: Arc<Self>, params: AudioParams) -> AudioData {
@@ -45,7 +45,7 @@ enum Command {
 }
 
 struct Shared {
-    wait_status: AtomicU32,
+    wait_status: AtomicI32,
     // TODO: in what unit
     #[allow(unused)] // TODO: use it to implement BGMSYNC (I don't know which unit it uses)
     position: AtomicU32,
@@ -56,7 +56,7 @@ struct Shared {
 impl Shared {
     fn new() -> Self {
         Self {
-            wait_status: AtomicU32::new(0),
+            wait_status: AtomicI32::new(0),
             position: AtomicU32::new(0),
             amplitude: AtomicU32::new(0),
         }
@@ -270,9 +270,10 @@ impl Sound for AudioSound {
             }
         }
 
-        self.shared
-            .wait_status
-            .store(self.wait_status().bits, std::sync::atomic::Ordering::SeqCst);
+        self.shared.wait_status.store(
+            self.wait_status().bits(),
+            std::sync::atomic::Ordering::SeqCst,
+        );
         // TODO: compute the amplitude
         // TODO: provide the position
     }

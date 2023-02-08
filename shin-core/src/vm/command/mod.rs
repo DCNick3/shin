@@ -10,8 +10,8 @@ use shin_derive::Command;
 // those are actually used by the generated code (it's a bit messy, i know)
 #[allow(unused)]
 use types::{
-    LayerId, LayerProperty, LayerPropertySmallList, LayerType, MessageboxStyle, Pan, VLayerId,
-    Volume,
+    AudioWaitStatus, LayerCtrlFlags, LayerId, LayerProperty, LayerPropertySmallList, LayerType,
+    MaskFlags, MessageboxStyle, Pan, VLayerId, Volume,
 };
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
@@ -118,7 +118,10 @@ pub enum Command {
         fade_in_time: NumberSpec,
     },
     #[cmd(opcode = 0x93u8)]
-    BGMWAIT { wait_mask: NumberSpec },
+    BGMWAIT {
+        #[cmd(rty = "AudioWaitStatus")]
+        target_status: NumberSpec,
+    },
     #[cmd(opcode = 0x94u8)]
     BGMSYNC { sync_time: NumberSpec },
     #[cmd(opcode = 0x95u8)]
@@ -165,7 +168,8 @@ pub enum Command {
     #[cmd(opcode = 0x9au8)]
     SEWAIT {
         se_slot: NumberSpec, // may have a special value of -1
-        wait_mask: NumberSpec,
+        #[cmd(rty = "AudioWaitStatus")]
+        target_status: NumberSpec,
     },
     #[cmd(opcode = 0x9bu8)]
     SEONCE {
@@ -185,12 +189,18 @@ pub enum Command {
     #[cmd(opcode = 0x9du8)]
     VOICESTOP {},
     #[cmd(opcode = 0x9eu8)]
-    VOICEWAIT { wait_mask: NumberSpec },
+    VOICEWAIT {
+        #[cmd(rty = "AudioWaitStatus")]
+        target_status: NumberSpec,
+    },
     #[cmd(opcode = 0x9fu8)]
     SYSSE { arg1: NumberSpec, arg2: NumberSpec },
 
     #[cmd(opcode = 0xa0u8)]
-    SAVEINFO { level: NumberSpec, info: U16String }, // TODO: this string needs a fixup (see ShinDataUtil's OpcodeDefinitions.NeedsStringFixup)
+    SAVEINFO {
+        level: NumberSpec,
+        info: U16FixupString,
+    },
     #[cmd(opcode = 0xa1u8)]
     AUTOSAVE {},
     #[cmd(opcode = 0xa2u8)]
@@ -243,8 +253,8 @@ pub enum Command {
         layer_id: NumberSpec,
         #[cmd(rty = "LayerProperty")]
         property_id: NumberSpec,
-        // in the params there are (always?) three numbers
-        // ctrl_value, ctrl_time and ctrl_flags
+        /// (target_value, time, flags, easing_param)
+        #[cmd(rty = "(i32, Ticks, LayerCtrlFlags, i32)")]
         params: BitmaskNumberArray,
     },
     /// Wait for property transitions to finish.
@@ -287,9 +297,11 @@ pub enum Command {
     PLANECLEAR {},
     #[cmd(opcode = 0xceu8)]
     MASKLOAD {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
-        arg3: NumberSpec,
+        mask_data_id: NumberSpec,
+        #[cmd(rty = "MaskFlags")]
+        mask_flags: NumberSpec,
+        #[cmd(rty = "bool")]
+        smth_smth_transition: NumberSpec,
     },
     #[cmd(opcode = 0xcfu8)]
     MASKUNLOAD {},

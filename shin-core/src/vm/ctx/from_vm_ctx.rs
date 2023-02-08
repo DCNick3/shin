@@ -57,6 +57,28 @@ macro_rules! identity_from_vm_ctx_default {
 
 identity_from_vm_ctx_default!(u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, MessageId);
 
+macro_rules! impl_from_vm_ctx_tuple {
+    ($($name:ident),+) => {
+        impl<$($name: FromVmCtx<NumberSpec>),+> FromVmCtx<BitmaskNumberArray> for ($($name,)+) {
+            fn from_vm_ctx(ctx: &VmCtx, input: BitmaskNumberArray) -> Self {
+                let mut iter = input.0.iter().cloned();
+                ($(
+                    $name::from_vm_ctx(ctx, iter.next().unwrap()),
+                )+)
+            }
+        }
+    };
+}
+
+impl_from_vm_ctx_tuple!(T1);
+impl_from_vm_ctx_tuple!(T1, T2);
+impl_from_vm_ctx_tuple!(T1, T2, T3);
+impl_from_vm_ctx_tuple!(T1, T2, T3, T4);
+impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5);
+impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6);
+impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6, T7);
+impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6, T7, T8);
+
 impl FromVmCtx<NumberSpec> for i32 {
     fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
         ctx.get_number(input)
