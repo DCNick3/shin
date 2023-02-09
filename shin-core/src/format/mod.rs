@@ -7,6 +7,7 @@ pub mod rom;
 pub mod audio;
 pub mod bustup;
 pub mod font;
+pub mod mask;
 pub mod picture;
 pub mod save;
 pub mod scenario;

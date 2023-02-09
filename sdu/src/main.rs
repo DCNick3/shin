@@ -33,6 +33,9 @@ enum SduAction {
     /// Operations on PIC picture files
     #[clap(subcommand)]
     Picture(PictureCommand),
+    /// Operations on MSK mask files
+    #[clap(subcommand)]
+    Mask(MaskCommand),
     /// Operations on FNT font files
     #[clap(subcommand)]
     Font(FontCommand),
@@ -126,6 +129,17 @@ enum PictureCommand {
     Decode {
         /// Path to the PIC file
         picture_path: PathBuf,
+        /// Path to the output PNG file
+        output_path: PathBuf,
+    },
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum MaskCommand {
+    /// Convert a MSK file into a PNG file
+    Decode {
+        /// Path to the MSK file
+        mask_path: PathBuf,
         /// Path to the output PNG file
         output_path: PathBuf,
     },
@@ -528,6 +542,22 @@ fn picture_command(command: PictureCommand) -> Result<()> {
     }
 }
 
+fn mask_command(command: MaskCommand) -> Result<()> {
+    match command {
+        MaskCommand::Decode {
+            mask_path,
+            output_path,
+        } => {
+            let mask = std::fs::read(mask_path)?;
+            let mask = shin_core::format::mask::read_mask(&mask)?;
+
+            mask.texels.save(output_path)?;
+
+            Ok(())
+        }
+    }
+}
+
 fn font_command(command: FontCommand) -> Result<()> {
     match command {
         FontCommand::Decode {
@@ -795,6 +825,7 @@ fn main() -> Result<()> {
         SduAction::Rom(cmd) => rom_command(cmd),
         SduAction::Scenario(cmd) => scenario_command(cmd),
         SduAction::Picture(cmd) => picture_command(cmd),
+        SduAction::Mask(cmd) => mask_command(cmd),
         SduAction::Font(cmd) => font_command(cmd),
         SduAction::Bustup(cmd) => bustup_command(cmd),
         SduAction::TextureArchive(cmd) => texture_archive_command(cmd),
