@@ -2,6 +2,7 @@
 members = [
     "shin-derive",
     "shin-core",
+    "shin-video",
     "sdu",
     "shin",
     "junk",
