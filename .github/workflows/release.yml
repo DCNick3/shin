@@ -91,8 +91,6 @@ jobs:
         with:
           make-default: false
       - name: Run cargo-dist
-        env:
-          OPUS_STATIC: 1 # statically link libopus (mostly for linux)
         # This logic is a bit janky because it's trying to be a polyglot between
         # powershell and bash since this will run on windows, macos, and linux!
         # The two platforms don't agree on how to talk about env vars but they
