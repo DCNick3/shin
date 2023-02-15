@@ -2,6 +2,7 @@
 members = [
     "shin-derive",
     "shin-core",
+    "shin-render",
     "shin-video",
     "sdu",
     "shin",
@@ -16,6 +17,7 @@ enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "942b6f0fefc41d
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
 wgpu = "0.15.1"
 kira = "0.7.1"
+egui = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679" }
 
 [patch.crates-io]
 mp4 = { path = "../mp4-rust" }

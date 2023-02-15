@@ -1,10 +1,10 @@
-use crate::render;
-use crate::render::{
-    GpuCommonResources, PosColTexVertex, SpriteVertexBuffer, TextureBindGroup, VertexSource,
-};
 use glam::{vec4, Vec2};
 use image::RgbaImage;
 use once_cell::sync::OnceCell;
+use shin_render::{
+    GpuCommonResources, PosColTexVertex, SpriteVertexBuffer, TextureBindGroup, VertexSource,
+    TEXTURE_FORMAT,
+};
 use std::borrow::Cow;
 use std::num::NonZeroU32;
 
@@ -125,7 +125,7 @@ impl GpuTexture {
         };
 
         assert_eq!(
-            render::TEXTURE_FORMAT,
+            TEXTURE_FORMAT,
             wgpu::TextureFormat::Rgba8UnormSrgb,
             "Only Rgba8UnormSrgb is supported for now"
         );
@@ -136,7 +136,7 @@ impl GpuTexture {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: render::TEXTURE_FORMAT,
+            format: TEXTURE_FORMAT,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });

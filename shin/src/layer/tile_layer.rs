@@ -1,8 +1,8 @@
 use crate::layer::{Layer, LayerProperties};
-use crate::render::Renderable;
-use crate::render::{GpuCommonResources, PosVertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use glam::{vec4, Mat4, Vec4};
+use shin_render::Renderable;
+use shin_render::{GpuCommonResources, PosVertexBuffer};
 use std::fmt::Debug;
 use std::sync::Arc;
 

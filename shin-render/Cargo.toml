@@ -1,0 +1,32 @@
+[package]
+name = "shin-render"
+version = "0.3.0"
+edition = "2021"
+description = "Common rendering utilities for the Shin engine"
+repository = "https://github.com/DCNick3/shin"
+license = "MPL-2.0"
+authors = ["DCNick3"]
+
+[dependencies]
+shin-core = { path = "../shin-core" }
+
+anyhow = "1.0.65"
+tracing = "0.1.37"
+
+winit = "0.28.1"
+wgpu = { workspace = true }
+# TODO: this can be reimplemented in shin-derive (I want to have my own traits for this anyways)
+wrld = "1.0.0"
+# git version for integer overflow fix https://github.com/nical/etagere/pull/21
+etagere = { git = "https://github.com/DCNick3/etagere", rev = "53c7ba67256408af78b66909bad7bb905648ec97" }
+
+glam = { workspace = true, features = [
+    # "scalar-math" disables the 16-byte alignment requirement for some types
+    # this is required for bytemuck to work
+    "bytemuck", "scalar-math"
+] }
+bytemuck = { version = "1.12.3", features = ["derive"] }
+
+enum_dispatch = "0.3.8"
+bevy_utils = "0.9.1"
+

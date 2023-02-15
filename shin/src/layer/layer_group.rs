@@ -5,9 +5,9 @@ use itertools::Itertools;
 use shin_core::vm::command::types::LayerId;
 
 use crate::layer::{Layer, LayerProperties, UserLayer};
-use crate::render::GpuCommonResources;
-use crate::render::{RenderTarget, Renderable};
 use crate::update::{Updatable, UpdateContext};
+use shin_render::GpuCommonResources;
+use shin_render::{RenderTarget, Renderable};
 
 pub struct LayerGroup {
     layers: HashMap<LayerId, UserLayer>,

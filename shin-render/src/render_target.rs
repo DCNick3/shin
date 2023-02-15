@@ -1,8 +1,6 @@
 use super::TextureBindGroup;
-use crate::render::common_resources::GpuCommonResources;
-use crate::render::{
-    PosColTexVertex, SpriteVertexBuffer, VertexSource, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
-};
+use crate::common_resources::GpuCommonResources;
+use crate::{PosColTexVertex, SpriteVertexBuffer, VertexSource, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 use glam::Mat4;
 use std::borrow::Cow;
 

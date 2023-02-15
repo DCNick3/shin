@@ -1,5 +1,5 @@
-use crate::render::pipelines::Pipelines;
-use crate::render::{
+use crate::pipelines::Pipelines;
+use crate::{
     BindGroupLayouts, PosColTexVertex, PosVertex, SubmittingEncoder, TextVertex, TextureBindGroup,
     VertexSource,
 };

@@ -11,11 +11,11 @@ use crate::layer::message_layer::font_atlas::FontAtlas;
 use crate::layer::message_layer::messagebox::Messagebox;
 use crate::layer::{Layer, LayerProperties};
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
-use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use message::{Message, MessageStatus};
 use shin_core::time::Ticks;
 use shin_core::vm::command::types::{MessageboxStyle, MessageboxType};
+use shin_render::{GpuCommonResources, Renderable};
 
 pub struct MessageLayer {
     props: LayerProperties,

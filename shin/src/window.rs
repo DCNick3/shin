@@ -23,14 +23,16 @@ use crate::{
     fps_counter::FpsCounter,
     input::RawInputState,
     render::overlay::{OverlayManager, OverlayVisitable},
-    render::BindGroupLayouts,
-    render::Camera,
-    render::GpuCommonResources,
-    render::Pillarbox,
-    render::Pipelines,
-    render::{RenderTarget, Renderable},
     update::{Updatable, UpdateContext},
 };
+
+use shin_render::BindGroupLayouts;
+use shin_render::Camera;
+use shin_render::GpuCommonResources;
+use shin_render::Pillarbox;
+use shin_render::Pipelines;
+use shin_render::{RenderTarget, Renderable};
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 

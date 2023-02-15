@@ -1,5 +1,7 @@
-use crate::render;
-use crate::render::{GpuCommonResources, PosColTexVertex, PosVertex, TextVertex, VertexSource};
+use crate::{
+    GpuCommonResources, PosColTexVertex, PosVertex, TextVertex, VertexSource, VIRTUAL_HEIGHT,
+    VIRTUAL_WIDTH,
+};
 use glam::{vec2, vec3, vec4, Vec4};
 use std::sync::atomic::{AtomicU32, Ordering};
 use wgpu::util::DeviceExt;
@@ -179,8 +181,8 @@ impl SpriteVertexBuffer {
     }
 
     pub fn new_fullscreen(resources: &GpuCommonResources) -> Self {
-        let w = render::VIRTUAL_WIDTH as f32 / 2.0;
-        let h = render::VIRTUAL_HEIGHT as f32 / 2.0;
+        let w = VIRTUAL_WIDTH as f32 / 2.0;
+        let h = VIRTUAL_HEIGHT as f32 / 2.0;
 
         Self::new(resources, (-w, -h, w, h), vec4(1.0, 1.0, 1.0, 1.0))
     }
@@ -236,8 +238,8 @@ impl PosVertexBuffer {
 
     #[allow(unused)]
     pub fn new_fullscreen(resources: &GpuCommonResources) -> Self {
-        let w = render::VIRTUAL_WIDTH as f32 / 2.0;
-        let h = render::VIRTUAL_HEIGHT as f32 / 2.0;
+        let w = VIRTUAL_WIDTH as f32 / 2.0;
+        let h = VIRTUAL_HEIGHT as f32 / 2.0;
 
         Self::new(resources, (-w, -h, w, h))
     }

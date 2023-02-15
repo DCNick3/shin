@@ -1,8 +1,8 @@
 use crate::layer::{Layer, LayerGroup, LayerProperties};
-use crate::render::{GpuCommonResources, RenderTarget, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use glam::Mat4;
 use shin_core::vm::command::types::PLANES_COUNT;
+use shin_render::{GpuCommonResources, RenderTarget, Renderable};
 
 pub struct PageLayer {
     planes: [LayerGroup; PLANES_COUNT],

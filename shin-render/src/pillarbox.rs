@@ -1,4 +1,4 @@
-use crate::render::{
+use crate::{
     GpuCommonResources, PosVertex, Renderable, VertexSource, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
 };
 use glam::{vec3, vec4, Mat4};

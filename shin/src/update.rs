@@ -6,8 +6,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::layer::UserLayer;
-use crate::render::GpuCommonResources;
 use crate::time::Time;
+use shin_render::GpuCommonResources;
 
 pub struct UpdateContext<'a> {
     pub time: &'a Time,

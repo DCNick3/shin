@@ -1,4 +1,4 @@
-use crate::render::common_resources::GpuCommonResources;
+use crate::common_resources::GpuCommonResources;
 use std::ops::Deref;
 
 pub struct BindGroupLayouts {

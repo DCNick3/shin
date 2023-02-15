@@ -1,7 +1,7 @@
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
-use crate::render::{GpuCommonResources, TextureBindGroup};
 use bevy_utils::{Entry, HashMap};
 use glam::{vec2, Vec2};
+use shin_render::{GpuCommonResources, TextureBindGroup};
 use std::num::NonZeroU32;
 use std::ops::Deref;
 use std::sync::{Mutex, RwLock};

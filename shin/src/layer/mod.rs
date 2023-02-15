@@ -32,11 +32,11 @@ use crate::asset::bustup::Bustup;
 use crate::asset::picture::Picture;
 use crate::asset::AnyAssetServer;
 use crate::layer::wobbler::Wobbler;
-use crate::render::{GpuCommonResources, Renderable};
 use crate::update::{Updatable, UpdateContext};
 use shin_core::format::scenario::Scenario;
 use shin_core::time::{Ticks, Tweener};
 use shin_core::vm::command::types::{LayerProperty, LayerType};
+use shin_render::{GpuCommonResources, Renderable};
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
     enum_map! {
@@ -222,7 +222,7 @@ pub trait Layer: Renderable + Updatable {
     fn properties_mut(&mut self) -> &mut LayerProperties;
 }
 
-#[enum_dispatch(Layer, Renderable, Updatable)]
+#[enum_dispatch(Layer, Updatable)]
 #[derive(Derivative)]
 #[derivative(Debug)]
 #[allow(clippy::enum_variant_names)]
@@ -294,6 +294,32 @@ impl UserLayer {
             _ => {
                 todo!("Layer type not implemented: {:?}", layer_ty);
             }
+        }
+    }
+}
+
+impl Renderable for UserLayer {
+    fn render<'enc>(
+        &'enc self,
+        resources: &'enc GpuCommonResources,
+        render_pass: &mut wgpu::RenderPass<'enc>,
+        transform: Mat4,
+        projection: Mat4,
+    ) {
+        match self {
+            UserLayer::NullLayer(l) => l.render(resources, render_pass, transform, projection),
+            UserLayer::PictureLayer(l) => l.render(resources, render_pass, transform, projection),
+            UserLayer::BustupLayer(l) => l.render(resources, render_pass, transform, projection),
+            UserLayer::TileLayer(l) => l.render(resources, render_pass, transform, projection),
+        }
+    }
+
+    fn resize(&mut self, resources: &GpuCommonResources) {
+        match self {
+            UserLayer::NullLayer(l) => l.resize(resources),
+            UserLayer::PictureLayer(l) => l.resize(resources),
+            UserLayer::BustupLayer(l) => l.resize(resources),
+            UserLayer::TileLayer(l) => l.resize(resources),
         }
     }
 }

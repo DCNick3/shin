@@ -1,5 +1,5 @@
-use crate::render;
-use crate::render::bind_groups::{BindGroupLayouts, TextureBindGroup};
+use crate::bind_groups::{BindGroupLayouts, TextureBindGroup};
+use crate::TEXTURE_FORMAT;
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec2, Vec3, Vec4};
 use shin_core::time::Ticks;
@@ -411,14 +411,10 @@ impl Pipelines {
         surface_texture_format: wgpu::TextureFormat,
     ) -> Pipelines {
         Pipelines {
-            sprite: SpritePipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
-            fill: FillPipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
-            text: TextPipeline::new(device, bind_group_layouts, render::TEXTURE_FORMAT),
-            text_outline: TextOutlinePipeline::new(
-                device,
-                bind_group_layouts,
-                render::TEXTURE_FORMAT,
-            ),
+            sprite: SpritePipeline::new(device, bind_group_layouts, TEXTURE_FORMAT),
+            fill: FillPipeline::new(device, bind_group_layouts, TEXTURE_FORMAT),
+            text: TextPipeline::new(device, bind_group_layouts, TEXTURE_FORMAT),
+            text_outline: TextOutlinePipeline::new(device, bind_group_layouts, TEXTURE_FORMAT),
 
             sprite_screen: SpritePipeline::new(device, bind_group_layouts, surface_texture_format),
             fill_screen: FillPipeline::new(device, bind_group_layouts, surface_texture_format),

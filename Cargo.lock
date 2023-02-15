@@ -3078,6 +3078,7 @@ dependencies = [
  "serde_yaml",
  "shin-core",
  "shin-derive",
+ "shin-render",
  "smallvec",
  "strum",
  "tracing",
@@ -3136,6 +3137,23 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "shin-render"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "bevy_utils",
+ "bytemuck",
+ "enum_dispatch",
+ "etagere",
+ "glam",
+ "shin-core",
+ "tracing",
+ "wgpu 0.15.1",
+ "winit",
+ "wrld",
 ]
 
 [[package]]

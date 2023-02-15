@@ -1,9 +1,9 @@
 use crate::asset::picture::Picture;
 use crate::layer::{Layer, LayerProperties};
-use crate::render::GpuCommonResources;
-use crate::render::Renderable;
 use crate::update::{Updatable, UpdateContext};
 use glam::Mat4;
+use shin_render::GpuCommonResources;
+use shin_render::Renderable;
 use std::fmt::Debug;
 use std::sync::Arc;
 

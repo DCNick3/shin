@@ -1,6 +1,5 @@
 use crate::layer::message_layer::font_atlas::FontAtlas;
 use crate::render::dynamic_atlas::AtlasImage;
-use crate::render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
 use crate::update::{Updatable, UpdateContext};
 use glam::{vec2, Mat4, Vec2};
 use shin_core::format::font::GlyphTrait;
@@ -9,6 +8,7 @@ use shin_core::layout::{
 };
 use shin_core::time::Ticks;
 use shin_core::vm::command::types::MessageTextLayout;
+use shin_render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
 use std::sync::Arc;
 use tracing::warn;
 

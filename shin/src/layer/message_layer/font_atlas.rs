@@ -1,7 +1,7 @@
 use crate::render::dynamic_atlas::{AtlasImage, DynamicAtlas, ImageProvider};
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
-use crate::render::{GpuCommonResources, TextureBindGroup};
 use shin_core::format::font::{GlyphId, GlyphMipLevel, GlyphTrait, LazyFont};
+use shin_render::{GpuCommonResources, TextureBindGroup};
 use std::sync::Arc;
 use strum::IntoEnumIterator;
 use wgpu::TextureFormat;

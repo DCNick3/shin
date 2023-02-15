@@ -1,7 +1,6 @@
 use crate::input::actions::OverlayManagerAction;
 use crate::input::inputs::MouseButton;
 use crate::input::{ActionState, RawInputState};
-use crate::render::GpuCommonResources;
 use crate::time::Time;
 use bevy_utils::HashMap;
 use egui::style::WidgetVisuals;
@@ -12,6 +11,7 @@ use egui::{
 use egui_wgpu::renderer::ScreenDescriptor;
 use egui_wgpu::Renderer;
 use glam::vec2;
+use shin_render::GpuCommonResources;
 use std::cell::RefCell;
 use wgpu::{RenderPass, TextureFormat};
 

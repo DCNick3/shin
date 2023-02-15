@@ -10,6 +10,7 @@ authors = ["DCNick3"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 shin-core = { path = "../shin-core" }
+shin-render = { path = "../shin-render" }
 shin-derive = { path = "../shin-derive" }
 
 anyhow = "1.0.65"
@@ -39,7 +40,7 @@ glam = { workspace = true, features = [
     "bytemuck", "scalar-math"
 ] }
 bytemuck = { version = "1.12.3", features = ["derive"] }
-image = "0.24.5"
+image = { version = "0.24.5", default-features = false, features = [] }
 
 # Theese parts of bevy do not depend on ECS or the reflection, so it's not a big problem to use them
 bevy_utils = "0.9.1"
@@ -65,7 +66,7 @@ serde_yaml = "0.9.16"
 
 # egui used for debug overlays
 # git version for wgpu 0.15 support
-egui = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = [] }
+egui = { workspace = true }
 egui_extras = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = ["svg"] }
 egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = [] }
 usvg = "0.28.0"
