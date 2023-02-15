@@ -27,7 +27,7 @@ clap-num = "1.0.2"
 dirs-next = "2.0.0"
 
 winit = "0.28.1"
-wgpu = "0.15.0"
+wgpu = { workspace = true }
 # TODO: this can be reimplemented in shin-derive (I want to have my own traits for this anyways)
 wrld = "1.0.0"
 # git version for integer overflow fix https://github.com/nical/etagere/pull/21
@@ -71,7 +71,7 @@ egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9
 usvg = "0.28.0"
 
 # kira for audio output
-kira = { version = "0.7.1", default-features = false, features = ["cpal"] }
+kira = { workspace = true, default-features = false, features = ["cpal"] }
 ringbuf = "0.3.1"
 
 # make stuff statically-linked

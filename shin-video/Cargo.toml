@@ -10,10 +10,17 @@ authors = ["DCNick3"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+mp4 = "0.13.0"
+openh264 = { path = "../../openh264-rust/openh264", features = ["mp4"] }
+symphonia = { version = "0.5.2", features = ["aac"], default-features = false }
 
-ffmpeg-next = "5.1.1"
-ffmpeg-sys-next = "5.1.1"
+wgpu = { workspace = true }
+kira = { workspace = true }
 
-symphonia = { version = "0.5.2", features = [] }
-
+anyhow = "1.0.69"
+bytes = "1.4.0"
 tracing = "0.1.37"
+
+
+[dev-dependencies]
+winit = "0.28.1"

@@ -14,6 +14,11 @@ glam = "0.22.0"
 # git version for GATs
 enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "942b6f0fefc41d1e9626f952e60ea88386838e68" }
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
+wgpu = "0.15.1"
+kira = "0.7.1"
+
+[patch.crates-io]
+mp4 = { path = "../mp4-rust" }
 
 [profile.release]
 debug = true
@@ -22,6 +27,10 @@ debug = true
 # optimize deps
 [profile.dev.package."*"]
 #opt-level = 2
+
+# always optimize the openh264 video decoder
+[profile.dev.package.openh264-sys2]
+opt-level = 2
 
 [profile.release.package.wgpu-core]
 # enable debug assertions to keep validations & debug labels
