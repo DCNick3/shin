@@ -3147,8 +3147,10 @@ dependencies = [
  "kira",
  "mp4",
  "openh264",
+ "pollster",
  "symphonia",
  "tracing",
+ "tracing-subscriber",
  "wgpu 0.15.1",
  "winit",
 ]
