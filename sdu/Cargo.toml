@@ -11,12 +11,8 @@ authors = ["DCNick3"]
 [dependencies]
 shin-core = { path = "../shin-core" }
 
-# make stuff statically-linked
-audiopus_sys = { version = "0.2.2", features = ["static"] }
-
 anyhow = "1.0.66"
 clap = { version = "4.0.15", features = ["derive"] }
-futures = "0.3.25"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 image = { workspace = true }
 bytes = "1.2.1"
@@ -24,5 +20,4 @@ itertools = "0.10.5"
 clap_complete = "4.0.6"
 counter = "0.5.7"
 hound = "3.5.0"
-serde_yaml = "0.9.17"
 ron = "0.8.0"

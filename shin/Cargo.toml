@@ -19,7 +19,6 @@ futures = "0.3.25"
 smallvec = "1.10.0"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-copyless = "0.1.5"
 arrayvec = "0.7.2"
 bytes = "1.2.1"
 cfg-if = "1.0.0"
@@ -29,8 +28,6 @@ dirs-next = "2.0.0"
 
 winit = "0.28.1"
 wgpu = { workspace = true }
-# TODO: this can be reimplemented in shin-derive (I want to have my own traits for this anyways)
-wrld = "1.0.0"
 # git version for integer overflow fix https://github.com/nical/etagere/pull/21
 etagere = { git = "https://github.com/DCNick3/etagere", rev = "53c7ba67256408af78b66909bad7bb905648ec97" }
 
@@ -61,22 +58,16 @@ serde = "1.0.152"
 itertools = "0.10.5"
 once_cell = "1.16.0"
 petitset = "0.2.1"
-camino = "1.1.1"
-serde_yaml = "0.9.16"
 
 # egui used for debug overlays
 # git version for wgpu 0.15 support
 egui = { workspace = true }
-egui_extras = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = ["svg"] }
 egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = [] }
-usvg = "0.28.0"
+usvg = "0.29.0"
 
 # kira for audio output
 kira = { workspace = true, default-features = false, features = ["cpal"] }
 ringbuf = "0.3.1"
-
-# make stuff statically-linked
-audiopus_sys = { version = "0.2.2", features = ["static"] }
 
 [features]
 default = []

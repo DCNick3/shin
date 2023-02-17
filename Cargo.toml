@@ -16,9 +16,9 @@ glam = "0.22.0"
 enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "942b6f0fefc41d1e9626f952e60ea88386838e68" }
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
 wgpu = "0.15.1"
-kira = "0.7.1"
+kira = { version = "0.7.1", default-features = false }
 egui = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679" }
-image = "0.24.5"
+image = { version = "0.24.5", default-features = false }
 
 [patch.crates-io]
 mp4 = { path = "../mp4-rust" }
