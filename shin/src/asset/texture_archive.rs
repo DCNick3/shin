@@ -1,6 +1,6 @@
-use crate::asset::gpu_image::LazyGpuTexture;
 use crate::asset::Asset;
 use anyhow::Result;
+use shin_render::LazyGpuTexture;
 
 pub use shin_derive::TextureArchive;
 

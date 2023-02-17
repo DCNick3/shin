@@ -1,9 +1,9 @@
 use crate::asset::bustup::Bustup;
-use crate::asset::gpu_image::GpuImage;
 use crate::layer::{Layer, LayerProperties};
 use crate::update::{Updatable, UpdateContext};
 use glam::Mat4;
 use shin_render::GpuCommonResources;
+use shin_render::GpuImage;
 use shin_render::Renderable;
 use std::fmt::Debug;
 use std::sync::Arc;

@@ -1,18 +1,19 @@
-use enum_dispatch::enum_dispatch;
 use glam::Mat4;
 use std::ops::{Deref, DerefMut};
 
 mod bind_groups;
 mod camera;
 mod common_resources;
+mod gpu_image;
 mod pillarbox;
 mod pipelines;
 mod render_target;
 mod vertex_buffer;
 
-pub use bind_groups::{BindGroupLayouts, TextureBindGroup};
+pub use bind_groups::{BindGroupLayouts, TextureBindGroup, YuvTextureBindGroup};
 pub use camera::{Camera, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 pub use common_resources::GpuCommonResources;
+pub use gpu_image::{GpuImage, GpuTexture, LazyGpuImage, LazyGpuTexture};
 pub use pillarbox::Pillarbox;
 pub use pipelines::{Pipelines, PosColTexVertex, PosVertex, TextVertex, VertexSource};
 pub use render_target::RenderTarget;
@@ -49,7 +50,6 @@ impl<'q> DerefMut for SubmittingEncoder<'q> {
 /// A trait for elements that can be rendered
 ///
 /// Most elements will be containers, containing other elements to render.
-#[enum_dispatch]
 pub trait Renderable {
     /// Renders an element on the screen
     ///

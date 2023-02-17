@@ -1,10 +1,10 @@
-use glam::{vec4, Vec2};
-use image::RgbaImage;
-use once_cell::sync::OnceCell;
-use shin_render::{
+use crate::{
     GpuCommonResources, PosColTexVertex, SpriteVertexBuffer, TextureBindGroup, VertexSource,
     TEXTURE_FORMAT,
 };
+use glam::{vec4, Vec2};
+use image::RgbaImage;
+use once_cell::sync::OnceCell;
 use std::borrow::Cow;
 use std::num::NonZeroU32;
 

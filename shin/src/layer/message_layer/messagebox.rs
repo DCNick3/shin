@@ -1,8 +1,8 @@
-use crate::asset::gpu_image::LazyGpuTexture;
 use crate::asset::texture_archive::TextureArchive;
 use crate::update::{Updatable, UpdateContext};
 use glam::{vec2, vec3, vec4, Mat4, Vec2};
 use shin_core::vm::command::types::MessageboxType;
+use shin_render::LazyGpuTexture;
 use shin_render::{GpuCommonResources, PosColTexVertex, PosVertexBuffer, Renderable, VertexBuffer};
 use std::sync::Arc;
 

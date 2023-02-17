@@ -29,7 +29,7 @@ bytemuck = { version = "1.12.1", features = ["derive"] }
 bytes = "1.2.1"
 glam = { workspace = true }
 float-ord = "0.3.2"
-image = { version = "0.24.4", default-features = false }
+image = { workspace = true, default-features = false }
 itertools = "0.10.5"
 rayon = "1.5.3"
 smallvec = "1.10.0"

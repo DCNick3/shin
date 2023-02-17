@@ -18,7 +18,7 @@ anyhow = "1.0.66"
 clap = { version = "4.0.15", features = ["derive"] }
 futures = "0.3.25"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-image = "0.24.4"
+image = { workspace = true }
 bytes = "1.2.1"
 itertools = "0.10.5"
 clap_complete = "4.0.6"
