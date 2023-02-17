@@ -20,7 +20,8 @@ pub use pipelines::Pipelines;
 pub use render_target::RenderTarget;
 pub use vertex_buffer::{IndexBuffer, PosVertexBuffer, SpriteVertexBuffer, Vertex, VertexBuffer};
 
-pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+pub const SRGB_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+pub const RAW_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 
 pub struct SubmittingEncoder<'q> {
     encoder: Option<wgpu::CommandEncoder>,

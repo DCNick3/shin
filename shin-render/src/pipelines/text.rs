@@ -24,7 +24,7 @@ impl TextPipeline {
         let shader_module = device.create_shader_module(include_wgsl!("text.wgsl"));
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("text_pipeline_layout"),
+            label: Some("TextPipeline Layout"),
             bind_group_layouts: &[&bind_group_layouts.texture],
             push_constant_ranges: &[wgpu::PushConstantRange {
                 stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -41,7 +41,7 @@ impl TextPipeline {
             layout,
             desc,
             Some(wgpu::BlendState::ALPHA_BLENDING),
-            "text_pipeline",
+            "TextPipeline",
         ))
     }
 

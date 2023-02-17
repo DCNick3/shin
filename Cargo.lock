@@ -2985,6 +2985,7 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "glam",
  "kira",
  "mp4",
  "openh264",

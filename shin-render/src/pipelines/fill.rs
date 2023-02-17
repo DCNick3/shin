@@ -23,7 +23,7 @@ impl FillPipeline {
         let shader_module = device.create_shader_module(include_wgsl!("fill.wgsl"));
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("fill_pipeline_layout"),
+            label: Some("FillPipeline Layout"),
             bind_group_layouts: &[],
             push_constant_ranges: &[wgpu::PushConstantRange {
                 stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -38,7 +38,7 @@ impl FillPipeline {
             layout,
             PosVertex::desc(),
             Some(wgpu::BlendState::ALPHA_BLENDING),
-            "fill_pipeline",
+            "FillPipeline",
         ))
     }
 

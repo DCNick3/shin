@@ -93,7 +93,7 @@ impl Renderable for LayerGroup {
             let mut encoder = resources.start_encoder();
             let mut render_pass = self
                 .render_target
-                .begin_render_pass(&mut encoder, Some("LayerGroup RenderPass"));
+                .begin_srgb_render_pass(&mut encoder, Some("LayerGroup RenderPass"));
 
             let ordered_layers = self
                 .layers

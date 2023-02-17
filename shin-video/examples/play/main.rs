@@ -1,11 +1,16 @@
+use glam::{Mat4, Vec4};
 use openh264::Mp4BitstreamConverter;
+use shin_render::{
+    BindGroupLayouts, Camera, GpuCommonResources, Pipelines, RenderTarget, SpriteVertexBuffer,
+};
 use shin_video::mp4::Mp4;
-use shin_video::VideoRenderer;
-use std::borrow::Cow;
+use shin_video::YuvTexture;
 use std::fs::File;
+use std::sync::{Arc, RwLock};
+use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::Window;
+use winit::window::{Window, WindowBuilder};
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let size = window.inner_size();
@@ -28,49 +33,20 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         .request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
-                features: wgpu::Features::empty(),
+                features: wgpu::Features::PUSH_CONSTANTS,
                 // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
-                limits: wgpu::Limits::downlevel_webgl2_defaults()
-                    .using_resolution(adapter.limits()),
+                limits: wgpu::Limits {
+                    max_push_constant_size: 128,
+                    ..wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())
+                },
             },
             None,
         )
         .await
         .expect("Failed to create device");
 
-    // Load the shaders from disk
-    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: None,
-        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
-    });
-
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: None,
-        bind_group_layouts: &[],
-        push_constant_ranges: &[],
-    });
-
     let swapchain_capabilities = surface.get_capabilities(&adapter);
     let swapchain_format = swapchain_capabilities.formats[0];
-
-    let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: None,
-        layout: Some(&pipeline_layout),
-        vertex: wgpu::VertexState {
-            module: &shader,
-            entry_point: "vs_main",
-            buffers: &[],
-        },
-        fragment: Some(wgpu::FragmentState {
-            module: &shader,
-            entry_point: "fs_main",
-            targets: &[Some(swapchain_format.into())],
-        }),
-        primitive: wgpu::PrimitiveState::default(),
-        depth_stencil: None,
-        multisample: wgpu::MultisampleState::default(),
-        multiview: None,
-    });
 
     let mut config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -84,6 +60,20 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
     surface.configure(&device, &config);
 
+    let bind_group_layouts = BindGroupLayouts::new(&device);
+    let pipelines = Pipelines::new(&device, &bind_group_layouts, swapchain_format);
+
+    let window_size = (window.inner_size().width, window.inner_size().height);
+    let mut camera = Camera::new(window_size);
+
+    let resources = Arc::new(GpuCommonResources {
+        device,
+        queue,
+        render_buffer_size: RwLock::new(camera.render_buffer_size()),
+        bind_group_layouts,
+        pipelines,
+    });
+
     let file = File::open("ship1.mp4").unwrap();
     let mut mp4 = Mp4::new(file).unwrap();
 
@@ -91,20 +81,41 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     let mut conv = mp4
         .video_track
         .get_mp4_track_info(Mp4BitstreamConverter::for_mp4_track);
-    let mp4_sample = mp4.video_track.next_sample().unwrap().unwrap();
     let mut buffer = Vec::new();
+
+    for _ in 0..20 {
+        let mp4_sample = mp4.video_track.next_sample().unwrap().unwrap();
+        conv.convert_packet(&mp4_sample.bytes, &mut buffer);
+        let _yuv_frame = decoder.decode(&buffer).unwrap().unwrap();
+    }
+    let mp4_sample = mp4.video_track.next_sample().unwrap().unwrap();
     conv.convert_packet(&mp4_sample.bytes, &mut buffer);
     let yuv_frame = decoder.decode(&buffer).unwrap().unwrap();
 
-    let renderer = VideoRenderer::new(&yuv_frame, &device, &queue, swapchain_format);
+    let yuv_texture = YuvTexture::new(&resources, &yuv_frame);
 
-    // let mut buffer = Vec::new();
+    // it's a hack, I just want to ignore the camera for now
+    let vertex_buffer = SpriteVertexBuffer::new(&resources, (-1.0, -1.0, 1.0, 1.0), Vec4::ONE);
+
+    let render_target = RenderTarget::new(
+        &resources,
+        camera.render_buffer_size(),
+        Some("Window RenderTarget"),
+    );
 
     event_loop.run(move |event, _, control_flow| {
         // Have the closure take ownership of the resources.
         // `event_loop.run` never returns, therefore we must do this to ensure
         // the resources are properly cleaned up.
-        let _ = (&instance, &adapter, &shader, &pipeline_layout);
+        let _ = (
+            &instance,
+            &adapter,
+            &decoder,
+            &yuv_texture,
+            &resources,
+            &yuv_texture,
+            &render_target,
+        );
 
         *control_flow = ControlFlow::Wait;
         match event {
@@ -115,7 +126,8 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 // Reconfigure the surface with the new size
                 config.width = size.width;
                 config.height = size.height;
-                surface.configure(&device, &config);
+                camera.resize((size.width, size.height));
+                surface.configure(&resources.device, &config);
                 // On macos the window needs to be redrawn manually after resizing
                 window.request_redraw();
             }
@@ -126,8 +138,19 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 let view = frame
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
-                let mut encoder =
-                    device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+                let mut encoder = resources.start_encoder();
+                {
+                    let mut rpass = render_target.begin_raw_render_pass(&mut encoder, None);
+                    // let proj = camera.screen_projection_matrix();
+                    resources.draw_yuv_sprite(
+                        &mut rpass,
+                        vertex_buffer.vertex_source(),
+                        yuv_texture.bind_group(),
+                        Mat4::IDENTITY,
+                    );
+                }
+
                 {
                     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: None,
@@ -141,11 +164,16 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                         })],
                         depth_stencil_attachment: None,
                     });
-                    rpass.set_pipeline(&render_pipeline);
-                    rpass.draw(0..3, 0..1);
+                    resources.pipelines.sprite_screen.draw(
+                        &mut rpass,
+                        vertex_buffer.vertex_source(),
+                        render_target.bind_group(),
+                        Mat4::IDENTITY,
+                    );
                 }
 
-                queue.submit(Some(encoder.finish()));
+                drop(encoder);
+
                 frame.present();
             }
             Event::WindowEvent {
@@ -159,7 +187,10 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
 fn main() {
     let event_loop = EventLoop::new();
-    let window = Window::new(&event_loop).unwrap();
+    let window = WindowBuilder::new()
+        .with_inner_size(LogicalSize::new(1920.0, 1080.0))
+        .build(&event_loop)
+        .unwrap();
     tracing_subscriber::fmt::init();
 
     pollster::block_on(run(event_loop, window));

@@ -1,6 +1,6 @@
 use crate::pipelines::Pipelines;
 use crate::vertices::{PosColTexVertex, PosVertex, TextVertex, VertexSource};
-use crate::{BindGroupLayouts, SubmittingEncoder, TextureBindGroup};
+use crate::{BindGroupLayouts, SubmittingEncoder, TextureBindGroup, YuvTextureBindGroup};
 use glam::{Mat4, Vec2, Vec4};
 use shin_core::time::Ticks;
 use std::sync::RwLock;
@@ -8,7 +8,7 @@ use std::sync::RwLock;
 pub struct GpuCommonResources {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    /// please don't write to this, this is only for reading
+    /// please don't write to this, only the main window struct should write here
     /// TODO: make this private or smth
     pub render_buffer_size: RwLock<(u32, u32)>,
     pub pipelines: Pipelines,
@@ -37,6 +37,18 @@ impl GpuCommonResources {
     ) {
         self.pipelines
             .sprite
+            .draw(render_pass, source, texture, transform);
+    }
+
+    pub fn draw_yuv_sprite<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        source: VertexSource<'a, PosColTexVertex>,
+        texture: &'a YuvTextureBindGroup,
+        transform: Mat4,
+    ) {
+        self.pipelines
+            .yuv_sprite
             .draw(render_pass, source, texture, transform);
     }
 

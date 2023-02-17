@@ -1,6 +1,6 @@
 pub mod mp4;
 mod timer;
 mod video_decoder;
-mod video_renderer;
+mod yuv_texture;
 
-pub use video_renderer::VideoRenderer;
+pub use yuv_texture::YuvTexture;

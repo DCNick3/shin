@@ -1,5 +1,5 @@
 use crate::vertices::{PosColTexVertex, VertexSource};
-use crate::{GpuCommonResources, SpriteVertexBuffer, TextureBindGroup, TEXTURE_FORMAT};
+use crate::{GpuCommonResources, SpriteVertexBuffer, TextureBindGroup, SRGB_TEXTURE_FORMAT};
 use glam::{vec4, Vec2};
 use image::RgbaImage;
 use once_cell::sync::OnceCell;
@@ -123,7 +123,7 @@ impl GpuTexture {
         };
 
         assert_eq!(
-            TEXTURE_FORMAT,
+            SRGB_TEXTURE_FORMAT,
             wgpu::TextureFormat::Rgba8UnormSrgb,
             "Only Rgba8UnormSrgb is supported for now"
         );
@@ -134,7 +134,7 @@ impl GpuTexture {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: TEXTURE_FORMAT,
+            format: SRGB_TEXTURE_FORMAT,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });

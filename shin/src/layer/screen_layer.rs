@@ -53,7 +53,7 @@ impl Renderable for ScreenLayer {
             let mut encoder = resources.start_encoder();
             let mut render_pass = self
                 .render_target
-                .begin_render_pass(&mut encoder, Some("PageLayer RenderPass"));
+                .begin_srgb_render_pass(&mut encoder, Some("PageLayer RenderPass"));
 
             let transform = self.properties.compute_transform(transform);
             let projection = self.render_target.projection_matrix();

@@ -87,8 +87,7 @@ impl State {
                     // we're building for the web we'll have to disable some.
                     limits: wgpu::Limits {
                         max_texture_dimension_2d: 4096,
-                        // TODO: maybe we should use uniform buffers more...
-                        max_push_constant_size: 128,
+                        max_push_constant_size: 256,
 
                         ..wgpu::Limits::downlevel_webgl2_defaults()
                     },
@@ -245,7 +244,7 @@ impl State {
             let mut encoder = self.resources.start_encoder();
             let mut render_pass = self
                 .render_target
-                .begin_render_pass(&mut encoder, Some("Screen RenderPass"));
+                .begin_srgb_render_pass(&mut encoder, Some("Screen RenderPass"));
 
             self.adv.render(
                 &self.resources,

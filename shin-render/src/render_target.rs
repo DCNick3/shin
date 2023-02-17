@@ -8,7 +8,8 @@ use std::borrow::Cow;
 /// Describes a fullscreen intermediate render target.
 pub struct RenderTarget {
     texture: wgpu::Texture,
-    view: wgpu::TextureView,
+    srgb_view: wgpu::TextureView,
+    raw_view: wgpu::TextureView,
     sampler: wgpu::Sampler,
     bind_group: TextureBindGroup,
     vertices: SpriteVertexBuffer,
@@ -16,7 +17,8 @@ pub struct RenderTarget {
 }
 
 impl RenderTarget {
-    const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+    const SRGB_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+    const RAW_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 
     pub fn new(resources: &GpuCommonResources, size: (u32, u32), label: Option<&str>) -> Self {
         let label = label
@@ -33,12 +35,18 @@ impl RenderTarget {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: Self::FORMAT,
+            format: Self::SRGB_FORMAT,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
+            view_formats: &[Self::RAW_FORMAT],
         });
-        let view = texture.create_view(&wgpu::TextureViewDescriptor {
-            label: Some(&format!("{} TextureView", label)),
+        let srgb_view = texture.create_view(&wgpu::TextureViewDescriptor {
+            label: Some(&format!("{} Srgb TextureView", label)),
+            format: Some(Self::SRGB_FORMAT),
+            ..Default::default()
+        });
+        let raw_view = texture.create_view(&wgpu::TextureViewDescriptor {
+            label: Some(&format!("{} Raw TextureView", label)),
+            format: Some(Self::RAW_FORMAT),
             ..Default::default()
         });
         let sampler = resources.device.create_sampler(&wgpu::SamplerDescriptor {
@@ -53,14 +61,15 @@ impl RenderTarget {
         });
         let bind_group = TextureBindGroup::new(
             resources,
-            &view,
+            &srgb_view,
             &sampler,
             Some(&format!("{} TextureBindGroup", label)),
         );
         let vertices = SpriteVertexBuffer::new_fullscreen(resources);
         Self {
             texture,
-            view,
+            srgb_view,
+            raw_view,
             sampler,
             bind_group,
             vertices,
@@ -79,17 +88,17 @@ impl RenderTarget {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: Self::FORMAT,
+            format: Self::SRGB_FORMAT,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
-        self.view = self.texture.create_view(&wgpu::TextureViewDescriptor {
+        self.srgb_view = self.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some(&format!("{} TextureView", self.label)),
             ..Default::default()
         });
         self.bind_group = TextureBindGroup::new(
             resources,
-            &self.view,
+            &self.srgb_view,
             &self.sampler,
             Some(&format!("{} TextureBindGroup", self.label)),
         );
@@ -109,7 +118,7 @@ impl RenderTarget {
         self.vertices.vertex_source()
     }
 
-    pub fn begin_render_pass<'a>(
+    pub fn begin_srgb_render_pass<'a>(
         &'a self,
         encoder: &'a mut wgpu::CommandEncoder,
         label: Option<&str>,
@@ -117,7 +126,26 @@ impl RenderTarget {
         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &self.view,
+                view: &self.srgb_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: true,
+                },
+            })],
+            depth_stencil_attachment: None,
+        })
+    }
+
+    pub fn begin_raw_render_pass<'a>(
+        &'a self,
+        encoder: &'a mut wgpu::CommandEncoder,
+        label: Option<&str>,
+    ) -> wgpu::RenderPass<'a> {
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &self.raw_view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),

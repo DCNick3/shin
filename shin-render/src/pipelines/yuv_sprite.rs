@@ -1,5 +1,5 @@
 use crate::vertices::{PosColTexVertex, VertexSource};
-use crate::{pipelines, BindGroupLayouts, TextureBindGroup};
+use crate::{pipelines, BindGroupLayouts, YuvTextureBindGroup};
 use bytemuck::{Pod, Zeroable};
 use glam::Mat4;
 use std::mem;
@@ -7,26 +7,26 @@ use wgpu::include_wgsl;
 
 #[derive(Pod, Zeroable, Copy, Clone, Debug)]
 #[repr(C)]
-struct SpriteParams {
+struct YuvSpriteParams {
     pub transform: Mat4,
 }
 
-pub struct SpritePipeline(wgpu::RenderPipeline);
+pub struct YuvSpritePipeline(wgpu::RenderPipeline);
 
-impl SpritePipeline {
+impl YuvSpritePipeline {
     pub fn new(
         device: &wgpu::Device,
         bind_group_layouts: &BindGroupLayouts,
         texture_format: wgpu::TextureFormat,
     ) -> Self {
-        let shader_module = device.create_shader_module(include_wgsl!("sprite.wgsl"));
+        let shader_module = device.create_shader_module(include_wgsl!("yuv_sprite.wgsl"));
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("SpritePipeline Layout"),
-            bind_group_layouts: &[&bind_group_layouts.texture],
+            label: Some("YuvSpritePipeline Layout"),
+            bind_group_layouts: &[&bind_group_layouts.yuv_texture],
             push_constant_ranges: &[wgpu::PushConstantRange {
                 stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                range: 0..(mem::size_of::<SpriteParams>() as u32),
+                range: 0..(mem::size_of::<YuvSpriteParams>() as u32),
             }],
         });
 
@@ -48,7 +48,7 @@ impl SpritePipeline {
                     operation: wgpu::BlendOperation::Add,
                 },
             }),
-            "SpritePipeline",
+            "YuvSpritePipeline",
         ))
     }
 
@@ -56,7 +56,7 @@ impl SpritePipeline {
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
         source: VertexSource<'a, PosColTexVertex>,
-        texture: &'a TextureBindGroup,
+        texture: &'a YuvTextureBindGroup,
         transform: Mat4,
     ) {
         render_pass.set_pipeline(&self.0);
@@ -64,7 +64,7 @@ impl SpritePipeline {
         render_pass.set_push_constants(
             wgpu::ShaderStages::VERTEX_FRAGMENT,
             0,
-            bytemuck::cast_slice(&[SpriteParams { transform }]),
+            bytemuck::cast_slice(&[YuvSpriteParams { transform }]),
         );
         source.draw(render_pass);
     }

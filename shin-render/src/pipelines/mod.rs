@@ -2,13 +2,16 @@ mod fill;
 mod sprite;
 mod text;
 mod text_outline;
+mod yuv_sprite;
 
 use crate::bind_groups::BindGroupLayouts;
-use crate::TEXTURE_FORMAT;
+use crate::{RAW_TEXTURE_FORMAT, SRGB_TEXTURE_FORMAT};
+
 use fill::FillPipeline;
 use sprite::SpritePipeline;
 use text::TextPipeline;
 use text_outline::TextOutlinePipeline;
+use yuv_sprite::YuvSpritePipeline;
 
 // TODO: make a builder?
 fn make_pipeline(
@@ -54,6 +57,7 @@ fn make_pipeline(
 
 pub struct Pipelines {
     pub sprite: SpritePipeline,
+    pub yuv_sprite: YuvSpritePipeline,
     pub fill: FillPipeline,
     pub text: TextPipeline,
     pub text_outline: TextOutlinePipeline,
@@ -70,10 +74,11 @@ impl Pipelines {
         surface_texture_format: wgpu::TextureFormat,
     ) -> Pipelines {
         Pipelines {
-            sprite: SpritePipeline::new(device, bind_group_layouts, TEXTURE_FORMAT),
-            fill: FillPipeline::new(device, bind_group_layouts, TEXTURE_FORMAT),
-            text: TextPipeline::new(device, bind_group_layouts, TEXTURE_FORMAT),
-            text_outline: TextOutlinePipeline::new(device, bind_group_layouts, TEXTURE_FORMAT),
+            sprite: SpritePipeline::new(device, bind_group_layouts, SRGB_TEXTURE_FORMAT),
+            yuv_sprite: YuvSpritePipeline::new(device, bind_group_layouts, RAW_TEXTURE_FORMAT),
+            fill: FillPipeline::new(device, bind_group_layouts, SRGB_TEXTURE_FORMAT),
+            text: TextPipeline::new(device, bind_group_layouts, SRGB_TEXTURE_FORMAT),
+            text_outline: TextOutlinePipeline::new(device, bind_group_layouts, SRGB_TEXTURE_FORMAT),
 
             sprite_screen: SpritePipeline::new(device, bind_group_layouts, surface_texture_format),
             fill_screen: FillPipeline::new(device, bind_group_layouts, surface_texture_format),
