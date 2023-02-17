@@ -1,6 +1,5 @@
-use crate::{
-    GpuCommonResources, PosVertex, Renderable, VertexSource, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
-};
+use crate::vertices::{PosVertex, VertexSource};
+use crate::{GpuCommonResources, Renderable, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 use glam::{vec3, vec4, Mat4};
 use wgpu::util::DeviceExt;
 

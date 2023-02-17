@@ -1,7 +1,5 @@
-use crate::{
-    GpuCommonResources, PosColTexVertex, SpriteVertexBuffer, TextureBindGroup, VertexSource,
-    TEXTURE_FORMAT,
-};
+use crate::vertices::{PosColTexVertex, VertexSource};
+use crate::{GpuCommonResources, SpriteVertexBuffer, TextureBindGroup, TEXTURE_FORMAT};
 use glam::{vec4, Vec2};
 use image::RgbaImage;
 use once_cell::sync::OnceCell;

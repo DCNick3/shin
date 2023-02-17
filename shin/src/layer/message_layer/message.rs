@@ -8,7 +8,8 @@ use shin_core::layout::{
 };
 use shin_core::time::Ticks;
 use shin_core::vm::command::types::MessageTextLayout;
-use shin_render::{GpuCommonResources, Renderable, TextVertex, VertexBuffer};
+use shin_render::vertices::TextVertex;
+use shin_render::{GpuCommonResources, Renderable, VertexBuffer};
 use std::sync::Arc;
 use tracing::warn;
 

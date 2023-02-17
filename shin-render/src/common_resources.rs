@@ -1,8 +1,6 @@
 use crate::pipelines::Pipelines;
-use crate::{
-    BindGroupLayouts, PosColTexVertex, PosVertex, SubmittingEncoder, TextVertex, TextureBindGroup,
-    VertexSource,
-};
+use crate::vertices::{PosColTexVertex, PosVertex, TextVertex, VertexSource};
+use crate::{BindGroupLayouts, SubmittingEncoder, TextureBindGroup};
 use glam::{Mat4, Vec2, Vec4};
 use shin_core::time::Ticks;
 use std::sync::RwLock;

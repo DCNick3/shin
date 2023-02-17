@@ -1,7 +1,5 @@
-use crate::{
-    GpuCommonResources, PosColTexVertex, PosVertex, TextVertex, VertexSource, VIRTUAL_HEIGHT,
-    VIRTUAL_WIDTH,
-};
+use crate::vertices::{PosColTexVertex, PosVertex, TextVertex, VertexSource};
+use crate::{GpuCommonResources, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 use glam::{vec2, vec3, vec4, Vec4};
 use std::sync::atomic::{AtomicU32, Ordering};
 use wgpu::util::DeviceExt;
