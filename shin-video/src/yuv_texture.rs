@@ -1,4 +1,4 @@
-use crate::h264_decoder::FrameInfo;
+use crate::h264_decoder::{Colorspace, Frame, FrameInfo};
 use shin_render::{GpuCommonResources, YuvTextureBindGroup};
 use std::num::NonZeroU32;
 
@@ -15,7 +15,7 @@ impl YuvTexture {
         // note that this assumes 4:2:0 chroma subsampling is used
         // as of now, this is the only subsampling supported by openh264 crate
 
-        assert!(matches!(info.colorspace, y4m::Colorspace::C420mpeg2));
+        assert!(matches!(info.colorspace, Colorspace::C420mpeg2));
 
         let device = &resources.device;
 
@@ -97,7 +97,7 @@ impl YuvTexture {
         result
     }
 
-    pub fn write_data(&self, yuv: &y4m::Frame, queue: &wgpu::Queue) {
+    pub fn write_data(&self, yuv: &Frame, queue: &wgpu::Queue) {
         // note that this assumes 4:2:0 chroma subsampling is used
         // as of now, this is the only subsampling supported by openh264 crate
 

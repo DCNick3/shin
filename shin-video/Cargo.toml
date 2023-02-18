@@ -23,11 +23,14 @@ anyhow = "1.0.69"
 bytes = "1.4.0"
 tracing = "0.1.37"
 which = "4.4.0"
-y4m = "0.7.0"
+
+bevy_tasks = "0.9.1"
+async-process = "1.6.0"
+futures-lite = "1.12.0"
 
 [dev-dependencies]
 winit = "0.28.1"
-wgpu = { workspace = true, features = ["trace"] }
+wgpu = { workspace = true, features = [] }
 kira = { workspace = true, features = ["cpal"] }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 pollster = "0.3.0"
