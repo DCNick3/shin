@@ -6,10 +6,9 @@ pub use y4m::{Colorspace, Frame, FrameInfo};
 use crate::mp4::Mp4TrackReader;
 use crate::Mp4BitstreamConverter;
 use anyhow::{bail, Context, Result};
-use bytes::Bytes;
-use futures_lite::AsyncWriteExt;
+use futures_lite::io::BufReader;
+use futures_lite::{AsyncBufReadExt, AsyncWriteExt};
 use std::process::Stdio;
-use std::sync::mpsc::{Receiver, RecvError, Sender};
 use tracing::{debug, error, trace};
 
 /// Decodes h264 Annex B format to YUV420P (or, possibly, some other frame format).
@@ -20,9 +19,13 @@ pub struct H264Decoder {
     frame_receiver: Peekable<std::sync::mpsc::IntoIter<Frame>>,
     frame_sender_task: bevy_tasks::Task<()>,
     packet_sender_task: bevy_tasks::Task<()>,
+    stderr_task: bevy_tasks::Task<()>,
 
     frame_info: Option<FrameInfo>,
 }
+
+// const FFMPEG_LOG_LEVEL: &str = "debug";
+const FFMPEG_LOG_LEVEL: &str = "debug";
 
 impl H264Decoder {
     pub fn new(track: Mp4TrackReader) -> Result<Self> {
@@ -31,7 +34,7 @@ impl H264Decoder {
 
         let mut process = async_process::Command::new(ffmpeg)
             .arg("-loglevel")
-            .arg("debug")
+            .arg(FFMPEG_LOG_LEVEL)
             .arg("-f")
             .arg("h264")
             .arg("-flags")
@@ -47,13 +50,13 @@ impl H264Decoder {
             .arg("pipe:1")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
+            .stderr(Stdio::piped())
             .spawn()
             .context("Could not spawn ffmpeg process")?;
 
         let stdin = process.stdin.take().unwrap();
         let stdout = process.stdout.take().unwrap();
-        // let stderr = process.stderr.take().unwrap();
+        let stderr = process.stderr.take().unwrap();
 
         // let stdin = Some(stdin);
         // let stdout = Output::Unparsed(Some(stdout));
@@ -74,7 +77,7 @@ impl H264Decoder {
             loop {
                 match decoder.read_frame().await {
                     Ok(frame) => {
-                        debug!("Sending frame to game");
+                        trace!("Sending frame to game");
                         frame_sender.send(frame).unwrap();
                     }
                     Err(y4m::Error::EOF) => {
@@ -122,6 +125,28 @@ impl H264Decoder {
             }
         });
 
+        let stderr_task = bevy_tasks::IoTaskPool::get().spawn(async move {
+            let mut stderr = BufReader::new(stderr);
+            let mut buffer = String::new();
+
+            loop {
+                match stderr.read_line(&mut buffer).await {
+                    Ok(0) => {
+                        debug!("EOF from ffmpeg stderr, stopping reading");
+                        break;
+                    }
+                    Ok(_) => {
+                        trace!("ffmpeg: {}", buffer);
+                        buffer.clear();
+                    }
+                    Err(e) => {
+                        error!("Error reading ffmpeg stderr: {}", e);
+                        break;
+                    }
+                }
+            }
+        });
+
         let frame_receiver = frame_receiver.into_iter().peekable();
 
         Ok(Self {
@@ -129,12 +154,13 @@ impl H264Decoder {
             frame_receiver,
             frame_sender_task,
             packet_sender_task,
+            stderr_task,
             frame_info: None,
         })
     }
 
     pub fn read_frame(&mut self) -> Result<Option<Frame>> {
-        debug!("Reading frame from ffmpeg");
+        trace!("Reading frame from ffmpeg...");
         match self.frame_receiver.next() {
             Some(frame) => {
                 self.frame_info = Some(*frame.info());
