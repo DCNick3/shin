@@ -1,12 +1,13 @@
 use glam::{Mat4, Vec4};
-use openh264::Mp4BitstreamConverter;
 use shin_render::{
     BindGroupLayouts, Camera, GpuCommonResources, Pipelines, RenderTarget, SpriteVertexBuffer,
 };
 use shin_video::mp4::Mp4;
-use shin_video::YuvTexture;
+use shin_video::{H264Decoder, Mp4BitstreamConverter, YuvTexture};
 use std::fs::File;
+use std::path::Path;
 use std::sync::{Arc, RwLock};
+use tracing::info;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -15,18 +16,23 @@ use winit::window::{Window, WindowBuilder};
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let size = window.inner_size();
 
-    let instance = wgpu::Instance::default();
+    let backends = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all());
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        backends,
+        ..Default::default()
+    });
 
     let surface = unsafe { instance.create_surface(&window) }.unwrap();
-    let adapter = instance
-        .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
-            force_fallback_adapter: false,
-            // Request an adapter which can render to our surface
-            compatible_surface: Some(&surface),
-        })
-        .await
-        .expect("Failed to find an appropriate adapter");
+
+    let adapter = wgpu::util::initialize_adapter_from_env_or_default(
+        &instance,
+        backends,
+        // NOTE: this select the low-power GPU by default
+        // it's fine, but if we want to use the high-perf one in the future we will have to ditch this function
+        Some(&surface),
+    )
+    .await
+    .unwrap();
 
     // Create the logical device and command queue
     let (device, queue) = adapter
@@ -36,11 +42,11 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 features: wgpu::Features::PUSH_CONSTANTS,
                 // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
                 limits: wgpu::Limits {
-                    max_push_constant_size: 128,
+                    max_push_constant_size: 256,
                     ..wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())
                 },
             },
-            None,
+            Some(Path::new("wgpu_trace")),
         )
         .await
         .expect("Failed to create device");
@@ -77,25 +83,26 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     let file = File::open("ship1.mp4").unwrap();
     let mut mp4 = Mp4::new(file).unwrap();
 
-    let mut decoder = openh264::decoder::Decoder::new().unwrap();
+    let mut decoder = H264Decoder::new().unwrap();
     let mut conv = mp4
         .video_track
         .get_mp4_track_info(Mp4BitstreamConverter::for_mp4_track);
     let mut buffer = Vec::new();
 
-    for _ in 0..20 {
+    for _ in 0..3 {
         let mp4_sample = mp4.video_track.next_sample().unwrap().unwrap();
         conv.convert_packet(&mp4_sample.bytes, &mut buffer);
-        let _yuv_frame = decoder.decode(&buffer).unwrap().unwrap();
+        decoder.push_packet(&buffer).unwrap();
     }
-    let mp4_sample = mp4.video_track.next_sample().unwrap().unwrap();
-    conv.convert_packet(&mp4_sample.bytes, &mut buffer);
-    let yuv_frame = decoder.decode(&buffer).unwrap().unwrap();
 
-    let yuv_texture = YuvTexture::new(&resources, &yuv_frame);
+    let yuv_texture = {
+        let frame_info = decoder.info().unwrap();
+
+        YuvTexture::new(&resources, frame_info)
+    };
 
     // it's a hack, I just want to ignore the camera for now
-    let vertex_buffer = SpriteVertexBuffer::new(&resources, (-1.0, -1.0, 1.0, 1.0), Vec4::ONE);
+    let vertex_buffer = SpriteVertexBuffer::new(&resources, (-1.0, 1.0, 1.0, -1.0), Vec4::ONE);
 
     let render_target = RenderTarget::new(
         &resources,
@@ -103,11 +110,14 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         Some("Window RenderTarget"),
     );
 
+    let mut i = 0;
+
     event_loop.run(move |event, _, control_flow| {
         // Have the closure take ownership of the resources.
         // `event_loop.run` never returns, therefore we must do this to ensure
         // the resources are properly cleaned up.
         let _ = (
+            &buffer,
             &instance,
             &adapter,
             &decoder,
@@ -115,6 +125,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
             &resources,
             &yuv_texture,
             &render_target,
+            &i,
         );
 
         *control_flow = ControlFlow::Wait;
@@ -132,6 +143,26 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
+                i += 1;
+
+                {
+                    if let Some(yuv_frame) = decoder.read_frame().unwrap() {
+                        yuv_texture.write_data(&yuv_frame, &resources.queue);
+                    } else {
+                        info!("EOF");
+                        *control_flow = ControlFlow::ExitWithCode(0);
+                    }
+
+                    if let Some(mp4_sample) = mp4.video_track.next_sample().unwrap() {
+                        info!("video frame {:05}: {}", i, mp4_sample.start_time);
+
+                        conv.convert_packet(&mp4_sample.bytes, &mut buffer);
+                        decoder.push_packet(&buffer).unwrap();
+                    } else {
+                        decoder.mark_eof();
+                    }
+                }
+
                 let frame = surface
                     .get_current_texture()
                     .expect("Failed to acquire next swap chain texture");
@@ -180,6 +211,11 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 event: WindowEvent::CloseRequested,
                 ..
             } => *control_flow = ControlFlow::Exit,
+            Event::RedrawEventsCleared => {
+                // RedrawRequested will only trigger once, unless we manually
+                // request it.
+                window.request_redraw();
+            }
             _ => {}
         }
     });

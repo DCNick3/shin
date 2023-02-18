@@ -148,6 +148,9 @@ name = "arrayvec"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "ash"
@@ -1557,6 +1560,7 @@ dependencies = [
  "color_quant",
  "num-rational",
  "num-traits",
+ "png",
 ]
 
 [[package]]
@@ -1573,6 +1577,7 @@ checksum = "1885e79c1fc4b10f0e172c475f458b7f7b93061064d98c3293e98c5ba0c8b399"
 dependencies = [
  "autocfg",
  "hashbrown",
+ "serde",
 ]
 
 [[package]]
@@ -1948,17 +1953,12 @@ dependencies = [
  "log",
  "num-traits",
  "rustc-hash",
+ "serde",
  "spirv",
  "termcolor",
  "thiserror",
  "unicode-xid",
 ]
-
-[[package]]
-name = "nasm-rs"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce095842aee9aa3ecbda7a5d2a4df680375fd128a8596b6b56f8e497e231f483"
 
 [[package]]
 name = "ndk"
@@ -2242,23 +2242,6 @@ name = "once_cell"
 version = "1.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
-
-[[package]]
-name = "openh264"
-version = "0.3.2"
-dependencies = [
- "mp4",
- "openh264-sys2",
-]
-
-[[package]]
-name = "openh264-sys2"
-version = "0.3.2"
-dependencies = [
- "cc",
- "nasm-rs",
- "walkdir",
-]
 
 [[package]]
 name = "opus"
@@ -2986,16 +2969,18 @@ dependencies = [
  "anyhow",
  "bytes",
  "glam",
+ "image",
  "kira",
  "mp4",
- "openh264",
  "pollster",
  "shin-render",
  "symphonia",
  "tracing",
  "tracing-subscriber",
  "wgpu 0.15.1",
+ "which",
  "winit",
+ "y4m",
 ]
 
 [[package]]
@@ -3727,6 +3712,7 @@ dependencies = [
  "parking_lot",
  "profiling",
  "raw-window-handle 0.5.0",
+ "serde",
  "smallvec",
  "static_assertions",
  "wasm-bindgen",
@@ -3778,6 +3764,8 @@ dependencies = [
  "parking_lot",
  "profiling",
  "raw-window-handle 0.5.0",
+ "ron",
+ "serde",
  "smallvec",
  "thiserror",
  "web-sys",
@@ -3883,7 +3871,19 @@ checksum = "ecf8cfcbf98f94cc8bd5981544c687140cf9d3948e2ab83849367ead2cd737cf"
 dependencies = [
  "bitflags",
  "js-sys",
+ "serde",
  "web-sys",
+]
+
+[[package]]
+name = "which"
+version = "4.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2441c784c52b289a054b7201fc93253e288f094e2f4be9058343127c4226a269"
+dependencies = [
+ "either",
+ "libc",
+ "once_cell",
 ]
 
 [[package]]
@@ -4152,6 +4152,12 @@ name = "xmlparser"
 version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d25c75bf9ea12c4040a97f829154768bbbce366287e2dc044af160cd79a13fd"
+
+[[package]]
+name = "y4m"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a72a9921af8237fe25097a1ae31c92a05c1d39b2454653ad48f2f407cf7a0dae"
 
 [[package]]
 name = "yaml-rust"

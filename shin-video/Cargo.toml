@@ -13,7 +13,6 @@ authors = ["DCNick3"]
 shin-render = { path = "../shin-render" }
 
 mp4 = "0.13.0"
-openh264 = { path = "../../openh264-rust/openh264", features = ["mp4"] }
 symphonia = { version = "0.5.2", features = ["aac"], default-features = false }
 
 wgpu = { workspace = true }
@@ -23,9 +22,13 @@ glam = { workspace = true }
 anyhow = "1.0.69"
 bytes = "1.4.0"
 tracing = "0.1.37"
+which = "4.4.0"
+y4m = "0.7.0"
 
 [dev-dependencies]
 winit = "0.28.1"
+wgpu = { workspace = true, features = ["trace"] }
 kira = { workspace = true, features = ["cpal"] }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 pollster = "0.3.0"
+image = { workspace = true, features = ["png"] }
