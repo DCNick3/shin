@@ -80,14 +80,14 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         pipelines,
     });
 
-    // let file = File::open("ship1.mp4").unwrap();
-    let file = File::open("op1.mp4").unwrap();
+    let file = File::open("ship1.mp4").unwrap();
+    // let file = File::open("op1.mp4").unwrap();
     let mp4 = Mp4::new(file).unwrap();
 
     let mut decoder = H264Decoder::new(mp4.video_track).unwrap();
 
     let yuv_texture = {
-        let frame_info = decoder.info().unwrap();
+        let frame_info = decoder.frame_size().unwrap();
 
         YuvTexture::new(&resources, frame_info)
     };
@@ -133,16 +133,16 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
-                i += 1;
-
                 if i % 2 == 0 {
-                    if let Some(yuv_frame) = decoder.read_frame().unwrap() {
+                    if let Some((_timing, yuv_frame)) = decoder.read_frame().unwrap() {
+                        // debug!("timing: {:?}", timing);
                         yuv_texture.write_data(&yuv_frame, &resources.queue);
                     } else {
                         info!("EOF");
                         *control_flow = ControlFlow::ExitWithCode(0);
                     }
                 }
+                i += 1;
 
                 let frame = surface
                     .get_current_texture()

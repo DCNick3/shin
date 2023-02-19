@@ -11,13 +11,19 @@ use futures_lite::{AsyncBufReadExt, AsyncWriteExt};
 use std::process::Stdio;
 use tracing::{debug, error, trace};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FrameTiming {
+    start_time: u64,
+    duration: u32,
+}
+
 /// Decodes h264 Annex B format to YUV420P (or, possibly, some other frame format).
 ///
 /// Currently implemented as a pipe to the ffmpeg binary, other options are possible in the future.
 pub struct H264Decoder {
     process: async_process::Child,
     frame_receiver: Peekable<std::sync::mpsc::IntoIter<Frame>>,
-    // frame_timing_receiver:
+    frame_timing_receiver: std::sync::mpsc::Receiver<FrameTiming>,
     #[allow(unused)]
     frame_sender_task: bevy_tasks::Task<()>,
     #[allow(unused)]
@@ -25,7 +31,7 @@ pub struct H264Decoder {
     #[allow(unused)]
     stderr_task: bevy_tasks::Task<()>,
 
-    frame_info: Option<FrameSize>,
+    frame_size: Option<FrameSize>,
 }
 
 // const FFMPEG_LOG_LEVEL: &str = "debug";
@@ -35,6 +41,8 @@ impl H264Decoder {
     pub fn new(track: Mp4TrackReader) -> Result<Self> {
         // TODO: use a more robust way to find the ffmpeg binary
         let ffmpeg = which::which("ffmpeg").context("Could not locate ffmpeg binary")?;
+
+        // let timescale = track.get_mp4_track_info(|t| t.timescale());
 
         let mut process = async_process::Command::new(ffmpeg)
             .arg("-loglevel")
@@ -62,10 +70,12 @@ impl H264Decoder {
         let stdout = process.stdout.take().unwrap();
         let stderr = process.stderr.take().unwrap();
 
-        // let stdin = Some(stdin);
-        // let stdout = Output::Unparsed(Some(stdout));
-
+        // send the decoded frames from ffmpeg to the game
         let (frame_sender, frame_receiver) = std::sync::mpsc::sync_channel(1);
+        // send the frame timings from the mp4 stream to the game (without passing through ffmpeg)
+        // this has a bit more delay than other chans because it goes around ffmpeg and ffmpeg has its own delay of several frames
+        // hence the larger capacity (otherwise we might deadlock)
+        let (frame_timing_sender, frame_timing_receiver) = std::sync::mpsc::sync_channel(10);
 
         let frame_sender_task = bevy_tasks::IoTaskPool::get().spawn(async move {
             let mut decoder = match y4m::Decoder::new(stdout).await {
@@ -82,7 +92,10 @@ impl H264Decoder {
                 match decoder.read_frame().await {
                     Ok(frame) => {
                         trace!("Sending frame to game");
-                        frame_sender.send(frame).unwrap();
+                        if frame_sender.send(frame).is_err() {
+                            debug!("Game closed the channel, stopping sending frames");
+                            break;
+                        }
                     }
                     Err(y4m::Error::EOF) => {
                         debug!("EOF from ffmpeg, stopping sending to game");
@@ -107,6 +120,23 @@ impl H264Decoder {
             loop {
                 match track.next_sample() {
                     Ok(Some(sample)) => {
+                        // MP4 can do frame reordering if B-frames are used
+                        // this seems to be indicated by the sample.rendering_offset field
+                        // it also seems that this info can be duplicated in the h264 bistream in a form of picture_timing SEI NALUs
+                        // it also seems that ffmpeg handles the picture_timing SEI NALUs correctly, so we don't need to do anything with the rendering offset if they are present
+                        // NOTE: maybe what I said above is not correct, as, after stripping the SEI NALUs, the video still looks correct...
+                        // I'll ignore the rendering offset for now, but this should be accounted for if other decoders are implemented
+
+                        let frame_timing = FrameTiming {
+                            start_time: sample.start_time,
+                            duration: sample.duration,
+                        };
+
+                        if frame_timing_sender.send(frame_timing).is_err() {
+                            debug!("Game closed the channel, stopping sending frame timings");
+                            break;
+                        }
+
                         bitstream_converter.convert_packet(&sample.bytes, &mut buffer);
                         trace!("Sending sample to ffmpeg ({} bytes)", buffer.len());
                         match stdin.write_all(&buffer).await {
@@ -129,6 +159,8 @@ impl H264Decoder {
             }
         });
 
+        // pump ffmpeg's stderr to the logs
+        // TODO: parse the ffmpeg's log leve?
         let stderr_task = bevy_tasks::IoTaskPool::get().spawn(async move {
             let mut stderr = BufReader::new(stderr);
             let mut buffer = String::new();
@@ -140,7 +172,8 @@ impl H264Decoder {
                         break;
                     }
                     Ok(_) => {
-                        trace!("ffmpeg: {}", buffer);
+                        buffer.pop(); // remove newline
+                        debug!("ffmpeg: {}", buffer);
                         buffer.clear();
                     }
                     Err(e) => {
@@ -156,31 +189,34 @@ impl H264Decoder {
         Ok(Self {
             process,
             frame_receiver,
+            frame_timing_receiver,
             frame_sender_task,
             packet_sender_task,
             stderr_task,
-            frame_info: None,
+            frame_size: None,
         })
     }
 
-    pub fn read_frame(&mut self) -> Result<Option<Frame>> {
+    pub fn read_frame(&mut self) -> Result<Option<(FrameTiming, Frame)>> {
         trace!("Reading frame from ffmpeg...");
         match self.frame_receiver.next() {
             Some(frame) => {
-                self.frame_info = Some(*frame.size());
-                Ok(Some(frame))
+                let timing = self.frame_timing_receiver.recv().unwrap();
+
+                self.frame_size = Some(*frame.size());
+                Ok(Some((timing, frame)))
             }
             None => Ok(None),
         }
     }
 
-    pub fn info(&mut self) -> Result<FrameSize> {
+    pub fn frame_size(&mut self) -> Result<FrameSize> {
         debug!("Reading frame info from ffmpeg");
-        match self.frame_info {
+        match self.frame_size {
             Some(info) => Ok(info),
             None => match self.frame_receiver.peek() {
                 Some(frame) => {
-                    self.frame_info = Some(*frame.size());
+                    self.frame_size = Some(*frame.size());
                     Ok(*frame.size())
                 }
                 None => {
