@@ -1,7 +1,7 @@
 mod y4m;
 
 use std::iter::Peekable;
-pub use y4m::{Colorspace, Frame, FrameInfo};
+pub use y4m::{BitsPerSample, Colorspace, Frame, FrameSize, PlaneSize};
 
 use crate::mp4::Mp4TrackReader;
 use crate::Mp4BitstreamConverter;
@@ -17,15 +17,19 @@ use tracing::{debug, error, trace};
 pub struct H264Decoder {
     process: async_process::Child,
     frame_receiver: Peekable<std::sync::mpsc::IntoIter<Frame>>,
+    // frame_timing_receiver:
+    #[allow(unused)]
     frame_sender_task: bevy_tasks::Task<()>,
+    #[allow(unused)]
     packet_sender_task: bevy_tasks::Task<()>,
+    #[allow(unused)]
     stderr_task: bevy_tasks::Task<()>,
 
-    frame_info: Option<FrameInfo>,
+    frame_info: Option<FrameSize>,
 }
 
 // const FFMPEG_LOG_LEVEL: &str = "debug";
-const FFMPEG_LOG_LEVEL: &str = "debug";
+const FFMPEG_LOG_LEVEL: &str = "info";
 
 impl H264Decoder {
     pub fn new(track: Mp4TrackReader) -> Result<Self> {
@@ -163,21 +167,21 @@ impl H264Decoder {
         trace!("Reading frame from ffmpeg...");
         match self.frame_receiver.next() {
             Some(frame) => {
-                self.frame_info = Some(*frame.info());
+                self.frame_info = Some(*frame.size());
                 Ok(Some(frame))
             }
             None => Ok(None),
         }
     }
 
-    pub fn info(&mut self) -> Result<FrameInfo> {
+    pub fn info(&mut self) -> Result<FrameSize> {
         debug!("Reading frame info from ffmpeg");
         match self.frame_info {
             Some(info) => Ok(info),
             None => match self.frame_receiver.peek() {
                 Some(frame) => {
-                    self.frame_info = Some(*frame.info());
-                    Ok(*frame.info())
+                    self.frame_info = Some(*frame.size());
+                    Ok(*frame.size())
                 }
                 None => {
                     bail!("No frames available, don't know the format")

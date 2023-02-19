@@ -27,6 +27,7 @@ which = "4.4.0"
 bevy_tasks = "0.9.1"
 async-process = "1.6.0"
 futures-lite = "1.12.0"
+num-integer = "0.1.45"
 
 [dev-dependencies]
 winit = "0.28.1"

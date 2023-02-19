@@ -3042,6 +3042,7 @@ dependencies = [
  "image",
  "kira",
  "mp4",
+ "num-integer",
  "pollster",
  "shin-render",
  "symphonia",

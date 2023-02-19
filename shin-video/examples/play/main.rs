@@ -3,7 +3,7 @@ use shin_render::{
     BindGroupLayouts, Camera, GpuCommonResources, Pipelines, RenderTarget, SpriteVertexBuffer,
 };
 use shin_video::mp4::Mp4;
-use shin_video::{H264Decoder, Mp4BitstreamConverter, YuvTexture};
+use shin_video::{H264Decoder, YuvTexture};
 use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
@@ -82,7 +82,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
     // let file = File::open("ship1.mp4").unwrap();
     let file = File::open("op1.mp4").unwrap();
-    let mut mp4 = Mp4::new(file).unwrap();
+    let mp4 = Mp4::new(file).unwrap();
 
     let mut decoder = H264Decoder::new(mp4.video_track).unwrap();
 

@@ -1,8 +1,8 @@
 use futures_lite::io::BufReader;
 use futures_lite::{AsyncBufReadExt, AsyncRead, AsyncReadExt};
+use num_integer::Integer;
 use std::fmt;
 use std::io;
-use std::io::Read;
 use std::num;
 use std::str;
 
@@ -18,8 +18,6 @@ pub enum Error {
     /// End of the file. Technically not an error, but it's easier to process
     /// that way.
     EOF,
-    /// Bad input parameters provided.
-    BadInput,
     /// Unknown colorspace (possibly just unimplemented).
     UnknownColorspace,
     /// Error while parsing the file/frame header.
@@ -35,7 +33,6 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Error::EOF => None,
-            Error::BadInput => None,
             Error::UnknownColorspace => None,
             Error::ParseError(ref err) => Some(err),
             Error::IoError(ref err) => Some(err),
@@ -48,7 +45,6 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::EOF => write!(f, "End of file"),
-            Error::BadInput => write!(f, "Bad input parameters provided"),
             Error::UnknownColorspace => write!(f, "Bad input parameters provided"),
             Error::ParseError(ref err) => err.fmt(f),
             Error::IoError(ref err) => err.fmt(f),
@@ -129,72 +125,23 @@ impl From<str::Utf8Error> for Error {
     }
 }
 
-trait EnhancedRead {
-    fn read_until(&mut self, ch: u8, buf: &mut [u8]) -> Result<usize, Error>;
-}
-
-impl<R: Read> EnhancedRead for R {
-    // Current implementation does one `read` call per byte. This might be a
-    // bit slow for long headers but it simplifies things: we don't need to
-    // check whether start of the next frame is already read and so on.
-    fn read_until(&mut self, ch: u8, buf: &mut [u8]) -> Result<usize, Error> {
-        let mut collected = 0;
-        while collected < buf.len() {
-            let chunk_size = self.read(&mut buf[collected..=collected])?;
-            if chunk_size == 0 {
-                return Err(Error::EOF);
-            }
-            if buf[collected] == ch {
-                return Ok(collected);
-            }
-            collected += chunk_size;
-        }
-        parse_error!(ParseError::General)
-    }
-}
-
-fn parse_bytes(buf: &[u8]) -> Result<usize, Error> {
+fn parse_bytes(buf: &[u8]) -> Result<u32, Error> {
     // A bit kludgy but seems like there is no other way.
     Ok(str::from_utf8(buf)?.parse()?)
-}
-
-/// A newtype wrapper around Vec<u8> to ensure validity as a vendor extension.
-#[derive(Debug, Clone)]
-pub struct VendorExtensionString(Vec<u8>);
-
-impl VendorExtensionString {
-    /// Create a new vendor extension string.
-    ///
-    /// For example, setting to `b"COLORRANGE=FULL"` sets the interpretation of
-    /// the YUV values to cover the full range (rather a limited "studio swing"
-    /// range).
-    ///
-    /// The argument `x_option` must not contain a space (b' ') character,
-    /// otherwise [Error::BadInput] is returned.
-    pub fn new(value: Vec<u8>) -> Result<VendorExtensionString, Error> {
-        if value.contains(&b' ') {
-            return Err(Error::BadInput);
-        }
-        Ok(VendorExtensionString(value))
-    }
-    /// Get the vendor extension string.
-    pub fn value(&self) -> &[u8] {
-        self.0.as_slice()
-    }
 }
 
 /// Simple ratio structure since stdlib lacks one.
 #[derive(Debug, Clone, Copy)]
 pub struct Ratio {
     /// Numerator.
-    pub num: usize,
+    pub num: u32,
     /// Denominator.
-    pub den: usize,
+    pub den: u32,
 }
 
 impl Ratio {
     /// Create a new ratio.
-    pub fn new(num: usize, den: usize) -> Ratio {
+    pub fn new(num: u32, den: u32) -> Ratio {
         Ratio { num, den }
     }
 
@@ -225,7 +172,7 @@ impl fmt::Display for Ratio {
 /// yuv444p10, yuv422p10, yuv420p10, yuv444p12, yuv422p12, yuv420p12,
 /// yuv444p14, yuv422p14, yuv420p14, yuv444p16, yuv422p16, yuv420p16, gray9,
 /// gray10, gray12 and gray16 pixel formats.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Colorspace {
     /// Grayscale only, 8-bit.
@@ -278,30 +225,46 @@ impl Colorspace {
         }
     }
 
-    /// Return the number of bytes in a sample
-    #[inline]
-    pub fn get_bytes_per_sample(self) -> usize {
-        if self.get_bit_depth() <= 8 {
-            1
-        } else {
-            2
+    pub fn get_bits_per_sample(self) -> BitsPerSample {
+        match self {
+            Colorspace::Cmono
+            | Colorspace::C420
+            | Colorspace::C422
+            | Colorspace::C444
+            | Colorspace::C420jpeg
+            | Colorspace::C420paldv
+            | Colorspace::C420mpeg2 => BitsPerSample::B8,
+            Colorspace::C420p10 | Colorspace::C422p10 | Colorspace::C444p10 => BitsPerSample::B10,
+            Colorspace::Cmono12
+            | Colorspace::C420p12
+            | Colorspace::C422p12
+            | Colorspace::C444p12 => BitsPerSample::B12,
         }
     }
 }
 
-fn get_plane_sizes(width: usize, height: usize, colorspace: Colorspace) -> (usize, usize, usize) {
-    let y_plane_size = width * height * colorspace.get_bytes_per_sample();
+fn get_plane_sizes(width: u32, height: u32, colorspace: Colorspace) -> [PlaneSize; 3] {
+    let y_plane_size = PlaneSize::new(width, height, colorspace.get_bits_per_sample());
 
-    let c420_chroma_size =
-        ((width + 1) / 2) * ((height + 1) / 2) * colorspace.get_bytes_per_sample();
-    let c422_chroma_size = ((width + 1) / 2) * height * colorspace.get_bytes_per_sample();
+    let c420_chroma_size = PlaneSize::new(
+        Integer::div_ceil(&width, &2),
+        Integer::div_ceil(&height, &2),
+        colorspace.get_bits_per_sample(),
+    );
+    let c422_chroma_size = PlaneSize::new(
+        Integer::div_ceil(&width, &2),
+        height,
+        colorspace.get_bits_per_sample(),
+    );
 
-    let c420_sizes = (y_plane_size, c420_chroma_size, c420_chroma_size);
-    let c422_sizes = (y_plane_size, c422_chroma_size, c422_chroma_size);
-    let c444_sizes = (y_plane_size, y_plane_size, y_plane_size);
+    let c420_sizes = [y_plane_size, c420_chroma_size, c420_chroma_size];
+    let c422_sizes = [y_plane_size, c422_chroma_size, c422_chroma_size];
+    let c444_sizes = [y_plane_size, y_plane_size, y_plane_size];
 
     match colorspace {
-        Colorspace::Cmono | Colorspace::Cmono12 => (y_plane_size, 0, 0),
+        Colorspace::Cmono | Colorspace::Cmono12 => {
+            [y_plane_size, PlaneSize::EMPTY, PlaneSize::EMPTY]
+        }
         Colorspace::C420
         | Colorspace::C420p10
         | Colorspace::C420p12
@@ -333,14 +296,8 @@ pub struct Decoder<R: AsyncRead> {
     reader: BufReader<R>,
     params_buf: Vec<u8>,
     frame_buf: Vec<u8>,
-    raw_params: Vec<u8>,
-    width: usize,
-    height: usize,
-    framerate: Ratio,
-    pixel_aspect: Ratio,
     colorspace: Colorspace,
-    y_len: usize,
-    u_len: usize,
+    plane_sizes: [PlaneSize; 3],
 }
 
 impl<R: AsyncRead + Unpin> Decoder<R> {
@@ -361,8 +318,8 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
         let mut height = 0;
         // Framerate is actually required per spec, but let's be a bit more
         // permissive as per ffmpeg behavior.
-        let mut framerate = Ratio::new(25, 1);
-        let mut pixel_aspect = Ratio::new(1, 1);
+        let mut _framerate = Ratio::new(25, 1);
+        let mut _pixel_aspect = Ratio::new(1, 1);
         let mut colorspace = None;
         // We shouldn't convert it to string because encoding is unspecified.
         for param in raw_params.split(|&b| b == FIELD_SEP) {
@@ -374,8 +331,8 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
             match name {
                 b'W' => width = parse_bytes(value)?,
                 b'H' => height = parse_bytes(value)?,
-                b'F' => framerate = Ratio::parse(value)?,
-                b'A' => pixel_aspect = Ratio::parse(value)?,
+                b'F' => _framerate = Ratio::parse(value)?,
+                b'A' => _pixel_aspect = Ratio::parse(value)?,
                 b'C' => {
                     colorspace = match value {
                         b"mono" => Some(Colorspace::Cmono),
@@ -402,8 +359,8 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
         if width == 0 || height == 0 {
             parse_error!(ParseError::General)
         }
-        let (y_len, u_len, v_len) = get_plane_sizes(width, height, colorspace);
-        let frame_size = y_len + u_len + v_len;
+        let plane_sizes = get_plane_sizes(width, height, colorspace);
+        let frame_size = plane_sizes.into_iter().map(|s| s.get_bytes_len()).sum();
         if frame_size > limits.bytes {
             return Err(Error::OutOfMemory);
         }
@@ -412,14 +369,8 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
             reader: buf_reader,
             params_buf: Vec::new(),
             frame_buf,
-            raw_params,
-            width,
-            height,
-            framerate,
-            pixel_aspect,
             colorspace,
-            y_len,
-            u_len,
+            plane_sizes,
         })
     }
 
@@ -451,73 +402,70 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
             None
         };
         self.reader.read_exact(&mut self.frame_buf).await?;
+
+        let [y_len, u_len, _] = self.plane_sizes.map(|v| v.get_bytes_len());
+
         Ok(Frame::new(
             [
-                self.frame_buf[0..self.y_len].to_vec(),
-                self.frame_buf[self.y_len..self.y_len + self.u_len].to_vec(),
-                self.frame_buf[self.y_len + self.u_len..].to_vec(),
+                self.frame_buf[0..y_len].to_vec(),
+                self.frame_buf[y_len..y_len + u_len].to_vec(),
+                self.frame_buf[y_len + u_len..].to_vec(),
             ],
             raw_params,
-            FrameInfo {
-                width: self.width,
-                height: self.height,
+            FrameSize {
+                plane_sizes: self.plane_sizes,
                 colorspace: self.colorspace,
             },
         ))
     }
+}
 
-    /// Return file width.
-    #[inline]
-    pub fn get_width(&self) -> usize {
-        self.width
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BitsPerSample {
+    B8,
+    B10,
+    B12,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PlaneSize {
+    pub width: u32,
+    pub height: u32,
+    pub bits_per_sample: BitsPerSample,
+}
+
+impl PlaneSize {
+    pub const EMPTY: PlaneSize = PlaneSize {
+        width: 0,
+        height: 0,
+        bits_per_sample: BitsPerSample::B8,
+    };
+
+    pub fn new(width: u32, height: u32, bits_per_sample: BitsPerSample) -> PlaneSize {
+        PlaneSize {
+            width,
+            height,
+            bits_per_sample,
+        }
     }
-    /// Return file height.
-    #[inline]
-    pub fn get_height(&self) -> usize {
-        self.height
-    }
-    /// Return file framerate.
-    #[inline]
-    pub fn get_framerate(&self) -> Ratio {
-        self.framerate
-    }
-    /// Return file pixel aspect.
-    #[inline]
-    pub fn get_pixel_aspect(&self) -> Ratio {
-        self.pixel_aspect
-    }
-    /// Return file colorspace.
-    ///
-    /// **NOTE:** normally all .y4m should have colorspace param, but there are
-    /// files encoded without that tag and it's unclear what should we do in
-    /// that case. Currently C420 is implied by default as per ffmpeg behavior.
-    #[inline]
-    pub fn get_colorspace(&self) -> Colorspace {
-        self.colorspace
-    }
-    /// Return file raw parameters.
-    #[inline]
-    pub fn get_raw_params(&self) -> &[u8] {
-        &self.raw_params
-    }
-    /// Return the bit depth per sample
-    #[inline]
-    pub fn get_bit_depth(&self) -> usize {
-        self.colorspace.get_bit_depth()
-    }
-    /// Return the number of bytes in a sample
-    #[inline]
+
     pub fn get_bytes_per_sample(&self) -> usize {
-        self.colorspace.get_bytes_per_sample()
+        match self.bits_per_sample {
+            BitsPerSample::B8 => 1,
+            BitsPerSample::B10 => 2,
+            BitsPerSample::B12 => 2,
+        }
+    }
+
+    pub fn get_bytes_len(&self) -> usize {
+        self.width as usize * self.height as usize * self.get_bytes_per_sample()
     }
 }
 
-// TODO: store sizes separate per plane
 #[derive(Debug, Copy, Clone)]
-pub struct FrameInfo {
+pub struct FrameSize {
     pub colorspace: Colorspace,
-    pub width: usize,
-    pub height: usize,
+    pub plane_sizes: [PlaneSize; 3],
 }
 
 /// A single frame.
@@ -525,13 +473,13 @@ pub struct FrameInfo {
 pub struct Frame {
     planes: [Vec<u8>; 3],
     raw_params: Option<Vec<u8>>,
-    info: FrameInfo,
+    info: FrameSize,
 }
 
 impl Frame {
     /// Create a new frame with optional parameters.
     /// No heap allocations are made.
-    pub fn new(planes: [Vec<u8>; 3], raw_params: Option<Vec<u8>>, info: FrameInfo) -> Frame {
+    pub fn new(planes: [Vec<u8>; 3], raw_params: Option<Vec<u8>>, info: FrameSize) -> Frame {
         Frame {
             planes,
             raw_params,
@@ -561,12 +509,7 @@ impl Frame {
     }
 
     #[inline]
-    pub fn info(&self) -> &FrameInfo {
+    pub fn size(&self) -> &FrameSize {
         &self.info
     }
-}
-
-/// Create a new decoder instance. Alias for `Decoder::new`.
-pub async fn decode<R: AsyncRead + Unpin>(reader: R) -> Result<Decoder<R>, Error> {
-    Decoder::new(reader).await
 }

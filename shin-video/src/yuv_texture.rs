@@ -1,4 +1,4 @@
-use crate::h264_decoder::{Colorspace, Frame, FrameInfo};
+use crate::h264_decoder::{BitsPerSample, Colorspace, Frame, FrameSize, PlaneSize};
 use shin_render::{GpuCommonResources, YuvTextureBindGroup};
 use std::num::NonZeroU32;
 
@@ -7,60 +7,62 @@ pub struct YuvTexture {
     tex_u: wgpu::Texture,
     tex_v: wgpu::Texture,
     bind_group: YuvTextureBindGroup,
-    frame_info: FrameInfo,
+    size: FrameSize,
+}
+
+fn create_texture(device: &wgpu::Device, size: PlaneSize, label: &str) -> wgpu::Texture {
+    assert_eq!(size.bits_per_sample, BitsPerSample::B8);
+    device.create_texture(&wgpu::TextureDescriptor {
+        label: Some(label),
+        size: wgpu::Extent3d {
+            width: size.width,
+            height: size.height,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::R8Unorm,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    })
+}
+
+fn write_texture(texture: &wgpu::Texture, size: PlaneSize, data: &[u8], queue: &wgpu::Queue) {
+    queue.write_texture(
+        wgpu::ImageCopyTexture {
+            texture,
+            mip_level: 0,
+            origin: Default::default(),
+            aspect: Default::default(),
+        },
+        data,
+        wgpu::ImageDataLayout {
+            offset: 0,
+            bytes_per_row: Some(NonZeroU32::new(size.width).unwrap()),
+            rows_per_image: None,
+        },
+        wgpu::Extent3d {
+            width: size.width,
+            height: size.height,
+            depth_or_array_layers: 1,
+        },
+    );
 }
 
 impl YuvTexture {
-    pub fn new(resources: &GpuCommonResources, info: FrameInfo) -> Self {
+    pub fn new(resources: &GpuCommonResources, size: FrameSize) -> Self {
         // note that this assumes 4:2:0 chroma subsampling is used
         // as of now, this is the only subsampling supported by openh264 crate
 
-        assert!(matches!(info.colorspace, Colorspace::C420mpeg2));
+        assert_eq!(size.colorspace, Colorspace::C420mpeg2);
+        assert_eq!(size.plane_sizes[0].bits_per_sample, BitsPerSample::B8);
 
         let device = &resources.device;
 
-        let tex_y = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("VideoRenderer Y Texture"),
-            size: wgpu::Extent3d {
-                width: info.width as u32,
-                height: info.height as u32,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::R8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        let tex_u = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("VideoRenderer U Texture"),
-            size: wgpu::Extent3d {
-                width: info.width as u32 / 2,
-                height: info.height as u32 / 2,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::R8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        let tex_v = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("VideoRenderer V Texture"),
-            size: wgpu::Extent3d {
-                width: info.width as u32 / 2,
-                height: info.height as u32 / 2,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::R8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
+        let tex_y = create_texture(device, size.plane_sizes[0], "VideoRenderer Y Texture");
+        let tex_u = create_texture(device, size.plane_sizes[1], "VideoRenderer U Texture");
+        let tex_v = create_texture(device, size.plane_sizes[2], "VideoRenderer V Texture");
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("VideoRenderer Sampler"),
@@ -86,81 +88,23 @@ impl YuvTexture {
             Some("VideoRenderer Bind Group"),
         );
 
-        let result = Self {
+        Self {
             tex_y,
             tex_u,
             tex_v,
             bind_group,
-            frame_info: info,
-        };
-
-        result
+            size,
+        }
     }
 
     pub fn write_data(&self, yuv: &Frame, queue: &wgpu::Queue) {
-        // note that this assumes 4:2:0 chroma subsampling is used
-        // as of now, this is the only subsampling supported by openh264 crate
+        // this, theoretically, supports different subsamplings, but has not been tested
+        // also, there would definitely be problems with non-even sizes & shifted chroma planes
+        let [size_y, size_u, size_v] = self.size.plane_sizes;
 
-        queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &self.tex_y,
-                mip_level: 0,
-                origin: Default::default(),
-                aspect: Default::default(),
-            },
-            yuv.get_y_plane(),
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(NonZeroU32::new(self.frame_info.width as u32).unwrap()),
-                rows_per_image: None,
-            },
-            wgpu::Extent3d {
-                // Y is not subsampled
-                width: self.frame_info.width as u32,
-                height: self.frame_info.height as u32,
-                depth_or_array_layers: 1,
-            },
-        );
-        queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &self.tex_u,
-                mip_level: 0,
-                origin: Default::default(),
-                aspect: Default::default(),
-            },
-            yuv.get_u_plane(),
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(NonZeroU32::new(self.frame_info.width as u32 / 2).unwrap()),
-                rows_per_image: None,
-            },
-            wgpu::Extent3d {
-                // U is subsampled by 2
-                width: self.frame_info.width as u32 / 2,
-                height: self.frame_info.height as u32 / 2,
-                depth_or_array_layers: 1,
-            },
-        );
-        queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &self.tex_v,
-                mip_level: 0,
-                origin: Default::default(),
-                aspect: Default::default(),
-            },
-            yuv.get_v_plane(),
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(NonZeroU32::new(self.frame_info.width as u32 / 2).unwrap()),
-                rows_per_image: None,
-            },
-            wgpu::Extent3d {
-                // V is not subsampled
-                width: self.frame_info.width as u32 / 2,
-                height: self.frame_info.height as u32 / 2,
-                depth_or_array_layers: 1,
-            },
-        );
+        write_texture(&self.tex_y, size_y, yuv.get_y_plane(), queue);
+        write_texture(&self.tex_u, size_u, yuv.get_u_plane(), queue);
+        write_texture(&self.tex_v, size_v, yuv.get_v_plane(), queue);
     }
 
     pub fn bind_group(&self) -> &YuvTextureBindGroup {
