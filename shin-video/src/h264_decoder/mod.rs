@@ -8,6 +8,7 @@ use crate::mp4_bitstream_converter::Mp4BitstreamConverter;
 use anyhow::{bail, Context, Result};
 use futures_lite::io::BufReader;
 use futures_lite::{AsyncBufReadExt, AsyncWriteExt};
+use shin_tasks::{IoTaskPool, Task};
 use std::process::Stdio;
 use tracing::{debug, error, trace};
 
@@ -26,11 +27,11 @@ pub struct H264Decoder {
     frame_receiver: Peekable<std::sync::mpsc::IntoIter<Frame>>,
     frame_timing_receiver: std::sync::mpsc::Receiver<FrameTiming>,
     #[allow(unused)]
-    frame_sender_task: bevy_tasks::Task<()>,
+    frame_sender_task: Task<()>,
     #[allow(unused)]
-    packet_sender_task: bevy_tasks::Task<()>,
+    packet_sender_task: Task<()>,
     #[allow(unused)]
-    stderr_task: bevy_tasks::Task<()>,
+    stderr_task: Task<()>,
 
     frame_size: Option<FrameSize>,
 }
@@ -78,7 +79,7 @@ impl H264Decoder {
         // hence the larger capacity (otherwise we might deadlock)
         let (frame_timing_sender, frame_timing_receiver) = std::sync::mpsc::sync_channel(10);
 
-        let frame_sender_task = bevy_tasks::IoTaskPool::get().spawn(async move {
+        let frame_sender_task = IoTaskPool::get().spawn(async move {
             let mut decoder = match y4m::Decoder::new(stdout).await {
                 Ok(r) => r,
                 Err(e) => {
@@ -110,7 +111,7 @@ impl H264Decoder {
             }
         });
 
-        let packet_sender_task = bevy_tasks::IoTaskPool::get().spawn(async move {
+        let packet_sender_task = IoTaskPool::get().spawn(async move {
             let mut track = track;
             let mut buffer = Vec::new();
             let mut stdin = stdin;
@@ -167,7 +168,7 @@ impl H264Decoder {
 
         // pump ffmpeg's stderr to the logs
         // TODO: parse the ffmpeg's log leve?
-        let stderr_task = bevy_tasks::IoTaskPool::get().spawn(async move {
+        let stderr_task = IoTaskPool::get().spawn(async move {
             let mut stderr = BufReader::new(stderr);
             let mut buffer = String::new();
 

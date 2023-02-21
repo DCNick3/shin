@@ -380,5 +380,3 @@ fn duration_div_rem(dividend: Duration, divisor: Duration) -> (u32, Duration) {
     let remainder = dividend - (quotient * divisor);
     (quotient, remainder)
 }
-
-struct TimeState {}

@@ -164,7 +164,7 @@ version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf46fee83e5ccffc220104713af3292ff9bc7c64c7de289f66dae8e38d826833"
 dependencies = [
- "concurrent-queue 2.0.0",
+ "concurrent-queue",
  "event-listener",
  "futures-core",
 ]
@@ -177,7 +177,7 @@ checksum = "17adb73da160dfb475c183343c8cccd80721ea5a605d3eb57125f0a7b7a92d0b"
 dependencies = [
  "async-lock",
  "async-task",
- "concurrent-queue 2.0.0",
+ "concurrent-queue",
  "fastrand",
  "futures-lite",
  "slab",
@@ -191,7 +191,7 @@ checksum = "8c374dda1ed3e7d8f0d9ba58715f924862c63eae6849c92d3a18e7fbde9e2794"
 dependencies = [
  "async-lock",
  "autocfg",
- "concurrent-queue 2.0.0",
+ "concurrent-queue",
  "futures-lite",
  "libc",
  "log",
@@ -304,21 +304,6 @@ name = "base64"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
-
-[[package]]
-name = "bevy_tasks"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "680b16b53df9c9f24681dd95f4d772d83760bd19adf8bca00f358a3aad997853"
-dependencies = [
- "async-channel",
- "async-executor",
- "async-task",
- "concurrent-queue 1.2.4",
- "futures-lite",
- "once_cell",
- "wasm-bindgen-futures",
-]
 
 [[package]]
 name = "bevy_utils"
@@ -511,12 +496,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89b2fd2a0dcf38d7971e2194b6b6eebab45ae01067456a7fd93d5547a61b70be"
 
 [[package]]
-name = "cache-padded"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1db59621ec70f09c5e9b597b220c7a2b43611f4710dc03ceb8748637775692c"
-
-[[package]]
 name = "calloop"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -677,15 +656,6 @@ checksum = "35ed6e9d84f0b51a7f52daf1c7d71dd136fd7a3f41a8462b8cdb8c78d920fad4"
 dependencies = [
  "bytes",
  "memchr",
-]
-
-[[package]]
-name = "concurrent-queue"
-version = "1.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af4780a44ab5696ea9e28294517f1fffb421a83a25af521333c838635509db9c"
-dependencies = [
- "cache-padded",
 ]
 
 [[package]]
@@ -2923,7 +2893,6 @@ dependencies = [
  "anymap",
  "arrayvec",
  "async-trait",
- "bevy_tasks",
  "bevy_utils",
  "bytemuck",
  "bytes",
@@ -2953,6 +2922,7 @@ dependencies = [
  "shin-core",
  "shin-derive",
  "shin-render",
+ "shin-tasks",
  "smallvec",
  "strum",
  "tracing",
@@ -3030,12 +3000,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "shin-tasks"
+version = "0.3.0"
+dependencies = [
+ "async-channel",
+ "async-executor",
+ "async-task",
+ "concurrent-queue",
+ "futures-lite",
+ "instant",
+ "once_cell",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "shin-video"
 version = "0.3.0"
 dependencies = [
  "anyhow",
  "async-process",
- "bevy_tasks",
  "bytes",
  "futures-lite",
  "glam",
@@ -3046,6 +3029,7 @@ dependencies = [
  "pollster",
  "shin-core",
  "shin-render",
+ "shin-tasks",
  "symphonia",
  "tracing",
  "tracing-subscriber",

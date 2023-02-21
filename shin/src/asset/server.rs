@@ -1,9 +1,9 @@
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
-use bevy_tasks::{AsyncComputeTaskPool, IoTaskPool};
 use bevy_utils::HashMap;
 use derive_more::From;
 use shin_core::format::rom::RomReader;
+use shin_tasks::{AsyncComputeTaskPool, IoTaskPool};
 use std::fmt::Debug;
 use std::fs::File;
 use std::io;

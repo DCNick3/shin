@@ -219,7 +219,7 @@ fn create_task_pools() {
     //     },
     // }
 
-    let total_threads = bevy_tasks::available_parallelism().clamp(1, usize::MAX);
+    let total_threads = shin_tasks::available_parallelism().clamp(1, usize::MAX);
     trace!("Assigning {} cores to default task pools", total_threads);
 
     let mut remaining_threads = total_threads;
@@ -249,8 +249,8 @@ fn create_task_pools() {
         trace!("IO Threads: {}", io_threads);
         remaining_threads = remaining_threads.saturating_sub(io_threads);
 
-        bevy_tasks::IoTaskPool::init(|| {
-            bevy_tasks::TaskPoolBuilder::default()
+        shin_tasks::IoTaskPool::init(|| {
+            shin_tasks::TaskPoolBuilder::default()
                 .num_threads(io_threads)
                 .thread_name("IO Task Pool".to_string())
                 .build()
@@ -265,8 +265,8 @@ fn create_task_pools() {
         trace!("Async Compute Threads: {}", async_compute_threads);
         remaining_threads = remaining_threads.saturating_sub(async_compute_threads);
 
-        bevy_tasks::AsyncComputeTaskPool::init(|| {
-            bevy_tasks::TaskPoolBuilder::default()
+        shin_tasks::AsyncComputeTaskPool::init(|| {
+            shin_tasks::TaskPoolBuilder::default()
                 .num_threads(async_compute_threads)
                 .thread_name("Async Compute Task Pool".to_string())
                 .build()

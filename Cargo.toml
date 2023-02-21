@@ -4,6 +4,7 @@ members = [
     "shin-core",
     "shin-render",
     "shin-video",
+    "shin-tasks",
     "sdu",
     "shin",
     "junk",

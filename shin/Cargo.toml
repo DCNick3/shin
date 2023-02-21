@@ -12,6 +12,7 @@ authors = ["DCNick3"]
 shin-core = { path = "../shin-core" }
 shin-render = { path = "../shin-render" }
 shin-derive = { path = "../shin-derive" }
+shin-tasks = { path = "../shin-tasks" }
 
 anyhow = "1.0.65"
 async-trait = "0.1.58"
@@ -39,9 +40,8 @@ glam = { workspace = true, features = [
 bytemuck = { version = "1.12.3", features = ["derive"] }
 image = { workspace = true, default-features = false, features = [] }
 
-# Theese parts of bevy do not depend on ECS or the reflection, so it's not a big problem to use them
+# Theese part of bevy does not depend on ECS or the reflection, so it's not a big problem to use them
 bevy_utils = "0.9.1"
-bevy_tasks = "0.9.1"
 
 pollster = "0.3.0"
 
