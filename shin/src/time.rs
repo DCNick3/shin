@@ -78,9 +78,6 @@ impl Time {
     }
 
     /// Updates the internal time measurements.
-    ///
-    /// Calling this method as part of your app will most likely result in inaccurate timekeeping,
-    /// as the `Time` resource is ordinarily managed by the [`TimePlugin`](crate::TimePlugin).
     pub fn update(&mut self) {
         let now = Instant::now();
         self.update_with_instant(now);
@@ -89,55 +86,7 @@ impl Time {
     /// Updates time with a specified [`Instant`].
     ///
     /// This method is provided for use in tests. Calling this method as part of your app will most
-    /// likely result in inaccurate timekeeping, as the `Time` resource is ordinarily managed by the
-    /// [`TimePlugin`](crate::TimePlugin).
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use bevy_time::prelude::*;
-    /// # use bevy_ecs::prelude::*;
-    /// # use bevy_utils::Duration;
-    /// # fn main () {
-    /// #     test_health_system();
-    /// # }
-    /// #[derive(Resource)]
-    /// struct Health {
-    ///     // Health value between 0.0 and 1.0
-    ///     health_value: f32,
-    /// }
-    ///
-    /// fn health_system(time: Res<Time>, mut health: ResMut<Health>) {
-    ///     // Increase health value by 0.1 per second, independent of frame rate,
-    ///     // but not beyond 1.0
-    ///     health.health_value = (health.health_value + 0.1 * time.delta_seconds()).min(1.0);
-    /// }
-    ///
-    /// // Mock time in tests
-    /// fn test_health_system() {
-    ///     let mut world = World::default();
-    ///     let mut time = Time::default();
-    ///     time.update();
-    ///     world.insert_resource(time);
-    ///     world.insert_resource(Health { health_value: 0.2 });
-    ///
-    ///     let mut update_stage = SystemStage::parallel();
-    ///     update_stage.add_system(health_system);
-    ///
-    ///     // Simulate that 30 ms have passed
-    ///     let mut time = world.resource_mut::<Time>();
-    ///     let last_update = time.last_update().unwrap();
-    ///     time.update_with_instant(last_update + Duration::from_millis(30));
-    ///
-    ///     // Run system
-    ///     update_stage.run(&mut world);
-    ///
-    ///     // Check that 0.003 has been added to the health value
-    ///     let expected_health_value = 0.2 + 0.1 * 0.03;
-    ///     let actual_health_value = world.resource::<Health>().health_value;
-    ///     assert_eq!(expected_health_value, actual_health_value);
-    /// }
-    /// ```
+    /// likely result in inaccurate timekeeping.
     pub fn update_with_instant(&mut self, instant: Instant) {
         let raw_delta = instant - self.last_update.unwrap_or(self.startup);
         let delta = if self.paused {
@@ -431,3 +380,5 @@ fn duration_div_rem(dividend: Duration, divisor: Duration) -> (u32, Duration) {
     let remainder = dividend - (quotient * divisor);
     (quotient, remainder)
 }
+
+struct TimeState {}

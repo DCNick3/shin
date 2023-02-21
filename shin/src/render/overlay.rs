@@ -13,7 +13,6 @@ use egui_wgpu::Renderer;
 use glam::vec2;
 use shin_render::GpuCommonResources;
 use std::cell::RefCell;
-use wgpu::{RenderPass, TextureFormat};
 
 pub struct OverlayManager {
     show_overlays_window: bool,
@@ -27,7 +26,7 @@ pub struct OverlayManager {
 }
 
 impl OverlayManager {
-    pub fn new(resources: &GpuCommonResources, texture_format: TextureFormat) -> Self {
+    pub fn new(resources: &GpuCommonResources, texture_format: wgpu::TextureFormat) -> Self {
         let renderer = Renderer::new(&resources.device, texture_format, None, 1);
         let context = Context::default();
 
@@ -289,7 +288,11 @@ impl OverlayManager {
         );
     }
 
-    pub fn render<'a>(&'a self, _resources: &GpuCommonResources, render_pass: &mut RenderPass<'a>) {
+    pub fn render<'a>(
+        &'a self,
+        _resources: &GpuCommonResources,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
         render_pass.push_debug_group("Overlay");
         self.renderer
             .render(render_pass, &self.primitives, &self.screen_descriptor());

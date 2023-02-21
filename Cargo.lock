@@ -3044,6 +3044,7 @@ dependencies = [
  "mp4",
  "num-integer",
  "pollster",
+ "shin-core",
  "shin-render",
  "symphonia",
  "tracing",

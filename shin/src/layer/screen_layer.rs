@@ -3,7 +3,6 @@ use crate::layer::{Layer, LayerProperties};
 use crate::update::{Updatable, UpdateContext};
 use glam::Mat4;
 use shin_render::{GpuCommonResources, RenderTarget, Renderable};
-use wgpu::RenderPass;
 
 pub struct ScreenLayer {
     page_layer: PageLayer,
@@ -45,7 +44,7 @@ impl Renderable for ScreenLayer {
     fn render<'enc>(
         &'enc self,
         resources: &'enc GpuCommonResources,
-        render_pass: &mut RenderPass<'enc>,
+        render_pass: &mut wgpu::RenderPass<'enc>,
         transform: Mat4,
         projection: Mat4,
     ) {

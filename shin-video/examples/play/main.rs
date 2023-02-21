@@ -1,13 +1,15 @@
-use glam::{Mat4, Vec4};
+use glam::Mat4;
+use shin_core::time::Ticks;
 use shin_render::{
-    BindGroupLayouts, Camera, GpuCommonResources, Pipelines, RenderTarget, SpriteVertexBuffer,
+    BindGroupLayouts, Camera, GpuCommonResources, Pipelines, RenderTarget, Renderable,
 };
 use shin_video::mp4::Mp4;
-use shin_video::{H264Decoder, YuvTexture};
+use shin_video::VideoPlayer;
 use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
-use tracing::{info, trace};
+use std::time::Instant;
+use tracing::trace;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -80,20 +82,10 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         pipelines,
     });
 
-    let file = File::open("ship1.mp4").unwrap();
-    // let file = File::open("op1.mp4").unwrap();
+    // let file = File::open("ship1.mp4").unwrap();
+    let file = File::open("op1.mp4").unwrap();
     let mp4 = Mp4::new(file).unwrap();
-
-    let mut decoder = H264Decoder::new(mp4.video_track).unwrap();
-
-    let yuv_texture = {
-        let frame_info = decoder.frame_size().unwrap();
-
-        YuvTexture::new(&resources, frame_info)
-    };
-
-    // it's a hack, I just want to ignore the camera for now
-    let vertex_buffer = SpriteVertexBuffer::new(&resources, (-1.0, 1.0, 1.0, -1.0), Vec4::ONE);
+    let mut video_player = VideoPlayer::new(&resources, mp4).unwrap();
 
     let render_target = RenderTarget::new(
         &resources,
@@ -101,7 +93,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         Some("Window RenderTarget"),
     );
 
-    let mut i = 0;
+    let mut time = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         // Have the closure take ownership of the resources.
@@ -110,12 +102,10 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         let _ = (
             &instance,
             &adapter,
-            &decoder,
-            &yuv_texture,
+            &video_player,
             &resources,
-            &yuv_texture,
             &render_target,
-            &i,
+            &time,
         );
 
         *control_flow = ControlFlow::Wait;
@@ -133,16 +123,15 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
-                if i % 2 == 0 {
-                    if let Some((_timing, yuv_frame)) = decoder.read_frame().unwrap() {
-                        // debug!("timing: {:?}", timing);
-                        yuv_texture.write_data(&yuv_frame, &resources.queue);
-                    } else {
-                        info!("EOF");
-                        *control_flow = ControlFlow::ExitWithCode(0);
-                    }
+                let time_now = Instant::now();
+                let delta_time = time_now - time;
+                time = time_now;
+
+                if video_player.is_finished() {
+                    *control_flow = ControlFlow::Exit;
                 }
-                i += 1;
+
+                video_player.update(Ticks::from_duration(delta_time), &resources.queue);
 
                 let frame = surface
                     .get_current_texture()
@@ -154,13 +143,9 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 let mut encoder = resources.start_encoder();
                 {
                     let mut rpass = render_target.begin_raw_render_pass(&mut encoder, None);
-                    // let proj = camera.screen_projection_matrix();
-                    resources.draw_yuv_sprite(
-                        &mut rpass,
-                        vertex_buffer.vertex_source(),
-                        yuv_texture.bind_group(),
-                        Mat4::IDENTITY,
-                    );
+                    let proj = render_target.projection_matrix();
+
+                    video_player.render(&resources, &mut rpass, Mat4::IDENTITY, proj);
                 }
 
                 {
@@ -170,17 +155,20 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                             view: &view,
                             resolve_target: None,
                             ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                                load: wgpu::LoadOp::Clear(wgpu::Color::BLUE),
                                 store: true,
                             },
                         })],
                         depth_stencil_attachment: None,
                     });
+
+                    let proj = camera.screen_projection_matrix();
+
                     resources.pipelines.sprite_screen.draw(
                         &mut rpass,
-                        vertex_buffer.vertex_source(),
+                        render_target.vertex_source(),
                         render_target.bind_group(),
-                        Mat4::IDENTITY,
+                        proj,
                     );
                 }
 

@@ -4,7 +4,7 @@ use std::iter::Peekable;
 pub use y4m::{BitsPerSample, Colorspace, Frame, FrameSize, PlaneSize};
 
 use crate::mp4::Mp4TrackReader;
-use crate::Mp4BitstreamConverter;
+use crate::mp4_bitstream_converter::Mp4BitstreamConverter;
 use anyhow::{bail, Context, Result};
 use futures_lite::io::BufReader;
 use futures_lite::{AsyncBufReadExt, AsyncWriteExt};
@@ -13,8 +13,9 @@ use tracing::{debug, error, trace};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FrameTiming {
-    start_time: u64,
-    duration: u32,
+    pub frame_number: u32,
+    pub start_time: u64,
+    pub duration: u32,
 }
 
 /// Decodes h264 Annex B format to YUV420P (or, possibly, some other frame format).
@@ -117,6 +118,8 @@ impl H264Decoder {
             let mut bitstream_converter: Mp4BitstreamConverter =
                 track.get_mp4_track_info(Mp4BitstreamConverter::for_mp4_track);
 
+            let mut frame_number = 0;
+
             loop {
                 match track.next_sample() {
                     Ok(Some(sample)) => {
@@ -128,9 +131,12 @@ impl H264Decoder {
                         // I'll ignore the rendering offset for now, but this should be accounted for if other decoders are implemented
 
                         let frame_timing = FrameTiming {
+                            frame_number,
                             start_time: sample.start_time,
                             duration: sample.duration,
                         };
+
+                        frame_number += 1;
 
                         if frame_timing_sender.send(frame_timing).is_err() {
                             debug!("Game closed the channel, stopping sending frame timings");
