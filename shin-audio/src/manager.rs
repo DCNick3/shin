@@ -1,11 +1,11 @@
-use kira::manager::backend::cpal::CpalBackend;
 use kira::manager::AudioManagerSettings;
 use kira::sound::SoundData;
 use std::sync::Mutex;
 
-// TODO: we want some more generic (?) audio manager, as this one is only suited for ADV
+type Backend = kira::manager::backend::cpal::CpalBackend;
+
 pub struct AudioManager {
-    manager: Mutex<kira::manager::AudioManager<CpalBackend>>,
+    manager: Mutex<kira::manager::AudioManager<Backend>>,
 }
 
 impl AudioManager {
@@ -27,7 +27,7 @@ impl AudioManager {
         manager.play(data).expect("Failed to start playing audio")
     }
 
-    pub fn kira_manager(&self) -> &Mutex<kira::manager::AudioManager<CpalBackend>> {
+    pub fn kira_manager(&self) -> &Mutex<kira::manager::AudioManager<Backend>> {
         &self.manager
     }
 }

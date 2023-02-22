@@ -38,12 +38,13 @@ impl BgmPlayer {
         volume: Volume,
         fade_in: Tween,
     ) {
-        let kira_data = AudioData::new(
+        let loop_start = repeat.then_some(bgm.info().loop_start);
+        let kira_data = AudioData::from_audio_file(
             bgm,
             AudioSettings {
                 track: self.bgm_track.id(),
                 fade_in,
-                repeat,
+                loop_start,
                 volume,
                 pan: Pan::default(),
             },

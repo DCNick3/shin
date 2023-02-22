@@ -5,26 +5,26 @@ use crate::sound::{AudioSound, COMMAND_BUFFER_CAPACITY};
 use anyhow::Result;
 use kira::sound::{Sound, SoundData};
 use ringbuf::HeapRb;
-use shin_core::format::audio::AudioFile;
+use shin_core::format::audio::{AudioDecoder, AudioFile, AudioFrameSource};
 use std::sync::Arc;
 
 use super::AudioSettings;
 
-pub struct AudioData {
-    pub file: Arc<AudioFile>,
+pub struct AudioData<S: AudioFrameSource> {
+    pub source: S,
     pub settings: AudioSettings,
 }
 
-impl AudioData {
-    pub fn new(audio: Arc<AudioFile>, settings: AudioSettings) -> Self {
+impl AudioData<AudioDecoder<Arc<AudioFile>>> {
+    pub fn from_audio_file(audio: Arc<AudioFile>, settings: AudioSettings) -> Self {
         Self {
-            file: audio,
+            source: AudioDecoder::new(audio).expect("Failed to create audio decoder"),
             settings,
         }
     }
 }
 
-impl SoundData for AudioData {
+impl<S: AudioFrameSource + Send + 'static> SoundData for AudioData<S> {
     type Error = anyhow::Error;
     type Handle = AudioHandle;
 
@@ -34,8 +34,8 @@ impl SoundData for AudioData {
     }
 }
 
-impl AudioData {
-    fn split(self) -> (AudioSound, AudioHandle) {
+impl<S: AudioFrameSource + Send> AudioData<S> {
+    fn split(self) -> (AudioSound<S>, AudioHandle) {
         let (command_producer, command_consumer) = HeapRb::new(COMMAND_BUFFER_CAPACITY).split();
 
         let sound = AudioSound::new(self, command_consumer);

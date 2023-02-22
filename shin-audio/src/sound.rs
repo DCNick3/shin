@@ -5,7 +5,7 @@ use kira::dsp::Frame;
 use kira::sound::Sound;
 use kira::track::TrackId;
 use ringbuf::HeapConsumer;
-use shin_core::format::audio::{AudioDecoder, AudioFile, AudioInfo, AudioSource};
+use shin_core::format::audio::{AudioFrameSource, AudioSource};
 use shin_core::time::{Ticks, Tween, Tweener};
 use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
 use std::f32::consts::SQRT_2;
@@ -53,38 +53,32 @@ pub enum PlaybackState {
     Stopped,
 }
 
-pub struct SampleProvider {
-    source: AudioSource<AudioDecoder<Arc<AudioFile>>>,
-    repeat: bool,
+pub struct SampleProvider<S: AudioFrameSource + Send> {
+    source: AudioSource<S>,
+    loop_start: Option<u32>,
     resampler: Resampler,
     fractional_position: f64,
     reached_eof: bool,
 }
 
-impl SampleProvider {
-    fn new(audio: Arc<AudioFile>, repeat: bool) -> Self {
+impl<S: AudioFrameSource + Send> SampleProvider<S> {
+    fn new(audio: S, loop_start: Option<u32>) -> Self {
         Self {
-            source: AudioSource::new(
-                AudioDecoder::new(audio).expect("Could not create audio decoder"),
-            ),
-            repeat,
+            source: AudioSource::new(audio),
+            loop_start,
             resampler: Resampler::new(0),
             fractional_position: 0.0,
             reached_eof: false,
         }
     }
 
-    fn audio_info(&self) -> &AudioInfo {
-        self.source.inner().audio_info()
-    }
-
     fn push_frame_to_resampler(&mut self) {
         let frame = match self.source.read_sample() {
             Some((left, right)) => Frame { left, right },
             None => {
-                if self.repeat {
+                if let Some(loop_start) = self.loop_start {
                     self.source
-                        .samples_seek(self.audio_info().loop_start)
+                        .samples_seek(loop_start)
                         .expect("Could not seek to loop start");
 
                     return self.push_frame_to_resampler();
@@ -111,7 +105,7 @@ impl SampleProvider {
     }
 }
 
-pub struct AudioSound {
+pub struct AudioSound<S: AudioFrameSource + Send> {
     track_id: TrackId,
     command_consumer: HeapConsumer<Command>,
     shared: Arc<Shared>,
@@ -119,11 +113,11 @@ pub struct AudioSound {
     volume: Tweener,
     panning: Tweener,
     volume_fade: Tweener,
-    sample_provider: SampleProvider,
+    sample_provider: SampleProvider<S>,
 }
 
-impl AudioSound {
-    pub fn new(data: AudioData, command_consumer: HeapConsumer<Command>) -> Self {
+impl<S: AudioFrameSource + Send> AudioSound<S> {
+    pub fn new(data: AudioData<S>, command_consumer: HeapConsumer<Command>) -> Self {
         debug!("Creating audio sound for track {:?}", data.settings.track);
 
         let mut volume_fade = Tweener::new(0.0);
@@ -139,7 +133,7 @@ impl AudioSound {
             volume: Tweener::new(data.settings.volume.0),
             panning: Tweener::new(data.settings.pan.0),
             volume_fade,
-            sample_provider: SampleProvider::new(data.file, data.settings.repeat),
+            sample_provider: SampleProvider::new(data.source, data.settings.loop_start),
         }
     }
 
@@ -173,7 +167,7 @@ impl AudioSound {
     }
 }
 
-impl Sound for AudioSound {
+impl<S: AudioFrameSource + Send> Sound for AudioSound<S> {
     fn track(&mut self) -> TrackId {
         self.track_id
     }

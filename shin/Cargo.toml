@@ -67,7 +67,7 @@ egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9
 usvg = "0.29.0"
 
 # kira for audio output
-kira = { workspace = true, features = ["cpal"] }
+kira = { workspace = true }
 
 [features]
 default = []

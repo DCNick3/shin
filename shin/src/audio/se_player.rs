@@ -43,12 +43,13 @@ impl SePlayer {
     ) {
         let slot = slot as usize;
 
-        let kira_data = AudioData::new(
+        let loop_start = repeat.then_some(se.info().loop_start);
+        let kira_data = AudioData::from_audio_file(
             se,
             AudioSettings {
                 track: self.se_tracks[slot].id(),
                 fade_in,
-                repeat,
+                loop_start,
                 volume,
                 pan,
             },
