@@ -9,7 +9,6 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
-use tracing::trace;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -190,93 +189,6 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     });
 }
 
-fn create_task_pools() {
-    // bevy params:
-    // TaskPoolOptions {
-    //     // By default, use however many cores are available on the system
-    //     min_total_threads: 1,
-    //     max_total_threads: std::usize::MAX,
-    //
-    //     // Use 25% of cores for IO, at least 1, no more than 4
-    //     io: TaskPoolThreadAssignmentPolicy {
-    //         min_threads: 1,
-    //         max_threads: 4,
-    //         percent: 0.25,
-    //     },
-    //
-    //     // Use 25% of cores for async compute, at least 1, no more than 4
-    //     async_compute: TaskPoolThreadAssignmentPolicy {
-    //         min_threads: 1,
-    //         max_threads: 4,
-    //         percent: 0.25,
-    //     },
-    //
-    //     // Use all remaining cores for compute (at least 1)
-    //     compute: TaskPoolThreadAssignmentPolicy {
-    //         min_threads: 1,
-    //         max_threads: std::usize::MAX,
-    //         percent: 1.0, // This 1.0 here means "whatever is left over"
-    //     },
-    // }
-
-    let total_threads = shin_tasks::available_parallelism().clamp(1, usize::MAX);
-    trace!("Assigning {} cores to default task pools", total_threads);
-
-    let mut remaining_threads = total_threads;
-
-    fn get_number_of_threads(
-        percent: f32,
-        min_threads: usize,
-        max_threads: usize,
-        remaining_threads: usize,
-        total_threads: usize,
-    ) -> usize {
-        let mut desired = (total_threads as f32 * percent).round() as usize;
-
-        // Limit ourselves to the number of cores available
-        desired = desired.min(remaining_threads);
-
-        // Clamp by min_threads, max_threads. (This may result in us using more threads than are
-        // available, this is intended. An example case where this might happen is a device with
-        // <= 2 threads.
-        desired.clamp(min_threads, max_threads)
-    }
-
-    {
-        // Determine the number of IO threads we will use
-        let io_threads = get_number_of_threads(0.25, 1, 4, remaining_threads, total_threads);
-
-        trace!("IO Threads: {}", io_threads);
-        remaining_threads = remaining_threads.saturating_sub(io_threads);
-
-        shin_tasks::IoTaskPool::init(|| {
-            shin_tasks::TaskPoolBuilder::default()
-                .num_threads(io_threads)
-                .thread_name("IO Task Pool".to_string())
-                .build()
-        });
-    }
-
-    {
-        // Use the rest for async compute threads
-        let async_compute_threads = remaining_threads;
-        // get_number_of_threads(0.25, 1, 4, remaining_threads, total_threads);
-
-        trace!("Async Compute Threads: {}", async_compute_threads);
-        remaining_threads = remaining_threads.saturating_sub(async_compute_threads);
-
-        shin_tasks::AsyncComputeTaskPool::init(|| {
-            shin_tasks::TaskPoolBuilder::default()
-                .num_threads(async_compute_threads)
-                .thread_name("Async Compute Task Pool".to_string())
-                .build()
-        });
-    }
-
-    // do not initialize the compute task pool, we do not use it (at least for now)
-    trace!("Remaining Threads: {}", remaining_threads);
-}
-
 fn main() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -284,7 +196,7 @@ fn main() {
         .build(&event_loop)
         .unwrap();
     tracing_subscriber::fmt::init();
-    create_task_pools();
+    shin_tasks::create_task_pools();
 
     pollster::block_on(run(event_loop, window));
 }
