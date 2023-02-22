@@ -1,11 +1,10 @@
-//! Implements the SoundData trait for the Kira audio library.
-
-use anyhow::{anyhow, Result};
+use crate::resampler::Resampler;
+use crate::AudioData;
 use kira::clock::clock_info::ClockInfoProvider;
 use kira::dsp::Frame;
-use kira::sound::{Sound, SoundData};
+use kira::sound::Sound;
 use kira::track::TrackId;
-use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
+use ringbuf::HeapConsumer;
 use shin_core::format::audio::{AudioDecoder, AudioDecoderIterator, AudioFile};
 use shin_core::time::{Ticks, Tween, Tweener};
 use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
@@ -14,42 +13,22 @@ use std::sync::atomic::{AtomicI32, AtomicU32};
 use std::sync::Arc;
 use tracing::debug;
 
-use super::resampler::Resampler;
-use super::AudioSettings;
-
-// more newtypes to the newtype god
-struct ArcAudio(Arc<AudioFile>);
-
-impl AsRef<AudioFile> for ArcAudio {
-    fn as_ref(&self) -> &AudioFile {
-        &self.0
-    }
-}
-
-const COMMAND_BUFFER_CAPACITY: usize = 8;
-
-pub struct AudioData(ArcAudio, AudioSettings);
-
-impl AudioData {
-    pub fn new(audio: Arc<AudioFile>, settings: AudioSettings) -> Self {
-        Self(ArcAudio(audio), settings)
-    }
-}
+pub const COMMAND_BUFFER_CAPACITY: usize = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Command {
+pub enum Command {
     SetVolume(Volume, Tween),
     SetPanning(Pan, Tween),
     Stop(Tween),
 }
 
-struct Shared {
-    wait_status: AtomicI32,
+pub(crate) struct Shared {
+    pub wait_status: AtomicI32,
     // TODO: in what unit
     #[allow(unused)] // TODO: use it to implement BGMSYNC (I don't know which unit it uses)
-    position: AtomicU32,
+    pub position: AtomicU32,
     // used for lip sync
-    amplitude: AtomicU32,
+    pub amplitude: AtomicU32,
 }
 
 impl Shared {
@@ -59,95 +38,6 @@ impl Shared {
             position: AtomicU32::new(0),
             amplitude: AtomicU32::new(0),
         }
-    }
-}
-
-pub struct AudioHandle {
-    command_producer: HeapProducer<Command>,
-    shared: Arc<Shared>,
-}
-
-impl AudioHandle {
-    pub fn get_wait_status(&self) -> AudioWaitStatus {
-        AudioWaitStatus::from_bits_truncate(
-            self.shared
-                .wait_status
-                .load(std::sync::atomic::Ordering::SeqCst),
-        )
-    }
-
-    #[allow(unused)] // TODO: use it for lip-sync
-    pub fn get_amplitude(&self) -> f32 {
-        f32::from_bits(
-            self.shared
-                .amplitude
-                .load(std::sync::atomic::Ordering::SeqCst),
-        )
-    }
-
-    /// Sets the volume of the sound.
-    /// The volume is a value between 0.0 and 1.0, on the linear scale.
-    pub fn set_volume(&mut self, volume: Volume, tween: Tween) -> Result<()> {
-        self.command_producer
-            .push(Command::SetVolume(volume, tween))
-            .map_err(|_| anyhow!("Command queue full"))
-    }
-
-    /// Sets the panning of the sound
-    pub fn set_panning(&mut self, panning: Pan, tween: Tween) -> Result<()> {
-        self.command_producer
-            .push(Command::SetPanning(panning, tween))
-            .map_err(|_| anyhow!("Command queue full"))
-    }
-
-    /// Fades out the sound to silence with the given tween and then
-    /// stops playback.
-    ///
-    /// Once the sound is stopped, it cannot be restarted.
-    pub fn stop(&mut self, tween: Tween) -> Result<()> {
-        self.command_producer
-            .push(Command::Stop(tween))
-            .map_err(|_| anyhow!("Command queue full"))
-    }
-}
-
-impl SoundData for AudioData {
-    type Error = anyhow::Error;
-    type Handle = AudioHandle;
-
-    fn into_sound(self) -> Result<(Box<dyn Sound>, Self::Handle), Self::Error> {
-        let (sound, handle) = self.split();
-        Ok((Box::new(sound), handle))
-    }
-}
-
-impl AudioData {
-    fn split(self) -> (AudioSound, AudioHandle) {
-        let (command_producer, command_consumer) = HeapRb::new(COMMAND_BUFFER_CAPACITY).split();
-
-        debug!("Creating audio sound for track {:?}", self.1.track);
-
-        let mut volume_fade = Tweener::new(0.0);
-        volume_fade.enqueue_now(1.0, self.1.fade_in);
-
-        let shared = Arc::new(Shared::new());
-        let sound = AudioSound {
-            track_id: self.1.track,
-            command_consumer,
-            shared: shared.clone(),
-            state: PlaybackState::Playing,
-            volume: Tweener::new(self.1.volume.0),
-            panning: Tweener::new(self.1.pan.0),
-            volume_fade,
-            sample_provider: SampleProvider::new(self.0, self.1.repeat),
-        };
-        (
-            sound,
-            AudioHandle {
-                command_producer,
-                shared,
-            },
-        )
     }
 }
 
@@ -163,8 +53,8 @@ pub enum PlaybackState {
     Stopped,
 }
 
-struct SampleProvider {
-    decoder: AudioDecoderIterator<ArcAudio>,
+pub struct SampleProvider {
+    decoder: AudioDecoderIterator<Arc<AudioFile>>,
     repeat: bool,
     resampler: Resampler,
     fractional_position: f64,
@@ -172,7 +62,7 @@ struct SampleProvider {
 }
 
 impl SampleProvider {
-    fn new(audio: ArcAudio, repeat: bool) -> Self {
+    fn new(audio: Arc<AudioFile>, repeat: bool) -> Self {
         Self {
             decoder: AudioDecoderIterator::new(
                 AudioDecoder::new(audio).expect("Could not create audio decoder"),
@@ -214,7 +104,7 @@ impl SampleProvider {
     }
 }
 
-struct AudioSound {
+pub struct AudioSound {
     track_id: TrackId,
     command_consumer: HeapConsumer<Command>,
     shared: Arc<Shared>,
@@ -226,6 +116,26 @@ struct AudioSound {
 }
 
 impl AudioSound {
+    pub fn new(data: AudioData, command_consumer: HeapConsumer<Command>) -> Self {
+        debug!("Creating audio sound for track {:?}", data.settings.track);
+
+        let mut volume_fade = Tweener::new(0.0);
+        volume_fade.enqueue_now(1.0, data.settings.fade_in);
+
+        let shared = Arc::new(Shared::new());
+
+        AudioSound {
+            track_id: data.settings.track,
+            command_consumer,
+            shared: shared.clone(),
+            state: PlaybackState::Playing,
+            volume: Tweener::new(data.settings.volume.0),
+            panning: Tweener::new(data.settings.pan.0),
+            volume_fade,
+            sample_provider: SampleProvider::new(data.file, data.settings.repeat),
+        }
+    }
+
     fn stop(&mut self, fade_out_tween: Tween) {
         self.state = PlaybackState::Stopping;
         self.volume_fade.enqueue_now(0.0, fade_out_tween);
@@ -249,6 +159,10 @@ impl AudioSound {
         result |= AudioWaitStatus::PLAY_SPEED_TWEENER_IDLE;
 
         result
+    }
+
+    pub(crate) fn shared(&self) -> Arc<Shared> {
+        self.shared.clone()
     }
 }
 
