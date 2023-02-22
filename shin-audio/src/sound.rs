@@ -5,7 +5,7 @@ use kira::dsp::Frame;
 use kira::sound::Sound;
 use kira::track::TrackId;
 use ringbuf::HeapConsumer;
-use shin_core::format::audio::{AudioDecoder, AudioDecoderIterator, AudioFile};
+use shin_core::format::audio::{AudioDecoder, AudioFile, AudioInfo, AudioSource};
 use shin_core::time::{Ticks, Tween, Tweener};
 use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
 use std::f32::consts::SQRT_2;
@@ -54,7 +54,7 @@ pub enum PlaybackState {
 }
 
 pub struct SampleProvider {
-    decoder: AudioDecoderIterator<Arc<AudioFile>>,
+    source: AudioSource<AudioDecoder<Arc<AudioFile>>>,
     repeat: bool,
     resampler: Resampler,
     fractional_position: f64,
@@ -64,7 +64,7 @@ pub struct SampleProvider {
 impl SampleProvider {
     fn new(audio: Arc<AudioFile>, repeat: bool) -> Self {
         Self {
-            decoder: AudioDecoderIterator::new(
+            source: AudioSource::new(
                 AudioDecoder::new(audio).expect("Could not create audio decoder"),
             ),
             repeat,
@@ -74,12 +74,18 @@ impl SampleProvider {
         }
     }
 
+    fn audio_info(&self) -> &AudioInfo {
+        self.source.inner().audio_info()
+    }
+
     fn push_frame_to_resampler(&mut self) {
-        let frame = match self.decoder.next() {
+        let frame = match self.source.read_sample() {
             Some((left, right)) => Frame { left, right },
             None => {
                 if self.repeat {
-                    self.decoder.seek(self.decoder.info().loop_start as u64);
+                    self.source
+                        .samples_seek(self.audio_info().loop_start)
+                        .expect("Could not seek to loop start");
 
                     return self.push_frame_to_resampler();
                 } else {
@@ -89,12 +95,13 @@ impl SampleProvider {
             }
         };
 
-        self.resampler.push_frame(frame, self.decoder.position());
+        let next_sample_index = self.source.current_samples_position();
+        self.resampler.push_frame(frame, next_sample_index - 1);
     }
 
     fn next(&mut self, dt: f64) -> Frame {
         let out = self.resampler.get(self.fractional_position as f32);
-        self.fractional_position += dt * self.decoder.info().sample_rate as f64;
+        self.fractional_position += dt * self.source.sample_rate() as f64;
         while self.fractional_position >= 1.0 {
             self.fractional_position -= 1.0;
             self.push_frame_to_resampler();

@@ -2918,7 +2918,6 @@ dependencies = [
  "once_cell",
  "petitset",
  "pollster",
- "ringbuf",
  "serde",
  "shin-audio",
  "shin-core",

@@ -1,6 +1,11 @@
 //! Support for NXA format, storing opus audio. (The format seems to be specific for Nintendo Switch?)
 
-use anyhow::Result;
+mod audio_source;
+
+use audio_source::AudioBuffer;
+pub use audio_source::{AudioFrameSource, AudioSource};
+
+use anyhow::{bail, Result};
 use binrw::{BinRead, BinWrite};
 use opus::Channels;
 use std::io::Read;
@@ -62,9 +67,6 @@ impl AsRef<AudioFile> for AudioFile {
 pub struct AudioDecoder<F: AsRef<AudioFile>> {
     file: F,
     bytes_position: usize,
-    /// Amount of samples that should be dropped when decoding next frame
-    /// Used to implement pre-skip & seeking
-    skip_samples: u64,
     buffer: Box<[f32]>,
     decoder: opus::Decoder,
 }
@@ -82,178 +84,110 @@ impl<F: AsRef<AudioFile>> AudioDecoder<F> {
         )?;
         let buffer =
             vec![0.0; info.frame_samples as usize * info.channel_count as usize].into_boxed_slice();
-        let skip_samples = info.pre_skip as u64;
         Ok(Self {
             file,
             bytes_position: 0,
-            skip_samples,
             buffer,
             decoder,
         })
     }
 
-    pub fn info(&self) -> &AudioInfo {
+    pub fn audio_info(&self) -> &AudioInfo {
         &self.file.as_ref().info
     }
 
-    pub fn samples_seek(&mut self, samples_position: u64) {
-        assert!(samples_position <= self.info().num_samples as u64);
+    fn frame_size(&self) -> u32 {
+        self.audio_info().frame_size as u32
+    }
 
+    fn frame_samples(&self) -> u32 {
+        self.audio_info().frame_samples as u32
+    }
+}
+
+impl<F: AsRef<AudioFile>> AudioFrameSource for AudioDecoder<F> {
+    fn max_frame_size(&self) -> usize {
+        self.audio_info().frame_samples as usize
+    }
+
+    fn sample_rate(&self) -> u32 {
+        self.audio_info().sample_rate
+    }
+
+    fn pre_skip(&self) -> u32 {
+        self.audio_info().pre_skip as u32
+    }
+
+    fn pre_roll(&self) -> u32 {
         // the decoder needs some time to converge, we probably should seek a little bit before and skip some samples
         // this is called "pre-roll" by the RFC7845 and recommends to use 3840 samples / 80 ms
-        const PRE_ROLL: u64 = 3840;
+        const PRE_ROLL: u32 = 3840;
 
-        let samples_position = samples_position + self.pre_skip();
+        PRE_ROLL
+    }
 
-        // handle the case when samples_position is < PRE_ROLL
-        let pre_roll = std::cmp::min(PRE_ROLL, samples_position);
+    fn read_frame(&mut self, destination: &mut AudioBuffer) -> bool {
+        let data = &self.file.as_ref().data;
+        if self.bytes_position >= data.len() {
+            return false;
+        }
 
-        let samples_position = samples_position - pre_roll;
+        let data = &data[self.bytes_position..][..self.frame_size() as usize];
+
+        assert_eq!(
+            self.decoder.get_nb_samples(data).unwrap() as u32,
+            self.frame_samples()
+        );
+
+        let decoded = self
+            .decoder
+            .decode_float(data, &mut self.buffer, false)
+            .unwrap() as u32;
+
+        assert_eq!(decoded, self.frame_samples());
+
+        self.bytes_position += self.frame_size() as usize;
+
+        let channels = self.audio_info().channel_count;
+
+        match channels {
+            1 => {
+                for &sample in self.buffer.iter() {
+                    destination.push((sample, sample));
+                }
+            }
+            2 => {
+                for sample in self.buffer.chunks_exact(2) {
+                    destination.push((sample[0], sample[1]));
+                }
+            }
+            _ => panic!("Unsupported channel count: {}", channels),
+        }
+
+        true
+    }
+
+    fn samples_seek(&mut self, samples_position: u32) -> Result<u32> {
+        if samples_position > self.audio_info().num_samples {
+            bail!(
+                "Seek position {} is out of bounds (the file is {} samples)",
+                samples_position,
+                self.audio_info().num_samples
+            );
+        }
+
         let frames_position = samples_position / self.frame_samples();
         let bytes_position = frames_position * self.frame_size();
         let in_frame_position = samples_position % self.frame_samples();
 
         self.bytes_position = bytes_position.try_into().unwrap();
-        self.skip_samples += in_frame_position + pre_roll;
         self.decoder.reset_state().unwrap();
+
+        Ok(in_frame_position)
     }
 
-    /// Returns the current position of the decoder in samples
-    ///
-    /// This handles the pre-skip, so the position is relative to the actual start of the audio
-    pub fn samples_position(&self) -> u64 {
-        (self.bytes_position as u64 / self.frame_size()) * self.frame_samples()
-            // skip samples are not accounted in the "bytes_position", so we need to add them
-            + self.skip_samples
-            // pre-skip is counted in the bytes_position and we want to hide it, so subtract it
-            - self.pre_skip()
-        // Note that at the start skip_samples will be equal to pre_skip, so we will return 0
-    }
-
-    fn frame_size(&self) -> u64 {
-        self.info().frame_size as u64
-    }
-
-    fn frame_samples(&self) -> u64 {
-        self.info().frame_samples as u64
-    }
-
-    fn pre_skip(&self) -> u64 {
-        self.info().pre_skip as u64
-    }
-
-    /// Decodes one opus frame
-    ///
-    /// Returns the offset in the buffer to start reading from
-    pub fn decode_frame(&mut self) -> Option<usize> {
-        // the loop is here to handle pre-skips larger than one frame
-        loop {
-            let data = &self.file.as_ref().data;
-            if self.bytes_position >= data.len() {
-                return None;
-            }
-
-            let data = &data[self.bytes_position..][..self.frame_size() as usize];
-
-            assert_eq!(
-                self.decoder.get_nb_samples(data).unwrap() as u64,
-                self.frame_samples()
-            );
-
-            let decoded = self
-                .decoder
-                .decode_float(data, &mut self.buffer, false)
-                .unwrap();
-
-            assert_eq!(decoded as u64, self.frame_samples());
-
-            self.bytes_position += self.frame_size() as usize;
-
-            if self.skip_samples > self.frame_samples() {
-                self.skip_samples -= self.frame_samples();
-            } else {
-                self.skip_samples = 0;
-                break Some(self.skip_samples as usize);
-            }
-        }
-    }
-
-    pub fn buffer(&self) -> &[f32] {
-        &self.buffer
-    }
-}
-
-/// Wrapper around the `AudioDecoder` that implements `Iterator` over individual samples
-pub struct AudioDecoderIterator<F: AsRef<AudioFile>> {
-    decoder: AudioDecoder<F>,
-    buffer_position: usize,
-}
-
-impl<F: AsRef<AudioFile>> AudioDecoderIterator<F> {
-    pub fn new(mut decoder: AudioDecoder<F>) -> Self {
-        let buffer_position = match decoder.decode_frame() {
-            None => decoder.buffer().len(),
-            Some(pos) => pos,
-        };
-
-        Self {
-            decoder,
-            buffer_position,
-        }
-    }
-
-    pub fn info(&self) -> &AudioInfo {
-        self.decoder.info()
-    }
-
-    pub fn seek(&mut self, samples_position: u64) {
-        self.decoder.samples_seek(samples_position);
-        self.buffer_position = match self.decoder.decode_frame() {
-            None => {
-                // end of file, put the buffer position at the end to return `None` from the `next()`
-                self.decoder.buffer().len()
-            }
-            Some(pos) => pos,
-        }
-    }
-
-    pub fn position(&self) -> u64 {
-        self.decoder.samples_position() + self.buffer_position as u64
-    }
-}
-
-impl<F: AsRef<AudioFile>> Iterator for AudioDecoderIterator<F> {
-    type Item = (f32, f32);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut buffer = self.decoder.buffer();
-
-        if self.buffer_position >= buffer.len() {
-            self.buffer_position = self.decoder.decode_frame()?;
-
-            buffer = self.decoder.buffer();
-        }
-
-        match self.decoder.info().channel_count {
-            1 => {
-                let sample = buffer[self.buffer_position];
-                self.buffer_position += 1;
-                Some((sample, sample))
-            }
-            2 => {
-                let sample = (
-                    buffer[self.buffer_position],
-                    buffer[self.buffer_position + 1],
-                );
-                self.buffer_position += 2;
-                Some(sample)
-            }
-            _ => panic!(
-                "Unsupported channel count {}",
-                self.decoder.info().channel_count
-            ),
-        }
+    fn current_sample_position(&self) -> u32 {
+        (self.bytes_position / self.frame_size() as usize) as u32 * self.frame_samples()
     }
 }
 
