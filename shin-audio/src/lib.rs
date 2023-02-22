@@ -1,5 +1,6 @@
 mod data;
 mod handle;
+mod manager;
 mod resampler;
 mod sound;
 
@@ -9,6 +10,7 @@ use shin_core::vm::command::types::{Pan, Volume};
 
 pub use data::AudioData;
 pub use handle::AudioHandle;
+pub use manager::AudioManager;
 pub use shin_core::format::audio::AudioFile;
 
 pub struct AudioSettings {

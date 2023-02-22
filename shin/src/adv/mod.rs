@@ -6,7 +6,7 @@ pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, Updata
 pub use vm_state::VmState;
 
 use crate::adv::assets::AdvAssets;
-use crate::audio::{AudioManager, BgmPlayer, SePlayer};
+use crate::audio::{BgmPlayer, SePlayer};
 use crate::input::actions::AdvMessageAction;
 use crate::input::ActionState;
 use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup, ScreenLayer};
@@ -15,6 +15,7 @@ use crate::update::{Updatable, UpdateContext};
 use egui::Window;
 use glam::Mat4;
 use itertools::Itertools;
+use shin_audio::AudioManager;
 use shin_core::format::scenario::instructions::CodeAddress;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::breakpoint::BreakpointObserver;

@@ -1,5 +1,8 @@
+use crate::audio::AacFrameSource;
 use anyhow::{Context, Result};
 use glam::Mat4;
+use shin_audio::{AudioData, AudioManager};
+use shin_core::format::audio::AudioSource;
 use shin_core::time::Ticks;
 use shin_render::{GpuCommonResources, Renderable, SpriteVertexBuffer};
 use tracing::{error, info, trace, warn};
@@ -18,11 +21,17 @@ pub struct VideoPlayer {
 }
 
 impl VideoPlayer {
-    pub fn new(resources: &GpuCommonResources, mp4: Mp4) -> Result<VideoPlayer> {
+    pub fn new(
+        resources: &GpuCommonResources,
+        audio_manager: &AudioManager,
+        mp4: Mp4,
+    ) -> Result<VideoPlayer> {
         // TODO: use the audio track
         // if we are using audio the timer should be tracking the audio playback
-        if mp4.audio_track.is_some() {
-            warn!("Audio tracks are not supported yet, playing video without audio");
+        if let Some(track) = mp4.audio_track {
+            let frame_source = AacFrameSource::new(track).context("Initializing AacFrameSource")?;
+            let audio_source = AudioSource::new(frame_source);
+            todo!("Play audio");
         }
 
         let timer = Timer::new_independent(

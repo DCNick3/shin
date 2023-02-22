@@ -13,6 +13,7 @@ authors = ["DCNick3"]
 shin-render = { path = "../shin-render" }
 shin-core = { path = "../shin-core" }
 shin-tasks = { path = "../shin-tasks" }
+shin-audio = { path = "../shin-audio" }
 
 # git version to support ilst box being before hdrl
 # tracked at https://github.com/alfg/mp4-rust/pull/95

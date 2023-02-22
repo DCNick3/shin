@@ -13,7 +13,6 @@ use winit::{
 };
 
 use crate::asset::locate_assets;
-use crate::audio::AudioManager;
 use crate::cli::Cli;
 use crate::time::Time;
 use crate::{
@@ -26,6 +25,7 @@ use crate::{
     update::{Updatable, UpdateContext},
 };
 
+use shin_audio::AudioManager;
 use shin_render::BindGroupLayouts;
 use shin_render::Camera;
 use shin_render::GpuCommonResources;

@@ -1,6 +1,5 @@
-use super::manager::AudioManager;
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
-use shin_audio::{AudioData, AudioFile, AudioHandle, AudioSettings};
+use shin_audio::{AudioData, AudioFile, AudioHandle, AudioManager, AudioSettings};
 use shin_core::time::Tween;
 use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
 use std::sync::Arc;
@@ -16,7 +15,7 @@ pub struct SePlayer {
 
 impl SePlayer {
     pub fn new(audio_manager: Arc<AudioManager>) -> Self {
-        let mut manager = audio_manager.manager().lock().unwrap();
+        let mut manager = audio_manager.kira_manager().lock().unwrap();
 
         let se_tracks = [(); SE_SLOT_COUNT].map(|_| {
             manager

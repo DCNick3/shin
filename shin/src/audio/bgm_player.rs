@@ -4,8 +4,7 @@ use shin_core::vm::command::types::{Pan, Volume};
 use std::sync::Arc;
 use tracing::warn;
 
-use super::manager::AudioManager;
-use shin_audio::{AudioData, AudioFile, AudioHandle, AudioSettings};
+use shin_audio::{AudioData, AudioFile, AudioHandle, AudioManager, AudioSettings};
 
 pub struct BgmPlayer {
     audio_manager: Arc<AudioManager>,
@@ -16,7 +15,7 @@ pub struct BgmPlayer {
 
 impl BgmPlayer {
     pub fn new(audio_manager: Arc<AudioManager>) -> Self {
-        let mut manager = audio_manager.manager().lock().unwrap();
+        let mut manager = audio_manager.kira_manager().lock().unwrap();
 
         let bgm_track = manager
             .add_sub_track(TrackBuilder::new().routes(TrackRoutes::parent(TrackId::Main)))

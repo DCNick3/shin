@@ -1,4 +1,5 @@
 use glam::Mat4;
+use shin_audio::AudioManager;
 use shin_core::time::Ticks;
 use shin_render::{
     BindGroupLayouts, Camera, GpuCommonResources, Pipelines, RenderTarget, Renderable,
@@ -81,10 +82,12 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         pipelines,
     });
 
+    let audio_manager = AudioManager::new();
+
     // let file = File::open("ship1.mp4").unwrap();
     let file = File::open("op1.mp4").unwrap();
     let mp4 = Mp4::new(file).unwrap();
-    let mut video_player = VideoPlayer::new(&resources, mp4).unwrap();
+    let mut video_player = VideoPlayer::new(&resources, &audio_manager, mp4).unwrap();
 
     let render_target = RenderTarget::new(
         &resources,
@@ -105,6 +108,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
             &resources,
             &render_target,
             &time,
+            &audio_manager,
         );
 
         *control_flow = ControlFlow::Wait;

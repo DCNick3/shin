@@ -2,8 +2,7 @@
 
 mod audio_source;
 
-use audio_source::AudioBuffer;
-pub use audio_source::{AudioFrameSource, AudioSource};
+pub use audio_source::{AudioBuffer, AudioFrameSource, AudioSource};
 
 use anyhow::{bail, Result};
 use binrw::{BinRead, BinWrite};
