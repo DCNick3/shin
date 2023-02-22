@@ -1,6 +1,6 @@
 use super::manager::AudioManager;
-use crate::asset::audio::{Audio, AudioHandle, AudioParams};
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
+use shin_audio::{AudioData, AudioFile, AudioHandle, AudioSettings};
 use shin_core::time::Tween;
 use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
 use std::sync::Arc;
@@ -36,7 +36,7 @@ impl SePlayer {
     pub fn play(
         &mut self,
         slot: i32,
-        se: Arc<Audio>,
+        se: Arc<AudioFile>,
         repeat: bool,
         volume: Volume,
         pan: Pan,
@@ -44,13 +44,16 @@ impl SePlayer {
     ) {
         let slot = slot as usize;
 
-        let kira_data = se.to_kira_data(AudioParams {
-            track: self.se_tracks[slot].id(),
-            fade_in,
-            repeat,
-            volume,
-            pan,
-        });
+        let kira_data = AudioData::new(
+            se,
+            AudioSettings {
+                track: self.se_tracks[slot].id(),
+                fade_in,
+                repeat,
+                volume,
+                pan,
+            },
+        );
 
         let handle = self.audio_manager.play(kira_data);
 

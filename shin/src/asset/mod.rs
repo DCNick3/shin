@@ -1,4 +1,4 @@
-pub mod audio;
+mod audio;
 pub mod bustup;
 mod font;
 mod locate;

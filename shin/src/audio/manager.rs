@@ -1,6 +1,6 @@
-use crate::asset::audio::{AudioData, AudioHandle};
 use kira::manager::backend::cpal::CpalBackend;
 use kira::manager::AudioManagerSettings;
+use shin_audio::{AudioData, AudioHandle};
 use std::sync::Mutex;
 
 // TODO: we want some more generic (?) audio manager, as this one is only suited for ADV

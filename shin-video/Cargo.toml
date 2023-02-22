@@ -23,7 +23,7 @@ wgpu = { workspace = true }
 kira = { workspace = true }
 glam = { workspace = true }
 
-anyhow = "1.0.69"
+anyhow = { workspace = true }
 bytes = "1.4.0"
 tracing = "0.1.37"
 which = "4.4.0"

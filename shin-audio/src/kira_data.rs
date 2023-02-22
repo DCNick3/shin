@@ -15,27 +15,26 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::resampler::Resampler;
-use super::{Audio, AudioParams};
-
-impl Audio {
-    pub fn to_kira_data(self: Arc<Self>, params: AudioParams) -> AudioData {
-        AudioData(ArcAudio(self), params)
-    }
-}
+use super::AudioSettings;
 
 // more newtypes to the newtype god
-struct ArcAudio(Arc<Audio>);
+struct ArcAudio(Arc<AudioFile>);
 
 impl AsRef<AudioFile> for ArcAudio {
     fn as_ref(&self) -> &AudioFile {
-        &self.0 .0
+        &self.0
     }
 }
 
 const COMMAND_BUFFER_CAPACITY: usize = 8;
 
-/// Unfortunately, it's not possible to implement SoundData for Arc<AudioData>, so we use a newtype
-pub struct AudioData(ArcAudio, AudioParams);
+pub struct AudioData(ArcAudio, AudioSettings);
+
+impl AudioData {
+    pub fn new(audio: Arc<AudioFile>, settings: AudioSettings) -> Self {
+        Self(ArcAudio(audio), settings)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Command {

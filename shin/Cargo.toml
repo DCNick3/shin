@@ -13,8 +13,9 @@ shin-core = { path = "../shin-core" }
 shin-render = { path = "../shin-render" }
 shin-derive = { path = "../shin-derive" }
 shin-tasks = { path = "../shin-tasks" }
+shin-audio = { path = "../shin-audio" }
 
-anyhow = "1.0.65"
+anyhow = { workspace = true }
 async-trait = "0.1.58"
 futures = "0.3.25"
 smallvec = "1.10.0"
@@ -66,7 +67,7 @@ egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9
 usvg = "0.29.0"
 
 # kira for audio output
-kira = { workspace = true, default-features = false, features = ["cpal"] }
+kira = { workspace = true, features = ["cpal"] }
 ringbuf = "0.3.1"
 
 [features]

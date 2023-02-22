@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tracing::warn;
 
 use super::manager::AudioManager;
-use crate::asset::audio::{Audio, AudioHandle, AudioParams};
+use shin_audio::{AudioData, AudioFile, AudioHandle, AudioSettings};
 
 pub struct BgmPlayer {
     audio_manager: Arc<AudioManager>,
@@ -33,19 +33,22 @@ impl BgmPlayer {
 
     pub fn play(
         &mut self,
-        bgm: Arc<Audio>,
+        bgm: Arc<AudioFile>,
         _display_name: &str,
         repeat: bool,
         volume: Volume,
         fade_in: Tween,
     ) {
-        let kira_data = bgm.to_kira_data(AudioParams {
-            track: self.bgm_track.id(),
-            fade_in,
-            repeat,
-            volume,
-            pan: Pan::default(),
-        });
+        let kira_data = AudioData::new(
+            bgm,
+            AudioSettings {
+                track: self.bgm_track.id(),
+                fade_in,
+                repeat,
+                volume,
+                pan: Pan::default(),
+            },
+        );
 
         let handle = self.audio_manager.play(kira_data);
 

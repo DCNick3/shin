@@ -2920,6 +2920,7 @@ dependencies = [
  "pollster",
  "ringbuf",
  "serde",
+ "shin-audio",
  "shin-core",
  "shin-derive",
  "shin-render",
@@ -2931,6 +2932,18 @@ dependencies = [
  "usvg",
  "wgpu 0.15.1",
  "winit",
+]
+
+[[package]]
+name = "shin-audio"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "kira",
+ "ringbuf",
+ "shin-core",
+ "shin-tasks",
+ "tracing",
 ]
 
 [[package]]
