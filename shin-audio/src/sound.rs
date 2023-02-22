@@ -24,8 +24,8 @@ pub enum Command {
 
 pub(crate) struct Shared {
     pub wait_status: AtomicI32,
-    // TODO: in what unit
-    #[allow(unused)] // TODO: use it to implement BGMSYNC (I don't know which unit it uses)
+    // TODO: use it to implement BGMSYNC (I don't know which unit it uses)
+    // in ms, relative to the start of the sound
     pub position: AtomicU32,
     // used for lip sync
     pub amplitude: AtomicU32,
@@ -189,7 +189,12 @@ impl<S: AudioFrameSource + Send> Sound for AudioSound<S> {
             std::sync::atomic::Ordering::SeqCst,
         );
         // TODO: compute the amplitude
-        // TODO: provide the position
+        let position = self.sample_provider.source.current_samples_position() as u64 * 1000
+            / self.sample_provider.source.sample_rate() as u64;
+        self.shared.position.store(
+            position.try_into().unwrap(),
+            std::sync::atomic::Ordering::SeqCst,
+        );
     }
 
     fn process(&mut self, dt: f64, _clock_info_provider: &ClockInfoProvider) -> Frame {

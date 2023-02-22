@@ -21,7 +21,7 @@ mp4 = { git = "https://github.com/DCNick3/mp4-rust.git", rev = "3a900c62db8f88e7
 symphonia = { version = "0.5.2", features = ["aac"], default-features = false }
 
 wgpu = { workspace = true }
-#kira = { workspace = true }
+kira = { workspace = true }
 glam = { workspace = true }
 
 anyhow = { workspace = true }

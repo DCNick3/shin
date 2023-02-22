@@ -1,7 +1,7 @@
 use crate::sound::{Command, Shared};
 use anyhow::anyhow;
 use ringbuf::HeapProducer;
-use shin_core::time::Tween;
+use shin_core::time::{Ticks, Tween};
 use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
 use std::sync::Arc;
 
@@ -51,5 +51,14 @@ impl AudioHandle {
         self.command_producer
             .push(Command::Stop(tween))
             .map_err(|_| anyhow!("Command queue full"))
+    }
+
+    /// Returns the current playback position of the sound.
+    pub fn position(&self) -> Ticks {
+        Ticks::from_millis(
+            self.shared
+                .position
+                .load(std::sync::atomic::Ordering::SeqCst) as f32,
+        )
     }
 }

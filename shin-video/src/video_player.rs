@@ -1,9 +1,10 @@
 use crate::audio::AacFrameSource;
 use anyhow::{Context, Result};
 use glam::Mat4;
-use shin_audio::AudioManager;
-use shin_core::format::audio::AudioSource;
-use shin_core::time::Ticks;
+use kira::track::TrackId;
+use shin_audio::{AudioData, AudioManager, AudioSettings};
+use shin_core::time::{Ticks, Tween};
+use shin_core::vm::command::types::{Pan, Volume};
 use shin_render::{GpuCommonResources, Renderable, SpriteVertexBuffer};
 use tracing::{error, info, trace};
 
@@ -28,16 +29,30 @@ impl VideoPlayer {
     ) -> Result<VideoPlayer> {
         // TODO: use the audio track
         // if we are using audio the timer should be tracking the audio playback
-        if let Some(track) = mp4.audio_track {
+        let audio_handle = if let Some(track) = mp4.audio_track {
             let frame_source = AacFrameSource::new(track).context("Initializing AacFrameSource")?;
-            let audio_source = AudioSource::new(frame_source);
-            todo!("Play audio");
-        }
+            Some(audio_manager.play(AudioData {
+                source: frame_source,
+                settings: AudioSettings {
+                    track: TrackId::Main,
+                    fade_in: Tween::MS_15,
+                    loop_start: None,
+                    volume: Volume::default(),
+                    pan: Pan::default(),
+                },
+            }))
+        } else {
+            None
+        };
 
-        let timer = Timer::new_independent(
-            mp4.video_track
-                .get_mp4_track_info(|track| track.timescale()),
-        );
+        let time_base = mp4
+            .video_track
+            .get_mp4_track_info(|track| track.timescale());
+
+        let timer = match audio_handle {
+            Some(handle) => Timer::new_audio_tied(time_base, handle),
+            None => Timer::new_independent(time_base),
+        };
 
         let mut video_decoder =
             H264Decoder::new(mp4.video_track).context("Initializing H264Decoder")?;
