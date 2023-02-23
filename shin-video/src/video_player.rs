@@ -6,6 +6,7 @@ use shin_audio::{AudioData, AudioManager, AudioSettings};
 use shin_core::time::{Ticks, Tween};
 use shin_core::vm::command::types::{Pan, Volume};
 use shin_render::{GpuCommonResources, Renderable, SpriteVertexBuffer};
+use std::io::{Read, Seek};
 use tracing::{error, info, trace};
 
 use crate::h264_decoder::{Frame, FrameTiming, H264Decoder};
@@ -22,10 +23,10 @@ pub struct VideoPlayer {
 }
 
 impl VideoPlayer {
-    pub fn new(
+    pub fn new<S: Read + Seek + Send + 'static>(
         resources: &GpuCommonResources,
         audio_manager: &AudioManager,
-        mp4: Mp4,
+        mp4: Mp4<S>,
     ) -> Result<VideoPlayer> {
         // TODO: use the audio track
         // if we are using audio the timer should be tracking the audio playback

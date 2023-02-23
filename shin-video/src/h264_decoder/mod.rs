@@ -1,5 +1,6 @@
 mod y4m;
 
+use std::io::{Read, Seek};
 use std::iter::Peekable;
 pub use y4m::{BitsPerSample, Colorspace, Frame, FrameSize, PlaneSize};
 
@@ -40,7 +41,7 @@ pub struct H264Decoder {
 const FFMPEG_LOG_LEVEL: &str = "info";
 
 impl H264Decoder {
-    pub fn new(track: Mp4TrackReader) -> Result<Self> {
+    pub fn new<S: Read + Seek + Send + 'static>(track: Mp4TrackReader<S>) -> Result<Self> {
         // TODO: use a more robust way to find the ffmpeg binary
         let ffmpeg = which::which("ffmpeg").context("Could not locate ffmpeg binary")?;
 

@@ -1,18 +1,19 @@
 use crate::mp4::Mp4TrackReader;
 use anyhow::Context;
 use shin_core::format::audio::{AudioBuffer, AudioFrameSource};
+use std::io::{Read, Seek};
 use symphonia::core::audio::{AudioBufferRef, Signal};
 use symphonia::core::codecs::{CodecParameters, Decoder, DecoderOptions, CODEC_TYPE_AAC};
 use symphonia::core::formats::Packet;
 
-pub struct AacFrameSource {
-    track: Mp4TrackReader,
+pub struct AacFrameSource<S: Read + Seek> {
+    track: Mp4TrackReader<S>,
     decoder: symphonia::default::codecs::AacDecoder,
     samples_position: u32,
 }
 
-impl AacFrameSource {
-    pub fn new(track: Mp4TrackReader) -> anyhow::Result<Self> {
+impl<S: Read + Seek> AacFrameSource<S> {
+    pub fn new(track: Mp4TrackReader<S>) -> anyhow::Result<Self> {
         let mp4a = track
             .get_mp4_track_info(|t| t.trak.mdia.minf.stbl.stsd.mp4a.clone())
             .context("Could not find mp4a atom")?;
@@ -48,7 +49,7 @@ impl AacFrameSource {
     }
 }
 
-impl AudioFrameSource for AacFrameSource {
+impl<S: Read + Seek> AudioFrameSource for AacFrameSource<S> {
     fn max_frame_size(&self) -> usize {
         self.decoder.last_decoded().capacity()
     }

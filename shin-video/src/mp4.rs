@@ -1,20 +1,20 @@
 use anyhow::{anyhow, Context, Result};
 use mp4::{Mp4Sample, Mp4Track};
-use std::io::{Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 use std::sync::{Arc, Mutex};
 
 pub type Mp4ReadStream = std::fs::File;
-pub type Mp4Reader = Arc<Mutex<mp4::Mp4Reader<Mp4ReadStream>>>;
+pub type Mp4Reader<S> = Arc<Mutex<mp4::Mp4Reader<S>>>;
 
-pub struct Mp4TrackReader {
-    mp4: Mp4Reader,
+pub struct Mp4TrackReader<S: Read + Seek> {
+    mp4: Mp4Reader<S>,
     track_id: u32,
     samples_position: u32,
     samples_count: u32,
 }
 
-impl Mp4TrackReader {
-    pub fn new(mp4: Mp4Reader, track_id: u32) -> Result<Self> {
+impl<S: Read + Seek> Mp4TrackReader<S> {
+    pub fn new(mp4: Mp4Reader<S>, track_id: u32) -> Result<Self> {
         let mp4_guard = mp4.lock().unwrap();
 
         let track = mp4_guard
@@ -75,14 +75,14 @@ fn stream_len(stream: &mut impl Seek) -> Result<u64> {
     Ok(len)
 }
 
-pub struct Mp4 {
-    pub reader: Mp4Reader,
-    pub video_track: Mp4TrackReader,
-    pub audio_track: Option<Mp4TrackReader>,
+pub struct Mp4<S: Read + Seek> {
+    pub reader: Mp4Reader<S>,
+    pub video_track: Mp4TrackReader<S>,
+    pub audio_track: Option<Mp4TrackReader<S>>,
 }
 
-impl Mp4 {
-    pub fn new(mut reader: Mp4ReadStream) -> Result<Self> {
+impl<S: Read + Seek> Mp4<S> {
+    pub fn new(mut reader: S) -> Result<Self> {
         let size = stream_len(&mut reader).context("Getting the length of a stream")?;
         let mp4 =
             mp4::Mp4Reader::read_header(reader, size).context("Reading the MP4 file headers")?;
