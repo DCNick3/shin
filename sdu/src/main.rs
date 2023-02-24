@@ -465,14 +465,18 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             }
             writeln!(output, "Pictures:")?;
             for (i, picture) in tables.picture_info.iter().enumerate() {
-                writeln!(output, "  {}: {:?} {:?}", i, picture.name, picture.unk1)?;
+                writeln!(
+                    output,
+                    "  {}: {:?} {:?}",
+                    i, picture.name, picture.linked_cg_id
+                )?;
             }
             writeln!(output, "Bustups:")?;
             for (i, bustup) in tables.bustup_info.iter().enumerate() {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?}",
-                    i, bustup.name, bustup.emotion, bustup.unk1
+                    i, bustup.name, bustup.emotion, bustup.lipsync_character_id
                 )?;
             }
             writeln!(output, "Bgms:")?;
@@ -492,12 +496,16 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?} {:?}",
-                    i, movie.name, movie.unk1, movie.unk2, movie.unk3
+                    i, movie.name, movie.linked_picture_id, movie.flags, movie.linked_picture_id
                 )?;
             }
             writeln!(output, "Voice Mappings:")?;
             for (_, mapping) in tables.voice_mapping_info.iter().enumerate() {
-                writeln!(output, "  {:?}: {:?}", mapping.name_prefix, mapping.unk1)?;
+                writeln!(
+                    output,
+                    "  {:?}: {:?}",
+                    mapping.name_pattern, mapping.lipsync_character_ids
+                )?;
             }
             writeln!(output, "Picture Box Entries:")?;
             for (i, item) in tables.picture_box_info.iter().enumerate() {
@@ -517,7 +525,7 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             }
             writeln!(output, "Character Sprites:")?;
             for (i, item) in tables.chars_sprite_info.iter().enumerate() {
-                writeln!(output, "  {}: {:?} {:?}", i, item.unk1, item.segments)?;
+                writeln!(output, "  {}: {:?} {:?}", i, item.episode, item.segments)?;
             }
             writeln!(output, "Character Grids:")?;
             for (i, item) in tables.chars_grid_info.iter().enumerate() {
@@ -528,7 +536,7 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?} {:?}",
-                    i, tip.unk1, tip.unk2, tip.unk3, tip.unk4
+                    i, tip.episode, tip.title_index, tip.title, tip.content
                 )?;
             }
 
