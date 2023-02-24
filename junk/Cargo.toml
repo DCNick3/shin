@@ -16,3 +16,6 @@ image = { workspace = true }
 [package.metadata.release]
 release = false
 publish = false
+
+[package.metadata.dist]
+dist = false
