@@ -499,16 +499,16 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             for (_, mapping) in tables.voice_mapping_info.iter().enumerate() {
                 writeln!(output, "  {:?}: {:?}", mapping.name_prefix, mapping.unk1)?;
             }
-            writeln!(output, "VSection64:")?;
-            for (i, item) in tables.section64_info.iter().enumerate() {
-                writeln!(output, "  {}: {:?} {:?}", i, item.unk1, item.unk2)?;
+            writeln!(output, "Picture Box Entries:")?;
+            for (i, item) in tables.picture_box_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?} {:?}", i, item.name, item.picture_ids)?;
             }
-            writeln!(output, "VSection68:")?;
-            for (i, item) in tables.section68_info.iter().enumerate() {
+            writeln!(output, "Music Box Entries:")?;
+            for (i, item) in tables.music_box_info.iter().enumerate() {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?}",
-                    i, item.unk1, item.unk2, item.unk3
+                    i, item.bgm_id, item.name_index, item.once_flag
                 )?;
             }
             writeln!(output, "Tips:")?;

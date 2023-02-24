@@ -88,19 +88,19 @@ pub struct VoiceMappingInfoItem {
 pub type VoiceMappingInfo = Vec<VoiceMappingInfoItem>;
 
 #[derive(Debug, BinRead, BinWrite)]
-pub struct Section64InfoItem {
-    pub unk1: U16String,
-    pub unk2: U16List<u16>,
+pub struct PictureBoxInfoItem {
+    pub name: U16String,
+    pub picture_ids: U16List<u16>,
 }
-pub type Section64Info = Vec<Section64InfoItem>;
+pub type PictureBoxInfo = Vec<PictureBoxInfoItem>;
 
 #[derive(Debug, BinRead, BinWrite)]
-pub struct Section68InfoItem {
-    pub unk1: u16,
-    pub unk2: u16,
-    pub unk3: u16,
+pub struct MusicBoxInfoItem {
+    pub bgm_id: u16,
+    pub name_index: u16,
+    pub once_flag: u16,
 }
-pub type Section68Info = Vec<Section68InfoItem>;
+pub type MusicBoxInfo = Vec<MusicBoxInfoItem>;
 
 #[derive(Debug, BinRead, BinWrite)]
 pub struct TipsInfoItem {
@@ -164,9 +164,9 @@ pub struct ScenarioInfoTables {
     #[br(parse_with = parse_sized_section_ptr)]
     pub voice_mapping_info: VoiceMappingInfo,
     #[br(parse_with = parse_simple_section_ptr)]
-    pub section64_info: Section64Info,
+    pub picture_box_info: PictureBoxInfo,
     #[br(parse_with = parse_simple_section_ptr)]
-    pub section68_info: Section68Info,
+    pub music_box_info: MusicBoxInfo,
     // I don't know how to parse these sections yet
     pub offset_72: u32,
     pub offset_76: u32,
