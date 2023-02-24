@@ -103,6 +103,63 @@ pub struct MusicBoxInfoItem {
 pub type MusicBoxInfo = Vec<MusicBoxInfoItem>;
 
 #[derive(Debug, BinRead, BinWrite)]
+pub enum CharacterBoxSegment {
+    /// Defines an individual background to be available for selection in the character box
+    #[brw(magic = 0x0u8)]
+    Background {
+        /// The index of the picture that constitutes the primary background image (shown in front)
+        primary_picture_id: u16,
+
+        /// This value is added to primary_picture_id to get the index of the secondary background image (shown behind the primary image). If 0, no secondary image will be shown.
+        secondary_picture_id_offset: u16
+    },
+
+    /// Defines an individual bustup to be available for selection in the character box
+    #[brw(magic = 0x1u8)]
+    Bustup { bustup_id: u16 },
+
+    /// Ends a group of facial expressions (表情)
+    #[brw(magic = 0x2u8)]
+    EndExpressionGroup,
+
+    /// Ends a group of poses (ポーズ)
+    #[brw(magic = 0x12u8)]
+    EndPoseGroup,
+
+    /// Ends either the list of background definitions at the beginning, or ends an individual character definition, corresponding to a group of outfits (衣装)
+    #[brw(magic = 0x22u8)]
+    EndDefinition
+}
+pub type CharacterBoxInfo = Vec<CharacterBoxSegment>;
+
+#[derive(Debug, BinRead, BinWrite)]
+pub enum CharsSpriteSegment {
+    #[brw(magic = 0x0u8)]
+    End,
+
+    #[brw(magic = 0x1u8)]
+    Segment0x1 { unk1: u8 },
+
+    #[brw(magic = 0x2u8)]
+    Segment0x2 { unk1: u8, unk2: u8, unk3: U16String, unk4: U16String },
+
+    #[brw(magic = 0x3u8)]
+    Segment0x3 { unk1: U16String, unk2: U16String }
+}
+
+#[derive(Debug, BinRead, BinWrite)]
+pub enum CharsGridSegment {
+    #[brw(magic = 0x0u8)]
+    End,
+
+    #[brw(magic = 0x1u8)]
+    Portrait { page: u8, grid_x: u8, grid_y: u8, character_id: u16, behaviour: u8, behaviour_modifier: u8 },
+
+    #[brw(magic = 0x1u8)]
+    Connector { page: u8, grid_x: u8, grid_y: u8, shape: u8, color: u8 },
+}
+
+#[derive(Debug, BinRead, BinWrite)]
 pub struct TipsInfoItem {
     pub unk1: u8,
     pub unk2: u16,
@@ -129,6 +186,31 @@ struct SizedTable<T: for<'a> BinRead<Args<'a> = ()> + 'static> {
     elements: Vec<T>,
 }
 
+fn parse_sized_segment_list<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + 'static>(
+    reader: &mut R,
+    endian: Endian,
+    (byte_size,): (u32,),
+) -> BinResult<Vec<T>> {
+    // can this be done more elegantly?
+    let initial_pos = reader.stream_position()?;
+    let mut result = Vec::new();
+    while reader.stream_position()? < initial_pos + byte_size as u64 {
+        match T::read_options(reader, endian, ()) {
+            Ok(segment) => result.push(segment),
+            Err(err) => return Err(err)
+        };
+    }
+    Ok(result)
+}
+
+#[derive(Debug, BinRead)]
+#[allow(dead_code)] // this stuff is declarative
+struct SizedSegmentList<T: for<'a> BinRead<Args<'a> = ()> + 'static> {
+    byte_size: u32,
+    #[br(parse_with = parse_sized_segment_list, args(byte_size))]
+    elements: Vec<T>,
+}
+
 fn parse_simple_section_ptr<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + 'static>(
     reader: &mut R,
     endian: Endian,
@@ -144,6 +226,14 @@ fn parse_sized_section_ptr<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + '
 ) -> BinResult<Vec<T>> {
     // maybe check that the size matches for our own sanity?
     FilePtr32::<SizedTable<T>>::parse(reader, endian, args).map(|x| x.elements)
+}
+
+fn parse_sized_segment_list_ptr<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + 'static>(
+    reader: &mut R,
+    endian: Endian,
+    args: FilePtrArgs<()>,
+) -> BinResult<Vec<T>> {
+    FilePtr32::<SizedSegmentList<T>>::parse(reader, endian, args).map(|x| x.elements)
 }
 
 // parses the sections from offsets
@@ -167,8 +257,8 @@ pub struct ScenarioInfoTables {
     pub picture_box_info: PictureBoxInfo,
     #[br(parse_with = parse_simple_section_ptr)]
     pub music_box_info: MusicBoxInfo,
-    // I don't know how to parse these sections yet
-    pub offset_72: u32,
+    #[br(parse_with = parse_sized_segment_list_ptr)]
+    pub character_box_info: CharacterBoxInfo,
     pub offset_76: u32,
     pub offset_80: u32,
 

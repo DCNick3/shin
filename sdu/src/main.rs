@@ -511,6 +511,14 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                     i, item.bgm_id, item.name_index, item.once_flag
                 )?;
             }
+            writeln!(output, "Character Box Segments:")?;
+            for (i, item) in tables.character_box_info.iter().enumerate() {
+                writeln!(
+                    output,
+                    "  {}: {:?}",
+                    i, item
+                )?;
+            }
             writeln!(output, "Tips:")?;
             for (i, tip) in tables.tips_info.iter().enumerate() {
                 writeln!(
