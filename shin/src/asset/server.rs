@@ -2,6 +2,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use bevy_utils::HashMap;
 use derive_more::From;
+use pollster::FutureExt;
 use shin_core::format::rom::RomReader;
 use shin_tasks::{AsyncComputeTaskPool, IoTaskPool};
 use std::fmt::Debug;
@@ -81,10 +82,12 @@ impl<Io: AssetIo> AssetServer<Io> {
         Ok(asset)
     }
 
-    /// Load an asset synchronously. This is useful for assets not required much CPU time to load.
+    /// Load an asset synchronously. This is useful for assets not requiring much CPU time to load.
     /// Though it might cause lockups if the loading is not blazing fast (tm).
+    ///
+    /// Ideally I want to get rid of all uses of this function
     pub fn load_sync<T: Asset, P: AsRef<str>>(&self, path: P) -> Result<Arc<T>> {
-        pollster::block_on(self.load(path))
+        self.load(path).block_on()
     }
 }
 

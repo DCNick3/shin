@@ -2924,6 +2924,7 @@ dependencies = [
  "shin-derive",
  "shin-render",
  "shin-tasks",
+ "shin-video",
  "smallvec",
  "strum",
  "tracing",

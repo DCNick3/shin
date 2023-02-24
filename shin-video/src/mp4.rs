@@ -62,6 +62,17 @@ impl<S: Read + Seek> Mp4TrackReader<S> {
     }
 }
 
+impl<S: Read + Seek> Clone for Mp4TrackReader<S> {
+    fn clone(&self) -> Self {
+        Self {
+            mp4: self.mp4.clone(),
+            track_id: self.track_id,
+            samples_position: self.samples_position,
+            samples_count: self.samples_count,
+        }
+    }
+}
+
 fn stream_len(stream: &mut impl Seek) -> Result<u64> {
     let old_pos = stream.stream_position()?;
     let len = stream.seek(SeekFrom::End(0))?;
@@ -123,5 +134,15 @@ impl<S: Read + Seek> Mp4<S> {
             video_track,
             audio_track,
         })
+    }
+}
+
+impl<S: Read + Seek> Clone for Mp4<S> {
+    fn clone(&self) -> Self {
+        Self {
+            reader: self.reader.clone(),
+            video_track: self.video_track.clone(),
+            audio_track: self.audio_track.clone(),
+        }
     }
 }

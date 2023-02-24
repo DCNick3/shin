@@ -58,6 +58,7 @@ mod wipe;
 
 use layerload::LAYERLOAD;
 use layerwait::LAYERWAIT;
+use moviewait::MOVIEWAIT;
 use msgset::MSGSET;
 use msgwait::MSGWAIT;
 use sewait::SEWAIT;
@@ -105,6 +106,8 @@ pub enum ExecutingCommand {
     LAYERWAIT,
     #[derivative(Debug = "transparent")]
     SEWAIT,
+    #[derivative(Debug = "transparent")]
+    MOVIEWAIT,
 }
 
 impl StartableCommand for RuntimeCommand {

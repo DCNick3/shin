@@ -6,6 +6,7 @@ pub mod picture;
 mod scenario;
 mod server;
 pub mod texture_archive;
+pub mod movie;
 
 pub mod asset_paths {
     pub const SCENARIO: &str = "/main.snr";

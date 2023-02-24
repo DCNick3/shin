@@ -9,7 +9,9 @@ use crate::adv::assets::AdvAssets;
 use crate::audio::{BgmPlayer, SePlayer};
 use crate::input::actions::AdvMessageAction;
 use crate::input::ActionState;
-use crate::layer::{AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup, ScreenLayer};
+use crate::layer::{
+    AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup, ScreenLayer, UserLayer,
+};
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use crate::update::{Updatable, UpdateContext};
 use egui::Window;
@@ -19,7 +21,7 @@ use shin_audio::AudioManager;
 use shin_core::format::scenario::instructions::CodeAddress;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::breakpoint::BreakpointObserver;
-use shin_core::vm::command::types::{VLayerId, VLayerIdRepr, PLANES_COUNT};
+use shin_core::vm::command::types::{LayerId, VLayerId, VLayerIdRepr, PLANES_COUNT};
 use shin_core::vm::command::CommandResult;
 use shin_core::vm::Scripter;
 use shin_render::{GpuCommonResources, Renderable};
@@ -223,6 +225,7 @@ impl OverlayVisitable for Adv {
 
 pub struct AdvState {
     pub root_layer_group: RootLayerGroup,
+    pub audio_manager: Arc<AudioManager>,
     pub bgm_player: BgmPlayer,
     pub se_player: SePlayer,
 }
@@ -239,6 +242,7 @@ impl AdvState {
                 ScreenLayer::new(resources),
                 MessageLayer::new(resources, assets.fonts, assets.messagebox_textures),
             ),
+            audio_manager: audio_manager.clone(),
             bgm_player: BgmPlayer::new(audio_manager.clone()),
             se_player: SePlayer::new(audio_manager),
         }
@@ -256,6 +260,26 @@ impl AdvState {
             .screen_layer_mut()
             .page_layer_mut()
             .plane_mut(vm_state.layers.current_plane)
+    }
+
+    pub fn get_layer(&self, vm_state: &VmState, id: LayerId) -> Option<&UserLayer> {
+        let layer = self.current_plane_layer_group(vm_state).get_layer(id);
+        if let Some(layer) = layer {
+            Some(layer)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_layer_mut(&mut self, vm_state: &VmState, id: LayerId) -> Option<&mut UserLayer> {
+        let layer = self
+            .current_plane_layer_group_mut(vm_state)
+            .get_layer_mut(id);
+        if let Some(layer) = layer {
+            Some(layer)
+        } else {
+            None
+        }
     }
 
     #[allow(unused)]
@@ -283,7 +307,7 @@ impl AdvState {
                 }
             }
             VLayerIdRepr::Layer(l) => {
-                let layer = self.current_plane_layer_group(vm_state).get_layer(l);
+                let layer = self.get_layer(vm_state, l);
                 if let Some(layer) = layer {
                     smallvec![layer.into()]
                 } else {
@@ -323,9 +347,7 @@ impl AdvState {
                 }
             }
             VLayerIdRepr::Layer(l) => {
-                let layer = self
-                    .current_plane_layer_group_mut(vm_state)
-                    .get_layer_mut(l);
+                let layer = self.get_layer_mut(vm_state, l);
                 if let Some(layer) = layer {
                     smallvec![layer.into()]
                 } else {

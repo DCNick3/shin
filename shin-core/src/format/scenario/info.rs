@@ -74,6 +74,12 @@ pub struct MovieInfoItem {
 }
 pub type MovieInfo = Vec<MovieInfoItem>;
 
+impl MovieInfoItem {
+    pub fn path(&self) -> String {
+        format!("/movie/{}.mp4", self.name.as_str().to_ascii_lowercase())
+    }
+}
+
 #[derive(Debug, BinRead, BinWrite)]
 pub struct VoiceMappingInfoItem {
     pub name_prefix: U16String,

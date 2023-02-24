@@ -1,6 +1,7 @@
 mod bustup_layer;
 mod layer_group;
 mod message_layer;
+mod movie_layer;
 mod null_layer;
 mod page_layer;
 mod picture_layer;
@@ -20,19 +21,22 @@ use tracing::{debug, warn};
 pub use bustup_layer::BustupLayer;
 pub use layer_group::LayerGroup;
 pub use message_layer::{MessageLayer, MessageboxTextures};
+pub use movie_layer::MovieLayer;
 pub use null_layer::NullLayer;
 pub use page_layer::PageLayer;
 pub use picture_layer::PictureLayer;
 pub use root_layer_group::RootLayerGroup;
 pub use screen_layer::ScreenLayer;
-use shin_core::format::scenario::info::{BustupInfoItem, PictureInfoItem};
+use shin_audio::AudioManager;
 pub use tile_layer::TileLayer;
 
 use crate::asset::bustup::Bustup;
+use crate::asset::movie::Movie;
 use crate::asset::picture::Picture;
 use crate::asset::AnyAssetServer;
 use crate::layer::wobbler::Wobbler;
 use crate::update::{Updatable, UpdateContext};
+use shin_core::format::scenario::info::{BustupInfoItem, MovieInfoItem, PictureInfoItem};
 use shin_core::format::scenario::Scenario;
 use shin_core::time::{Ticks, Tweener};
 use shin_core::vm::command::types::{LayerProperty, LayerType};
@@ -235,12 +239,15 @@ pub enum UserLayer {
     BustupLayer,
     #[derivative(Debug = "transparent")]
     TileLayer,
+    #[derivative(Debug = "transparent")]
+    MovieLayer,
 }
 
 impl UserLayer {
     pub async fn load(
         resources: &GpuCommonResources,
         asset_server: &AnyAssetServer,
+        audio_manager: &AudioManager,
         scenario: &Scenario,
         layer_ty: LayerType,
         params: [i32; 8],
@@ -280,10 +287,23 @@ impl UserLayer {
                 BustupLayer::new(resources, bup, Some(name.to_string()), emotion.as_str()).into()
             }
             LayerType::Movie => {
-                let [_movie_id, _volume, _flags, _, _, _, _, _] = params;
+                let [movie_id, _volume, _flags, _, _, _, _, _] = params;
+                let movie_info @ MovieInfoItem {
+                    name,
+                    unk1,
+                    unk2,
+                    unk3,
+                } = scenario.info_tables().movie_info(movie_id);
+                debug!(
+                    "Load movie: {} -> {} {} {} {}",
+                    movie_id, name, unk1, unk2, unk3
+                );
+                let movie = asset_server
+                    .load::<Movie, _>(movie_info.path())
+                    .await
+                    .expect("Failed to load movie");
 
-                warn!("Loading NullLayer instead of MovieLayer");
-                NullLayer::new().into()
+                MovieLayer::new(resources, audio_manager, movie, Some(name.to_string())).into()
             }
             LayerType::Rain => {
                 let [_always_zero, _min_distance, _max_distance, _, _, _, _, _] = params;
@@ -311,6 +331,7 @@ impl Renderable for UserLayer {
             UserLayer::PictureLayer(l) => l.render(resources, render_pass, transform, projection),
             UserLayer::BustupLayer(l) => l.render(resources, render_pass, transform, projection),
             UserLayer::TileLayer(l) => l.render(resources, render_pass, transform, projection),
+            UserLayer::MovieLayer(l) => l.render(resources, render_pass, transform, projection),
         }
     }
 
@@ -320,6 +341,7 @@ impl Renderable for UserLayer {
             UserLayer::PictureLayer(l) => l.resize(resources),
             UserLayer::BustupLayer(l) => l.resize(resources),
             UserLayer::TileLayer(l) => l.resize(resources),
+            UserLayer::MovieLayer(l) => l.resize(resources),
         }
     }
 }

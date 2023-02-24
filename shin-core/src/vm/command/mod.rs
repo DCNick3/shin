@@ -329,7 +329,11 @@ pub enum Command {
         selection_end_id: NumberSpec,
     },
     #[cmd(opcode = 0xc7u8)]
-    MOVIEWAIT { arg1: NumberSpec, arg2: NumberSpec },
+    MOVIEWAIT {
+        #[cmd(rty = "LayerId")]
+        layer_id: NumberSpec,
+        target_status: NumberSpec,
+    },
     // 0xc8 unused
     #[cmd(opcode = 0xc9u8)]
     TRANSSET {
