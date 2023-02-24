@@ -4,6 +4,7 @@ use clap::{CommandFactory, Parser};
 use clap_complete::{generate, Shell};
 use image::{GenericImageView, Rgba, RgbaImage};
 use itertools::Itertools;
+use shin_core::format::audio::AudioSource;
 use shin_core::format::picture::SimpleMergedPicture;
 use shin_core::format::rom::{IndexEntry, IndexFile};
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
@@ -733,15 +734,11 @@ fn audio_command(command: AudioCommand) -> Result<()> {
             )
             .context("Creating WAV writer")?;
 
-            let mut decoder = audio.decode().context("Creating decoder")?;
+            let mut audio_source = AudioSource::new(audio.decode().context("Creating decoder")?);
 
-            while let Some(offset) = decoder.decode_frame() {
-                // writing this is ungodly slow, maybe we could use a different wav library?
-                let buffer = &decoder.buffer()[offset * info.channel_count as usize..];
-                buffer
-                    .iter()
-                    .try_for_each(|sample| writer.write_sample(*sample))
-                    .context("Writing samples")?;
+            while let Some((left, right)) = audio_source.read_sample() {
+                writer.write_sample(left).context("Writing sample")?;
+                writer.write_sample(right).context("Writing sample")?;
             }
 
             writer.finalize().context("Finalizing the WAV file")?;
