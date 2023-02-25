@@ -3,7 +3,7 @@ This is an attempt at re-implementation of game engine used by some [visual nove
 
 Known switch games include:
 - Higurashi no Naku Koro ni Hou (title id `0100F6A00A684000`)
-- D.C.4 ~Da Capo 4~ (title id `0100D8500EE14000`)
+- D.C.4 \~Da Capo 4\~ (title id `0100D8500EE14000`)
 - Gensou Rougoku no Kaleidoscope (title id `0100AC600EB4C000`)
 - Kono Subarashii Sekai ni Shukufuku wo! Kibou no Meikyuu to Tsudoishi Boukenshata Plus (title id `01004920105FC000`)
 - Umineko no Naku Koro ni Saku \~Nekobako to Musou no Koukyoukyoku\~ (title id `01006A300BA2C000`)
