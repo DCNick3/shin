@@ -484,7 +484,7 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?}",
-                    i, bgm.name, bgm.display_name, bgm.unk1
+                    i, bgm.name, bgm.display_name, bgm.linked_bgm_id
                 )?;
             }
             writeln!(output, "Ses:")?;

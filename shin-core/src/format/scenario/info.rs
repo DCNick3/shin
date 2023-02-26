@@ -76,7 +76,8 @@ pub struct BgmInfoItem {
     /// The display name of the BGM track. This is the name the engine will show in the top left corner when BGM playback starts. It does not affect the title displayed in the Music Box (`bgmmode`).
     pub display_name: U16String,
 
-    pub unk1: u16, // BGM mode unlock id?
+    /// The ID of another BGM track that should be unlocked in the Music Box (`bgmmode`) in addition to this track, when this track is played. `-1` if there is no linked BGM track.
+    pub linked_bgm_id: i16,
 }
 pub type BgmInfo = Vec<BgmInfoItem>;
 
@@ -193,22 +194,58 @@ pub enum CharacterBoxSegment {
 }
 pub type CharacterBoxInfo = Vec<CharacterBoxSegment>;
 
+/// Defines how a `chars` grid portrait is displayed.
+#[derive(Debug, BinRead, BinWrite)]
+#[brw(repr = u8)]
+pub enum CharsPortraitDisplayMode {
+    /// Portrait will be shown in full color.
+    Alive = 0,
+
+    /// Portrait will be shown in red.
+    Dead = 1,
+
+    /// Portrait will be shown in grayscale.
+    Missing = 2,
+
+    /// The portrait will be divided diagonally; the upper left half will be shown in full color, while the bottom right half will be shown in red.
+    HalfDead = 3,
+}
+
 /// An individual instruction for building the data underlying a character in the Characters screen (`chars`).
 #[derive(Debug, BinRead, BinWrite)]
 pub enum CharsSpriteSegment {
+    /// Begins a new character state. A character state is a combination of (sprite variants + name/description); multiple character states can be switched between using the “Execute”/“Resurrect” buttons below the selection grid. A character can have 1 to 4 defined states, however the game can display at most 3 states.
     #[brw(magic = 0x1u8)]
-    Segment0x1 { unk1: u8 },
-
-    #[brw(magic = 0x2u8)]
-    Segment0x2 {
-        unk1: u8,
-        unk2: u8,
-        unk3: U16String,
-        unk4: U16String,
+    BeginState {
+        /// The index of the new state. Should monotonically increment starting at 1 for the first state.
+        index: u8,
     },
 
+    /// Defines one sprite variant, i.e. a combination of a portrait texture, a full texture, and the portrait display mode. Different sprite variants can be switched between using the “Change” button below the selection grid.
+    #[brw(magic = 0x2u8)]
+    SpriteVariant {
+        /// The index of this variant. Should monotonically increment starting at 0 for the first variant.
+        variant_index: u8,
+
+        /// How the portrait is to be displayed (alive/dead/missing/half-dead). Does not affect the display of the full sprite; different textures are used to display sprites in different states of aliveness.
+        portrait_display_mode: CharsPortraitDisplayMode,
+
+        /// The texture to use for the portrait on the grid. Loaded from `chars.txa`.
+        portrait_texture_name: U16String,
+
+        /// The texture to use for the full sprite displayed on the right side. Corresponds to the basename of a `.txa` file in the `chars/` directory; the equivalently named texture in that file will be used for the full sprite.
+        full_texture_name: U16String,
+    },
+
+    /// Defines the name and description to be displayed for the current character state.
     #[brw(magic = 0x3u8)]
-    Segment0x3 { unk1: U16String, unk2: U16String },
+    Texts {
+        /// The character name that will be displayed above the description.
+        name: U16String,
+
+        /// The full description of the character at their current state.
+        description: U16String,
+    },
 }
 
 /// The data for a character in the Characters screen (`chars`)
@@ -223,30 +260,6 @@ pub struct CharsSpriteInfoItem {
 }
 
 pub type CharsSpriteInfo = Vec<CharsSpriteInfoItem>;
-
-/// Defines how a `chars` grid portrait is displayed and behaves on Execute/Resurrect.
-#[derive(Debug, BinRead, BinWrite)]
-#[brw(repr = u8)]
-pub enum CharsGridPortraitBehavior {
-    /// Only an empty frame will be displayed, with no portrait inside.
-    EmptyFrame = 0,
-
-    /// If in game, the character will be shown as alive (in full colour). If out of game, the character can be switched between two phases: alive and dead.
-    AliveOrTwoPhase = 1,
-
-    /// If in game, the character will be shown as dead (in red); the associated sprite will be shown in greyscale with a **small** blood splotch. If out of game, the character can be switched between three phases: alive, missing (grayscale), and dead.
-    DeadOrThreePhase = 2,
-
-    /// If in game, the character will be shown as dead (in red); the associated sprite will be shown in greyscale with a **large** blood splotch. If out of game, behaves identically to `AliveOrTwoPhase`.
-    VeryDead = 3,
-}
-
-#[derive(Debug, BinRead, BinWrite)]
-#[brw(repr = u8)]
-pub enum CharsGridPortraitBehaviorModifier {
-    Unk0 = 0,
-    Unk1 = 1,
-}
 
 /// The shape of an individual connector between portraits in the `chars` grid.
 #[derive(Debug, BinRead, BinWrite)]
@@ -331,11 +344,11 @@ pub enum CharsGridSegment {
         /// The ID of the character this portrait is for, indexing into [`CharsSpriteInfo`].
         character_id: u16,
 
-        /// Defines how the portrait and the corresponding sprite is displayed, and how it behaves on Execute/Resurrect.
-        behavior: CharsGridPortraitBehavior,
+        /// The index of the character state (see [`CharsSpriteSegment`]) to display initially. If 0, the portrait will display as an unselectable empty frame.
+        default_state: u8,
 
-        /// Modifies the `behaviour` in certain circumstances.
-        behavior_modifier: CharsGridPortraitBehaviorModifier, // todo: find out and document what this does
+        /// The index of the character sprite variant (see [`CharsSpriteSegment`]) to display initially.
+        default_variant: u8,
     },
 
     /// Defines an individual line segment to be placed on the grid, to connect character portraits.
