@@ -224,6 +224,95 @@ pub struct CharsSpriteInfoItem {
 
 pub type CharsSpriteInfo = Vec<CharsSpriteInfoItem>;
 
+/// Defines how a `chars` grid portrait is displayed and behaves on Execute/Resurrect.
+#[derive(Debug, BinRead, BinWrite)]
+#[brw(repr = u8)]
+pub enum CharsGridPortraitBehavior {
+    /// Only an empty frame will be displayed, with no portrait inside.
+    EmptyFrame = 0,
+
+    /// If in game, the character will be shown as alive (in full colour). If out of game, the character can be switched between two phases: alive and dead.
+    AliveOrTwoPhase = 1,
+
+    /// If in game, the character will be shown as dead (in red); the associated sprite will be shown in greyscale with a **small** blood splotch. If out of game, the character can be switched between three phases: alive, missing (grayscale), and dead.
+    DeadOrThreePhase = 2,
+
+    /// If in game, the character will be shown as dead (in red); the associated sprite will be shown in greyscale with a **large** blood splotch. If out of game, behaves identically to `AliveOrTwoPhase`.
+    VeryDead = 3,
+}
+
+#[derive(Debug, BinRead, BinWrite)]
+#[brw(repr = u8)]
+pub enum CharsGridPortraitBehaviorModifier {
+    Unk0 = 0,
+    Unk1 = 1,
+}
+
+/// The shape of an individual connector between portraits in the `chars` grid.
+#[derive(Debug, BinRead, BinWrite)]
+#[brw(repr = u8)]
+pub enum CharsGridConnectorShape {
+    /// No connector is displayed.
+    None = 0,
+
+    /// `╴`: a line segment only on the left side.
+    LeftDeadEnd = 1,
+
+    /// `╵`: a line segment only on the top.
+    TopDeadEnd = 2,
+
+    /// `┘`: an elbow with lines facing towards the left side and the top.
+    LeftTopElbow = 3,
+
+    /// `╶`: a line segment only on the right side.
+    RightDeadEnd = 4,
+
+    /// `─`: a line from left to right.
+    HorizontalLine = 5,
+
+    /// `└`: an elbow with lines facing towards the top and the right side.
+    TopRightElbow = 6,
+
+    /// `┴`: a T with its orthogonal segment pointing towards the top.
+    TopPointingT = 7,
+
+    /// `╷`: a line segment only on the bottom.
+    BottomDeadEnd = 8,
+
+    /// `┐`: an elbow with lines facing towards the bottom and the left side.
+    BottomLeftElbow = 9,
+
+    /// `│`: a line from top to bottom.
+    VerticalLine = 10,
+
+    /// `┤`: a T with its orthogonal segment pointing towards the left side.
+    LeftPointingT = 11,
+
+    /// `┌`: an elbow with lines facing towards the right side and the bottom.
+    RightBottomElbow = 12,
+
+    /// `┬`: a T with its orthogonal segment pointing towards the bottom.
+    BottomPointingT = 13,
+
+    /// `├`: a T with its orthogonal segment pointing towards the right side.
+    RightPointingT = 14,
+
+    /// `┼`: a cross with line segments pointing to all four sides.
+    Cross = 15,
+
+    /// A vertical line, but displayed darker than usual. (This is never used in the game and might just be a failure mode of the engine for out-of-bounds shapes)
+    DarkVerticalLine = 16,
+}
+
+/// The color of an individual connector between portraits in the `chars` grid.
+#[derive(Debug, BinRead, BinWrite)]
+#[brw(repr = u8)]
+pub enum CharsGridConnectorColor {
+    Red = 1,
+    Blue = 2,
+    Yellow = 3,
+}
+
 /// An individual instruction for building the data underlying the grid in the Characters screen (`chars`).
 #[derive(Debug, BinRead, BinWrite)]
 pub enum CharsGridSegment {
@@ -242,13 +331,11 @@ pub enum CharsGridSegment {
         /// The ID of the character this portrait is for, indexing into [`CharsSpriteInfo`].
         character_id: u16,
 
-        /// Defines how the portrait and the corresponding sprite is displayed, and how it behaves on Execute/Resurrect:
-        ///  - **in game**: `0` = empty portrait, `1` = alive, `2` = dead (small blood splotch on sprite), `3` = very dead (large blood splotch on sprite)
-        ///  - **out of game** (Characters screen selected from main menu): `0` = empty portrait, `1` = two phases (alive/dead), `2` = three phases (alive/missing/dead)
-        behaviour: u8,
+        /// Defines how the portrait and the corresponding sprite is displayed, and how it behaves on Execute/Resurrect.
+        behavior: CharsGridPortraitBehavior,
 
         /// Modifies the `behaviour` in certain circumstances.
-        behaviour_modifier: u8, // todo: find out and document what this does
+        behavior_modifier: CharsGridPortraitBehaviorModifier, // todo: find out and document what this does
     },
 
     /// Defines an individual line segment to be placed on the grid, to connect character portraits.
@@ -263,28 +350,11 @@ pub enum CharsGridSegment {
         /// The connector's Y position on the grid.
         grid_y: u8,
 
-        /// The shape of this connector:
-        ///  - `0` = none
-        ///  - `1` = left dead end
-        ///  - `2` = top dead end
-        ///  - `3` = left-top elbow
-        ///  - `4` = right dead end
-        ///  - `5` = horizontal line
-        ///  - `6` = top-right elbow
-        ///  - `7` = T to the top
-        ///  - `8` = bottom dead end
-        ///  - `9` = bottom-left elbow
-        ///  - `10` = vertical line
-        ///  - `11` = T to the left
-        ///  - `12` = right-bottom elbow
-        ///  - `13` = T to the bottom
-        ///  - `14` = T to the right
-        ///  - `15` = cross
-        ///  - `16` = dark vertical line
-        shape: u8,
+        /// The shape of this connector.
+        shape: CharsGridConnectorShape,
 
-        /// The color of this connector: `1` = red, `2` = blue, `3` = yellow.
-        color: u8,
+        /// The color of this connector.
+        color: CharsGridConnectorColor,
     },
 }
 
