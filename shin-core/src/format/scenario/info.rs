@@ -6,18 +6,18 @@ use binrw::file_ptr::FilePtrArgs;
 use binrw::{BinRead, BinResult, BinWrite, Endian, FilePtr32};
 use std::io::{Read, Seek};
 
-/// Represents a mask, a black and white image specifying a transition between two screens.
+/// References a mask, a black and white image specifying a transition between two screens.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct MaskInfoItem {
-    /// The name of the mask, corresponding to the filename that will be loaded when a transition is performed with this mask.
+    /// The internal name of the mask. Corresponds to the base filename of the `.msk` file the engine will load from the `mask/` directory when a transition with this mask is to be performed.
     pub name: U16String,
 }
 pub type MaskInfo = Vec<MaskInfoItem>;
 
-/// Represents a static picture (`.pic` file).
+/// References a static picture (`.pic` file).
 #[derive(Debug, BinRead, BinWrite)]
 pub struct PictureInfoItem {
-    /// The name of the picture, corresponding to the filename that will be loaded when the picture is displayed.
+    /// The internal name of the picture. Corresponds to the base filename of the `.pic` file the engine will load from the `picture/` directory when the picture is to be displayed.
     pub name: U16String,
 
     /// The ID of a different picture that is to be unlocked in the Picture Box (`cgmode`) if this picture is displayed.
@@ -35,20 +35,20 @@ impl PictureInfoItem {
     }
 }
 
-/// Represents a particular state of a bustup, that is, a sprite composed from multiple replaceable parts.
+/// References a particular state of a bustup, that is, a sprite composed from multiple replaceable parts.
 ///
 /// In Saku, those parts are a base (character + outfit, without a face), an emotion/expression (the face except for the mouth), and lips (for lipsync).
 ///
-/// This struct specifically represents a combination of (base + emotion); the lip state is determined and stored separately, by the lipsync system.
+/// This struct specifically references a combination of (base + emotion); the lip state is determined and stored separately, by the lipsync system.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct BustupInfoItem {
-    /// The base filename of the bustup. This is the file that will be loaded when the bustup is shown.
+    /// The base filename of the bustup. When the bustup is shown, the engine will load the `.bup` file with this basename from the `bustup` directory, regardless of the referenced emotion.
     pub name: U16String,
 
-    /// The name of the emotion, to be selected from the emotions present in the bustup file.
+    /// The internal name of the emotion, to be selected from the emotions present in the bustup file.
     pub emotion: U16String,
 
-    /// The ID of the character represented by this bustup, for lipsync purposes: if a voice file with a matching `character_id` in its corresponding [`VoiceMappingInfoItem`] is played, lipsync will be performed on this bustup.
+    /// The ID of the character referenced by this bustup, for lipsync purposes: if a voice file with a matching `character_id` in its corresponding [`VoiceMappingInfoItem`] is played, lipsync will be performed on this bustup.
     pub lipsync_character_id: u16,
 }
 pub type BustupInfo = Vec<BustupInfoItem>;
@@ -59,13 +59,13 @@ impl BustupInfoItem {
     }
 }
 
-/// Represents the metadata for a background music (BGM) track.
+/// References a background music (BGM) track.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct BgmInfoItem {
-    /// The internal name of the BGM track, corresponding to the filename the engine will look for when playing the BGM.
+    /// The internal name of the BGM track. Corresponds to the base filename of the `.nxa` file the engine will load from the `bgm/` directory when the BGM is to be played.
     pub name: U16String,
 
-    /// The display name of the BGM track. This is the name the engine will show in the top left corner when the BGM is played. It does not affect the title displayed in the Music Box (`bgmmode`).
+    /// The display name of the BGM track. This is the name the engine will show in the top left corner when BGM playback starts. It does not affect the title displayed in the Music Box (`bgmmode`).
     pub display_name: U16String,
 
     pub unk1: u16, // BGM mode unlock id?
@@ -78,10 +78,10 @@ impl BgmInfoItem {
     }
 }
 
-/// Represents the metadata for a sound effect.
+/// References a sound effect (SE).
 #[derive(Debug, BinRead, BinWrite)]
 pub struct SeInfoItem {
-    /// The name of this sound effect; simultaneously the filename the engine will look for when playing the sound effect.
+    /// The internal name of this sound effect. Corresponds to the base filename of the `.nxa` file the engine will load from the `se/` directory when the sound effect is to be played.
     pub name: U16String,
 }
 pub type SeInfo = Vec<SeInfoItem>;
@@ -92,10 +92,10 @@ impl SeInfoItem {
     }
 }
 
-/// Represents a movie, i.e. a video that can be played back by the engine. The engine makes no fundamental distinction between movies used for cutscenes (e.g. openings) and movies used for animation purposes.
+/// References a movie, i.e. a video that can be played back by the engine. The engine makes no fundamental distinction between movies used for cutscenes (e.g. openings) and movies used for animation purposes.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct MovieInfoItem {
-    /// The name of this movie; simultaneously the filename the engine will look for when playing back the movie.
+    /// The name of this movie. Corresponds to the base filename of the `.mp4` file the engine will load from the `movie/` directory when the movie is to be played.
     pub name: U16String,
 
     /// The ID of the picture that will be displayed instead of the movie after the movie has finished playing. This is only really relevant for movies used in animations; the movies used in cutscenes have this set to 0.
