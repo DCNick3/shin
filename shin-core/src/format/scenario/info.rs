@@ -162,7 +162,7 @@ pub type MusicBoxInfo = Vec<MusicBoxInfoItem>;
 /// An individual instruction for building the data underlying the Character Box (`bupmode`).
 #[derive(Debug, BinRead, BinWrite)]
 pub enum CharacterBoxSegment {
-    /// Defines an individual background to be available for selection in the character box.
+    /// Defines an individual background to be available for selection in the character box. The background will be shown behind the selected bustup.
     #[brw(magic = 0x0u8)]
     Background {
         /// The index of the picture (indexing into [`PictureInfo`]) that constitutes the primary background image (shown in front).
@@ -358,6 +358,9 @@ pub enum CharsGridSegment {
     },
 }
 
+/// A grid for the Characters screen (`chars`). Contains portraits which can be selected to reveal additional information about the character, and connectors making up lines between the portraits to show relationships between the characters.
+///
+/// The script can select a particular grid by ID to set it as the one that will be shown when opening `chars` from in-game. In addition, the first 8 grids are respectively the Episode 1-8 ones selectable from the main menu.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct CharsGridInfoItem {
     #[br(parse_with = parse_terminated_segment_list)]
