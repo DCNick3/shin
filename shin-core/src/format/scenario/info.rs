@@ -1,4 +1,12 @@
-//! Contains types for tables in scenario headers
+//! Contains types for tables in scenario headers.
+//!
+//! These tables provide various kinds of metadata for different engine features. Most importantly, there is one table for each type of asset the game needs to load, serving as a reference to an asset file, together with some additional metadata that is always the same each time a particular asset is loaded. Each asset table is a [`Vec`] of *info items*, where an info item is a struct containing a filename and potentially additional data. The index into the [`Vec`] is known as the asset's **ID**: when the script needs to specify an asset to load, it will only specify this ID, and all other necessary information is obtained by looking up the info item stored at this index in the [`Vec`].
+//!
+//! For example, the list of pictures — static images used primarily as backgrounds — is represented by [`PictureInfo`], which is just a [`Vec<PictureInfoItem>`]. If the script needs a picture to be loaded, it will specify an ID, which is looked up in this [`Vec`]. Concretely, let us consider the example of the “This story is nothing but fiction” picture at the beginning of every Umineko episode. For the purpose of displaying this picture, the script ultimately contains a `LAYERLOAD` instruction with the ID `1012` as its argument. When that instruction is executed, the engine will look up the [`PictureInfoItem`] with index `1012` in the [`PictureInfo`] table. That [`PictureInfoItem`] will contain the information that the desired picture has the filename “TEXT001”. Consequently, the engine will know to load the asset file located at `picture/text001.pic`, and display its contents on the screen.
+//!
+//! In some cases, there are also cross-references between different asset tables, which are specified by ID as well. For example, a [`MovieInfoItem`] contains the ID of a picture to be shown after the movie finishes playing. In this case, the engine will first look up the [`MovieInfoItem`] in the [`MovieInfo`] table, then secondarily look up the [`PictureInfoItem`] in the [`PictureInfo`] table whose index corresponds to the `linked_picture_id` field in the [`MovieInfoItem`].
+//!
+//! Apart from the asset tables, there are also a few other data blocks for various game-specific features, such as the Picture Box (`cgmode`) and Music Box (`bgmmode`), or Umineko's character relationship grid (`chars`). These may be somewhat more freeform in structure than the simple tables listed above, and their corresponding entry structs often also contain IDs linking to other data tables, as explained above.
 
 use crate::format::scenario::types::{U16List, U8List};
 use crate::format::text::U16String;
@@ -98,13 +106,13 @@ pub struct MovieInfoItem {
     /// The name of this movie. Corresponds to the base filename of the `.mp4` file the engine will load from the `movie/` directory when the movie is to be played.
     pub name: U16String,
 
-    /// The ID of the picture that will be displayed instead of the movie after the movie has finished playing. This is only really relevant for movies used in animations; the movies used in cutscenes have this set to 0.
+    /// The ID of the picture (indexing into [`PictureInfo`]) that will be displayed instead of the movie after the movie has finished playing. This is only really relevant for movies used in animations; the movies used in cutscenes have this set to 0.
     pub linked_picture_id: u16,
 
     /// A bitfield controlling the movie's exact playback behavior.
     pub flags: u16, // todo: document meanings of bits
 
-    /// The ID of the BGM that will be unlocked in the Music Box if this movie is played back. This is only really relevant for cutscene movies, where the Music Box entry for an opening theme needs to be unlocked. If there is no linked BGM track, the value is `-1`.
+    /// The ID of the BGM (indexing into [`BgmInfo`]) that will be unlocked in the Music Box if this movie is played back. This is only really relevant for cutscene movies, where the Music Box entry for an opening theme needs to be unlocked. If there is no linked BGM track, the value is `-1`.
     pub linked_bgm_id: i16,
 }
 pub type MovieInfo = Vec<MovieInfoItem>;
@@ -132,7 +140,7 @@ pub struct PictureBoxInfoItem {
     /// Internal name of the entry; defines the name of the texture to be loaded from `cgmode.txa` as the thumbnail for this entry.
     pub name: U16String,
 
-    /// List of picture IDs that will be shown in sequence as the player clicks through the entry.
+    /// List of picture IDs (indexing into [`PictureInfo`]) that will be shown in sequence as the player clicks through the entry.
     pub picture_ids: U16List<u16>,
 }
 pub type PictureBoxInfo = Vec<PictureBoxInfoItem>;
@@ -140,7 +148,7 @@ pub type PictureBoxInfo = Vec<PictureBoxInfoItem>;
 /// An entry in the Music Box (`bgmmode`).
 #[derive(Debug, BinRead, BinWrite)]
 pub struct MusicBoxInfoItem {
-    /// The ID of the BGM track to be played if this entry is selected.
+    /// The ID of the BGM track (indexing into [`BgmInfo`]) to be played if this entry is selected.
     pub bgm_id: u16,
 
     /// The index of the name to be displayed on the button for this entry, to be loaded from the `title*` textures in `bgmmode.txa`.
@@ -161,16 +169,19 @@ pub enum CharacterBoxSegment {
     /// Defines an individual background to be available for selection in the character box.
     #[brw(magic = 0x0u8)]
     Background {
-        /// The index of the picture that constitutes the primary background image (shown in front).
+        /// The index of the picture (indexing into [`PictureInfo`]) that constitutes the primary background image (shown in front).
         primary_picture_id: u16,
 
-        /// This value is added to primary_picture_id to get the index of the secondary background image (shown behind the primary image). If 0, no secondary image will be shown.
+        /// This value is added to primary_picture_id to get the index of the secondary background image, shown behind the primary image. If 0, no secondary image will be shown.
         secondary_picture_id_offset: u16,
     },
 
     /// Defines an individual bustup to be available for selection in the character box.
     #[brw(magic = 0x1u8)]
-    Bustup { bustup_id: u16 },
+    Bustup {
+        /// The ID of the bustup reference to be displayed. Indexes into [`BustupInfo`].
+        bustup_id: u16
+    },
 
     /// Ends a group of facial expressions (表情).
     #[brw(magic = 0x2u8)]
