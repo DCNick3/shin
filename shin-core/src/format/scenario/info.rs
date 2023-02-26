@@ -15,6 +15,8 @@ use binrw::{BinRead, BinResult, BinWrite, Endian, FilePtr32};
 use std::io::{Read, Seek};
 
 /// References a mask, a black and white image specifying a transition between two screens.
+///
+/// See [`shin_core::format::mask`] for functionality to read the `.msk` file this struct references.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct MaskInfoItem {
     /// The internal name of the mask. Corresponds to the base filename of the `.msk` file the engine will load from the `mask/` directory when a transition with this mask is to be performed.
@@ -23,6 +25,8 @@ pub struct MaskInfoItem {
 pub type MaskInfo = Vec<MaskInfoItem>;
 
 /// References a static picture (`.pic` file).
+///
+/// See [`shin_core::format::picture`] for functionality to read the `.pic` file this struct references.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct PictureInfoItem {
     /// The internal name of the picture. Corresponds to the base filename of the `.pic` file the engine will load from the `picture/` directory when the picture is to be displayed.
@@ -48,6 +52,8 @@ impl PictureInfoItem {
 /// In Saku, those parts are a base (character + outfit, without a face), an emotion/expression (the face except for the mouth), and lips (for lipsync).
 ///
 /// This struct specifically references a combination of (base + emotion); the lip state is determined and stored separately, by the lipsync system.
+///
+/// See [`shin_core::format::bustup`] for functionality to read the `.bup` file this struct references.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct BustupInfoItem {
     /// The base filename of the bustup. When the bustup is shown, the engine will load the `.bup` file with this basename from the `bustup` directory, regardless of the referenced emotion.
@@ -68,6 +74,8 @@ impl BustupInfoItem {
 }
 
 /// References a background music (BGM) track.
+///
+/// See [`shin_core::format::audio`] for functionality to read the `.nxa` file this struct references.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct BgmInfoItem {
     /// The internal name of the BGM track. Corresponds to the base filename of the `.nxa` file the engine will load from the `bgm/` directory when the BGM is to be played.
@@ -88,6 +96,8 @@ impl BgmInfoItem {
 }
 
 /// References a sound effect (SE).
+///
+/// See [`shin_core::format::audio`] for functionality to read the `.nxa` file this struct references.
 #[derive(Debug, BinRead, BinWrite)]
 pub struct SeInfoItem {
     /// The internal name of this sound effect. Corresponds to the base filename of the `.nxa` file the engine will load from the `se/` directory when the sound effect is to be played.
