@@ -11,7 +11,7 @@ use futures_lite::io::BufReader;
 use futures_lite::{AsyncBufReadExt, AsyncWriteExt};
 use shin_tasks::{IoTaskPool, Task};
 use std::process::Stdio;
-use tracing::{debug, error, trace};
+use tracing::{debug, error, trace, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FrameTiming {
@@ -74,7 +74,7 @@ impl H264Decoder {
         let stderr = process.stderr.take().unwrap();
 
         // send the decoded frames from ffmpeg to the game
-        let (frame_sender, frame_receiver) = std::sync::mpsc::sync_channel(1);
+        let (frame_sender, frame_receiver) = std::sync::mpsc::sync_channel(60);
         // send the frame timings from the mp4 stream to the game (without passing through ffmpeg)
         // this has a bit more delay than other chans because it goes around ffmpeg and ffmpeg has its own delay of several frames
         // hence the larger capacity (otherwise we might deadlock)
@@ -237,6 +237,8 @@ impl H264Decoder {
 
 impl Drop for H264Decoder {
     fn drop(&mut self) {
-        self.process.kill().unwrap();
+        if let Err(e) = self.process.kill() {
+            warn!("Error killing ffmpeg: {:?}", e);
+        }
     }
 }

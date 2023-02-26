@@ -88,7 +88,7 @@ impl State {
                     // we're building for the web we'll have to disable some.
                     limits: wgpu::Limits {
                         max_texture_dimension_2d: 4096,
-                        max_push_constant_size: 256,
+                        max_push_constant_size: 128,
 
                         ..wgpu::Limits::downlevel_webgl2_defaults()
                     },
