@@ -329,7 +329,7 @@ pub enum CharsGridConnectorColor {
 /// An individual instruction for building the data underlying the grid in the Characters screen (`chars`).
 #[derive(Debug, BinRead, BinWrite)]
 pub enum CharsGridSegment {
-    /// Defines a portrait on the grid, with a corresponding character to have its full sprite, name, and description shown when the portrait is selected.
+    /// Defines a portrait on the grid, showing its full sprite, name, and description when selected.
     #[brw(magic = 0x1u8)]
     Portrait {
         /// The page to show this portrait on, between 0 and 3 (both inclusive). The game will automatically generate as many pages as necessary for a specific grid.
@@ -354,7 +354,7 @@ pub enum CharsGridSegment {
     /// Defines an individual line segment to be placed on the grid, to connect character portraits.
     #[brw(magic = 0x2u8)]
     Connector {
-        /// The page to show this portrait on, between 0 and 3 (both inclusive). The game will automatically generate as many pages as necessary for a specific grid.
+        /// The page to show this connector on, between 0 and 3 (both inclusive). The game will automatically generate as many pages as necessary for a specific grid.
         page: u8,
 
         /// The connector's X position on the grid.
