@@ -159,10 +159,6 @@ pub struct MusicBoxInfoItem {
 }
 pub type MusicBoxInfo = Vec<MusicBoxInfoItem>;
 
-trait FinalSegment {
-    fn is_final(&self) -> bool;
-}
-
 /// An individual instruction for building the data underlying the Character Box (`bupmode`).
 #[derive(Debug, BinRead, BinWrite)]
 pub enum CharacterBoxSegment {
@@ -180,7 +176,7 @@ pub enum CharacterBoxSegment {
     #[brw(magic = 0x1u8)]
     Bustup {
         /// The ID of the bustup reference to be displayed. Indexes into [`BustupInfo`].
-        bustup_id: u16
+        bustup_id: u16,
     },
 
     /// Ends a group of facial expressions (表情).
@@ -200,10 +196,6 @@ pub type CharacterBoxInfo = Vec<CharacterBoxSegment>;
 /// An individual instruction for building the data underlying a character in the Characters screen (`chars`).
 #[derive(Debug, BinRead, BinWrite)]
 pub enum CharsSpriteSegment {
-    /// Ends the current character definition.
-    #[brw(magic = 0x0u8)]
-    End,
-
     #[brw(magic = 0x1u8)]
     Segment0x1 { unk1: u8 },
 
@@ -217,15 +209,6 @@ pub enum CharsSpriteSegment {
 
     #[brw(magic = 0x3u8)]
     Segment0x3 { unk1: U16String, unk2: U16String },
-}
-
-impl FinalSegment for CharsSpriteSegment {
-    fn is_final(&self) -> bool {
-        match self {
-            CharsSpriteSegment::End => true,
-            _ => false,
-        }
-    }
 }
 
 /// The data for a character in the Characters screen (`chars`)
@@ -244,10 +227,6 @@ pub type CharsSpriteInfo = Vec<CharsSpriteInfoItem>;
 /// An individual instruction for building the data underlying the grid in the Characters screen (`chars`).
 #[derive(Debug, BinRead, BinWrite)]
 pub enum CharsGridSegment {
-    /// Ends the current character grid definition.
-    #[brw(magic = 0x0u8)]
-    End,
-
     /// Defines a portrait on the grid, with a corresponding character to have its full sprite, name, and description shown when the portrait is selected.
     #[brw(magic = 0x1u8)]
     Portrait {
@@ -309,15 +288,6 @@ pub enum CharsGridSegment {
     },
 }
 
-impl FinalSegment for CharsGridSegment {
-    fn is_final(&self) -> bool {
-        match self {
-            CharsGridSegment::End => true,
-            _ => false,
-        }
-    }
-}
-
 #[derive(Debug, BinRead, BinWrite)]
 pub struct CharsGridInfoItem {
     #[br(parse_with = parse_terminated_segment_list)]
@@ -343,6 +313,22 @@ pub struct TipsInfoItem {
 }
 
 // types to parse the info sections
+
+#[derive(Debug, BinRead)]
+#[allow(dead_code)] // this stuff is declarative
+struct SizedSegmentList<T: for<'a> BinRead<Args<'a> = ()> + 'static> {
+    byte_size: u32,
+    #[br(parse_with = parse_sized_segment_list, args(byte_size))]
+    segments: Vec<T>,
+}
+
+#[derive(Debug, BinRead)]
+#[allow(dead_code)] // this stuff is declarative
+enum EndableSegment<T: for<'a> BinRead<Args<'a> = ()> + 'static> {
+    #[brw(magic = 0x0u8)]
+    End,
+    Some(T),
+}
 
 #[derive(Debug, BinRead)]
 #[allow(dead_code)] // this stuff is declarative
@@ -378,35 +364,19 @@ fn parse_sized_segment_list<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + 
     Ok(result)
 }
 
-fn parse_terminated_segment_list<
-    R: Read + Seek,
-    T: for<'a> BinRead<Args<'a> = ()> + FinalSegment + 'static,
->(
+fn parse_terminated_segment_list<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + 'static>(
     reader: &mut R,
     endian: Endian,
     _: (),
 ) -> BinResult<Vec<T>> {
     let mut result = Vec::new();
     loop {
-        match T::read_options(reader, endian, ()) {
-            Ok(segment) => {
-                let is_final = segment.is_final();
-                result.push(segment);
-                if is_final {
-                    return Ok(result);
-                }
-            }
+        match EndableSegment::read_options(reader, endian, ()) {
+            Ok(EndableSegment::Some(segment)) => result.push(segment),
+            Ok(EndableSegment::End) => return Ok(result),
             Err(err) => return Err(err),
         };
     }
-}
-
-#[derive(Debug, BinRead)]
-#[allow(dead_code)] // this stuff is declarative
-struct SizedSegmentList<T: for<'a> BinRead<Args<'a> = ()> + 'static> {
-    byte_size: u32,
-    #[br(parse_with = parse_sized_segment_list, args(byte_size))]
-    segments: Vec<T>,
 }
 
 fn parse_simple_section_ptr<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()> + 'static>(
