@@ -262,9 +262,9 @@ impl UserLayer {
             }
             LayerType::Picture => {
                 let [pic_id, _, _, _, _, _, _, _] = params;
-                let pic_info @ PictureInfoItem { name, unk1 } =
+                let pic_info @ PictureInfoItem { name, linked_cg_id } =
                     scenario.info_tables().picture_info(pic_id);
-                debug!("Load picture: {} -> {} {}", pic_id, name, unk1);
+                debug!("Load picture: {} -> {} {}", pic_id, name, linked_cg_id);
                 let pic = asset_server
                     .load::<Picture, _>(pic_info.path())
                     .await
@@ -276,9 +276,12 @@ impl UserLayer {
                 let bup_info @ BustupInfoItem {
                     name,
                     emotion,
-                    unk1,
+                    lipsync_character_id,
                 } = scenario.info_tables().bustup_info(bup_id);
-                debug!("Load bustup: {} -> {} {} {}", bup_id, name, emotion, unk1);
+                debug!(
+                    "Load bustup: {} -> {} {} {}",
+                    bup_id, name, emotion, lipsync_character_id
+                );
                 let bup = asset_server
                     .load::<Bustup, _>(bup_info.path())
                     .await
@@ -290,13 +293,13 @@ impl UserLayer {
                 let [movie_id, _volume, _flags, _, _, _, _, _] = params;
                 let movie_info @ MovieInfoItem {
                     name,
-                    unk1,
-                    unk2,
-                    unk3,
+                    linked_picture_id,
+                    flags,
+                    linked_bgm_id,
                 } = scenario.info_tables().movie_info(movie_id);
                 debug!(
                     "Load movie: {} -> {} {} {} {}",
-                    movie_id, name, unk1, unk2, unk3
+                    movie_id, name, linked_picture_id, flags, linked_bgm_id
                 );
                 let movie = asset_server
                     .load::<Movie, _>(movie_info.path())

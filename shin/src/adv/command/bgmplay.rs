@@ -22,7 +22,7 @@ impl StartableCommand for command::runtime::BGMPLAY {
         let bgm_info @ BgmInfoItem {
             name: _,
             display_name,
-            unk1: _,
+            linked_bgm_id: _,
         } = scenario.info_tables().bgm_info(self.bgm_data_id);
 
         let audio = context

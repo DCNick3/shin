@@ -465,14 +465,18 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
             }
             writeln!(output, "Pictures:")?;
             for (i, picture) in tables.picture_info.iter().enumerate() {
-                writeln!(output, "  {}: {:?} {:?}", i, picture.name, picture.unk1)?;
+                writeln!(
+                    output,
+                    "  {}: {:?} {:?}",
+                    i, picture.name, picture.linked_cg_id
+                )?;
             }
             writeln!(output, "Bustups:")?;
             for (i, bustup) in tables.bustup_info.iter().enumerate() {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?}",
-                    i, bustup.name, bustup.emotion, bustup.unk1
+                    i, bustup.name, bustup.emotion, bustup.lipsync_character_id
                 )?;
             }
             writeln!(output, "Bgms:")?;
@@ -480,7 +484,7 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?}",
-                    i, bgm.name, bgm.display_name, bgm.unk1
+                    i, bgm.name, bgm.display_name, bgm.linked_bgm_id
                 )?;
             }
             writeln!(output, "Ses:")?;
@@ -492,31 +496,47 @@ fn scenario_command(command: ScenarioCommand) -> Result<()> {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?} {:?}",
-                    i, movie.name, movie.unk1, movie.unk2, movie.unk3
+                    i, movie.name, movie.linked_picture_id, movie.flags, movie.linked_picture_id
                 )?;
             }
             writeln!(output, "Voice Mappings:")?;
             for (_, mapping) in tables.voice_mapping_info.iter().enumerate() {
-                writeln!(output, "  {:?}: {:?}", mapping.name_prefix, mapping.unk1)?;
+                writeln!(
+                    output,
+                    "  {:?}: {:?}",
+                    mapping.name_pattern, mapping.lipsync_character_ids
+                )?;
             }
-            writeln!(output, "VSection64:")?;
-            for (i, item) in tables.section64_info.iter().enumerate() {
-                writeln!(output, "  {}: {:?} {:?}", i, item.unk1, item.unk2)?;
+            writeln!(output, "Picture Box Entries:")?;
+            for (i, item) in tables.picture_box_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?} {:?}", i, item.name, item.picture_ids)?;
             }
-            writeln!(output, "VSection68:")?;
-            for (i, item) in tables.section68_info.iter().enumerate() {
+            writeln!(output, "Music Box Entries:")?;
+            for (i, item) in tables.music_box_info.iter().enumerate() {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?}",
-                    i, item.unk1, item.unk2, item.unk3
+                    i, item.bgm_id, item.name_index, item.once_flag
                 )?;
+            }
+            writeln!(output, "Character Box Segments:")?;
+            for (i, item) in tables.character_box_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?}", i, item)?;
+            }
+            writeln!(output, "Character Sprites:")?;
+            for (i, item) in tables.chars_sprite_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?} {:?}", i, item.episode, item.segments)?;
+            }
+            writeln!(output, "Character Grids:")?;
+            for (i, item) in tables.chars_grid_info.iter().enumerate() {
+                writeln!(output, "  {}: {:?}", i, item.segments)?;
             }
             writeln!(output, "Tips:")?;
             for (i, tip) in tables.tips_info.iter().enumerate() {
                 writeln!(
                     output,
                     "  {}: {:?} {:?} {:?} {:?}",
-                    i, tip.unk1, tip.unk2, tip.unk3, tip.unk4
+                    i, tip.episode, tip.title_index, tip.title, tip.content
                 )?;
             }
 
