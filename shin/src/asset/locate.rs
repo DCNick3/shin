@@ -12,6 +12,20 @@ fn try_assets_directory(path: &Path) -> anyhow::Result<Option<LayeredAssetIo>> {
     }
     let mut result = LayeredAssetIo::new();
     // try to use "data" directory first and them data.rom file
+    if let Ok(patch_dir) = path.join("patch").canonicalize() {
+        trace!("Trying patch directory {:?}...", patch_dir);
+        match result.try_with_dir(&patch_dir) {
+            Ok(_) => trace!("Using patch directory {:?}", patch_dir),
+            Err(err) => trace!("Cannot use {:?} as assets directory: {}", path, err),
+        }
+    }
+    if let Ok(patch_rom) = path.join("patch.rom").canonicalize() {
+        trace!("Trying patch ROM {:?}...", patch_rom);
+        match result.try_with_rom(&patch_rom) {
+            Ok(_) => trace!("Using patch ROM {:?}", patch_rom),
+            Err(err) => trace!("Cannot use {:?} as assets directory: {}", path, err),
+        }
+    }
     if let Ok(data_dir) = path.join("data").canonicalize() {
         trace!("Trying data directory {:?}...", data_dir);
         match result.try_with_dir(&data_dir) {
