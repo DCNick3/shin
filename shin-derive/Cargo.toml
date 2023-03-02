@@ -1,6 +1,6 @@
 [package]
 name = "shin-derive"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 description = "Shin derive macros"
 repository = "https://github.com/DCNick3/shin"
