@@ -41,7 +41,7 @@ It can be dumped from the switch using [nxdumptool](https://github.com/DarkMatte
 You can use [hactoonet](https://github.com/Thealexbarney/LibHac) to dump the romfs from the game:
 
 ```bash
-hactoolnet -t pfs0 "Umineko no Naku Koro ni Saku ~Nekobako to Musou no Koukyoukyoku~ [01006A300BA2C000][v0][BASE].nsp" --romfs=assets
+hactoolnet -t pfs0 "Umineko no Naku Koro ni Saku ~Nekobako to Musou no Koukyoukyoku~ [01006A300BA2C000].nsp" --romfs=assets
 ```
 
 In the `assets` directory you should find a `data.rom` file. It's sha256sum should be `6d90eb0bacacf769a7e4634407622b047acd711c47debb28136d7bab3fd0e591`.
