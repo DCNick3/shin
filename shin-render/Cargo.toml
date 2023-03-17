@@ -1,6 +1,6 @@
 [package]
 name = "shin-render"
-version = "0.4.2"
+version = "0.5.0"
 edition = "2021"
 description = "Common rendering utilities for the Shin engine"
 repository = "https://github.com/DCNick3/shin"
