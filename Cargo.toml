@@ -40,6 +40,7 @@ debug-assertions = true
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"
+debug = false
 lto = "thin"
 
 [workspace.metadata.release]
