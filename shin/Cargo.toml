@@ -43,7 +43,7 @@ bytemuck = { version = "1.12.3", features = ["derive"] }
 image = { workspace = true, default-features = false, features = ["png"] }
 
 # Theese part of bevy does not depend on ECS or the reflection, so it's not a big problem to use them
-bevy_utils = "0.9.1"
+bevy_utils = { workspace = true }
 
 pollster = "0.3.0"
 

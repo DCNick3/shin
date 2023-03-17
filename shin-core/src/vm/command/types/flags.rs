@@ -30,6 +30,7 @@ impl FromVmCtx<NumberSpec> for LayerCtrlFlags {
 
 bitflags! {
     /// Flags that can be used in [MASKLOAD](super::super::runtime::MASKLOAD) command
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct MaskFlags: i32 {
         const FLIP_X = 0x0001;
         const FLIP_Y = 0x0002;
@@ -48,6 +49,7 @@ bitflags! {
     /// Represents a status of a playing audio that can be awaited on
     ///
     /// Used in [BGMWAIT](super::super::runtime::BGMWAIT), [SEWAIT](super::super::runtime::SEWAIT) and [VOICEWAIT](super::super::runtime::VOICEWAIT) commands
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct AudioWaitStatus: i32 {
         const PLAYING = 1;
         const STOPPED = 2;

@@ -37,6 +37,7 @@ struct PicChunkDesc {
 }
 
 bitflags! {
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     struct CompressionFlags: u16 {
         // ShinDataUtil has inverted bits...
         // ("Separate alpha" and "differential encoding")
