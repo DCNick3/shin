@@ -7,6 +7,7 @@ use bitflags::bitflags;
 use bytemuck::{Pod, Zeroable};
 use image::{ImageBuffer, RgbaImage};
 use itertools::Itertools;
+use shin_tasks::ParallelSlice;
 use std::borrow::Cow;
 use std::io;
 use std::sync::Mutex;
@@ -462,8 +463,6 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
         chunks.push(((chunk_desc.x as usize, chunk_desc.y as usize), chunk_data));
     }
 
-    use rayon::prelude::*;
-
     let builder = B::new(
         builder_args,
         header.effective_width as u32,
@@ -477,9 +476,13 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
     // ideally we want to be generic over the parallelization strategy
     let builder = Mutex::new(builder);
     chunks
-        .par_iter()
-        .cloned()
-        .map(|(pos, data)| (pos, read_picture_chunk(data)))
+        .par_chunk_map(shin_tasks::AsyncComputeTaskPool::get(), 1, |chunk| {
+            let &[(pos, data)] = chunk else {
+                unreachable!()
+            };
+            (pos, read_picture_chunk(data))
+        })
+        .into_iter()
         .try_for_each(|(pos, chunk)| {
             builder
                 .lock()

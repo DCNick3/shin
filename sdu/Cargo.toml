@@ -14,7 +14,7 @@ shin-core = { path = "../shin-core" }
 anyhow = { workspace = true }
 clap = { version = "4.0.15", features = ["derive"] }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-image = { workspace = true }
+image = { workspace = true, features = ["png"] }
 bytes = "1.2.1"
 itertools = "0.10.5"
 clap_complete = "4.0.6"

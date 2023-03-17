@@ -3,7 +3,7 @@
 use anyhow::Result;
 use binrw::{BinRead, BinWrite};
 use image::RgbaImage;
-use rayon::prelude::*;
+use shin_tasks::ParallelSlice;
 use std::collections::HashMap;
 
 use crate::format::text::ZeroString;
@@ -83,8 +83,8 @@ pub fn read_texture_archive(source: &[u8]) -> Result<TextureArchive> {
 
     let textures = header
         .index
-        .par_iter()
-        .map(|v| {
+        .par_chunk_map(shin_tasks::AsyncComputeTaskPool::get(), 1, |chunk| {
+            let [v] = chunk else { unreachable!() };
             let size = if v.data_compressed_size != 0 {
                 v.data_compressed_size
             } else {
@@ -96,6 +96,7 @@ pub fn read_texture_archive(source: &[u8]) -> Result<TextureArchive> {
                 header.use_dict_encoding != 0,
             )
         })
+        .into_iter()
         .collect::<Result<Vec<_>>>()?;
 
     let name_to_index = header

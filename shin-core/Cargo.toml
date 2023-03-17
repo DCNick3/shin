@@ -9,6 +9,7 @@ authors = ["DCNick3"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+shin-tasks = { path = "../shin-tasks" }
 
 # derive macros
 num-traits = "0.2.15"
@@ -31,7 +32,6 @@ glam = { workspace = true }
 float-ord = "0.3.2"
 image = { workspace = true, default-features = false }
 itertools = "0.10.5"
-rayon = "1.5.3"
 smallvec = "1.10.0"
 tracing = "0.1.37"
 smartstring = "1.0.1"

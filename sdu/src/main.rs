@@ -836,6 +836,7 @@ fn main() -> Result<()> {
         // .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
         .compact()
         .init();
+    shin_core::create_task_pools();
     let args = Args::parse();
     match args.action {
         SduAction::GenerateCompletion(command) => generate_command(command),

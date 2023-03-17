@@ -5,10 +5,8 @@ use anyhow::{bail, Result};
 use binrw::{BinRead, BinWrite};
 use bitvec::bitbox;
 use image::RgbaImage;
-use rayon::prelude::*;
+use shin_tasks::ParallelSlice;
 use std::collections::HashMap;
-use std::ops::DerefMut;
-use std::sync::Mutex;
 
 use crate::format::text::ZeroString;
 
@@ -130,6 +128,7 @@ pub fn read_bustup(source: &[u8]) -> Result<Bustup> {
             "Two chunks have the same ID, but different contents"
         );
     }
+    let base_chunks = base_chunks.into_iter().collect::<Vec<_>>();
 
     let mut additional_chunks = HashMap::new();
     for chunk in header.iter_additional_chunk_descs() {
@@ -139,46 +138,53 @@ pub fn read_bustup(source: &[u8]) -> Result<Bustup> {
             "Two chunks have the same ID, but different contents"
         );
     }
+    let additional_chunks = additional_chunks.into_iter().collect::<Vec<_>>();
 
     // TODO: ditch rayon?
     // TODO: actually, collecting all of these is not the most efficient in terms of memory...
     // It might be better to first collect the "base" chunks into the base picture (the same way it's done in picture)
     // and then we can start reading the expressions and their mouths.
 
-    let base_image = RgbaImage::new(header.viewport_width as u32, header.viewport_height as u32);
-    let base_image = Mutex::new(base_image);
+    let mut base_image =
+        RgbaImage::new(header.viewport_width as u32, header.viewport_height as u32);
 
     fn par_decode_chunks(
-        chunks: HashMap<u32, BustupChunkDesc>,
+        chunks: Vec<(u32, BustupChunkDesc)>,
         source: &[u8],
-    ) -> impl ParallelIterator<Item = Result<(u32, PictureChunk)>> + '_ {
-        chunks.into_par_iter().map(|(id, desc)| -> Result<_> {
-            let data = &source[desc.offset as usize..(desc.offset + desc.size) as usize];
-            let mut chunk = read_picture_chunk(data)?;
-            cleanup_unused_areas(&mut chunk);
-            Ok((id, chunk))
-        })
+    ) -> Vec<Result<(u32, PictureChunk)>> {
+        chunks.par_chunk_map(
+            shin_tasks::AsyncComputeTaskPool::get(),
+            1,
+            |chunk| -> Result<_> {
+                let &[(id, desc)] = chunk else { unreachable!() };
+                let data = &source[desc.offset as usize..(desc.offset + desc.size) as usize];
+                let mut chunk = read_picture_chunk(data)?;
+                cleanup_unused_areas(&mut chunk);
+                Ok((id, chunk))
+            },
+        )
     }
 
-    par_decode_chunks(base_chunks, source.get_ref()).try_for_each(|res| -> Result<()> {
-        let (_, chunk) = res?;
+    par_decode_chunks(base_chunks, source.get_ref())
+        .into_iter()
+        .try_for_each(|res| -> Result<()> {
+            let (_, chunk) = res?;
 
-        let mut base_image = base_image.lock().unwrap();
-
-        image::imageops::overlay(
-            base_image.deref_mut(),
-            &chunk.data,
-            chunk.offset_x as i64,
-            chunk.offset_y as i64,
-        );
-        Ok(())
-    })?;
+            image::imageops::overlay(
+                &mut base_image,
+                &chunk.data,
+                chunk.offset_x as i64,
+                chunk.offset_y as i64,
+            );
+            Ok(())
+        })?;
 
     let additional_chunks = par_decode_chunks(additional_chunks, source.get_ref())
+        .into_iter()
         .collect::<Result<HashMap<_, _>>>()?;
 
     Ok(Bustup {
-        base_image: base_image.into_inner().unwrap(),
+        base_image,
         origin: (header.origin_x, header.origin_y),
         expressions: header
             .expressions

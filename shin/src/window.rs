@@ -32,7 +32,6 @@ use shin_render::GpuCommonResources;
 use shin_render::Pillarbox;
 use shin_render::Pipelines;
 use shin_render::{RenderTarget, Renderable};
-use shin_tasks::create_task_pools;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -309,7 +308,7 @@ pub async fn run(cli: Cli) {
         }
     }
 
-    create_task_pools();
+    shin_tasks::create_task_pools();
 
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
