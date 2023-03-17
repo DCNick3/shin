@@ -12,7 +12,7 @@ use futures_lite::Future;
 /// # Example
 /// ```rust
 /// # use std::sync::{Arc, atomic::{AtomicI32, Ordering}};
-/// use bevy_tasks::ThreadExecutor;
+/// use shin_tasks::ThreadExecutor;
 ///
 /// let thread_executor = ThreadExecutor::new();
 /// let count = Arc::new(AtomicI32::new(0));
