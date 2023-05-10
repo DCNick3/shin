@@ -8,6 +8,7 @@ Known switch games include:
 - Kono Subarashii Sekai ni Shukufuku wo! Kibou no Meikyuu to Tsudoishi Boukenshata Plus (title id `01004920105FC000`)
 - Umineko no Naku Koro ni Saku \~Nekobako to Musou no Koukyoukyoku\~ (title id `01006A300BA2C000`)
 - Sugar*Style (title id `0100325012B70000`)
+- Sakaagari Hurricane Portable (title id `0100A680151A0000`)
 
 If you know more - let me know!
 
