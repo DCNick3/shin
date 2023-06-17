@@ -15,7 +15,7 @@ resolver = "2"
 [workspace.dependencies]
 glam = "0.24.0"
 # git version for GATs
-enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "942b6f0fefc41d1e9626f952e60ea88386838e68" }
+enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "41493d462d401a8a5b99972543d1249a931a7e03" }
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
 wgpu = "0.16.1"
 kira = { version = "0.8.3", default-features = false }

@@ -1095,8 +1095,8 @@ dependencies = [
 
 [[package]]
 name = "enum-map"
-version = "2.4.2"
-source = "git+https://github.com/xfix/enum-map.git?rev=942b6f0fefc41d1e9626f952e60ea88386838e68#942b6f0fefc41d1e9626f952e60ea88386838e68"
+version = "2.5.0"
+source = "git+https://github.com/xfix/enum-map.git?rev=41493d462d401a8a5b99972543d1249a931a7e03#41493d462d401a8a5b99972543d1249a931a7e03"
 dependencies = [
  "enum-map-derive",
 ]
@@ -1104,11 +1104,11 @@ dependencies = [
 [[package]]
 name = "enum-map-derive"
 version = "0.11.0"
-source = "git+https://github.com/xfix/enum-map.git?rev=942b6f0fefc41d1e9626f952e60ea88386838e68#942b6f0fefc41d1e9626f952e60ea88386838e68"
+source = "git+https://github.com/xfix/enum-map.git?rev=41493d462d401a8a5b99972543d1249a931a7e03#41493d462d401a8a5b99972543d1249a931a7e03"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.18",
 ]
 
 [[package]]

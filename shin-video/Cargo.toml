@@ -17,7 +17,7 @@ shin-audio = { path = "../shin-audio" }
 
 # git version to support ilst box being before hdrl
 # tracked at https://github.com/alfg/mp4-rust/pull/95
-mp4 = { git = "https://github.com/DCNick3/mp4-rust.git", rev = "3a900c62db8f88e7376656bbbcbeb0a13797726b" }
+mp4 = { git = "https://github.com/DCNick3/mp4-rust.git", rev = "20db61e0e9670a7d9ef8996aca21ead15708ba26" }
 symphonia = { version = "0.5.2", features = ["aac"], default-features = false }
 
 wgpu = { workspace = true }
