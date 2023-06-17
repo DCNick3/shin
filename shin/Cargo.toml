@@ -65,7 +65,8 @@ petitset = "0.2.1"
 # git version for wgpu 0.15 support
 egui = { workspace = true }
 egui-wgpu = "0.22.0"
-usvg = "0.29.0"
+# used for implementation of dynamic atlas overlay
+usvg = "0.34.1"
 
 # kira for audio output
 kira = { workspace = true }

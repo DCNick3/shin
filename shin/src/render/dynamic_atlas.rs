@@ -5,7 +5,7 @@ use shin_render::{GpuCommonResources, TextureBindGroup};
 use std::ops::Deref;
 use std::sync::{Mutex, RwLock};
 use tracing::info;
-use usvg::NodeKind;
+use usvg::{tiny_skia_path, NodeKind, NormalizedF32, TreeParsing};
 
 pub trait ImageProvider {
     const IMAGE_FORMAT: wgpu::TextureFormat;
@@ -295,14 +295,14 @@ impl<P: ImageProvider> DynamicAtlas<P> {
 
 // fn stroke_path(path: &usvg::PathData) {}
 
-fn fill_path(path: &usvg::PathData, fill: egui::Color32) -> egui::Shape {
+fn fill_path(path: &tiny_skia_path::Path, fill: egui::Color32) -> egui::Shape {
     let mut points = Vec::new();
 
     let mut iter = path.segments();
     if let Some(first) = iter.next() {
         match first {
-            usvg::PathSegment::MoveTo { x, y } => {
-                points.push(egui::Pos2::new(x as f32, y as f32));
+            tiny_skia_path::PathSegment::MoveTo(p) => {
+                points.push(egui::Pos2::new(p.x, p.y));
             }
             _ => unimplemented!("First segment of path must be MoveTo"),
         }
@@ -312,10 +312,10 @@ fn fill_path(path: &usvg::PathData, fill: egui::Color32) -> egui::Shape {
 
     for segment in &mut iter {
         match segment {
-            usvg::PathSegment::LineTo { x, y } => {
-                points.push(egui::Pos2::new(x as f32, y as f32));
+            tiny_skia_path::PathSegment::LineTo(p) => {
+                points.push(egui::Pos2::new(p.x, p.y));
             }
-            usvg::PathSegment::ClosePath => break,
+            tiny_skia_path::PathSegment::Close => break,
             e => panic!("Unexpected segment: {:?}", e),
         }
     }
@@ -332,14 +332,14 @@ fn fill_path(path: &usvg::PathData, fill: egui::Color32) -> egui::Shape {
     })
 }
 
-fn stroke_path(path: &usvg::PathData, width: f32, color: egui::Color32) -> egui::Shape {
+fn stroke_path(path: &tiny_skia_path::Path, width: f32, color: egui::Color32) -> egui::Shape {
     let mut points = Vec::new();
 
     let mut iter = path.segments();
     if let Some(first) = iter.next() {
         match first {
-            usvg::PathSegment::MoveTo { x, y } => {
-                points.push(egui::Pos2::new(x as f32, y as f32));
+            tiny_skia_path::PathSegment::MoveTo(p) => {
+                points.push(egui::Pos2::new(p.x, p.y));
             }
             _ => unimplemented!("First segment of path must be MoveTo"),
         }
@@ -350,10 +350,10 @@ fn stroke_path(path: &usvg::PathData, width: f32, color: egui::Color32) -> egui:
     let mut closed = false;
     for segment in &mut iter {
         match segment {
-            usvg::PathSegment::LineTo { x, y } => {
-                points.push(egui::Pos2::new(x as f32, y as f32));
+            tiny_skia_path::PathSegment::LineTo(p) => {
+                points.push(egui::Pos2::new(p.x, p.y));
             }
-            usvg::PathSegment::ClosePath => {
+            tiny_skia_path::PathSegment::Close => {
                 closed = true;
                 break;
             }
@@ -373,9 +373,12 @@ fn stroke_path(path: &usvg::PathData, width: f32, color: egui::Color32) -> egui:
     })
 }
 
-fn convert_path(transform: usvg::Transform, path: &usvg::Path, extra_opacity: f64) -> egui::Shape {
-    let mut data = path.data.deref().clone();
-    data.transform(transform);
+fn convert_path(
+    transform: usvg::Transform,
+    path: &usvg::Path,
+    extra_opacity: NormalizedF32,
+) -> egui::Shape {
+    let data = path.data.deref().clone().transform(transform).unwrap();
 
     let fill = if let Some(fill) = &path.fill {
         // egui supports only convex fills anyways
@@ -385,7 +388,7 @@ fn convert_path(transform: usvg::Transform, path: &usvg::Path, extra_opacity: f6
                 color.red,
                 color.green,
                 color.blue,
-                (fill.opacity * usvg::NormalizedF64::new_clamped(extra_opacity)).to_u8(),
+                (fill.opacity * extra_opacity).to_u8(),
             );
             fill_path(&data, color)
         } else {
@@ -403,7 +406,7 @@ fn convert_path(transform: usvg::Transform, path: &usvg::Path, extra_opacity: f6
                 color.red,
                 color.green,
                 color.blue,
-                (stroke.opacity * usvg::NormalizedF64::new_clamped(extra_opacity)).to_u8(),
+                (stroke.opacity * extra_opacity).to_u8(),
             );
             stroke_path(&data, stroke.width.get() as f32, color)
         } else {
@@ -474,12 +477,11 @@ impl<P: ImageProvider> OverlayVisitable for DynamicAtlas<P> {
                         }
 
                         // transform from svg's coordinate system to egui's (after positioning the widget)
-                        let mut transform = usvg::Transform::default();
-                        // do it backwards because linear algebra
-                        transform.translate(rect.min.x as f64, rect.min.y as f64);
-                        transform.scale(rect.width() as f64, rect.height() as f64);
-                        transform.scale(1.0 / view_box.rect.width(), 1.0 / view_box.rect.height());
-                        transform.translate(-view_box.rect.x(), -view_box.rect.y());
+                        let transform = usvg::Transform::default()
+                            .pre_translate(rect.min.x, rect.min.y)
+                            .pre_scale(rect.width(), rect.height())
+                            .pre_scale(1.0 / view_box.rect.width(), 1.0 / view_box.rect.height())
+                            .pre_translate(-view_box.rect.x(), -view_box.rect.y());
 
                         let painter = ui.painter().with_clip_rect(rect);
                         for node in svg.root.descendants() {
@@ -491,7 +493,11 @@ impl<P: ImageProvider> OverlayVisitable for DynamicAtlas<P> {
                                         continue;
                                     }
 
-                                    painter.add(convert_path(transform, p, 0.5));
+                                    painter.add(convert_path(
+                                        transform,
+                                        p,
+                                        NormalizedF32::new_clamped(0.5),
+                                    ));
                                 }
                                 NodeKind::Image(_) => todo!(),
                                 NodeKind::Text(_) => todo!(),
