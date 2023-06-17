@@ -11,7 +11,7 @@ struct VertexIn {
     fade: f32,
 }
 
-type distances = array<vec2<f32>, 8>;
+alias distances = array<vec2<f32>, 8>;
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,

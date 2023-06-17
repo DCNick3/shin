@@ -64,7 +64,7 @@ petitset = "0.2.1"
 # egui used for debug overlays
 # git version for wgpu 0.15 support
 egui = { workspace = true }
-egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679", features = [] }
+egui-wgpu = "0.22.0"
 usvg = "0.29.0"
 
 # kira for audio output

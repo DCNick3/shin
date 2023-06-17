@@ -190,7 +190,7 @@ impl OverlayManager {
             events,
             hovered_files: vec![],
             dropped_files: vec![],
-            has_focus: false,
+            focused: false,
         };
 
         self.prev_input = raw_input_state.clone();

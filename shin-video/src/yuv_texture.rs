@@ -1,6 +1,5 @@
 use crate::h264_decoder::{BitsPerSample, Colorspace, Frame, FrameSize, PlaneSize};
 use shin_render::{GpuCommonResources, YuvTextureBindGroup};
-use std::num::NonZeroU32;
 
 pub struct YuvTexture {
     tex_y: wgpu::Texture,
@@ -39,7 +38,7 @@ fn write_texture(texture: &wgpu::Texture, size: PlaneSize, data: &[u8], queue: &
         data,
         wgpu::ImageDataLayout {
             offset: 0,
-            bytes_per_row: Some(NonZeroU32::new(size.width).unwrap()),
+            bytes_per_row: Some(size.width),
             rows_per_image: None,
         },
         wgpu::Extent3d {
@@ -75,7 +74,7 @@ impl YuvTexture {
             lod_min_clamp: 0.0,
             lod_max_clamp: 0.0,
             compare: None,
-            anisotropy_clamp: None,
+            anisotropy_clamp: 1,
             border_color: None,
         });
 

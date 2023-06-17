@@ -13,13 +13,13 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-glam = "0.23.0"
+glam = "0.24.0"
 # git version for GATs
 enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "942b6f0fefc41d1e9626f952e60ea88386838e68" }
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
-wgpu = "0.15.1"
-kira = { version = "0.7.1", default-features = false }
-egui = { git = "https://github.com/emilk/egui.git", rev = "d15ce22e2edeabf9813ba2965ec64f9c9d62a679" }
+wgpu = "0.16.1"
+kira = { version = "0.8.3", default-features = false }
+egui = "0.22.0"
 image = { version = "0.24.5", default-features = false }
 anyhow = "1.0.69"
 bevy_utils = "0.10.0"

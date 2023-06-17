@@ -2,7 +2,6 @@ use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 use bevy_utils::{Entry, HashMap};
 use glam::{vec2, Vec2};
 use shin_render::{GpuCommonResources, TextureBindGroup};
-use std::num::NonZeroU32;
 use std::ops::Deref;
 use std::sync::{Mutex, RwLock};
 use tracing::info;
@@ -162,9 +161,9 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                     assert_eq!(mip_data.len(), P::MIPMAP_LEVELS as usize);
 
                     // First, find a place to put it
-                    let format = P::IMAGE_FORMAT.describe();
                     // no compressed textures support for now
-                    assert_eq!(format.block_dimensions, (1, 1));
+                    assert_eq!(P::IMAGE_FORMAT.block_dimensions(), (1, 1));
+                    let block_size = P::IMAGE_FORMAT.block_size(None).unwrap();
 
                     let allocation = {
                         let mut allocator = self.allocator.lock().unwrap();
@@ -208,8 +207,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
 
                         assert_eq!(
                             data.len(),
-                            (width * height / mip_scale / mip_scale) as usize
-                                * format.block_size as usize
+                            (width * height / mip_scale / mip_scale) as usize * block_size as usize
                         );
 
                         // Upload the image to the atlas
@@ -229,11 +227,8 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                             &data,
                             wgpu::ImageDataLayout {
                                 offset: 0,
-                                bytes_per_row: Some(
-                                    NonZeroU32::new(width * format.block_size as u32 / mip_scale)
-                                        .unwrap(),
-                                ),
-                                rows_per_image: Some(NonZeroU32::new(height / mip_scale).unwrap()),
+                                bytes_per_row: Some(width * block_size as u32 / mip_scale),
+                                rows_per_image: Some(height / mip_scale),
                             },
                             wgpu::Extent3d {
                                 width: width / mip_scale,

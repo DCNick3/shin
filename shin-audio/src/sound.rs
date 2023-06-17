@@ -2,8 +2,10 @@ use crate::resampler::Resampler;
 use crate::AudioData;
 use kira::clock::clock_info::ClockInfoProvider;
 use kira::dsp::Frame;
+use kira::modulator::value_provider::ModulatorValueProvider;
 use kira::sound::Sound;
 use kira::track::TrackId;
+use kira::OutputDestination;
 use ringbuf::HeapConsumer;
 use shin_core::format::audio::{AudioFrameSource, AudioSource};
 use shin_core::time::{Ticks, Tween, Tweener};
@@ -168,8 +170,8 @@ impl<S: AudioFrameSource + Send> AudioSound<S> {
 }
 
 impl<S: AudioFrameSource + Send> Sound for AudioSound<S> {
-    fn track(&mut self) -> TrackId {
-        self.track_id
+    fn output_destination(&mut self) -> OutputDestination {
+        OutputDestination::Track(self.track_id)
     }
 
     fn on_start_processing(&mut self) {
@@ -197,7 +199,12 @@ impl<S: AudioFrameSource + Send> Sound for AudioSound<S> {
         );
     }
 
-    fn process(&mut self, dt: f64, _clock_info_provider: &ClockInfoProvider) -> Frame {
+    fn process(
+        &mut self,
+        dt: f64,
+        _clock_info_provider: &ClockInfoProvider,
+        _modulator_value_provider: &ModulatorValueProvider,
+    ) -> Frame {
         let dt_ticks = Ticks::from_seconds(dt as f32);
 
         // update tweeners
