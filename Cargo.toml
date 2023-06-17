@@ -6,6 +6,7 @@ members = [
     "shin-video",
     "shin-tasks",
     "shin-audio",
+    "shin-asm",
     "sdu",
     "shin",
     "junk",

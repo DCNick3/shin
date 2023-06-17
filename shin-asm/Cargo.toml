@@ -1,0 +1,12 @@
+[package]
+name = "shin-asm"
+version = "0.5.0"
+edition = "2021"
+description = "Assembler and disassembler library for the shin VM"
+repository = "https://github.com/DCNick3/shin"
+license = "MPL-2.0"
+authors = ["DCNick3"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
