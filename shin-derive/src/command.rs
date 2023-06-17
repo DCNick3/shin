@@ -1,6 +1,7 @@
 use crate::sanitization::{
     BIN_READ, BIN_WRITE, COMMAND_RESULT, FROM_VM_CTX, FROM_VM_CTX_DEFAULT, MEMORY_ADDRESS, VM_CTX,
 };
+use crate::util::{parse_attribute, parse_opt_attribute};
 use darling::FromMeta;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
@@ -38,16 +39,8 @@ fn parse_command_variant(input: &VariantInfo) -> CommandVariant {
         .fields
         .into_iter()
         .map(|field| {
-            let meta = field
-                .attrs
-                .iter()
-                .map(|a| a.parse_meta().unwrap())
-                .filter(|m| m.path().is_ident("cmd"))
-                .map(|m| CommandFieldMeta::from_meta(&m).unwrap())
-                .at_most_one()
-                .map_err(|_| {
-                    syn::Error::new_spanned(field, "Only one #[cmd] attribute is allowed per field")
-                })
+            // TODO: use darling's accumulator pattern
+            let meta = parse_opt_attribute::<CommandFieldMeta>(&field, "cmd", &field.attrs)
                 .unwrap()
                 .unwrap_or_default();
             CommandField {
@@ -57,28 +50,15 @@ fn parse_command_variant(input: &VariantInfo) -> CommandVariant {
         })
         .collect();
 
-    let meta = input
-        .ast()
-        .attrs
-        .iter()
-        .map(|a| a.parse_meta().unwrap())
-        .filter(|m| m.path().is_ident("cmd"))
-        .map(|m| CommandVariantMeta::from_meta(&m).unwrap())
-        .at_most_one()
-        .map_err(|_| {
-            syn::Error::new_spanned(
-                input.ast().ident,
-                "Only one #[cmd] attribute is allowed per variant",
-            )
-        })
-        .unwrap()
-        .unwrap();
+    let cmd_ast = input.ast();
+    // TODO: use darling's accumulator pattern
+    let meta = parse_attribute::<CommandVariantMeta>(cmd_ast.ident, "cmd", cmd_ast.attrs).unwrap();
 
     let doc = input
         .ast()
         .attrs
         .iter()
-        .find(|a| a.path.is_ident("doc"))
+        .find(|a| a.path().is_ident("doc"))
         .cloned();
 
     CommandVariant {

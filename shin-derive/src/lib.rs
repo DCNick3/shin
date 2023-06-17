@@ -5,6 +5,7 @@ mod command;
 pub(crate) mod sanitization;
 mod texture_archive;
 mod vertex;
+mod util;
 
 use crate::command::impl_command;
 use crate::texture_archive::impl_texture_archive;

@@ -4,6 +4,8 @@ use syn::spanned::Spanned;
 use syn::Data;
 use synstructure::Structure;
 
+// TODO: implement vertex macro
+// it would be a replacement for sometimes clunky wrld
 pub fn impl_vertex(input: Structure) -> TokenStream {
     match input.ast().data {
         Data::Struct(_) => {}

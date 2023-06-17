@@ -1,6 +1,6 @@
 use crate::sanitization::{LAZY_GPU_TEXTURE, TEXTURE_ARCHIVE, TEXTURE_ARCHIVE_BUILDER};
+use crate::util::parse_attribute;
 use darling::FromMeta;
-use itertools::Itertools;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use synstructure::Structure;
@@ -29,18 +29,8 @@ pub fn impl_texture_archive(input: Structure) -> TokenStream {
         let builder_add_texture = var.ast().fields.iter().map(|f| {
             let ident = f.ident.as_ref().unwrap();
 
-            let meta = f
-                .attrs
-                .iter()
-                .map(|a| a.parse_meta().unwrap())
-                .filter(|m| m.path().is_ident("txa"))
-                .map(|m| TxaFieldMeta::from_meta(&m).unwrap())
-                .at_most_one()
-                .map_err(|_| {
-                    syn::Error::new_spanned(f, "Only one #[txa] attribute is allowed per field")
-                })
-                .unwrap()
-                .unwrap();
+            // TODO: use darling's accumulator pattern
+            let meta = parse_attribute::<TxaFieldMeta>(&f, "txa", &f.attrs).unwrap();
 
             let name = meta.name;
 
