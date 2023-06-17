@@ -56,7 +56,7 @@ enum SduAction {
 
 #[derive(clap::Args, Debug)]
 struct GenerateCommand {
-    /// If provided, outputs the completion file for given shell
+    /// The shell to generate the completion for
     #[clap(value_enum)]
     shell: Shell,
 }
