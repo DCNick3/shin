@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use itertools::Itertools;
+use shin_core::format::scenario::instructions::CodeAddress;
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 use std::fs::File;
 use std::path::PathBuf;
@@ -40,8 +41,13 @@ pub enum ScenarioCommand {
         scenario_path: PathBuf,
         output_filename: Option<PathBuf>,
     },
-    /// [WIP] Decompile a scenario into an assembly-like language
-    Decompile { scenario_path: PathBuf },
+    /// Disassemble a scenario into an assembly-like language
+    ///
+    /// NOTE: the format of the output is not stable yet
+    Disassemble {
+        scenario_path: PathBuf,
+        output_filename: Option<PathBuf>,
+    },
 }
 
 fn make_output(output_filename: Option<PathBuf>) -> Result<Box<dyn std::io::Write>> {
@@ -247,6 +253,36 @@ fn dump_info(path: PathBuf, output_filename: Option<PathBuf>) -> Result<()> {
     Ok(())
 }
 
+fn disassemble(path: PathBuf, output_filename: Option<PathBuf>) -> Result<()> {
+    let scenario = std::fs::read(path)?;
+    let scenario = Bytes::from(scenario);
+    let scenario = shin_core::format::scenario::Scenario::new(scenario)?;
+
+    let mut output = make_output(output_filename)?;
+
+    let entry = CodeAddress(0x922b0);
+    let mut reader = scenario.instruction_reader(entry);
+
+    let mut end_position = scenario.raw().len();
+    // scenario file is aligned to 0x10 bytes, so there are some zeros at the end
+    // trim them
+    while end_position > 0 && scenario.raw()[end_position - 1] == 0 {
+        end_position -= 1;
+    }
+    let end_position = CodeAddress(end_position as u32);
+
+    while reader.position() < end_position {
+        let position = reader.position();
+
+        let instruction = reader
+            .read()
+            .with_context(|| format!("Reading instruction at {}", position))?;
+        writeln!(output, "{:08x?} {:?}", position.0, instruction);
+    }
+
+    Ok(())
+}
+
 pub fn scenario_command(command: ScenarioCommand) -> Result<()> {
     match command {
         ScenarioCommand::Trace {
@@ -267,8 +303,9 @@ pub fn scenario_command(command: ScenarioCommand) -> Result<()> {
             scenario_path,
             output_filename,
         } => dump_info(scenario_path, output_filename),
-        ScenarioCommand::Decompile { scenario_path: _ } => {
-            todo!("Decompile scenario");
-        }
+        ScenarioCommand::Disassemble {
+            scenario_path,
+            output_filename,
+        } => disassemble(scenario_path, output_filename),
     }
 }

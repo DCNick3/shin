@@ -1,10 +1,10 @@
-use crate::format::scenario::types::{U16SmallList, U8SmallList, U8SmallNumberList};
+use crate::format::scenario::types::{Pad4, U16SmallList, U8SmallList, U8SmallNumberList};
 use crate::vm::command::CompiletimeCommand;
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use smallvec::SmallVec;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::io;
 use std::io::SeekFrom;
 
@@ -16,6 +16,12 @@ pub struct CodeAddress(pub u32);
 impl Debug for CodeAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "0x{:x}j", self.0)
+    }
+}
+
+impl Display for CodeAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
@@ -370,6 +376,15 @@ impl BinWrite for JumpCond {
     }
 }
 
+/// A single term in an expression. Represents a single operation on a stack machine
+///
+/// Notation for the ops:
+/// - pop(): Pop an integer from the stack
+/// - push(x): Push an integer onto the stack
+/// - real(x): Convert fixed-point integer to a real number (e.g. `1234` -> `1.234`)
+/// - unreal(x): Convert real number to a fixed-point integer (e.g. `1.234` -> `1234`)
+/// - bool(x): Convert integer to boolean (e.g. `0` -> `false`, else -> `true`)
+/// - unbool(x): Convert boolean to integer (e.g. `false` -> `0`, `true` -> `-1` (sic!))
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little)]
 pub enum ExpressionTerm {
@@ -379,7 +394,7 @@ pub enum ExpressionTerm {
     /// `L=pop(), R=pop(), push(L + R)`
     #[brw(magic(0x01u8))]
     Add,
-    /// `L=pop(), R=pop(), push(L - R)`
+    /// `L=pop(), R=pop(), push(L - R)` TODO: is the order reversed?
     #[brw(magic(0x02u8))]
     Subtract,
     /// `L=pop(), R=pop(), push(L * R)`
@@ -391,6 +406,29 @@ pub enum ExpressionTerm {
     /// `L=pop(), R=pop(), push(L % R)`
     #[brw(magic(0x05u8))]
     Remainder,
+
+    /// `L=pop(), R=pop(), push(unbool(L == R))`
+    #[brw(magic(0x0eu8))]
+    CmpEqual,
+    /// `L=pop(), R=pop(), push(unbool(L != R))`
+    #[brw(magic(0x0fu8))]
+    CmpNotEqual,
+    /// `L=pop(), R=pop(), push(unbool(L >= R))`
+    #[brw(magic(0x10u8))]
+    CmpGreaterOrEqual,
+    /// `L=pop(), R=pop(), push(unbool(L > R))`
+    #[brw(magic(0x11u8))]
+    CmpGreater,
+    /// `L=pop(), R=pop(), push(unbool(L <= R))`
+    #[brw(magic(0x12u8))]
+    CmpLessOrEqual,
+    /// `L=pop(), R=pop(), push(unbool(L < R))`
+    #[brw(magic(0x13u8))]
+    CmpLess,
+
+    /// `C=pop(), L=pop(), R=pop(), push(if C { L } else { R })`
+    #[brw(magic(0x18u8))]
+    Select,
 
     /// `L=pop(), R=pop(), push(real(L) * real(R))`
     ///
@@ -565,7 +603,8 @@ pub enum Instruction {
     gt {
         dest: MemoryAddress,
         index: NumberSpec,
-        table: U16SmallList<[NumberSpec; 32]>,
+        // TODO: this encoding is wrong! Each element in the table is padded to 4 bytes!
+        table: U16SmallList<[Pad4<NumberSpec>; 32]>,
     },
     /// Jump Conditional
     ///

@@ -175,6 +175,7 @@ impl VmCtx {
                     let right = stack.pop().unwrap();
                     stack.push(left.max(right));
                 }
+                _ => todo!(),
             }
         }
         if stack.len() != 1 {

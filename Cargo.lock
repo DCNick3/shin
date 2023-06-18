@@ -2933,6 +2933,7 @@ dependencies = [
  "bytemuck",
  "bytes",
  "chrono",
+ "derivative",
  "derive_more",
  "enum-map",
  "float-ord",

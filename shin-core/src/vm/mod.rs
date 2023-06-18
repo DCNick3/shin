@@ -168,7 +168,7 @@ impl Scripter {
                 let index = self.ctx.get_number(index);
 
                 let result = if index >= 0 && index < table.0.len() as i32 {
-                    self.ctx.get_number(table.0[index as usize])
+                    self.ctx.get_number(table.0[index as usize].0)
                 } else {
                     0
                 };

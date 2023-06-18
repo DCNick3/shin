@@ -1,17 +1,21 @@
 use crate::format::scenario::instructions::NumberSpec;
 use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
+use derivative::Derivative;
 use smallvec::SmallVec;
 use std::fmt;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
 // TODO: make lists generic over the type of length
+/// A list of `T` with a u8 length
 #[derive(Debug)]
 pub struct U8List<T>(pub Vec<T>);
 
+/// A list of `T` with a u16 length
 #[derive(Debug)]
 pub struct U16List<T>(pub Vec<T>);
 
+/// A list of `T` with a length of `L`, stored in a `SmallVec` with array `A`
 pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, A: smallvec::Array>(
     pub SmallVec<A>,
     pub PhantomData<L>,
@@ -22,6 +26,13 @@ pub type U16SmallList<A> = SmallList<u16, A>;
 
 pub type U8SmallNumberList<A = [NumberSpec; 6]> = U8SmallList<A>;
 pub type U16SmallNumberList<A = [NumberSpec; 6]> = U16SmallList<A>;
+
+/// Pad the contents to 4 bytes
+///
+/// (Used in [super::Instruction::jt])
+#[derive(Derivative)]
+#[derivative(Debug = "transparent")]
+pub struct Pad4<T>(pub T);
 
 impl<T: for<'a> BinRead<Args<'a> = ()> + 'static> BinRead for U8List<T> {
     type Args<'a> = ();
@@ -117,6 +128,38 @@ impl<
         T: for<'a> BinWrite<Args<'a> = ()>,
     > BinWrite for SmallList<L, A>
 {
+    type Args<'a> = ();
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        _writer: &mut W,
+        _endian: Endian,
+        _: (),
+    ) -> BinResult<()> {
+        todo!()
+    }
+}
+
+impl<T: for<'a> BinRead<Args<'a> = ()> + 'static> BinRead for Pad4<T> {
+    type Args<'a> = ();
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        endian: Endian,
+        args: Self::Args<'_>,
+    ) -> BinResult<Self> {
+        let pos = reader.stream_position()?;
+        let res = <_>::read_options(reader, endian, args)?;
+        let new_pos = reader.stream_position()?;
+
+        assert!(new_pos - pos <= 4, "Pad4: read more than 4 bytes");
+
+        reader.seek(std::io::SeekFrom::Start(pos + 4))?;
+
+        Ok(Self(res))
+    }
+}
+impl<T: for<'a> BinWrite<Args<'a> = ()>> BinWrite for Pad4<T> {
     type Args<'a> = ();
 
     fn write_options<W: Write + Seek>(
