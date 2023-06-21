@@ -34,6 +34,14 @@ jobs:
       - name: Create dummy index.html
         run: |
           echo "<meta http-equiv=refresh content=0;url=shin/index.html>" > target/doc/index.html
+      # Set the right file permissions, based on https://github.com/actions/upload-pages-artifact#file-permissions.
+      - name: Fix file permissions
+        shell: sh
+        run: |
+          chmod -c -R +rX "target/doc" |
+          while read line; do
+              echo "::warning title=Invalid file permissions automatically fixed::$line"
+          done
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
