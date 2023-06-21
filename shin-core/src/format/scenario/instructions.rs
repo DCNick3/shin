@@ -150,7 +150,7 @@ impl BinWrite for NumberSpec {
     }
 }
 
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Copy, Clone, FromPrimitive)]
 pub enum UnaryOperationType {
     /// Ignore the source and return 0
     Zero = 0,
@@ -161,7 +161,7 @@ pub enum UnaryOperationType {
     /// Take the absolute value of the input
     Abs = 3,
 }
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct UnaryOperation {
     pub ty: UnaryOperationType,
     /// Where to write the result to
@@ -213,46 +213,57 @@ impl BinWrite for UnaryOperation {
     }
 }
 
-#[derive(Debug, FromPrimitive)]
+/// An operation on two numbers
+///
+/// See [ExpressionTerm] for details on how the numbers are interpreted and functions used to describe operations
+#[derive(Debug, Copy, Clone, FromPrimitive)]
 pub enum BinaryOperationType {
     /// `R`: Ignore the left operand and return the right operand
-    MovRight = 0,
+    MovRight = 0x00,
     /// `0`: Ignore both operands and return 0
-    Zero = 1,
+    Zero = 0x01,
     /// `L + R`: Add the left and right operands
-    Add = 2,
+    Add = 0x02,
     /// `L - R`: Subtract the right operand from the left operand
-    Subtract = 3,
+    Subtract = 0x03,
     /// `L * R`: Multiply the left and right operands
-    Multiply = 4,
-    /// `L / R`: Divide the left operand by the right operand
-    Divide = 5,
-    /// `L % R`: Return the remainder of the left operand divided by the right operand
-    Remainder = 6,
+    Multiply = 0x04,
+    /// `L / R`: Integer divide the left operand by the right operand
+    Divide = 0x05,
+    /// `L mod R`: Return the modulo of the left operand divided by the right operand
+    ///
+    /// Modulo is defined as `L - R * floor(L / R)`
+    Modulo = 0x06,
     /// `L & R`: Bitwise AND the left and right operands
-    BitwiseAnd = 7,
+    BitwiseAnd = 0x07,
     /// `L | R`: Bitwise OR the left and right operands
-    BitwiseOr = 8,
+    BitwiseOr = 0x08,
     /// `L ^ R`: Bitwise XOR the left and right operands
-    BitwiseXor = 9,
+    BitwiseXor = 0x09,
     /// `L << R`: Shift the left operand left by the right operand
-    LeftShift = 10,
+    LeftShift = 0x0a,
     /// `L >> R`: Shift the left operand right by the right operand
-    RightShift = 11,
-    /// `real(L) * real(R)`: Add the left and right operands as real numbers
+    RightShift = 0x0b,
+    /// `unreal(real(L) * real(R))`: Add the left and right operands as real numbers
     ///
     /// Real numbers are represented as fixed point numbers with 3 decimal places. (e.g. `1.234` is represented as `1234`)
-    MultiplyReal = 12,
-    /// `real(L) / real(R)`: Divide the left operand by the right operand as real numbers
+    MultiplyReal = 0x0c,
+    /// `unreal(real(L) / real(R))`: Divide the left operand by the right operand as real numbers
     ///
     /// Real numbers are represented as fixed point numbers with 3 decimal places. (e.g. `1.234` is represented as `1234`)
-    DivideReal = 13,
-    // TODO
-    // 14: right = (int)(float)((float)(atan2f_0((float)left * 0.001, (float)right * 0.001) * 1000.0) / 6.2832);
-    // 15: right = (1 << right) | left;
-    // ....
+    DivideReal = 0x0d,
+    /// `unangle(atan2(real(L), real(R)))`
+    ATan2 = 0x0e,
+    /// `L | (1 << R)`: Set the bit at the right operand in the left operand
+    SetBit = 0x0f,
+    /// `L & ~(1 << R)`: Clear the bit at the right operand in the left operand
+    ClearBit = 0x10,
+    /// Defined as `ctz((0xffffffff << R) & L)`
+    ///
+    /// For the love of god, I can't figure out what this is supposed to do.
+    ACursedOperation = 0x11,
 }
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct BinaryOperation {
     pub ty: BinaryOperationType,
     pub destination: MemoryAddress,
@@ -306,7 +317,7 @@ impl BinWrite for BinaryOperation {
     }
 }
 
-#[derive(FromPrimitive, Debug)]
+#[derive(FromPrimitive, Copy, Clone, Debug)]
 pub enum JumpCondType {
     /// `L == R`
     Equal = 0x0,
@@ -322,14 +333,14 @@ pub enum JumpCondType {
     Less = 0x5,
     /// `L & R != 0`
     BitwiseAndNotZero = 0x6,
-    /// (TODO: fact-check) `L & (1 << R) != 0`
+    /// `L & (1 << R) != 0`
     BitSet = 0x7,
 }
 
 /// Jump condition
 ///
 /// Describes how to get a boolean value from two numbers
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct JumpCond {
     /// If true, the condition is negated
     pub is_negated: bool,
@@ -378,6 +389,14 @@ impl BinWrite for JumpCond {
 
 /// A single term in an expression. Represents a single operation on a stack machine
 ///
+/// The stack works primarily with integers, however some operations can re-interpret them as other types.
+///
+/// Boolean values are represented as integers, with `0` being `false` and anything else being `true`, with `-1` being the preferred representation of `true`.
+///
+/// Real numbers are represented as fixed point numbers with 3 decimal places. (e.g. `1.234` is represented as `1234`)
+///
+/// Angles are represented as real numbers of turns, with `1.0` being a full turn, `0.5` being half a turn, etc.
+///
 /// Notation for the ops:
 /// - pop(): Pop an integer from the stack
 /// - push(x): Push an integer onto the stack
@@ -385,68 +404,112 @@ impl BinWrite for JumpCond {
 /// - unreal(x): Convert real number to a fixed-point integer (e.g. `1.234` -> `1234`)
 /// - bool(x): Convert integer to boolean (e.g. `0` -> `false`, else -> `true`)
 /// - unbool(x): Convert boolean to integer (e.g. `false` -> `0`, `true` -> `-1` (sic!))
-#[derive(BinRead, BinWrite, Debug)]
+/// - angle(x): Convert fixed-point integer to angle in radians (e.g. `1000` -> 2pi)
+/// - unangle(x): Convert angle in radians to fixed-point integer (e.g. 2pi -> `1000`)
+#[derive(BinRead, BinWrite, Copy, Clone, Debug)]
 #[brw(little)]
 pub enum ExpressionTerm {
     /// Push a number onto the stack
     #[brw(magic(0x00u8))]
     Push(NumberSpec),
-    /// `L=pop(), R=pop(), push(L + R)`
+    /// `R=pop(), L=pop(), push(L + R)`
     #[brw(magic(0x01u8))]
     Add,
-    /// `L=pop(), R=pop(), push(L - R)` TODO: is the order reversed?
+    /// `R=pop(), L=pop(), push(L - R)` TODO: is the order reversed?
     #[brw(magic(0x02u8))]
     Subtract,
-    /// `L=pop(), R=pop(), push(L * R)`
+    /// `R=pop(), L=pop(), push(L * R)`
     #[brw(magic(0x03u8))]
     Multiply,
-    /// `L=pop(), R=pop(), push(L / R)`
+    /// `R=pop(), L=pop(), push(L / R)`
     #[brw(magic(0x04u8))]
     Divide,
-    /// `L=pop(), R=pop(), push(L % R)`
+    /// `R=pop(), L=pop(), push(L mod R)`
     #[brw(magic(0x05u8))]
-    Remainder,
-
-    /// `L=pop(), R=pop(), push(unbool(L == R))`
+    Modulo,
+    /// `R=pop(), L=pop(), push(L << R)`
+    #[brw(magic(0x06u8))]
+    ShiftLeft,
+    /// `R=pop(), L=pop(), push(L >> R)`
+    #[brw(magic(0x07u8))]
+    ShiftRight,
+    /// `R=pop(), L=pop(), push(L & R)`
+    #[brw(magic(0x08u8))]
+    BitwiseAnd,
+    /// `R=pop(), L=pop(), push(L | R)`
+    #[brw(magic(0x09u8))]
+    BitwiseOr,
+    /// `R=pop(), L=pop(), push(L ^ R)`
+    #[brw(magic(0x0au8))]
+    BitwiseXor,
+    /// `V=pop(), push(-V)`
+    #[brw(magic(0x0bu8))]
+    Negate,
+    /// `V=pop(), push(~V)`
+    #[brw(magic(0x0cu8))]
+    BitwiseNot,
+    /// `V=pop(), push(abs(V))`
+    #[brw(magic(0x0du8))]
+    Abs,
+    /// `R=pop(), L=pop(), push(unbool(L == R))`
     #[brw(magic(0x0eu8))]
     CmpEqual,
-    /// `L=pop(), R=pop(), push(unbool(L != R))`
+    /// `R=pop(), L=pop(), push(unbool(L != R))`
     #[brw(magic(0x0fu8))]
     CmpNotEqual,
-    /// `L=pop(), R=pop(), push(unbool(L >= R))`
+    /// `R=pop(), L=pop(), push(unbool(L >= R))`
     #[brw(magic(0x10u8))]
     CmpGreaterOrEqual,
-    /// `L=pop(), R=pop(), push(unbool(L > R))`
+    /// `R=pop(), L=pop(), push(unbool(L > R))`
     #[brw(magic(0x11u8))]
     CmpGreater,
-    /// `L=pop(), R=pop(), push(unbool(L <= R))`
+    /// `R=pop(), L=pop(), push(unbool(L <= R))`
     #[brw(magic(0x12u8))]
     CmpLessOrEqual,
-    /// `L=pop(), R=pop(), push(unbool(L < R))`
+    /// `R=pop(), L=pop(), push(unbool(L < R))`
     #[brw(magic(0x13u8))]
     CmpLess,
-
-    /// `C=pop(), L=pop(), R=pop(), push(if C { L } else { R })`
+    /// `V=pop(), push(unbool(V == 0))`
+    #[brw(magic(0x14u8))]
+    CmpZero,
+    /// `V=pop(), push(unbool(V != 0))`
+    #[brw(magic(0x15u8))]
+    CmpNotZero,
+    /// `R=pop(), L=pop(), push(unbool(bool(L) && bool(R)))`
+    #[brw(magic(0x16u8))]
+    LogicalAnd,
+    /// `R=pop(), L=pop(), push(unbool(bool(L) || bool(R)))`
+    #[brw(magic(0x17u8))]
+    LogicalOr,
+    /// `C=pop(), T=pop(), F=pop(), push(if bool(C) { T } else { F })`
     #[brw(magic(0x18u8))]
     Select,
-
-    /// `L=pop(), R=pop(), push(real(L) * real(R))`
-    ///
-    /// Real numbers are represented as fixed point numbers with 3 decimal places. (e.g. `1.234` is represented as `1234`)
-    #[brw(magic(0x1au8))]
+    /// `R=pop(), L=pop(), push(real(L) * real(R))`
+    #[brw(magic(0x19u8))]
     MultiplyReal,
-
-    /// `L=pop(), R=pop(), push(min(L, R))`
+    /// `R=pop(), L=pop(), push(real(L) / real(R))`
+    #[brw(magic(0x1au8))]
+    DivideReal,
+    /// `A=pop(), push(sin(angle(A)))`
+    #[brw(magic(0x1bu8))]
+    Sin,
+    /// `A=pop(), push(cos(angle(A)))`
+    #[brw(magic(0x1cu8))]
+    Cos,
+    /// `A=pop(), push(tan(angle(A)))`
+    #[brw(magic(0x1du8))]
+    Tan,
+    /// `R=pop(), L=pop(), push(min(L, R))`
     #[brw(magic(0x1eu8))]
     Min,
-    /// `L=pop(), R=pop(), push(max(L, R))`
+    /// `R=pop(), L=pop(), push(max(L, R))`
     #[brw(magic(0x1fu8))]
     Max,
 }
 
 /// An expression is a sequence of terms that are evaluated in order.
 /// This is basically a reverse polish notation expression, which can be evaluated with a stack machine.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Expression(pub SmallVec<[ExpressionTerm; 6]>);
 
 impl BinRead for Expression {
@@ -488,7 +551,7 @@ impl BinWrite for Expression {
 /// Represents 8 numbers, each of which may or may not be present.
 ///
 /// If the number is not present, it is represented as `NumberSpec::Constant(0)`.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct BitmaskNumberArray(pub [NumberSpec; 8]);
 
 impl BinRead for BitmaskNumberArray {

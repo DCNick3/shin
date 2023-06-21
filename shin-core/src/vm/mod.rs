@@ -26,8 +26,7 @@ mod ctx;
 pub use ctx::*;
 
 use crate::format::scenario::instructions::{
-    BinaryOperation, BinaryOperationType, CodeAddress, Instruction, UnaryOperation,
-    UnaryOperationType,
+    BinaryOperation, CodeAddress, Instruction, UnaryOperation, UnaryOperationType,
 };
 use crate::format::scenario::{InstructionReader, Scenario};
 use crate::vm::breakpoint::{BreakpointHandle, CodeBreakpointSet};
@@ -128,31 +127,7 @@ impl Scripter {
             }) => {
                 let left = self.ctx.get_number(left);
                 let right = self.ctx.get_number(right);
-                let result = match ty {
-                    BinaryOperationType::MovRight => right,
-                    BinaryOperationType::Zero => 0,
-                    BinaryOperationType::Add => left + right,
-                    BinaryOperationType::Subtract => left - right,
-                    BinaryOperationType::Multiply => left * right,
-                    BinaryOperationType::Divide => {
-                        if right != 0 {
-                            left / right
-                        } else {
-                            0
-                        }
-                    }
-                    BinaryOperationType::Remainder => {
-                        let div = if right != 0 { left / right } else { 0 };
-                        left - div * right
-                    }
-                    BinaryOperationType::BitwiseAnd => left & right,
-                    BinaryOperationType::BitwiseOr => left | right,
-                    BinaryOperationType::BitwiseXor => left ^ right,
-                    BinaryOperationType::LeftShift => left << right,
-                    BinaryOperationType::RightShift => left >> right,
-                    BinaryOperationType::MultiplyReal => todo!(),
-                    BinaryOperationType::DivideReal => todo!(),
-                };
+                let result = self.ctx.evaluate_binary_operation(ty, left, right);
 
                 trace!(?pc, ?ty, ?destination, ?left, ?right, ?result, "bo");
 

@@ -260,7 +260,7 @@ fn disassemble(path: PathBuf, output_filename: Option<PathBuf>) -> Result<()> {
 
     let mut output = make_output(output_filename)?;
 
-    let entry = CodeAddress(0x922b0);
+    let entry = scenario.entrypoint_address();
     let mut reader = scenario.instruction_reader(entry);
 
     let mut end_position = scenario.raw().len();
@@ -277,7 +277,7 @@ fn disassemble(path: PathBuf, output_filename: Option<PathBuf>) -> Result<()> {
         let instruction = reader
             .read()
             .with_context(|| format!("Reading instruction at {}", position))?;
-        writeln!(output, "{:08x?} {:?}", position.0, instruction);
+        writeln!(output, "{:08x?} {:?}", position.0, instruction)?;
     }
 
     Ok(())

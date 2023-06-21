@@ -3,7 +3,8 @@ mod from_vm_ctx;
 pub use from_vm_ctx::*;
 
 use crate::format::scenario::instructions::{
-    CodeAddress, Expression, ExpressionTerm, JumpCond, JumpCondType, MemoryAddress, NumberSpec,
+    BinaryOperationType, CodeAddress, Expression, ExpressionTerm, JumpCond, JumpCondType,
+    MemoryAddress, NumberSpec,
 };
 use smallvec::SmallVec;
 use tracing::warn;
@@ -30,6 +31,40 @@ pub struct VmCtx {
     arguments_stack: Vec<i32>,
     /// PRNG state, updated on each instruction executed
     prng_state: u32,
+}
+
+#[inline]
+fn bool(v: i32) -> bool {
+    v != 0
+}
+
+#[inline]
+fn unbool(v: bool) -> i32 {
+    if v {
+        -1
+    } else {
+        0
+    }
+}
+
+#[inline]
+fn real(v: i32) -> f32 {
+    v as f32 / 1000.0
+}
+
+#[inline]
+fn unreal(v: f32) -> i32 {
+    (v * 1000.0) as i32
+}
+
+#[inline]
+fn angle(v: i32) -> f32 {
+    real(v) * std::f32::consts::PI * 2.0
+}
+
+#[inline]
+fn unangle(v: f32) -> i32 {
+    unreal(v / std::f32::consts::PI / 2.0)
 }
 
 impl VmCtx {
@@ -95,7 +130,7 @@ impl VmCtx {
             JumpCondType::LessOrEqual => left <= right,
             JumpCondType::Less => left < right,
             JumpCondType::BitwiseAndNotZero => (left & right) != 0,
-            JumpCondType::BitSet => todo!(),
+            JumpCondType::BitSet => (left & (1 << (right % 32))) != 0,
         };
 
         if cond.is_negated {
@@ -134,48 +169,157 @@ impl VmCtx {
             match term {
                 &ExpressionTerm::Push(v) => stack.push(self.get_number(v)),
                 ExpressionTerm::Add => {
-                    let left = stack.pop().unwrap();
                     let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
                     stack.push(left + right);
                 }
                 ExpressionTerm::Subtract => {
-                    let left = stack.pop().unwrap();
                     let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
                     stack.push(left - right);
                 }
                 ExpressionTerm::Multiply => {
-                    let left = stack.pop().unwrap();
                     let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
                     stack.push(left * right);
                 }
                 ExpressionTerm::Divide => {
-                    let left = stack.pop().unwrap();
                     let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
                     stack.push(if right != 0 { left / right } else { 0 });
                 }
-                ExpressionTerm::Remainder => {
-                    let left = stack.pop().unwrap();
+                ExpressionTerm::Modulo => {
                     let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
                     let div = if right != 0 { left / right } else { 0 };
                     stack.push(left - div * right);
                 }
-                ExpressionTerm::MultiplyReal => {
-                    let left = stack.pop().unwrap();
+                ExpressionTerm::ShiftLeft => {
                     let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(left << right);
+                }
+                ExpressionTerm::ShiftRight => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(left >> right);
+                }
+                ExpressionTerm::BitwiseAnd => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(left & right);
+                }
+                ExpressionTerm::BitwiseOr => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(left | right);
+                }
+                ExpressionTerm::BitwiseXor => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(left ^ right);
+                }
+                ExpressionTerm::Negate => {
+                    let val = stack.pop().unwrap();
+                    stack.push(-val);
+                }
+                ExpressionTerm::BitwiseNot => {
+                    let val = stack.pop().unwrap();
+                    stack.push(!val);
+                }
+                ExpressionTerm::Abs => {
+                    let val = stack.pop().unwrap();
+                    stack.push(val.abs());
+                }
+                ExpressionTerm::CmpEqual => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(unbool(left == right));
+                }
+                ExpressionTerm::CmpNotEqual => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(unbool(left != right));
+                }
+                ExpressionTerm::CmpGreater => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(unbool(left > right));
+                }
+                ExpressionTerm::CmpGreaterOrEqual => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(unbool(left >= right));
+                }
+                ExpressionTerm::CmpLessOrEqual => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(unbool(left <= right));
+                }
+                ExpressionTerm::CmpLess => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(unbool(left < right));
+                }
+                ExpressionTerm::CmpZero => {
+                    let val = stack.pop().unwrap();
+                    stack.push(unbool(val == 0));
+                }
+                ExpressionTerm::CmpNotZero => {
+                    let val = stack.pop().unwrap();
+                    stack.push(unbool(val != 0));
+                }
+                ExpressionTerm::LogicalAnd => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(unbool(bool(left) && bool(right)));
+                }
+                ExpressionTerm::LogicalOr => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(unbool(bool(left) || bool(right)));
+                }
+                ExpressionTerm::Select => {
+                    let cond = stack.pop().unwrap();
+                    let true_val = stack.pop().unwrap();
+                    let false_val = stack.pop().unwrap();
+                    stack.push(if bool(cond) { true_val } else { false_val });
+                }
+                ExpressionTerm::MultiplyReal => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    // TODO: figure out how negative values are handled
                     assert!(left >= 0 && right >= 0); // not sure if this will behave correctly otherwise
                     stack.push(left * right / 1000);
                 }
-                ExpressionTerm::Min => {
-                    let left = stack.pop().unwrap();
+                ExpressionTerm::DivideReal => {
                     let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    assert!(left >= 0 && right >= 0); // not sure if this will behave correctly otherwise
+                    stack.push(left * 1000 / right);
+                }
+                ExpressionTerm::Sin => {
+                    let val = stack.pop().unwrap();
+                    stack.push(unreal(angle(val).sin()));
+                }
+                ExpressionTerm::Cos => {
+                    let val = stack.pop().unwrap();
+                    stack.push(unreal(angle(val).cos()));
+                }
+                ExpressionTerm::Tan => {
+                    let val = stack.pop().unwrap();
+                    stack.push(unreal(angle(val).tan()));
+                }
+                ExpressionTerm::Min => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
                     stack.push(left.min(right));
                 }
                 ExpressionTerm::Max => {
-                    let left = stack.pop().unwrap();
                     let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
                     stack.push(left.max(right));
                 }
-                _ => todo!(),
             }
         }
         if stack.len() != 1 {
@@ -183,6 +327,47 @@ impl VmCtx {
         }
 
         stack.pop().unwrap()
+    }
+
+    pub fn evaluate_binary_operation(&self, ty: BinaryOperationType, left: i32, right: i32) -> i32 {
+        let result = match ty {
+            BinaryOperationType::MovRight => right,
+            BinaryOperationType::Zero => 0,
+            BinaryOperationType::Add => left + right,
+            BinaryOperationType::Subtract => left - right,
+            BinaryOperationType::Multiply => left * right,
+            BinaryOperationType::Divide => {
+                if right != 0 {
+                    left / right
+                } else {
+                    0
+                }
+            }
+            BinaryOperationType::Modulo => {
+                let div = if right != 0 { left / right } else { 0 };
+                left - div * right
+            }
+            BinaryOperationType::BitwiseAnd => left & right,
+            BinaryOperationType::BitwiseOr => left | right,
+            BinaryOperationType::BitwiseXor => left ^ right,
+            BinaryOperationType::LeftShift => left << (right % 32),
+            BinaryOperationType::RightShift => left >> (right % 32),
+            BinaryOperationType::MultiplyReal => unreal(real(left) * real(right)),
+            BinaryOperationType::DivideReal => unreal(real(left) / real(right)),
+            BinaryOperationType::ATan2 => unangle(f32::atan2(real(left), real(right))),
+            BinaryOperationType::SetBit => left | (1 << (right % 32)),
+            BinaryOperationType::ClearBit => left & !(1 << (right % 32)),
+            BinaryOperationType::ACursedOperation => {
+                // Defined as `ctz((0xffffffff << R) & L)`
+                let r = right % 32;
+                let l = left & (-1 << r);
+                let l = if l == 0 { 32 } else { l };
+                let l = l.trailing_zeros();
+                l as i32
+            }
+        };
+
+        result
     }
 
     /// Update the PRNG state.
