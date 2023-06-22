@@ -1,15 +1,5 @@
-use shin_core::format::scenario::instructions::MemoryAddress;
+#[macro_use]
+extern crate pest_derive;
 
-pub enum Preserve {
-    Single(MemoryAddress),
-    Range(MemoryAddress, MemoryAddress),
-}
-
-pub struct Preserves(pub Vec<Preserve>);
-
-pub struct Function {
-    pub arg_aliases: Vec<String>, // TODO
-    pub preserves: Preserves,
-}
-
-// struct S
+pub mod ast;
+pub mod parser;

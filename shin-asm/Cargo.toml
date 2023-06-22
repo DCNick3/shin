@@ -11,3 +11,6 @@ authors = ["DCNick3"]
 
 [dependencies]
 shin-core = { path = "../shin-core" }
+
+pest = "2.6.0"
+pest_derive = "2.6.0"

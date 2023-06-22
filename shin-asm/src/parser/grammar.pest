@@ -1,0 +1,33 @@
+WHITESPACE = _{ " " | "\t" }
+COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+digit = @{ '0'..'9' }
+
+identifier = @{ XID_START ~ XID_CONTINUE* }
+
+integer = @{
+    "-" ~ digit+
+    | digit+
+}
+float = @{
+    "-" ~ digit+ ~ "." ~ digit+
+    | digit+ ~ "." ~ digit+
+}
+
+register_name_inner = @{ digit | "a" ~ digit | identifier }
+register_name = @{ "%" ~ register_name_inner }
+
+label_specifier = { identifier ~ ":" }
+
+// TODO: lists..
+expr = { float | integer | register_name | identifier }
+
+generic_instruction_argument = {
+    expr ~ "," |
+    expr
+}
+generic_instruction = {
+    identifier ~ (generic_instruction_argument)*
+}
+
+
