@@ -398,11 +398,9 @@ pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
     let header: PicChunkHeader = reader.read_le().context("Reading chunk header")?;
 
     let opaque_vertices = (0..header.opaque_vertex_count)
-        .into_iter()
         .map(|_| reader.read_le())
         .collect::<BinResult<Vec<PicVertexEntry>>>()?;
     let transparent_vertices = (0..header.transparent_vertex_count)
-        .into_iter()
         .map(|_| reader.read_le())
         .collect::<BinResult<Vec<PicVertexEntry>>>()?;
 
@@ -415,8 +413,8 @@ pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
     let mut chunk = PictureChunk::new(
         header.offset_x as u32,
         header.offset_y as u32,
-        width as u32,
-        height as u32,
+        width,
+        height,
         opaque_vertices,
         transparent_vertices,
     );

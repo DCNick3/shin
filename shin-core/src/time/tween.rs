@@ -68,7 +68,7 @@ impl Tween {
 
     pub const MS_15: Self = Self {
         // I would use the function from_millis, but it can't be const yet (see https://github.com/rust-lang/rust/issues/57241)
-        duration: Ticks::from_f32(Ticks::TICKS_PER_SECOND as f32 / 1000.0 * 15.0),
+        duration: Ticks::from_f32(Ticks::TICKS_PER_SECOND / 1000.0 * 15.0),
         easing: Easing::Linear,
     };
 

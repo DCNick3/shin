@@ -154,7 +154,7 @@ impl<'a, E: Endianness> BitRead<'a, E> for Savedata {
 
 /// Stores the persistent variables used by the VM.
 /// They are independent of the save slots, used for stuff like global progression.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PersistData(pub Vec<i16>);
 
 impl PersistData {

@@ -227,7 +227,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                             &data,
                             wgpu::ImageDataLayout {
                                 offset: 0,
-                                bytes_per_row: Some(width * block_size as u32 / mip_scale),
+                                bytes_per_row: Some(width * block_size / mip_scale),
                                 rows_per_image: Some(height / mip_scale),
                             },
                             wgpu::Extent3d {
@@ -408,7 +408,7 @@ fn convert_path(
                 color.blue,
                 (stroke.opacity * extra_opacity).to_u8(),
             );
-            stroke_path(&data, stroke.width.get() as f32, color)
+            stroke_path(&data, stroke.width.get(), color)
         } else {
             todo!("non-solid svg stroke")
         }
@@ -449,7 +449,7 @@ impl<P: ImageProvider> OverlayVisitable for DynamicAtlas<P> {
                         let svg =
                             usvg::Tree::from_data(&svg_bytes, &usvg::Options::default()).unwrap();
 
-                        let svg_size = vec2(svg.size.width() as f32, svg.size.height() as f32);
+                        let svg_size = vec2(svg.size.width(), svg.size.height());
                         let min_scale = 1.0 / 12.0;
                         let min_size = svg_size * min_scale;
 

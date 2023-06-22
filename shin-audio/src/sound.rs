@@ -130,7 +130,7 @@ impl<S: AudioFrameSource + Send> AudioSound<S> {
         AudioSound {
             track_id: data.settings.track,
             command_consumer,
-            shared: shared.clone(),
+            shared,
             state: PlaybackState::Playing,
             volume: Tweener::new(data.settings.volume.0),
             panning: Tweener::new(data.settings.pan.0),

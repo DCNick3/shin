@@ -330,7 +330,7 @@ impl VmCtx {
     }
 
     pub fn evaluate_binary_operation(&self, ty: BinaryOperationType, left: i32, right: i32) -> i32 {
-        let result = match ty {
+        match ty {
             BinaryOperationType::MovRight => right,
             BinaryOperationType::Zero => 0,
             BinaryOperationType::Add => left + right,
@@ -365,9 +365,7 @@ impl VmCtx {
                 let l = l.trailing_zeros();
                 l as i32
             }
-        };
-
-        result
+        }
     }
 
     /// Update the PRNG state.

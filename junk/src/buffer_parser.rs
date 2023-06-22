@@ -45,6 +45,7 @@ impl Buffer {
         self.set(offset + 7, bytes[7]);
     }
 
+    #[allow(dead_code)]
     pub fn dump(&self) -> String {
         let mut result = String::new();
 
@@ -108,6 +109,7 @@ struct Vector2 {
     pub y: f32,
 }
 
+#[allow(dead_code)] // this code is not dead!
 #[derive(BinRead, Debug, Copy, Clone)]
 struct SpriteVertex {
     pub pos: Vector3,

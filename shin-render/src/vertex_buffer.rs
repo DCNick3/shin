@@ -179,8 +179,8 @@ impl SpriteVertexBuffer {
     }
 
     pub fn new_fullscreen(resources: &GpuCommonResources) -> Self {
-        let w = VIRTUAL_WIDTH as f32 / 2.0;
-        let h = VIRTUAL_HEIGHT as f32 / 2.0;
+        let w = VIRTUAL_WIDTH / 2.0;
+        let h = VIRTUAL_HEIGHT / 2.0;
 
         Self::new(resources, (-w, -h, w, h), vec4(1.0, 1.0, 1.0, 1.0))
     }
@@ -236,8 +236,8 @@ impl PosVertexBuffer {
 
     #[allow(unused)]
     pub fn new_fullscreen(resources: &GpuCommonResources) -> Self {
-        let w = VIRTUAL_WIDTH as f32 / 2.0;
-        let h = VIRTUAL_HEIGHT as f32 / 2.0;
+        let w = VIRTUAL_WIDTH / 2.0;
+        let h = VIRTUAL_HEIGHT / 2.0;
 
         Self::new(resources, (-w, -h, w, h))
     }

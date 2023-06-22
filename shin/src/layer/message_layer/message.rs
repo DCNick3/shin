@@ -4,7 +4,7 @@ use crate::update::{Updatable, UpdateContext};
 use glam::{vec2, Mat4, Vec2};
 use shin_core::format::font::GlyphTrait;
 use shin_core::layout::{
-    Action, ActionType, Block, BlockExitCondition, LayoutedMessage, LayoutingMode,
+    Action, ActionType, Block, BlockExitCondition, LayoutedChar, LayoutedMessage, LayoutingMode,
 };
 use shin_core::time::Ticks;
 use shin_core::vm::command::types::MessageTextLayout;
@@ -57,7 +57,7 @@ impl Message {
             character_name_layout_width: 384.0,
             base_font_height: 50.0,
             furigana_font_height: 20.0,
-            font_horizontal_base_scale: 0.9696999788284302,
+            font_horizontal_base_scale: 0.9697,
             text_layout: MessageTextLayout::Left,
             default_state: Default::default(),
             has_character_name: true,
@@ -116,13 +116,17 @@ impl Message {
             .into_iter()
             .flatten()
             .map(|c| {
-                let mut new_c = c.clone();
-                // Here we subtract the start_x so the character name is always layouted identically no matter
-                // where the character name "line" was initially layouted to, to avoid problems with center-/
-                // right-aligned lines
-                new_c.position.x -= character_name_start_x - character_name_x_offset + 20.0;
-                new_c.position.y -= 16.0;
-                new_c
+                LayoutedChar {
+                    // Here we subtract the start_x so the character name is always layouted identically no matter
+                    // where the character name "line" was initially layouted to, to avoid problems with center-/
+                    // right-aligned lines
+                    position: c.position
+                        - vec2(
+                            character_name_start_x - character_name_x_offset + 20.0,
+                            16.0,
+                        ),
+                    ..c
+                }
             })
             .chain(chars);
 

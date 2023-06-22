@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 
 mod buffer_parser;
 mod debug_tex_parser;

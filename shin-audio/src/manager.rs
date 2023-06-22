@@ -9,6 +9,7 @@ pub struct AudioManager {
 }
 
 impl AudioManager {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let manager = kira::manager::AudioManager::new(AudioManagerSettings::default())
             .expect("Failed to create kira audio manager");

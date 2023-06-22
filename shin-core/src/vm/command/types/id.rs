@@ -62,9 +62,9 @@ impl<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: 
 }
 
 /// Layer id, but allowing only "real" layers
-pub type LayerId = Id<u32, { LAYERS_COUNT as u32 }>;
+pub type LayerId = Id<u32, { LAYERS_COUNT }>;
 /// Layer id, but allowing only "real" layers and a "none" value
-pub type LayerIdOpt = IdOpt<u32, { LAYERS_COUNT as u32 }>;
+pub type LayerIdOpt = IdOpt<u32, { LAYERS_COUNT }>;
 
 /// Layer id, allowing for the special values -1, -2, -3, -4, -5
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -592,7 +592,7 @@ mod tests {
             character_name_layout_width: 384.0,
             base_font_height: 50.0,
             furigana_font_height: 20.0,
-            font_horizontal_base_scale: 0.9696999788284302,
+            font_horizontal_base_scale: 0.9697,
             text_layout: MessageTextLayout::Left,
             default_state: LayouterState::default(),
             has_character_name: true,

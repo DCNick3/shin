@@ -17,7 +17,7 @@ const RATIO_SEP: u8 = b':';
 pub enum Error {
     /// End of the file. Technically not an error, but it's easier to process
     /// that way.
-    EOF,
+    EndOfFile,
     /// Unknown colorspace (possibly just unimplemented).
     UnknownColorspace,
     /// Error while parsing the file/frame header.
@@ -32,7 +32,7 @@ pub enum Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::EOF => None,
+            Error::EndOfFile => None,
             Error::UnknownColorspace => None,
             Error::ParseError(ref err) => Some(err),
             Error::IoError(ref err) => Some(err),
@@ -44,7 +44,7 @@ impl std::error::Error for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::EOF => write!(f, "End of file"),
+            Error::EndOfFile => write!(f, "End of file"),
             Error::UnknownColorspace => write!(f, "Bad input parameters provided"),
             Error::ParseError(ref err) => err.fmt(f),
             Error::IoError(ref err) => err.fmt(f),
@@ -107,7 +107,7 @@ macro_rules! parse_error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
         match err.kind() {
-            io::ErrorKind::UnexpectedEof => Error::EOF,
+            io::ErrorKind::UnexpectedEof => Error::EndOfFile,
             _ => Error::IoError(err),
         }
     }
@@ -382,7 +382,7 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
             .await?;
 
         if self.params_buf.is_empty() {
-            return Err(Error::EOF);
+            return Err(Error::EndOfFile);
         }
 
         self.params_buf.resize(self.params_buf.len() - 1, 0); // remove the terminator

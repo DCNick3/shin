@@ -100,7 +100,7 @@ impl H264Decoder {
                             break;
                         }
                     }
-                    Err(y4m::Error::EOF) => {
+                    Err(y4m::Error::EndOfFile) => {
                         debug!("EOF from ffmpeg, stopping sending to game");
                         break;
                     }
