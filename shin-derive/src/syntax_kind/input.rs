@@ -117,6 +117,7 @@ impl Parse for SyntaxKindContents {
 enum SyntaxKindIdent {
     Technical(Span),
     Punct(Span),
+    Keyword(Span),
     Literal(Span),
     Token(Span),
     Node(Span),
@@ -129,6 +130,7 @@ impl Parse for SyntaxKindIdent {
         match ident.to_string().as_str() {
             "technical" => Ok(Self::Technical(span)),
             "punct" => Ok(Self::Punct(span)),
+            "keywords" => Ok(Self::Keyword(span)),
             "literals" => Ok(Self::Literal(span)),
             "tokens" => Ok(Self::Token(span)),
             "nodes" => Ok(Self::Node(span)),
@@ -169,6 +171,9 @@ impl Parse for SyntaxKindItem {
 //   EQ => "=",
 //   EQ2 => "==",
 // },
+// keywords: {
+//   MOD => "mod",
+// },
 // literals: [
 //   INT_NUMBER,
 //   FLOAT_NUMBER,
@@ -187,6 +192,7 @@ impl Parse for SyntaxKindItem {
 pub struct SyntaxKindInput {
     pub technical: SyntaxList,
     pub punct: SyntaxMapping,
+    pub keywords: SyntaxMapping,
     pub literals: SyntaxList,
     pub tokens: SyntaxList,
     pub nodes: SyntaxList,
@@ -198,6 +204,7 @@ impl Parse for SyntaxKindInput {
 
         let mut technical = None;
         let mut punct = None;
+        let mut keywords = None;
         let mut literals = None;
         let mut tokens = None;
         let mut nodes = None;
@@ -215,6 +222,12 @@ impl Parse for SyntaxKindInput {
                         return Err(syn::Error::new(span, "Punct can only be defined once"));
                     }
                     punct = Some(item.content.into_mapping()?);
+                }
+                SyntaxKindIdent::Keyword(span) => {
+                    if tokens.is_some() {
+                        return Err(syn::Error::new(span, "Tokens can only be defined once"));
+                    }
+                    keywords = Some(item.content.into_mapping()?);
                 }
                 SyntaxKindIdent::Literal(span) => {
                     if literals.is_some() {
@@ -241,6 +254,8 @@ impl Parse for SyntaxKindInput {
             technical: technical
                 .ok_or_else(|| syn::Error::new(input.span(), "Technical must be defined"))?,
             punct: punct.ok_or_else(|| syn::Error::new(input.span(), "Punct must be defined"))?,
+            keywords: keywords
+                .ok_or_else(|| syn::Error::new(input.span(), "Keywords must be defined"))?,
             literals: literals
                 .ok_or_else(|| syn::Error::new(input.span(), "Literals must be defined"))?,
             tokens: tokens

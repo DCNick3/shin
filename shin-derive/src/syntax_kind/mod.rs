@@ -39,6 +39,7 @@ fn generate_syntax_kind_enum(input: &SyntaxKindInput) -> TokenStream {
 
     let technical = generate_list(&input.technical, "Technical token, only used for parsing");
     let punct = generate_mapping(&input.punct, "Punctuation: ");
+    let keywords = generate_mapping(&input.keywords, "Keyword: ");
     let literals = generate_list(&input.literals, "A literal");
     let tokens = generate_list(&input.tokens, "A token");
     let nodes = generate_list(&input.nodes, "A syntax node");
@@ -50,6 +51,7 @@ fn generate_syntax_kind_enum(input: &SyntaxKindInput) -> TokenStream {
         pub enum SyntaxKind {
             #technical
             #punct
+            #keywords
             #literals
             #tokens
             #nodes
@@ -58,27 +60,35 @@ fn generate_syntax_kind_enum(input: &SyntaxKindInput) -> TokenStream {
 }
 
 fn generate_t_macro(input: &SyntaxKindInput) -> TokenStream {
-    let mut rules = TokenStream::new();
+    fn generate_mapping(mapping: &SyntaxMapping) -> TokenStream {
+        let mut rules = TokenStream::new();
 
-    for MappingItem { ident, content, .. } in &input.punct.mapping_list {
-        let matcher = match content.value().as_str() {
-            "(" | ")" | "[" | "]" | "{" | "}" => {
-                let c = LitChar::new(content.value().chars().next().unwrap(), content.span());
-                quote!(#c)
-            }
-            other => TokenStream::from_str(other).expect("Invalid punct"),
-        };
-
-        rules.extend(quote! {
-             [#matcher] => {
-                $crate::parser::SyntaxKind::#ident
+        for MappingItem { ident, content, .. } in &mapping.mapping_list {
+            let matcher = match content.value().as_str() {
+                "(" | ")" | "[" | "]" | "{" | "}" => {
+                    let c = LitChar::new(content.value().chars().next().unwrap(), content.span());
+                    quote!(#c)
+                }
+                other => TokenStream::from_str(other).expect("Invalid punct"),
             };
-        })
+
+            rules.extend(quote! {
+                 [#matcher] => {
+                    $crate::parser::SyntaxKind::#ident
+                };
+            });
+        }
+
+        rules
     }
+
+    let punct = generate_mapping(&input.punct);
+    let keywords = generate_mapping(&input.keywords);
 
     quote! {
         macro_rules! T {
-            #rules
+            #punct
+            #keywords
         }
         pub(crate) use T;
     }

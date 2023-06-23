@@ -1,7 +1,9 @@
+mod assembler;
 mod rom;
 mod savedata;
 mod scenario;
 
+use assembler::{assembler_command, AssemblerCommand};
 use rom::{rom_command, RomCommand};
 use savedata::{savedata_command, SavedataCommand};
 use scenario::{scenario_command, ScenarioCommand};
@@ -57,6 +59,9 @@ enum SduAction {
     /// Operations on shin save files
     #[clap(subcommand, alias("save"))]
     Savedata(SavedataCommand),
+    /// Operations on the WIP assembler
+    #[clap(subcommand, alias("asm"))]
+    Assembler(AssemblerCommand),
 }
 
 #[derive(clap::Args, Debug)]
@@ -386,5 +391,6 @@ fn main() -> Result<()> {
         SduAction::TextureArchive(cmd) => texture_archive_command(cmd),
         SduAction::Audio(cmd) => audio_command(cmd),
         SduAction::Savedata(cmd) => savedata_command(cmd),
+        SduAction::Assembler(cmd) => assembler_command(cmd),
     }
 }

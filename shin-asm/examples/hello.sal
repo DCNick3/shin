@@ -1,0 +1,38 @@
+
+ENTRY:
+    jt %v0, {
+        0 => SNR_0,
+        1 => SNR_1,
+    }
+    EXIT 0, 0
+
+.function FUN_UTIL(%hello, %world), %v2-%v3
+    add %v2, %hello, %world
+    mul %v1, 10.0, %v2
+    add %v1, 1000
+.endfun
+
+.function VECTOR_LEN_SQUARED(%x, %y)
+    exp %v1, %x .* %x + %y .* %y
+.endfun
+
+.function GCD(%a, %b)
+    jc %b != 0, _RECUR
+    mov %v1, %a
+    return
+
+_RECUR:
+    exp %a, %a mod %b
+    call GCD, %b, %a
+    return
+.endfun
+
+SNR_0:
+    MSGSET 7502, "Fuck you!"
+    MSGSET 7503, "Fuck you!", nowait
+    WAIT 60
+    WAIT 60, interruptable
+    EXIT 0, 1
+
+SNR_1:
+    EXIT 0, 2
