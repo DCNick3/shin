@@ -3015,6 +3015,7 @@ dependencies = [
  "pest",
  "pest_derive",
  "shin-core",
+ "shin-derive",
 ]
 
 [[package]]

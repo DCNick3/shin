@@ -10,6 +10,7 @@ authors = ["DCNick3"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+shin-derive = { path = "../shin-derive" }
 shin-core = { path = "../shin-core" }
 
 pest = "2.6.0"

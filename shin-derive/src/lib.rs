@@ -3,11 +3,14 @@
 
 mod command;
 pub(crate) mod sanitization;
+mod syntax_kind;
 mod texture_archive;
-mod vertex;
 mod util;
+mod vertex;
 
 use crate::command::impl_command;
+use crate::syntax_kind::impl_syntax_kind;
+use crate::syntax_kind::SyntaxKindInput;
 use crate::texture_archive::impl_texture_archive;
 use crate::vertex::impl_vertex;
 use proc_macro::TokenStream;
@@ -50,6 +53,14 @@ pub fn derive_vertex(input: TokenStream) -> TokenStream {
             Ok(s) => synstructure::MacroResult::into_stream(impl_vertex(s)),
             Err(e) => e.to_compile_error().into(),
         },
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+#[proc_macro]
+pub fn syntax_kind(input: TokenStream) -> TokenStream {
+    match syn::parse::<SyntaxKindInput>(input) {
+        Ok(p) => synstructure::MacroResult::into_stream(impl_syntax_kind(p)),
         Err(e) => e.to_compile_error().into(),
     }
 }

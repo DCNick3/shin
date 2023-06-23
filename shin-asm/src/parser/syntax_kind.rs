@@ -1,6 +1,21 @@
 // TODO: codegen this file, as rust-analyzer does
 // we can put it into the shin-derive crate =)
 
+use shin_derive::syntax_kind;
+
+syntax_kind! {
+    technical: [
+        EOF
+    ],
+    punct: {
+        EQ => "=",
+        EQ2 => "==",
+    },
+    literals: [],
+    tokens: [],
+    nodes: [],
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[repr(u16)]
