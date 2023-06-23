@@ -5,9 +5,9 @@ use syn::spanned::Spanned;
 use syn::{braced, bracketed, token, LitStr, Token};
 
 #[derive(Debug)]
-struct SyntaxList {
-    bracket_token: token::Bracket,
-    ident_list: Punctuated<Ident, Token![,]>,
+pub struct SyntaxList {
+    pub bracket_token: token::Bracket,
+    pub ident_list: Punctuated<Ident, Token![,]>,
 }
 
 impl SyntaxList {
@@ -27,10 +27,10 @@ impl Parse for SyntaxList {
 }
 
 #[derive(Debug)]
-struct MappingItem {
-    ident: Ident,
-    fat_arrow_token: Token![=>],
-    content: LitStr,
+pub struct MappingItem {
+    pub ident: Ident,
+    pub fat_arrow_token: Token![=>],
+    pub content: LitStr,
 }
 
 impl Parse for MappingItem {
@@ -47,9 +47,9 @@ impl Parse for MappingItem {
 }
 
 #[derive(Debug)]
-struct SyntaxMapping {
-    brace_token: token::Brace,
-    mapping_list: Punctuated<MappingItem, Token![,]>,
+pub struct SyntaxMapping {
+    pub brace_token: token::Brace,
+    pub mapping_list: Punctuated<MappingItem, Token![,]>,
 }
 
 impl SyntaxMapping {
@@ -143,6 +143,7 @@ impl Parse for SyntaxKindIdent {
 #[derive(Debug)]
 struct SyntaxKindItem {
     ident: SyntaxKindIdent,
+    #[allow(dead_code)]
     colon_token: Token![:],
     content: SyntaxKindContents,
 }
@@ -184,11 +185,11 @@ impl Parse for SyntaxKindItem {
 // ],
 #[derive(Debug)]
 pub struct SyntaxKindInput {
-    technical: SyntaxList,
-    punct: SyntaxMapping,
-    literals: SyntaxList,
-    tokens: SyntaxList,
-    nodes: SyntaxList,
+    pub technical: SyntaxList,
+    pub punct: SyntaxMapping,
+    pub literals: SyntaxList,
+    pub tokens: SyntaxList,
+    pub nodes: SyntaxList,
 }
 
 impl Parse for SyntaxKindInput {
