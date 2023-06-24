@@ -196,6 +196,16 @@ impl Cursor<'_> {
             },
             // Whitespace sequence.
             c if is_whitespace(c) => self.whitespace(),
+            '\\' => match self.first() {
+                '\n' => {
+                    self.bump();
+                    self.whitespace()
+                }
+                _ => {
+                    self.emit_error("expected newline after backslash");
+                    WHITESPACE
+                }
+            },
 
             // Identifier (this should be checked after other variant that can
             // start as identifier).
@@ -289,6 +299,10 @@ impl Cursor<'_> {
             '*' => T![*],
             '^' => T![^],
             '%' => T![%],
+            '$' if is_id_continue(self.first()) => self.register_ident(),
+            '$' if !self.first().is_ascii() && unic_emoji_char::is_emoji(self.first()) => {
+                self.fake_register_ident()
+            }
 
             // String literal.
             '"' => {
@@ -357,8 +371,16 @@ impl Cursor<'_> {
     }
 
     fn whitespace(&mut self) -> SyntaxKind {
-        debug_assert!(is_whitespace(self.prev()));
-        self.eat_while(is_whitespace);
+        debug_assert!(is_whitespace(self.prev()) || self.prev() == '\n');
+        loop {
+            self.eat_while(is_whitespace);
+            if self.first() == '\\' && self.second() == '\n' {
+                self.bump();
+                self.bump();
+            } else {
+                break;
+            }
+        }
         WHITESPACE
     }
 
@@ -381,6 +403,26 @@ impl Cursor<'_> {
         });
         self.emit_error("Ident contains invalid characters");
         IDENT
+    }
+
+    fn register_ident(&mut self) -> SyntaxKind {
+        // Unlike `fake_ident`, the first character is not eaten yet!
+        self.eat_while(is_id_continue);
+        match self.first() {
+            c if !c.is_ascii() && unic_emoji_char::is_emoji(c) => self.fake_ident(),
+            _ => REGISTER_IDENT,
+        }
+    }
+
+    fn fake_register_ident(&mut self) -> SyntaxKind {
+        // Unlike `fake_ident`, the first character is not eaten yet
+        self.eat_while(|c| {
+            unicode_xid::UnicodeXID::is_xid_continue(c)
+                || (!c.is_ascii() && unic_emoji_char::is_emoji(c))
+                || c == '\u{200d}'
+        });
+        self.emit_error("Register ident contains invalid characters");
+        REGISTER_IDENT
     }
 
     fn number(&mut self, first_digit: char) -> SyntaxKind {
@@ -454,7 +496,9 @@ impl Cursor<'_> {
             'e' | 'E' => {
                 self.bump();
                 let empty_exponent = !self.eat_float_exponent();
-                self.emit_error("Missing digits after the exponent symbol");
+                if empty_exponent {
+                    self.emit_error("Missing digits after the exponent symbol");
+                }
                 FLOAT_NUMBER
             }
             _ => INT_NUMBER,

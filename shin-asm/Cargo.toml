@@ -16,5 +16,7 @@ shin-core = { path = "../shin-core" }
 unicode-xid = "0.2.4"
 unic-emoji-char = "0.9.0"
 
+drop_bomb = "0.1.5"
+
 pest = "2.6.0"
 pest_derive = "2.6.0"

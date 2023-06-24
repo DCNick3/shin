@@ -1,7 +1,6 @@
 mod lex;
 mod syntax_kind;
 
-use pest::Parser;
 use pest_derive::Parser;
 
 pub use lex::LexedStr;

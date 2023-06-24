@@ -51,6 +51,7 @@ syntax_kind! {
     tokens: [
         ERROR,
         IDENT,
+        REGISTER_IDENT,
         WHITESPACE,
         COMMENT,
     ],
