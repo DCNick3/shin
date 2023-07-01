@@ -14,6 +14,9 @@ impl SyntaxList {
     fn span(&self) -> Span {
         self.bracket_token.span.span()
     }
+    pub fn iter_idents(&self) -> impl Iterator<Item = &Ident> {
+        self.ident_list.iter()
+    }
 }
 
 impl Parse for SyntaxList {
@@ -55,6 +58,9 @@ pub struct SyntaxMapping {
 impl SyntaxMapping {
     fn span(&self) -> Span {
         self.brace_token.span.span()
+    }
+    pub fn iter_idents(&self) -> impl Iterator<Item = &Ident> {
+        self.mapping_list.iter().map(|v| &v.ident)
     }
 }
 
@@ -196,6 +202,18 @@ pub struct SyntaxKindInput {
     pub literals: SyntaxList,
     pub tokens: SyntaxList,
     pub nodes: SyntaxList,
+}
+
+impl SyntaxKindInput {
+    pub fn iter_kinds(&self) -> impl Iterator<Item = &Ident> + '_ {
+        self.technical
+            .iter_idents()
+            .chain(self.punct.iter_idents())
+            .chain(self.keywords.iter_idents())
+            .chain(self.literals.iter_idents())
+            .chain(self.tokens.iter_idents())
+            .chain(self.nodes.iter_idents())
+    }
 }
 
 impl Parse for SyntaxKindInput {

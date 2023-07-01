@@ -59,6 +59,62 @@ fn generate_syntax_kind_enum(input: &SyntaxKindInput) -> TokenStream {
     }
 }
 
+fn generate_from_u16(input: &SyntaxKindInput) -> TokenStream {
+    let kinds = input.iter_kinds().collect::<Vec<_>>();
+
+    quote! {
+        pub(crate) fn from_u16(kind: u16) -> Option<SyntaxKind> {
+            #(const #kinds: u16 = SyntaxKind::#kinds as u16;)*
+
+            match kind {
+                #(#kinds => Some(SyntaxKind::#kinds),)*
+                _ => None,
+            }
+        }
+    }
+}
+
+fn generate_into_u16(_: &SyntaxKindInput) -> TokenStream {
+    quote! {
+        pub(crate) fn into_u16(self) -> u16 {
+            self as u16
+        }
+    }
+}
+
+fn generate_is_str_keyword(input: &SyntaxKindInput) -> TokenStream {
+    let mut keywords = TokenStream::new();
+
+    for MappingItem { ident, content, .. } in &input.keywords.mapping_list {
+        keywords.extend(quote! {
+            #content => Some(SyntaxKind::#ident),
+        });
+    }
+
+    quote! {
+        pub(crate) fn from_keyword_str(text: &str) -> Option<Self> {
+            match text {
+                #keywords
+                _ => None,
+            }
+        }
+    }
+}
+
+fn generate_impl_block(input: &SyntaxKindInput) -> TokenStream {
+    let from_u16 = generate_from_u16(input);
+    let into_u16 = generate_into_u16(input);
+    let is_str_keyword = generate_is_str_keyword(input);
+
+    quote! {
+        impl SyntaxKind {
+            #from_u16
+            #into_u16
+            #is_str_keyword
+        }
+    }
+}
+
 fn generate_t_macro(input: &SyntaxKindInput) -> TokenStream {
     fn generate_mapping(mapping: &SyntaxMapping) -> TokenStream {
         let mut rules = TokenStream::new();
@@ -96,10 +152,12 @@ fn generate_t_macro(input: &SyntaxKindInput) -> TokenStream {
 
 pub fn impl_syntax_kind(input: SyntaxKindInput) -> TokenStream {
     let syntax_kind_enum = generate_syntax_kind_enum(&input);
+    let impl_block = generate_impl_block(&input);
     let t_macro = generate_t_macro(&input);
 
     quote! {
         #syntax_kind_enum
+        #impl_block
         #t_macro
     }
 }

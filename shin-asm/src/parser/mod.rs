@@ -1,3 +1,4 @@
+mod lang;
 mod lex;
 mod syntax_kind;
 

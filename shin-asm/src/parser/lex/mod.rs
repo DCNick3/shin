@@ -156,7 +156,17 @@ impl<'a> LexedStrBuilder<'a> {
         self.res
     }
 
-    fn push(&mut self, kind: SyntaxKind, len: usize, err: Option<&str>) {
+    fn push(&mut self, mut kind: SyntaxKind, len: usize, err: Option<&str>) {
+        // Handle keywords
+        // they are first parsed as IDENT, but if they are actually keywords, we change the kind
+        if kind == IDENT {
+            if let Some(kw_kind) =
+                SyntaxKind::from_keyword_str(&self.res.text[self.offset..][..len])
+            {
+                kind = kw_kind;
+            }
+        }
+
         self.res.push(kind, self.offset);
         self.offset += len;
 

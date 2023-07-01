@@ -57,6 +57,16 @@ syntax_kind! {
     ],
     nodes: [
         SOURCE_FILE,
+        FUNCTION,
+        NAME,
+        NAME_REF,
+        LABEL,
+        INSTRUCTION,
+        INSTRUCTION_ARGS,
+        ARRAY_EXPR,
+        MAPPING_EXPR,
+        PREFIX_EXPR,
+        BINARY_EXPR,
         // TODO: add more nodes here
     ],
 }
