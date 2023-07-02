@@ -1,0 +1,5 @@
+SOURCE_FILE
+  LABEL
+    IDENT "LABEL"
+    COLON ":"
+    NEWLINE "\n"

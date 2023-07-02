@@ -67,11 +67,12 @@ syntax_kind! {
         NAME_REF,
         LABEL,
         INSTRUCTION,
-        INSTRUCTION_ARGS,
+        ARG_LIST,
         ARRAY_EXPR,
         MAPPING_EXPR,
         PREFIX_EXPR,
         BINARY_EXPR,
+        LITERAL,
         // TODO: add more nodes here
     ],
 }

@@ -15,6 +15,7 @@ mod tests;
 pub use lex::LexedStr;
 pub use syntax_kind::SyntaxKind;
 pub(crate) use syntax_kind::T;
+pub(crate) use token_set::TokenSet;
 
 pub use input::Input;
 pub use output::Output;

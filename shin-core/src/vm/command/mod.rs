@@ -36,7 +36,7 @@ pub enum Command {
         /// If it's nonzero then the VM treats it as a NOP
         /// Maybe it's a feature that is not used for umineko?
         arg1: u8,
-        ///
+        /// Return value? Not sure tbh
         arg2: NumberSpec,
     },
 
