@@ -123,8 +123,22 @@ fn postfix_expr(p: &mut Parser<'_>, mut lhs: CompletedMarker) -> CompletedMarker
 
 fn call_expr(p: &mut Parser<'_>, lhs: CompletedMarker) -> CompletedMarker {
     assert!(p.at(T!['(']));
-    todo!()
-    // let m = lhs.precede(p);
-    // arg_list(p);
-    // m.complete(p, CALL_EXPR)
+    let m = lhs.precede(p);
+    call_arg_list(p);
+    m.complete(p, CALL_EXPR)
+}
+
+fn call_arg_list(p: &mut Parser<'_>) {
+    assert!(p.at(T!['(']));
+    let m = p.start();
+    p.bump(T!['(']);
+    delimited(
+        p,
+        TokenSet::new(&[T![')']]),
+        T![,],
+        EXPR_FIRST,
+        |p: &mut Parser<'_>| expr(p).is_some(),
+    );
+    p.expect(T![')']);
+    m.complete(p, CALL_ARG_LIST);
 }
