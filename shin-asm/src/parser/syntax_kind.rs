@@ -85,7 +85,7 @@ syntax_kind! {
         BIN_EXPR,
         LITERAL,
 
-        MAPPING_ARM,
+        MAPPING_ENTRY,
     ],
 }
 

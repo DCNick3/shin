@@ -25,6 +25,10 @@ impl TokenSet {
         TokenSet(self.0 | other.0)
     }
 
+    pub(crate) const fn add(self, kind: SyntaxKind) -> TokenSet {
+        TokenSet(self.0 | mask(kind))
+    }
+
     pub(crate) const fn contains(&self, kind: SyntaxKind) -> bool {
         self.0 & mask(kind) != 0
     }

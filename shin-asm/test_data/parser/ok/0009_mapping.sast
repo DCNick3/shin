@@ -1,0 +1,31 @@
+SOURCE_FILE
+  INSTRUCTION
+    IDENT "jt"
+    WHITESPACE " "
+    INSTR_ARG_LIST
+      REGISTER_REF_EXPR
+        REGISTER_IDENT "$v0"
+      COMMA ","
+      WHITESPACE " "
+      MAPPING_EXPR
+        L_CURLY "{"
+        WHITESPACE "\n    "
+        MAPPING_ENTRY
+          INT_NUMBER "0"
+          WHITESPACE " "
+          FAT_ARROW "=>"
+          WHITESPACE " "
+          NAME_REF_EXPR
+            IDENT "SNR_0"
+        COMMA ","
+        WHITESPACE "\n    "
+        MAPPING_ENTRY
+          INT_NUMBER "1"
+          WHITESPACE " "
+          FAT_ARROW "=>"
+          WHITESPACE " "
+          NAME_REF_EXPR
+            IDENT "SNR_1"
+        COMMA ","
+        WHITESPACE "\n"
+        R_CURLY "}"
