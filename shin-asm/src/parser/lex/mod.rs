@@ -32,7 +32,7 @@ impl<'a> LexedStr<'a> {
 
         let mut bracket_stack = Vec::new();
 
-        for token in token_iter {
+        for mut token in token_iter {
             let token_text = &text[conv.offset..][..token.len as usize];
 
             if let Some(closing_bracket) = token.kind.matching_closing_bracket() {
@@ -43,19 +43,11 @@ impl<'a> LexedStr<'a> {
                 if let Some(expected_bracket) = bracket_stack.pop() {
                     if expected_bracket != token.kind {
                         assert!(token.error.is_none());
-                        conv.push(
-                            token.kind,
-                            token_text.len(),
-                            Some("unexpected closing bracket"),
-                        );
+                        token.error = Some("unexpected closing bracket kind");
                     }
                 } else {
                     assert!(token.error.is_none());
-                    conv.push(
-                        token.kind,
-                        token_text.len(),
-                        Some("unexpected closing bracket"),
-                    );
+                    token.error = Some("unexpected closing bracket");
                 }
             }
 
@@ -67,7 +59,9 @@ impl<'a> LexedStr<'a> {
             }
         }
 
-        conv.finalize_with_eof()
+        let err = (!bracket_stack.is_empty()).then_some("unclosed bracket");
+
+        conv.finalize_with_eof(err)
     }
 
     // pub fn single_token(text: &'a str) -> Option<(SyntaxKind, Option<String>)> {
@@ -182,8 +176,14 @@ impl<'a> LexedStrBuilder<'a> {
         }
     }
 
-    fn finalize_with_eof(mut self) -> LexedStr<'a> {
+    fn finalize_with_eof(mut self, error: Option<&str>) -> LexedStr<'a> {
         self.res.push(EOF, self.offset);
+        if let Some(err) = error {
+            self.res.error.push(LexError {
+                token: self.res.len().checked_sub(1).unwrap() as u32,
+                msg: err.into(),
+            });
+        }
         self.res
     }
 

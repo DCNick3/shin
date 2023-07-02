@@ -1,0 +1,4 @@
+L_PAREN "("
+L_BRACK "["
+R_PAREN ")" error: unexpected closing bracket kind
+R_BRACK "]" error: unexpected closing bracket kind
