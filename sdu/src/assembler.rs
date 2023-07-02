@@ -16,6 +16,10 @@ pub fn assembler_command(command: AssemblerCommand) -> Result<()> {
             let lexed = shin_asm::parser::LexedStr::new(&input);
             for i in 0..lexed.len() {
                 let syntax_kind = lexed.kind(i);
+                // if syntax_kind.is_trivia() {
+                //     continue;
+                // }
+
                 let syntax_kind = format!("{:?}", syntax_kind);
                 let text = lexed.text(i);
 

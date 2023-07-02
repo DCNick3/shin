@@ -2,7 +2,8 @@ use shin_derive::syntax_kind;
 
 syntax_kind! {
     technical: [
-        EOF
+        EOF,
+        TOMBSTONE,
     ],
     punct: {
         NEWLINE => "\n",
@@ -41,7 +42,11 @@ syntax_kind! {
         SHR => ">>",
     },
     keywords: {
-        MOD => "mod",
+        MOD_KW => "mod",
+        FUNCTION_KW => "function",
+        ENDFUN_KW => "endfun",
+        SUBROUTINE_KW => "subroutine",
+        ENDSUB_KW => "endsub",
     },
     literals: [
         INT_NUMBER,
@@ -69,4 +74,11 @@ syntax_kind! {
         BINARY_EXPR,
         // TODO: add more nodes here
     ],
+}
+
+impl SyntaxKind {
+    #[inline]
+    pub fn is_trivia(self) -> bool {
+        matches!(self, SyntaxKind::WHITESPACE | SyntaxKind::COMMENT)
+    }
 }
