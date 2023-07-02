@@ -1,0 +1,12 @@
+SOURCE_FILE
+  ERROR
+    INT_NUMBER "1"
+  WHITESPACE " "
+  ERROR
+    PLUS "+"
+  WHITESPACE " "
+  ERROR
+    INT_NUMBER "2"
+error 0: expected an instruction or label
+error 2: expected an instruction or label
+error 4: expected an instruction or label

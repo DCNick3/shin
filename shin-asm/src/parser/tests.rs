@@ -2,24 +2,37 @@ use expect_test::expect_file;
 use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
+use test_generator::test_resources;
 
 use crate::{
     parser::{shortcuts::StrStep, LexedStr},
     util::panic_context,
 };
 
-#[test]
-fn parse_ok() {
-    for case in TestCase::list("parser/ok") {
-        let _guard = panic_context::enter(format!("{:?}", case.sal));
-        let (actual, errors) = parse(&case.text);
-        assert!(
-            !errors,
-            "errors in an OK file {}:\n{actual}",
-            case.sal.display()
-        );
-        expect_file![case.sast].assert_eq(&actual);
-    }
+// I don't like the way test_generator generates test names, and we still need to use a fork for workspace support
+// maybe it makes sense to put into the `shin-derive` ;)
+#[test_resources("test_data/parser/ok/*.sal")]
+fn parse_ok(sal: &str) {
+    let case = TestCase::from_sal_path(sal);
+    let (actual, errors) = parse(&case.text);
+    assert!(
+        !errors,
+        "errors in an OK file {}:\n{actual}",
+        case.sal.display()
+    );
+    expect_file![case.sast].assert_eq(&actual);
+}
+
+#[test_resources("test_data/parser/err/*.sal")]
+fn parse_err(sal: &str) {
+    let case = TestCase::from_sal_path(sal);
+    let (actual, errors) = parse(&case.text);
+    assert!(
+        errors,
+        "no errors in an ERR file {}:\n{actual}",
+        case.sal.display()
+    );
+    expect_file![case.sast].assert_eq(&actual)
 }
 
 fn parse(text: &str) -> (String, bool) {
@@ -83,6 +96,14 @@ struct TestCase {
 }
 
 impl TestCase {
+    fn from_sal_path(path: &str) -> TestCase {
+        let crate_root_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let sal = crate_root_dir.join(path);
+        let sast = sal.with_extension("sast");
+        let text = fs::read_to_string(&sal).unwrap();
+        TestCase { sal, sast, text }
+    }
+
     fn list(path: &'static str) -> Vec<TestCase> {
         let crate_root_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let test_data_dir = crate_root_dir.join("test_data");
