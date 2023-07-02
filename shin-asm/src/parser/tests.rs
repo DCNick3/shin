@@ -4,10 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use test_generator::test_resources;
 
-use crate::{
-    parser::{shortcuts::StrStep, LexedStr},
-    util::panic_context,
-};
+use crate::parser::{shortcuts::StrStep, LexedStr};
 
 // I don't like the way test_generator generates test names, and we still need to use a fork for workspace support
 // maybe it makes sense to put into the `shin-derive` ;)
@@ -102,27 +99,5 @@ impl TestCase {
         let sast = sal.with_extension("sast");
         let text = fs::read_to_string(&sal).unwrap();
         TestCase { sal, sast, text }
-    }
-
-    fn list(path: &'static str) -> Vec<TestCase> {
-        let crate_root_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let test_data_dir = crate_root_dir.join("test_data");
-        let dir = test_data_dir.join(path);
-
-        let mut res = Vec::new();
-        let read_dir = fs::read_dir(&dir)
-            .unwrap_or_else(|err| panic!("can't `read_dir` {}: {err}", dir.display()));
-        for file in read_dir {
-            let file = file.unwrap();
-            let path = file.path();
-            if path.extension().unwrap_or_default() == "sal" {
-                let sal = path;
-                let sast = sal.with_extension("sast");
-                let text = fs::read_to_string(&sal).unwrap();
-                res.push(TestCase { sal, sast, text });
-            }
-        }
-        res.sort();
-        res
     }
 }

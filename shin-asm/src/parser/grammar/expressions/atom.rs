@@ -60,6 +60,6 @@ fn array_expr(p: &mut Parser<'_>) -> CompletedMarker {
     m.complete(p, ARRAY_EXPR)
 }
 
-fn mapping_expr(p: &mut Parser<'_>) -> CompletedMarker {
+fn mapping_expr(_p: &mut Parser<'_>) -> CompletedMarker {
     todo!()
 }

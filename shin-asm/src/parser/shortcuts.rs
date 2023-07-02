@@ -1,8 +1,5 @@
 use crate::parser::output::Step;
-use crate::parser::{
-    Input, LexedStr, Output,
-    SyntaxKind::{self, *},
-};
+use crate::parser::{Input, LexedStr, Output, SyntaxKind};
 use std::mem;
 
 #[derive(Debug)]

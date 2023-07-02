@@ -10,6 +10,8 @@ pub(super) fn expr(p: &mut Parser<'_>) -> Option<CompletedMarker> {
 
 enum Associativity {
     Left,
+    // even though we do not have any right-associative operators right now, I still want to keep this code to possibly introduce them in the future
+    #[allow(dead_code)]
     Right,
 }
 

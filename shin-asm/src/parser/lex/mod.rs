@@ -3,7 +3,6 @@ mod cursor;
 #[cfg(test)]
 mod tests;
 
-use crate::parser::input::Input;
 use crate::parser::lex::char_classes::{is_id_continue, is_id_start, is_whitespace};
 use crate::parser::{lex::cursor::Cursor, SyntaxKind, SyntaxKind::*, T};
 use std::ops;
