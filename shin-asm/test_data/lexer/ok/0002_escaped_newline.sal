@@ -1,0 +1,8 @@
+// another way the newlines can become whitespace is via escaping
+
+this \
+is \
+treated \
+as \
+one \
+line

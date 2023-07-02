@@ -1,0 +1,4 @@
+( // this newline will not produce a NEWLINE token, because it's inside parenthesis
+123
+    // the previous newline should be merged with the whitespace over here
+)

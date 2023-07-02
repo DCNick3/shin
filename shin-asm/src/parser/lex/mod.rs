@@ -30,10 +30,41 @@ impl<'a> LexedStr<'a> {
             (token.kind != EOF).then_some(token)
         });
 
+        let mut bracket_stack = Vec::new();
+
         for token in token_iter {
             let token_text = &text[conv.offset..][..token.len as usize];
 
-            conv.push(token.kind, token_text.len(), token.error)
+            if let Some(closing_bracket) = token.kind.matching_closing_bracket() {
+                bracket_stack.push(closing_bracket);
+            }
+
+            if token.kind.is_any_closing_bracket() {
+                if let Some(expected_bracket) = bracket_stack.pop() {
+                    if expected_bracket != token.kind {
+                        assert!(token.error.is_none());
+                        conv.push(
+                            token.kind,
+                            token_text.len(),
+                            Some("unexpected closing bracket"),
+                        );
+                    }
+                } else {
+                    assert!(token.error.is_none());
+                    conv.push(
+                        token.kind,
+                        token_text.len(),
+                        Some("unexpected closing bracket"),
+                    );
+                }
+            }
+
+            if !bracket_stack.is_empty() && token.kind == NEWLINE {
+                // demote newlines inside brackets to whitespace
+                conv.push(WHITESPACE, token_text.len(), None);
+            } else {
+                conv.push(token.kind, token_text.len(), token.error)
+            }
         }
 
         conv.finalize_with_eof()
@@ -165,6 +196,12 @@ impl<'a> LexedStrBuilder<'a> {
             {
                 kind = kw_kind;
             }
+        }
+
+        // coalesce adjacent whitespace tokens (needed for demoted newlines)
+        if kind == WHITESPACE && self.res.kind.last().is_some_and(|&k| k == WHITESPACE) {
+            self.offset += len;
+            return;
         }
 
         self.res.push(kind, self.offset);

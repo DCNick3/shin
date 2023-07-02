@@ -94,4 +94,24 @@ impl SyntaxKind {
     pub fn is_trivia(self) -> bool {
         matches!(self, SyntaxKind::WHITESPACE | SyntaxKind::COMMENT)
     }
+
+    #[inline]
+    pub fn is_any_opening_bracket(self) -> bool {
+        matches!(self, T!['('] | T!['['] | T!['{'])
+    }
+
+    #[inline]
+    pub fn is_any_closing_bracket(self) -> bool {
+        matches!(self, T![')'] | T![']'] | T!['}'])
+    }
+
+    #[inline]
+    pub fn matching_closing_bracket(self) -> Option<SyntaxKind> {
+        match self {
+            T!['('] => Some(T![')']),
+            T!['['] => Some(T![']']),
+            T!['{'] => Some(T!['}']),
+            _ => None,
+        }
+    }
 }
