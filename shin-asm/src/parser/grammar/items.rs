@@ -1,7 +1,5 @@
 use super::*;
 
-const EOL_SET: TokenSet = TokenSet::new(&[NEWLINE, EOF]);
-
 pub(super) fn item(p: &mut Parser<'_>) {
     if p.at(T![function]) {
         todo!()
@@ -45,7 +43,7 @@ fn instruction(p: &mut Parser<'_>) {
     p.bump(IDENT);
 
     if p.at_ts(expressions::EXPR_FIRST) {
-        arg_list(p);
+        instr_arg_list(p);
     } else if p.at_ts(EOL_SET) {
         p.eat(NEWLINE);
     } else {
@@ -56,7 +54,7 @@ fn instruction(p: &mut Parser<'_>) {
     m.complete(p, INSTRUCTION);
 }
 
-fn arg_list(p: &mut Parser<'_>) {
+fn instr_arg_list(p: &mut Parser<'_>) {
     let m = p.start();
 
     while !p.at_ts(EOL_SET) {
@@ -69,5 +67,5 @@ fn arg_list(p: &mut Parser<'_>) {
         );
     }
 
-    m.complete(p, ARG_LIST);
+    m.complete(p, INSTR_ARG_LIST);
 }

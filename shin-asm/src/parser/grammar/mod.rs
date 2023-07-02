@@ -7,6 +7,8 @@ use crate::parser::{
     TokenSet, T,
 };
 
+const EOL_SET: TokenSet = TokenSet::new(&[NEWLINE, EOF]);
+
 pub(crate) fn source_file(p: &mut Parser<'_>) {
     let m = p.start();
     while !p.at(EOF) {

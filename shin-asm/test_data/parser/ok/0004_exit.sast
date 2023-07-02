@@ -1,0 +1,11 @@
+SOURCE_FILE
+  INSTRUCTION
+    IDENT "EXIT"
+    WHITESPACE " "
+    INSTR_ARG_LIST
+      LITERAL
+        INT_NUMBER "0"
+      COMMA ","
+      WHITESPACE " "
+      LITERAL
+        INT_NUMBER "0"

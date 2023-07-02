@@ -1,0 +1,16 @@
+SOURCE_FILE
+  LABEL
+    IDENT "LABEL"
+    COLON ":"
+    NEWLINE "\n"
+  WHITESPACE "    "
+  INSTRUCTION
+    IDENT "EXIT"
+    WHITESPACE " "
+    INSTR_ARG_LIST
+      LITERAL
+        INT_NUMBER "0"
+      COMMA ","
+      WHITESPACE " "
+      LITERAL
+        INT_NUMBER "0"
