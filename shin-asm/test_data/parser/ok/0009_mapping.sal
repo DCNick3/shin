@@ -1,4 +1,9 @@
 jt $v0, {
     0 => SNR_0,
     1 => SNR_1,
+    // TODO: maybe we want to support this syntax:
+    // _ => CATCH_ALL,
+    // it would allow the jump table to not be dense...
+    // nah, semantics are too weird: if you have landed IN the table, you go to the catch-all, if you are out-of-range, you go to the next instruction
+    // maybe just generate a synthetic catch-all at the next instruction?
 }

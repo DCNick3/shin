@@ -1,0 +1,25 @@
+SOURCE_FILE
+  COMMENT "// NOTE: I am not sure we are even going to use arrays..."
+  NEWLINE "\n"
+  COMMENT "// SELECT, jt and gt all read better with mapping syntax, even though they are encoded as tables.."
+  NEWLINE "\n"
+  INSTRUCTION
+    IDENT "jt"
+    WHITESPACE " "
+    INSTR_ARG_LIST
+      REGISTER_REF_EXPR
+        REGISTER_IDENT "$v0"
+      COMMA ","
+      WHITESPACE " "
+      ARRAY_EXPR
+        L_BRACK "["
+        WHITESPACE "\n    "
+        NAME_REF_EXPR
+          IDENT "SNR_0"
+        COMMA ","
+        WHITESPACE "\n    "
+        NAME_REF_EXPR
+          IDENT "SNR_1"
+        COMMA ","
+        WHITESPACE "\n"
+        R_BRACK "]"

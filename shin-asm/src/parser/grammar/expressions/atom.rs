@@ -11,9 +11,14 @@ pub(crate) fn literal(p: &mut Parser<'_>) -> Option<CompletedMarker> {
     Some(m.complete(p, LITERAL))
 }
 
-pub(super) const ATOM_EXPR_FIRST: TokenSet =
-    LITERAL_FIRST.union(TokenSet::new(&[IDENT, REGISTER_IDENT, T!['('], T!['{']]));
-pub(super) const EXPR_RECOVERY_SET: TokenSet = TokenSet::new(&[T![')'], T![']']]);
+pub(super) const ATOM_EXPR_FIRST: TokenSet = LITERAL_FIRST.union(TokenSet::new(&[
+    IDENT,
+    REGISTER_IDENT,
+    T!['('],
+    T!['{'],
+    T!['['],
+]));
+pub(super) const EXPR_RECOVERY_SET: TokenSet = TokenSet::new(&[T![')'], T!['}'], T![']']]);
 
 pub(super) fn atom_expr(p: &mut Parser<'_>) -> Option<CompletedMarker> {
     if let Some(m) = literal(p) {

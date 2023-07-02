@@ -1,0 +1,6 @@
+// NOTE: I am not sure we are even going to use arrays...
+// SELECT, jt and gt all read better with mapping syntax, even though they are encoded as tables..
+jt $v0, [
+    SNR_0,
+    SNR_1,
+]
