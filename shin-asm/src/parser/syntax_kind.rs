@@ -65,8 +65,13 @@ syntax_kind! {
         SOURCE_FILE,
         FUNCTION,
         NAME,
+
+        REGISTER_SET,
+        REGISTER_RANGE,
+
         LABEL,
         INSTRUCTION,
+
         INSTR_ARG_LIST,
         CALL_ARG_LIST,
 
@@ -79,7 +84,8 @@ syntax_kind! {
         PREFIX_EXPR,
         BIN_EXPR,
         LITERAL,
-        // TODO: add more nodes here
+
+        MAPPING_ARM,
     ],
 }
 

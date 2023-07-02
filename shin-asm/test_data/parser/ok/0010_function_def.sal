@@ -1,0 +1,5 @@
+function FUN_UTIL($hello, $world), $v2-$v3
+    add $v2, $hello, $world
+    mul $v1, 10.0, $v2
+    add $v1, 1000
+endfun
