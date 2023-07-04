@@ -19,6 +19,7 @@ pub(crate) use token_set::TokenSet;
 
 pub use input::Input;
 pub use output::Output;
+pub use shortcuts::StrStep;
 
 use output::Step;
 

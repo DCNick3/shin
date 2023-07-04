@@ -2988,11 +2988,13 @@ version = "0.5.0"
 dependencies = [
  "build-deps",
  "drop_bomb",
+ "either",
  "expect-test",
  "rowan",
  "shin-core",
  "shin-derive",
  "test-generator",
+ "text-size",
  "unic-emoji-char",
  "unicode-xid 0.2.4",
 ]
