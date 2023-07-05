@@ -18,6 +18,13 @@ use crate::vertex::impl_vertex;
 use proc_macro::TokenStream;
 use synstructure::macros::DeriveInput;
 
+/// This is a very cursed macro used to generate types for runtime and compile-time representations of VM commands.
+///
+/// While it accepts a big enum (with some attributes), it generates three structs (compile-time and runtime representations of commands, and finish tokens) for each variant, as well as two enums unifying them.
+///
+/// The finish token is used to achieve strong typing on important side-effects of commands: some of them are expected to return a value. As such, a token is required to finish executing the command and will force the implementor to pass the return value.
+///
+/// It also generates a `FromVmCtx` impl to convert from compile-time to runtime representations.
 #[proc_macro_derive(Command, attributes(cmd))]
 pub fn derive_command(input: TokenStream) -> TokenStream {
     match synstructure::macros::parse::<DeriveInput>(input) {
@@ -29,6 +36,27 @@ pub fn derive_command(input: TokenStream) -> TokenStream {
     }
 }
 
+/// Generates an `TextureArchive` implementation for a struct. This allows you to have a strongly-typed wrapper for TXA files.
+///
+/// ```rust ignore
+/// # use shin_derive::TextureArchive;
+/// #[derive(TextureArchive)]
+/// pub struct MessageboxTextures {
+///     #[txa(name = "keywait")]
+///     pub keywait: LazyGpuTexture,
+///     #[txa(name = "select")]
+///     pub select: LazyGpuTexture,
+///     #[txa(name = "select_cur")]
+///     pub select_cursor: LazyGpuTexture,
+///
+///     #[txa(name = "msgwnd1")]
+///     pub message_window_1: LazyGpuTexture,
+///     #[txa(name = "msgwnd2")]
+///     pub message_window_2: LazyGpuTexture,
+///     #[txa(name = "msgwnd3")]
+///     pub message_window_3: LazyGpuTexture,
+/// }
+/// ```
 #[proc_macro_derive(TextureArchive, attributes(txa))]
 pub fn derive_texture_archive(input: TokenStream) -> TokenStream {
     match synstructure::macros::parse::<DeriveInput>(input) {
@@ -40,6 +68,7 @@ pub fn derive_texture_archive(input: TokenStream) -> TokenStream {
     }
 }
 
+/// A WIP replacement for the wrld macro.
 #[proc_macro_derive(
     Vertex,
     attributes(
@@ -59,6 +88,7 @@ pub fn derive_vertex(input: TokenStream) -> TokenStream {
     }
 }
 
+/// Generates a `SyntaxKind` enum, and some associated impls. For use in `shin-asm`.
 #[proc_macro]
 pub fn syntax_kind(input: TokenStream) -> TokenStream {
     match syn::parse::<SyntaxKindInput>(input) {
@@ -67,6 +97,12 @@ pub fn syntax_kind(input: TokenStream) -> TokenStream {
     }
 }
 
+/// Generates an `AstNode` impl for a struct or enum. For use in `shin-asm`.
+///
+/// The `#[ast]` attribute can be used on the whole struct or on a enum variant in two ways:
+///
+/// - `#[ast(kind = SOURCE_FILE)]` - for direct impl of `AstNode` on the struct. This is used on concrete structs wrapping specific syntax nodes.
+/// - `#[ast(transparent)]` - to delegate impl of `AstNode` to a field of the struct (or variant). This is used on enums combining multiple syntax nodes.
 #[proc_macro_derive(AstNode, attributes(ast))]
 pub fn derive_ast_node(input: TokenStream) -> TokenStream {
     match synstructure::macros::parse::<DeriveInput>(input) {
