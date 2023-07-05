@@ -8,6 +8,8 @@ use super::{
 };
 use either::Either;
 
+pub use shin_derive::AstNode;
+
 pub use nodes::*;
 
 /// The main trait to go from untyped `SyntaxNode`  to a typed ast. The

@@ -28,12 +28,12 @@ pub(super) fn atom_expr(p: &mut Parser<'_>) -> Option<CompletedMarker> {
     let done = match p.current() {
         IDENT => {
             let m = p.start();
-            p.bump_any();
+            p.bump(IDENT);
             m.complete(p, NAME_REF_EXPR)
         }
         REGISTER_IDENT => {
             let m = p.start();
-            p.bump_any();
+            p.bump(REGISTER_IDENT);
             m.complete(p, REGISTER_REF_EXPR)
         }
         T!['['] => array_expr(p),

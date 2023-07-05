@@ -1,11 +1,14 @@
 #![allow(non_snake_case)]
 
+mod expressions;
+
 use crate::syntax::{
     ast::{self, support, AstChildren, AstNode},
     SyntaxKind::{self, *},
     SyntaxNode, SyntaxToken, T,
 };
-use shin_derive::AstNode;
+
+pub use expressions::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 #[ast(kind = SOURCE_FILE)]
@@ -14,7 +17,7 @@ pub struct SourceFile {
 }
 
 impl SourceFile {
-    pub fn items(&self) -> impl Iterator<Item = Item> + '_ {
+    pub fn items(&self) -> AstChildren<Item> {
         support::children(self.syntax())
     }
 }
@@ -34,7 +37,7 @@ pub struct InstructionsBlock {
 }
 
 impl InstructionsBlock {
-    pub fn instructions(&self) -> impl Iterator<Item = Instruction> + '_ {
+    pub fn instructions(&self) -> AstChildren<Instruction> {
         support::children(self.syntax())
     }
 }
@@ -67,6 +70,12 @@ pub struct InstructionName {
     pub(crate) syntax: SyntaxNode,
 }
 
+impl InstructionName {
+    pub fn token(&self) -> Option<SyntaxToken> {
+        support::token(self.syntax(), IDENT)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 #[ast(kind = INSTR_ARG_LIST)]
 pub struct InstructionArgList {
@@ -74,19 +83,7 @@ pub struct InstructionArgList {
 }
 
 impl InstructionArgList {
-    pub fn args(&self) -> impl Iterator<Item = Expression> + '_ {
+    pub fn args(&self) -> AstChildren<Expression> {
         support::children(self.syntax())
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
-pub enum Expression {
-    #[ast(transparent)]
-    Literal(Literal),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
-#[ast(kind = LITERAL)]
-pub struct Literal {
-    pub(crate) syntax: SyntaxNode,
 }
