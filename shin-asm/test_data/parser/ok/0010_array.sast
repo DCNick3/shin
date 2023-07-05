@@ -3,23 +3,24 @@ SOURCE_FILE
   NEWLINE "\n"
   COMMENT "// SELECT, jt and gt all read better with mapping syntax, even though they are encoded as tables.."
   NEWLINE "\n"
-  INSTRUCTION
-    IDENT "jt"
-    WHITESPACE " "
-    INSTR_ARG_LIST
-      REGISTER_REF_EXPR
-        REGISTER_IDENT "$v0"
-      COMMA ","
+  INSTRUCTIONS_BLOCK
+    INSTRUCTION
+      IDENT "jt"
       WHITESPACE " "
-      ARRAY_EXPR
-        L_BRACK "["
-        WHITESPACE "\n    "
-        NAME_REF_EXPR
-          IDENT "SNR_0"
+      INSTR_ARG_LIST
+        REGISTER_REF_EXPR
+          REGISTER_IDENT "$v0"
         COMMA ","
-        WHITESPACE "\n    "
-        NAME_REF_EXPR
-          IDENT "SNR_1"
-        COMMA ","
-        WHITESPACE "\n"
-        R_BRACK "]"
+        WHITESPACE " "
+        ARRAY_EXPR
+          L_BRACK "["
+          WHITESPACE "\n    "
+          NAME_REF_EXPR
+            IDENT "SNR_0"
+          COMMA ","
+          WHITESPACE "\n    "
+          NAME_REF_EXPR
+            IDENT "SNR_1"
+          COMMA ","
+          WHITESPACE "\n"
+          R_BRACK "]"

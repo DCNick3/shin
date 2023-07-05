@@ -1,6 +1,7 @@
 // this is noisy & not well-supported by IDEs
 #![allow(clippy::uninlined_format_args)]
 
+mod ast_node;
 mod command;
 pub(crate) mod sanitization;
 mod syntax_kind;
@@ -8,6 +9,7 @@ mod texture_archive;
 mod util;
 mod vertex;
 
+use crate::ast_node::impl_ast_node;
 use crate::command::impl_command;
 use crate::syntax_kind::impl_syntax_kind;
 use crate::syntax_kind::SyntaxKindInput;
@@ -61,6 +63,17 @@ pub fn derive_vertex(input: TokenStream) -> TokenStream {
 pub fn syntax_kind(input: TokenStream) -> TokenStream {
     match syn::parse::<SyntaxKindInput>(input) {
         Ok(p) => synstructure::MacroResult::into_stream(impl_syntax_kind(p)),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_derive(AstNode, attributes(ast))]
+pub fn derive_ast_node(input: TokenStream) -> TokenStream {
+    match synstructure::macros::parse::<DeriveInput>(input) {
+        Ok(p) => match synstructure::Structure::try_new(&p) {
+            Ok(s) => synstructure::MacroResult::into_stream(impl_ast_node(s)),
+            Err(e) => e.to_compile_error().into(),
+        },
         Err(e) => e.to_compile_error().into(),
     }
 }

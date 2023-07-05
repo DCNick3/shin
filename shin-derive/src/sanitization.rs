@@ -1,3 +1,6 @@
+//! This module contains helpers to refer to items from crates used by macros.
+// why was it called sanitization, again?
+
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 
@@ -43,6 +46,12 @@ macro_rules! from_shin_core {
     };
 }
 
+macro_rules! from_shin_asm {
+    ($path:path) => {
+        concat!("shin_asm::", stringify!($path))
+    };
+}
+
 macro_rules! from_shin_render {
     ($path:path) => {
         concat!("shin_render::", stringify!($path))
@@ -74,4 +83,6 @@ ident_str! {
 
     pub BIN_READ = from_binrw!(BinRead);
     pub BIN_WRITE = from_binrw!(BinWrite);
+
+    pub AST_NODE = from_shin_asm!(syntax::AstNode);
 }

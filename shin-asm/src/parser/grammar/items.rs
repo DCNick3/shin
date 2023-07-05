@@ -6,13 +6,23 @@ pub(super) fn item(p: &mut Parser<'_>) {
     } else if p.at(T![subroutine]) {
         todo!()
     } else if p.at(IDENT) {
-        instruction_or_label(p);
+        instructions_block(p);
     } else if p.at_ts(EOL_SET) {
         p.bump_any();
         // empty items are allowed
     } else {
         p.err_recover("expected an instruction or label", EOL_SET);
     }
+}
+
+fn instructions_block(p: &mut Parser<'_>) {
+    let m = p.start();
+
+    while p.at(IDENT) {
+        instruction_or_label(p);
+    }
+
+    m.complete(p, INSTRUCTIONS_BLOCK);
 }
 
 fn instruction_or_label(p: &mut Parser<'_>) {

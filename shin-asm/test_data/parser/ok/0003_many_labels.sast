@@ -1,23 +1,26 @@
 SOURCE_FILE
-  LABEL
-    IDENT "LABEL1"
-    COLON ":"
-  WHITESPACE " "
-  LABEL
-    IDENT "LABEL2"
-    COLON ":"
-    NEWLINE "\n"
+  INSTRUCTIONS_BLOCK
+    LABEL
+      IDENT "LABEL1"
+      COLON ":"
+    WHITESPACE " "
+    LABEL
+      IDENT "LABEL2"
+      COLON ":"
+      NEWLINE "\n"
   NEWLINE "\n"
-  LABEL
-    IDENT "LABEL3"
-    COLON ":"
-    NEWLINE "\n"
-  LABEL
-    IDENT "LABEL4"
-    COLON ":"
-    NEWLINE "\n"
+  INSTRUCTIONS_BLOCK
+    LABEL
+      IDENT "LABEL3"
+      COLON ":"
+      NEWLINE "\n"
+    LABEL
+      IDENT "LABEL4"
+      COLON ":"
+      NEWLINE "\n"
   NEWLINE "\n"
-  LABEL
-    IDENT "LABEL5"
-    COLON ":"
-    NEWLINE "\n"
+  INSTRUCTIONS_BLOCK
+    LABEL
+      IDENT "LABEL5"
+      COLON ":"
+      NEWLINE "\n"

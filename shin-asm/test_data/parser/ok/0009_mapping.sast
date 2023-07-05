@@ -1,41 +1,42 @@
 SOURCE_FILE
-  INSTRUCTION
-    IDENT "jt"
-    WHITESPACE " "
-    INSTR_ARG_LIST
-      REGISTER_REF_EXPR
-        REGISTER_IDENT "$v0"
-      COMMA ","
+  INSTRUCTIONS_BLOCK
+    INSTRUCTION
+      IDENT "jt"
       WHITESPACE " "
-      MAPPING_EXPR
-        L_CURLY "{"
-        WHITESPACE "\n    "
-        MAPPING_ENTRY
-          INT_NUMBER "0"
-          WHITESPACE " "
-          FAT_ARROW "=>"
-          WHITESPACE " "
-          NAME_REF_EXPR
-            IDENT "SNR_0"
+      INSTR_ARG_LIST
+        REGISTER_REF_EXPR
+          REGISTER_IDENT "$v0"
         COMMA ","
-        WHITESPACE "\n    "
-        MAPPING_ENTRY
-          INT_NUMBER "1"
-          WHITESPACE " "
-          FAT_ARROW "=>"
-          WHITESPACE " "
-          NAME_REF_EXPR
-            IDENT "SNR_1"
-        COMMA ","
-        WHITESPACE "\n    "
-        COMMENT "// TODO: maybe we want to support this syntax:"
-        WHITESPACE "\n    "
-        COMMENT "// _ => CATCH_ALL,"
-        WHITESPACE "\n    "
-        COMMENT "// it would allow the jump table to not be dense..."
-        WHITESPACE "\n    "
-        COMMENT "// nah, semantics are too weird: if you have landed IN the table, you go to the catch-all, if you are out-of-range, you go to the next instruction"
-        WHITESPACE "\n    "
-        COMMENT "// maybe just generate a synthetic catch-all at the next instruction?"
-        WHITESPACE "\n"
-        R_CURLY "}"
+        WHITESPACE " "
+        MAPPING_EXPR
+          L_CURLY "{"
+          WHITESPACE "\n    "
+          MAPPING_ENTRY
+            INT_NUMBER "0"
+            WHITESPACE " "
+            FAT_ARROW "=>"
+            WHITESPACE " "
+            NAME_REF_EXPR
+              IDENT "SNR_0"
+          COMMA ","
+          WHITESPACE "\n    "
+          MAPPING_ENTRY
+            INT_NUMBER "1"
+            WHITESPACE " "
+            FAT_ARROW "=>"
+            WHITESPACE " "
+            NAME_REF_EXPR
+              IDENT "SNR_1"
+          COMMA ","
+          WHITESPACE "\n    "
+          COMMENT "// TODO: maybe we want to support this syntax:"
+          WHITESPACE "\n    "
+          COMMENT "// _ => CATCH_ALL,"
+          WHITESPACE "\n    "
+          COMMENT "// it would allow the jump table to not be dense..."
+          WHITESPACE "\n    "
+          COMMENT "// nah, semantics are too weird: if you have landed IN the table, you go to the catch-all, if you are out-of-range, you go to the next instruction"
+          WHITESPACE "\n    "
+          COMMENT "// maybe just generate a synthetic catch-all at the next instruction?"
+          WHITESPACE "\n"
+          R_CURLY "}"

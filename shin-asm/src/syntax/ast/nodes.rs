@@ -1,35 +1,30 @@
 #![allow(non_snake_case)]
+
 use crate::syntax::{
     ast::{self, support, AstChildren, AstNode},
     SyntaxKind::{self, *},
     SyntaxNode, SyntaxToken, T,
 };
+use shin_derive::AstNode;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = SOURCE_FILE)]
 pub struct SourceFile {
     pub(crate) syntax: SyntaxNode,
 }
 
-impl AstNode for SourceFile {
-    fn can_cast(kind: SyntaxKind) -> bool
-    where
-        Self: Sized,
-    {
-        kind == SOURCE_FILE
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+pub enum Item {
+    // NOTE: this is not what we want to do with enums...
+    // we should support a enum of AstNodes, not of raw syntax nodes
+    #[ast(kind = INSTRUCTIONS_BLOCK)]
+    InstructionsBlock(SyntaxNode),
+    // FunctionDefinition(),
+    // SubroutineDefinition(),
+}
 
-    fn cast(syntax: SyntaxNode) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = INSTRUCTIONS_BLOCK)]
+pub struct InstructionsBlock {
+    pub(crate) syntax: SyntaxNode,
 }

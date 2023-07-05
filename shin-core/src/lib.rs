@@ -4,6 +4,7 @@
 
 #![allow(clippy::uninlined_format_args)]
 
+// macro hack
 extern crate self as shin_core;
 
 // re-export for convenience
