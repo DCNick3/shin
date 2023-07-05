@@ -71,6 +71,7 @@ syntax_kind! {
 
         LABEL,
         INSTRUCTION,
+        INSTRUCTION_NAME,
 
         INSTRUCTIONS_BLOCK,
 

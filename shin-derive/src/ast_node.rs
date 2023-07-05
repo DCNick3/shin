@@ -303,6 +303,11 @@ pub fn impl_ast_node(structure: Structure) -> TokenStream {
             fn syntax(&self) -> &SyntaxNode
             { #syntax_impl }
         }
+        gen impl ::core::fmt::Display for @Self {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                ::core::fmt::Display::fmt(self.syntax(), f)
+            }
+        }
     })
 }
 
@@ -352,6 +357,11 @@ fn test_ast_node() {
                                 syntax: ref __binding_0,
                             } => &__binding_0,
                         }
+                    }
+                }
+                impl ::core::fmt::Display for SourceFile {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        ::core::fmt::Display::fmt(self.syntax(), f)
                     }
                 }
             };
@@ -418,6 +428,11 @@ fn test_transparent() {
                                 <FunctionDefinition as shin_asm::syntax::AstNode>::syntax(__binding_0)
                             }
                         }
+                    }
+                }
+                impl ::core::fmt::Display for SourceFileItem {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        ::core::fmt::Display::fmt(self.syntax(), f)
                     }
                 }
             };

@@ -133,14 +133,28 @@ fn assert_ast_is_object_safe() {
 }
 
 #[test]
+#[cfg(test)]
 fn test_exit_parses() {
-    let file = SourceFile::parse("// pls ignore\nEXIT 0, 0");
+    let file = SourceFile::parse("// pls ignore\nEXIT 0, 1");
 
-    println!("{}", file.debug_dump());
+    eprintln!("{}", file.debug_dump());
 
     let item = file.tree().items().next().unwrap();
+    let Item::InstructionsBlock(block) = item else {
+        panic!("Expected InstructionsBlock, got {:?}", item);
+    };
+    let instruction = block.instructions().next().unwrap();
+    let name = instruction.name().unwrap();
+    let args = instruction.args().unwrap();
 
-    println!("{:?}", item);
+    assert_eq!(name.to_string(), "EXIT");
+    assert_eq!(args.to_string(), "0, 1");
 
-    todo!()
+    let args = args.args().collect::<Vec<_>>();
+    let [arg1, arg2] = args.as_slice() else {
+        panic!("Expected 2 args, got {:?}", args);
+    };
+
+    assert_eq!(arg1.to_string(), "0");
+    assert_eq!(arg2.to_string(), "1");
 }

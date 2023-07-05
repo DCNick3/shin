@@ -50,7 +50,10 @@ fn instruction(p: &mut Parser<'_>) {
     assert!(!p.nth_at(1, T![:]));
 
     let m = p.start();
+
+    let m_name = p.start();
     p.bump(IDENT);
+    m_name.complete(p, INSTRUCTION_NAME);
 
     if p.at_ts(expressions::EXPR_FIRST) {
         instr_arg_list(p);

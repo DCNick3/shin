@@ -4,7 +4,8 @@ SOURCE_FILE
       IDENT "LABEL"
       COLON ":"
     INSTRUCTION
-      IDENT "EXIT"
+      INSTRUCTION_NAME
+        IDENT "EXIT"
       WHITESPACE " "
       INSTR_ARG_LIST
         LITERAL

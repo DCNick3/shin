@@ -6,7 +6,8 @@ SOURCE_FILE
       NEWLINE "\n"
     WHITESPACE "    "
     INSTRUCTION
-      IDENT "EXIT"
+      INSTRUCTION_NAME
+        IDENT "EXIT"
       WHITESPACE " "
       INSTR_ARG_LIST
         LITERAL
