@@ -63,7 +63,7 @@ syntax_kind! {
     ],
     nodes: [
         SOURCE_FILE,
-        FUNCTION,
+        FUNCTION_DEFINITION,
         NAME,
 
         REGISTER_SET,

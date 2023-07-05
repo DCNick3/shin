@@ -13,8 +13,10 @@ struct AstNodeInput<'a> {
     variant_attrs: Vec<AstAttributeContents>,
 }
 
-struct AstAttributeContents {
-    kind: syn::Path,
+#[derive(Debug, PartialEq, Eq)]
+enum AstAttributeContents {
+    AstNode { kind: syn::Path },
+    Transparent,
 }
 
 impl AstAttributeContents {
@@ -39,38 +41,50 @@ impl AstAttributeContents {
 
 impl Parse for AstAttributeContents {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        struct Item {
-            key: syn::Path,
+        struct ItemValue {
             #[allow(dead_code)]
             eq_token: Token![=],
             value: TokenStream,
         }
 
+        struct Item {
+            key: syn::Path,
+            value: Option<ItemValue>,
+        }
+
         impl Parse for Item {
             fn parse(input: ParseStream) -> syn::Result<Self> {
-                Ok(Item {
-                    key: input.parse()?,
-                    eq_token: input.parse()?,
-                    value: input.step(|cursor| {
-                        let mut buffer = TokenStream::new();
-                        let mut cursor = *cursor;
-                        while let Some((tt, next)) = cursor.token_tree() {
-                            cursor = next;
-                            match tt {
-                                TokenTree::Punct(punct) if punct.as_char() == ',' => break,
-                                other => buffer.extend(Some(other)),
-                            }
-                        }
+                let key = input.parse()?;
+                if input.peek(Token![=]) {
+                    Ok(Item {
+                        key,
+                        value: Some(ItemValue {
+                            eq_token: input.parse()?,
+                            value: input.step(|cursor| {
+                                let mut buffer = TokenStream::new();
+                                let mut cursor = *cursor;
+                                while let Some((tt, next)) = cursor.token_tree() {
+                                    cursor = next;
+                                    match tt {
+                                        TokenTree::Punct(punct) if punct.as_char() == ',' => break,
+                                        other => buffer.extend(Some(other)),
+                                    }
+                                }
 
-                        Ok((buffer, cursor))
-                    })?,
-                })
+                                Ok((buffer, cursor))
+                            })?,
+                        }),
+                    })
+                } else {
+                    Ok(Item { key, value: None })
+                }
             }
         }
 
         let items = Punctuated::<Item, Token![,]>::parse_terminated(input)?.into_iter();
 
         let mut kind = None;
+        let mut transparent = None;
 
         let mut errors = Vec::new();
 
@@ -80,13 +94,25 @@ impl Parse for AstAttributeContents {
                     errors.push(syn::Error::new(key.span(), "duplicate key"));
                 }
                 kind = Some(value);
+            } else if key == parse_quote!(transparent) {
+                if transparent.is_some() {
+                    errors.push(syn::Error::new(key.span(), "duplicate key"));
+                }
+                transparent = Some(value);
             } else {
                 errors.push(syn::Error::new(key.span(), "unknown key"));
             }
         }
 
-        if kind.is_none() {
-            errors.push(syn::Error::new(Span::call_site(), "missing key `kind`"));
+        if kind.is_none() && transparent.is_none() || kind.is_some() && transparent.is_some() {
+            errors.push(syn::Error::new(
+                Span::call_site(),
+                "either #[ast(kind = ...)] or #[ast(transparent)] must be specified",
+            ));
+        }
+
+        if kind.as_ref().is_some_and(|v| v.is_none()) {
+            errors.push(syn::Error::new(Span::call_site(), "kind must have a value"));
         }
 
         if !errors.is_empty() {
@@ -97,8 +123,12 @@ impl Parse for AstAttributeContents {
             return Err(combined_error);
         }
 
-        Ok(Self {
-            kind: syn::parse2(kind.unwrap())?,
+        Ok(if let Some(kind) = kind {
+            AstAttributeContents::AstNode {
+                kind: syn::parse2(kind.unwrap().value)?,
+            }
+        } else {
+            AstAttributeContents::Transparent
         })
     }
 }
@@ -111,10 +141,15 @@ fn parse_ast_attr() {
     };
     let s = AstAttributeContents::from_attributes(&s.attrs, s.span()).unwrap();
 
-    assert_eq!(s.kind, parse_quote!(SOURCE_FILE));
+    assert_eq!(
+        s,
+        AstAttributeContents::AstNode {
+            kind: parse_quote!(SOURCE_FILE),
+        }
+    );
 }
 
-fn get_syntax_field<'a>(variant: &'a VariantInfo) -> &'a BindingInfo<'a> {
+fn get_inner_field<'a>(variant: &'a VariantInfo) -> &'a BindingInfo<'a> {
     let [binding] = variant.bindings() else {
         unreachable!()
     };
@@ -123,14 +158,28 @@ fn get_syntax_field<'a>(variant: &'a VariantInfo) -> &'a BindingInfo<'a> {
 }
 
 fn gen_can_cast(input: &AstNodeInput) -> TokenStream {
-    let tokens = input.variant_attrs.iter().map(|attr| {
-        let kind = &attr.kind;
-        quote! {
-            if kind == #kind {
-                return true;
+    let tokens = input
+        .structure
+        .variants()
+        .iter()
+        .zip(input.variant_attrs.iter())
+        .map(|(variant, attr)| match attr {
+            AstAttributeContents::AstNode { kind } => {
+                quote! {
+                    if kind == #kind {
+                        return true;
+                    }
+                }
             }
-        }
-    });
+            AstAttributeContents::Transparent => {
+                let ty = &variant.ast().fields.iter().next().unwrap().ty;
+                quote! {
+                    if <#ty as #AST_NODE>::can_cast(kind) {
+                        return true;
+                    }
+                }
+            }
+        });
 
     quote! {
         #( #tokens )*
@@ -144,13 +193,23 @@ fn gen_cast(input: &AstNodeInput) -> TokenStream {
         .variants()
         .iter()
         .zip(input.variant_attrs.iter())
-        .map(|(variant, attr)| {
-            let kind = &attr.kind;
-            let construct = variant.construct(|_, _| quote!(syntax));
+        .map(|(variant, attr)| match attr {
+            AstAttributeContents::AstNode { kind } => {
+                let construct = variant.construct(|_, _| quote!(syntax));
 
-            quote! {
-                if syntax.kind() == #kind {
-                    return Some(#construct);
+                quote! {
+                    if syntax.kind() == #kind {
+                        return Some(#construct);
+                    }
+                }
+            }
+            AstAttributeContents::Transparent => {
+                let ty = &variant.ast().fields.iter().next().unwrap().ty;
+                let construct = variant.construct(|_, _| quote!(inner));
+                quote! {
+                    if let Some(inner) = <#ty as #AST_NODE>::cast(syntax.clone()) {
+                        return Some(#construct);
+                    }
                 }
             }
         });
@@ -162,9 +221,22 @@ fn gen_cast(input: &AstNodeInput) -> TokenStream {
 }
 
 fn gen_syntax(input: &AstNodeInput) -> TokenStream {
+    let mut attr = input.variant_attrs.iter();
     let body = input.structure.each_variant(|variant| {
-        let syntax = get_syntax_field(variant);
-        quote! { &#syntax }
+        let attr = attr.next().unwrap();
+
+        let inner_field = get_inner_field(variant);
+        match attr {
+            AstAttributeContents::AstNode { .. } => {
+                quote! { &#inner_field }
+            }
+            AstAttributeContents::Transparent => {
+                let ty = &variant.ast().fields.iter().next().unwrap().ty;
+                quote! {
+                    <#ty as #AST_NODE>::syntax(#inner_field)
+                }
+            }
+        }
     });
 
     quote! {
@@ -279,6 +351,72 @@ fn test_ast_node() {
                             SourceFile {
                                 syntax: ref __binding_0,
                             } => &__binding_0,
+                        }
+                    }
+                }
+            };
+        })
+    );
+}
+
+#[cfg(test)]
+#[test]
+fn test_transparent() {
+    use prettyplease::unparse;
+
+    assert_eq!(
+        unparse(
+            &syn::parse2(impl_ast_node(
+                Structure::try_new(&parse_quote! {
+                    enum SourceFileItem {
+                        #[ast(transparent)]
+                        InstructionBlock(InstructionBlock),
+                        #[ast(transparent)]
+                        FunctionDefinition(FunctionDefinition),
+                    }
+                })
+                .unwrap()
+            ))
+            .unwrap()
+        ),
+        unparse(&parse_quote! {
+            #[allow(non_upper_case_globals)]
+            const _DERIVE_shin_asm_syntax_AstNode_FOR_SourceFileItem: () = {
+                impl shin_asm::syntax::AstNode for SourceFileItem {
+                    fn can_cast(kind: SyntaxKind) -> bool
+                    where
+                        Self: Sized,
+                    {
+                        if <InstructionBlock as shin_asm::syntax::AstNode>::can_cast(kind) {
+                            return true;
+                        }
+                        if <FunctionDefinition as shin_asm::syntax::AstNode>::can_cast(kind) {
+                            return true;
+                        }
+                        false
+                    }
+                    fn cast(syntax: SyntaxNode) -> Option<Self>
+                    where
+                        Self: Sized,
+                    {
+                        if let Some(inner)
+                            = <InstructionBlock as shin_asm::syntax::AstNode>::cast(syntax.clone()) {
+                            return Some(SourceFileItem::InstructionBlock(inner));
+                        }
+                        if let Some(inner)
+                            = <FunctionDefinition as shin_asm::syntax::AstNode>::cast(syntax.clone()) {
+                            return Some(SourceFileItem::FunctionDefinition(inner));
+                        }
+                        None
+                    }
+                    fn syntax(&self) -> &SyntaxNode {
+                        match self {
+                            SourceFileItem::InstructionBlock(ref __binding_0) => {
+                                <InstructionBlock as shin_asm::syntax::AstNode>::syntax(__binding_0)
+                            }
+                            SourceFileItem::FunctionDefinition(ref __binding_0) => {
+                                <FunctionDefinition as shin_asm::syntax::AstNode>::syntax(__binding_0)
+                            }
                         }
                     }
                 }

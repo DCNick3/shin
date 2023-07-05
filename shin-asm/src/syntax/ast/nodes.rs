@@ -13,18 +13,28 @@ pub struct SourceFile {
     pub(crate) syntax: SyntaxNode,
 }
 
+impl SourceFile {
+    pub fn items(&self) -> impl Iterator<Item = Item> + '_ {
+        support::children(self.syntax())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 pub enum Item {
-    // NOTE: this is not what we want to do with enums...
-    // we should support a enum of AstNodes, not of raw syntax nodes
-    #[ast(kind = INSTRUCTIONS_BLOCK)]
-    InstructionsBlock(SyntaxNode),
-    // FunctionDefinition(),
-    // SubroutineDefinition(),
+    #[ast(transparent)]
+    InstructionsBlock(InstructionsBlock),
+    #[ast(transparent)]
+    FunctionDefinition(FunctionDefinition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 #[ast(kind = INSTRUCTIONS_BLOCK)]
 pub struct InstructionsBlock {
+    pub(crate) syntax: SyntaxNode,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = FUNCTION_DEFINITION)]
+pub struct FunctionDefinition {
     pub(crate) syntax: SyntaxNode,
 }

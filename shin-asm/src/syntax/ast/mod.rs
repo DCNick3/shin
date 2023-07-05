@@ -134,9 +134,13 @@ fn assert_ast_is_object_safe() {
 
 #[test]
 fn test_exit_parses() {
-    let file = SourceFile::parse("EXIT 0, 0");
+    let file = SourceFile::parse("// pls ignore\nEXIT 0, 0");
 
     println!("{}", file.debug_dump());
+
+    let item = file.tree().items().next().unwrap();
+
+    println!("{:?}", item);
 
     todo!()
 }
