@@ -13,7 +13,7 @@ SOURCE_FILE
           CALL_EXPR
             NAME_REF_EXPR
               IDENT "min"
-            CALL_ARG_LIST
+            CALL_EXPR_ARG_LIST
               L_PAREN "("
               REGISTER_REF_EXPR
                 REGISTER_IDENT "$v2"
@@ -29,7 +29,7 @@ SOURCE_FILE
             CALL_EXPR
               NAME_REF_EXPR
                 IDENT "max"
-              CALL_ARG_LIST
+              CALL_EXPR_ARG_LIST
                 L_PAREN "("
                 REGISTER_REF_EXPR
                   REGISTER_IDENT "$v3"

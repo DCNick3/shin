@@ -58,7 +58,7 @@ fn expr_bp(p: &mut Parser<'_>, m: Option<Marker>, bp: u8) -> Option<CompletedMar
     });
 
     if !p.at_ts(EXPR_FIRST) {
-        p.err_recover("expected expression", atom::EXPR_RECOVERY_SET);
+        p.err_and_bump_unmatching("expected expression", atom::EXPR_RECOVERY_SET);
         m.abandon(p);
         return None;
     }
@@ -142,5 +142,5 @@ fn call_arg_list(p: &mut Parser<'_>) {
         |p: &mut Parser<'_>| expr(p).is_some(),
     );
     p.expect(T![')']);
-    m.complete(p, CALL_ARG_LIST);
+    m.complete(p, CALL_EXPR_ARG_LIST);
 }

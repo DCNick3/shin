@@ -1,0 +1,24 @@
+SOURCE_FILE
+  FUNCTION_DEFINITION
+    SUBROUTINE_KW "subroutine"
+    WHITESPACE " "
+    NAME
+      IDENT "SHOW_STUFF"
+    NEWLINE "\n"
+    WHITESPACE "    "
+    INSTRUCTIONS_BLOCK
+      INSTRUCTION
+        INSTRUCTION_NAME
+          IDENT "MSGSET"
+        WHITESPACE " "
+        INSTR_ARG_LIST
+          PREFIX_EXPR
+            MINUS "-"
+            LITERAL
+              INT_NUMBER "1"
+          COMMA ","
+          WHITESPACE " "
+          LITERAL
+            STRING "\"Hello, world!\""
+        NEWLINE "\n"
+    ENDSUB_KW "endsub"

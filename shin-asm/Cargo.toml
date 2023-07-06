@@ -11,7 +11,11 @@ authors = ["DCNick3"]
 
 [dependencies]
 shin-derive = { path = "../shin-derive" }
-shin-core = { path = "../shin-core" }
+# no actual need to depend on shin-core
+# maybe it will be the other way around??
+#shin-core = { path = "../shin-core" }
+
+assert_matches = "1.5.0"
 
 unicode-xid = "0.2.4"
 unic-emoji-char = "0.9.0"

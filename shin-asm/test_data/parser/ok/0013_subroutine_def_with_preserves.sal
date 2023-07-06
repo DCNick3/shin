@@ -1,0 +1,6 @@
+subroutine SHOW_STUFF[
+    $v2,
+    $v2-$v3,
+]
+    MSGSET -1, "Hello, world!"
+endsub

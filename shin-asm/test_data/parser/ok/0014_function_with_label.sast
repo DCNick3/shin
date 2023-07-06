@@ -1,0 +1,63 @@
+SOURCE_FILE
+  FUNCTION_DEFINITION
+    FUNCTION_KW "function"
+    WHITESPACE " "
+    NAME
+      IDENT "FUN_UTIL"
+    FUNCTION_DEFINITION_PARAMS
+      L_PAREN "("
+      WHITESPACE "\n    "
+      REGISTER_IDENT "$hello"
+      COMMA ","
+      WHITESPACE "\n    "
+      REGISTER_IDENT "$world"
+      WHITESPACE "\n"
+      R_PAREN ")"
+    NEWLINE "\n"
+    INSTRUCTIONS_BLOCK
+      LABEL
+        IDENT "start"
+        COLON ":"
+        NEWLINE "\n"
+      WHITESPACE "    "
+      INSTRUCTION
+        INSTRUCTION_NAME
+          IDENT "add"
+        WHITESPACE " "
+        INSTR_ARG_LIST
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$v2"
+          COMMA ","
+          WHITESPACE " "
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$hello"
+          COMMA ","
+          WHITESPACE " "
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$world"
+        NEWLINE "\n"
+      LABEL
+        IDENT "middle"
+        COLON ":"
+      WHITESPACE " "
+      LABEL
+        IDENT "middle2"
+        COLON ":"
+      WHITESPACE " "
+      INSTRUCTION
+        INSTRUCTION_NAME
+          IDENT "mul"
+        WHITESPACE " "
+        INSTR_ARG_LIST
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$v1"
+          COMMA ","
+          WHITESPACE " "
+          LITERAL
+            FLOAT_NUMBER "10.0"
+          COMMA ","
+          WHITESPACE " "
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$v2"
+        NEWLINE "\n"
+    ENDFUN_KW "endfun"

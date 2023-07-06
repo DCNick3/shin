@@ -66,6 +66,9 @@ syntax_kind! {
         FUNCTION_DEFINITION,
         NAME,
 
+        FUNCTION_DEFINITION_PARAMS,
+        FUNCTION_DEFINITION_PRESERVES,
+
         REGISTER_SET,
         REGISTER_RANGE,
 
@@ -76,11 +79,13 @@ syntax_kind! {
         INSTRUCTIONS_BLOCK,
 
         INSTR_ARG_LIST,
-        CALL_ARG_LIST,
+        CALL_EXPR_ARG_LIST,
 
         NAME_REF_EXPR,
         REGISTER_REF_EXPR,
 
+        // This is for the `bla(123, 321)` syntax, used for the expressions
+        // it does NOT support user-defined functions
         CALL_EXPR,
         ARRAY_EXPR,
         MAPPING_EXPR,

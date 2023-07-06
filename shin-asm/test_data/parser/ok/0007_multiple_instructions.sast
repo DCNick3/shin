@@ -16,9 +16,8 @@ SOURCE_FILE
         WHITESPACE " "
         REGISTER_REF_EXPR
           REGISTER_IDENT "$world"
-  NEWLINE "\n"
-  WHITESPACE "    "
-  INSTRUCTIONS_BLOCK
+      NEWLINE "\n"
+    WHITESPACE "    "
     INSTRUCTION
       INSTRUCTION_NAME
         IDENT "mul"
@@ -34,9 +33,8 @@ SOURCE_FILE
         WHITESPACE " "
         REGISTER_REF_EXPR
           REGISTER_IDENT "$v2"
-  NEWLINE "\n"
-  WHITESPACE "    "
-  INSTRUCTIONS_BLOCK
+      NEWLINE "\n"
+    WHITESPACE "    "
     INSTRUCTION
       INSTRUCTION_NAME
         IDENT "add"
@@ -48,9 +46,8 @@ SOURCE_FILE
         WHITESPACE " "
         LITERAL
           INT_NUMBER "1000"
-  NEWLINE "\n"
-  WHITESPACE "    "
-  INSTRUCTIONS_BLOCK
+      NEWLINE "\n"
+    WHITESPACE "    "
     INSTRUCTION
       INSTRUCTION_NAME
         IDENT "gosub"

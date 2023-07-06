@@ -1,9 +1,9 @@
-use shin_core::format::scenario::instructions::MemoryAddress;
+// use shin_core::format::scenario::instructions::MemoryAddress;
 
 pub enum Preserve {
     // TODO: instead of "just" a MemoryAddress, the user should be able to use aliases
-    Single(MemoryAddress),
-    Range(MemoryAddress, MemoryAddress),
+    // Single(MemoryAddress),
+    // Range(MemoryAddress, MemoryAddress),
 }
 
 pub struct Preserves(pub Vec<Preserve>);

@@ -1,0 +1,8 @@
+function FUN_UTIL(
+    $hello,
+    $world
+)
+start:
+    add $v2, $hello, $world
+middle: middle2: mul $v1, 10.0, $v2
+endfun

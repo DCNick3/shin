@@ -1,0 +1,73 @@
+SOURCE_FILE
+  FUNCTION_DEFINITION
+    FUNCTION_KW "function"
+    WHITESPACE " "
+    NAME
+      IDENT "FUN_UTIL"
+    FUNCTION_DEFINITION_PARAMS
+      L_PAREN "("
+      REGISTER_IDENT "$hello"
+      COMMA ","
+      WHITESPACE " "
+      REGISTER_IDENT "$world"
+      R_PAREN ")"
+    FUNCTION_DEFINITION_PRESERVES
+      L_BRACK "["
+      REGISTER_RANGE
+        REGISTER_IDENT "$v2"
+        MINUS "-"
+        REGISTER_IDENT "$v3"
+      COMMA ","
+      WHITESPACE " "
+      REGISTER_IDENT "$v4"
+      R_BRACK "]"
+    NEWLINE "\n"
+    WHITESPACE "    "
+    INSTRUCTIONS_BLOCK
+      INSTRUCTION
+        INSTRUCTION_NAME
+          IDENT "add"
+        WHITESPACE " "
+        INSTR_ARG_LIST
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$v2"
+          COMMA ","
+          WHITESPACE " "
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$hello"
+          COMMA ","
+          WHITESPACE " "
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$world"
+        NEWLINE "\n"
+      WHITESPACE "    "
+      INSTRUCTION
+        INSTRUCTION_NAME
+          IDENT "mul"
+        WHITESPACE " "
+        INSTR_ARG_LIST
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$v1"
+          COMMA ","
+          WHITESPACE " "
+          LITERAL
+            FLOAT_NUMBER "10.0"
+          COMMA ","
+          WHITESPACE " "
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$v2"
+        NEWLINE "\n"
+      WHITESPACE "    "
+      INSTRUCTION
+        INSTRUCTION_NAME
+          IDENT "add"
+        WHITESPACE " "
+        INSTR_ARG_LIST
+          REGISTER_REF_EXPR
+            REGISTER_IDENT "$v1"
+          COMMA ","
+          WHITESPACE " "
+          LITERAL
+            INT_NUMBER "1000"
+        NEWLINE "\n"
+    ENDFUN_KW "endfun"

@@ -76,6 +76,14 @@ impl<'t> Parser<'t> {
         true
     }
 
+    /// Consume the next token if `kinds` matches.
+    pub(crate) fn eat_ts(&mut self, kinds: TokenSet) -> Option<SyntaxKind> {
+        if !self.at_ts(kinds) {
+            return None;
+        }
+        Some(self.bump_any())
+    }
+
     /// Checks if the current token is in `kinds`.
     pub(crate) fn at_ts(&self, kinds: TokenSet) -> bool {
         kinds.contains(self.current())
@@ -95,13 +103,19 @@ impl<'t> Parser<'t> {
         assert!(self.eat(kind));
     }
 
+    /// Consume the next token, Panics if
+    pub(crate) fn bump_ts(&mut self, kinds: TokenSet) -> SyntaxKind {
+        self.eat_ts(kinds).expect("expected token")
+    }
+
     /// Advances the parser by one token
-    pub(crate) fn bump_any(&mut self) {
+    pub(crate) fn bump_any(&mut self) -> SyntaxKind {
         let kind = self.nth(0);
         if kind == EOF {
-            return;
+            return EOF;
         }
         self.do_bump(kind);
+        return kind;
     }
 
     /// Advances the parser by one token, remapping its kind.
@@ -139,11 +153,11 @@ impl<'t> Parser<'t> {
 
     /// Create an error node and consume the next token.
     pub(crate) fn err_and_bump(&mut self, message: &str) {
-        self.err_recover(message, TokenSet::EMPTY);
+        self.err_and_bump_unmatching(message, TokenSet::EMPTY);
     }
 
     /// Create an error node and consume the next token.
-    pub(crate) fn err_recover(&mut self, message: &str, recovery: TokenSet) {
+    pub(crate) fn err_and_bump_unmatching(&mut self, message: &str, recovery: TokenSet) {
         // I am not sure this makes sense for the shin-asm language
         // match self.current() {
         //     T!['{'] | T!['}'] => {
@@ -160,6 +174,17 @@ impl<'t> Parser<'t> {
 
         let m = self.start();
         self.error(message);
+        self.bump_any();
+        m.complete(self, ERROR);
+    }
+
+    /// Create an error node and consume tokens until `until` set is reached (consume the first of the `until` set too).
+    pub(crate) fn err_and_bump_over_many(&mut self, message: &str, until: TokenSet) {
+        let m = self.start();
+        self.error(message);
+        while !self.at_ts(until) {
+            self.bump_any();
+        }
         self.bump_any();
         m.complete(self, ERROR);
     }
