@@ -22,6 +22,11 @@ impl ToTokens for IdentStr {
             .0
             .split("::")
             .map(|ident| Ident::new(ident, Span::call_site()));
+        // TODO: we need some hack to not require `extern crate self as shin_asm;` and `extern crate self as shin_core;`
+        // `proc_macro_crate` could help, but
+        // 1. it has problems detecting the crate name for some reason
+        // 2. it's hard to report errors from context of ToTokens
+
         tokens.append_separated(idents, quote!(::));
     }
 }
