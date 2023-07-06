@@ -7,7 +7,7 @@ pub struct FunctionDefinition {
 }
 
 impl FunctionDefinition {
-    pub fn name(&self) -> Option<FunctionName> {
+    pub fn name(&self) -> Option<NameDef> {
         support::child(self.syntax())
     }
 
@@ -17,18 +17,6 @@ impl FunctionDefinition {
 
     pub fn preserves(&self) -> Option<FunctionDefinitionPreserves> {
         support::child(self.syntax())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
-#[ast(kind = FUNCTION_NAME)]
-pub struct FunctionName {
-    pub(crate) syntax: SyntaxNode,
-}
-
-impl FunctionName {
-    pub fn token(&self) -> Option<Ident> {
-        support::token(self.syntax())
     }
 }
 

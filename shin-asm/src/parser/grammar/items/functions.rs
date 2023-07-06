@@ -1,4 +1,5 @@
 use super::*;
+use crate::parser::grammar::items::instructions::instructions_block;
 
 pub(super) const FUNCTION_OR_SUBROUTINE_START: TokenSet =
     TokenSet::new(&[T![function], T![subroutine]]);
@@ -14,7 +15,7 @@ pub(super) fn function_definition(p: &mut Parser<'_>) {
         _ => unreachable!(),
     };
 
-    function_name(p, TokenSet::EMPTY); // TODO: figure out the recovery story
+    name_def_r(p, TokenSet::EMPTY); // TODO: figure out the recovery story
 
     if p.at(T!['(']) {
         if start_token == T![subroutine] {
@@ -29,9 +30,7 @@ pub(super) fn function_definition(p: &mut Parser<'_>) {
         function_definition_preserves(p);
     }
 
-    if p.eat_ts(EOL_SET).is_none() {
-        p.err_and_bump_over_many("expected a newline", EOL_SET);
-    }
+    newline(p);
 
     instructions_block(p);
 
@@ -40,22 +39,9 @@ pub(super) fn function_definition(p: &mut Parser<'_>) {
         p.err_and_bump(&format!("expected '{:?}'", expected_end_token));
     }
 
-    // TODO: maybe have a helper function "expect_eol" or something
-    if p.eat_ts(EOL_SET).is_none() {
-        p.err_and_bump_over_many("expected end-of-line", EOL_SET)
-    }
+    newline(p);
 
     m.complete(p, FUNCTION_DEFINITION);
-}
-
-fn function_name(p: &mut Parser<'_>, recovery: TokenSet) {
-    if p.at(IDENT) {
-        let m = p.start();
-        p.bump(IDENT);
-        m.complete(p, FUNCTION_NAME);
-    } else {
-        p.err_and_bump_unmatching("expected a name", recovery);
-    }
 }
 
 fn function_definition_params(p: &mut Parser<'_>) {

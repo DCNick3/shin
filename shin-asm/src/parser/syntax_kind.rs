@@ -48,6 +48,7 @@ syntax_kind! {
         ENDFUN_KW => "endfun",
         SUBROUTINE_KW => "subroutine",
         ENDSUB_KW => "endsub",
+        DEF_KW => "def",
     },
     literals: [
         INT_NUMBER,
@@ -63,22 +64,21 @@ syntax_kind! {
     ],
     nodes: [
         SOURCE_FILE,
+
+        ALIAS_DEFINITION,
+        NAME_DEF,
+        REGISTER_NAME_DEF,
+
         FUNCTION_DEFINITION,
-        FUNCTION_NAME,
         FUNCTION_DEFINITION_PARAMS,
         FUNCTION_DEFINITION_PRESERVES,
-
-        REGISTER_SET,
         REGISTER_RANGE,
 
+        INSTRUCTIONS_BLOCK,
         LABEL,
         INSTRUCTION,
         INSTRUCTION_NAME,
-
-        INSTRUCTIONS_BLOCK,
-
         INSTR_ARG_LIST,
-        CALL_EXPR_ARG_LIST,
 
         NAME_REF_EXPR,
         REGISTER_REF_EXPR,
@@ -86,13 +86,16 @@ syntax_kind! {
         // This is for the `bla(123, 321)` syntax, used for the expressions
         // it does NOT support user-defined functions
         CALL_EXPR,
+        CALL_EXPR_ARG_LIST,
+
         ARRAY_EXPR,
+
         MAPPING_EXPR,
+        MAPPING_ENTRY,
+
         PREFIX_EXPR,
         BIN_EXPR,
         LITERAL,
-
-        MAPPING_ENTRY,
     ],
 }
 

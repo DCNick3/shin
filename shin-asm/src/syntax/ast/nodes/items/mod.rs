@@ -1,6 +1,7 @@
 mod functions;
 
 use super::*;
+use either::Either;
 
 pub use functions::*;
 
@@ -10,6 +11,8 @@ pub enum Item {
     InstructionsBlock(InstructionsBlock),
     #[ast(transparent)]
     FunctionDefinition(FunctionDefinition),
+    #[ast(transparent)]
+    AliasDefinition(AliasDefinition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
@@ -61,5 +64,21 @@ pub struct InstructionArgList {
 impl InstructionArgList {
     pub fn args(&self) -> AstChildren<Expression> {
         support::children(self.syntax())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = ALIAS_DEFINITION)]
+pub struct AliasDefinition {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AliasDefinition {
+    pub fn name(&self) -> Option<Either<NameDef, RegisterNameDef>> {
+        support::child(self.syntax())
+    }
+
+    pub fn value(&self) -> Option<Expression> {
+        support::child(self.syntax())
     }
 }

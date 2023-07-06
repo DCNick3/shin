@@ -24,3 +24,27 @@ impl SourceFile {
         support::children(self.syntax())
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = NAME_DEF)]
+pub struct NameDef {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl NameDef {
+    pub fn token(&self) -> Option<Ident> {
+        support::token(self.syntax())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = REGISTER_NAME_DEF)]
+pub struct RegisterNameDef {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl RegisterNameDef {
+    pub fn token(&self) -> Option<RegisterIdent> {
+        support::token(self.syntax())
+    }
+}

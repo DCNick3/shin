@@ -1,0 +1,28 @@
+SOURCE_FILE
+  ALIAS_DEFINITION
+    DEF_KW "def"
+    WHITESPACE " "
+    NAME_DEF
+      IDENT "ABIBA"
+    WHITESPACE " "
+    EQ "="
+    WHITESPACE " "
+    BIN_EXPR
+      LITERAL
+        INT_NUMBER "3"
+      WHITESPACE " "
+      PLUS "+"
+      WHITESPACE " "
+      LITERAL
+        INT_NUMBER "3"
+    NEWLINE "\n"
+  ALIAS_DEFINITION
+    DEF_KW "def"
+    WHITESPACE " "
+    REGISTER_NAME_DEF
+      REGISTER_IDENT "$SOME_GLOBAL"
+    WHITESPACE " "
+    EQ "="
+    WHITESPACE " "
+    REGISTER_REF_EXPR
+      REGISTER_IDENT "$v17"

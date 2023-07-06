@@ -1,0 +1,2 @@
+def ABIBA = 3 + 3
+def $SOME_GLOBAL = $v17

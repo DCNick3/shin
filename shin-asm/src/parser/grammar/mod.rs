@@ -44,3 +44,29 @@ fn delimited(
         }
     }
 }
+
+fn name_def_r(p: &mut Parser<'_>, recovery: TokenSet) {
+    if p.at(IDENT) {
+        let m = p.start();
+        p.bump(IDENT);
+        m.complete(p, NAME_DEF);
+    } else {
+        p.err_and_bump_unmatching("expected a name", recovery);
+    }
+}
+
+fn register_name_def(p: &mut Parser<'_>) {
+    if p.at(REGISTER_IDENT) {
+        let m = p.start();
+        p.bump(REGISTER_IDENT);
+        m.complete(p, REGISTER_NAME_DEF);
+    } else {
+        p.err_and_bump("expected a register name");
+    }
+}
+
+fn newline(p: &mut Parser<'_>) {
+    if p.eat_ts(EOL_SET).is_none() {
+        p.err_and_bump_over_many("expected a newline", EOL_SET);
+    }
+}
