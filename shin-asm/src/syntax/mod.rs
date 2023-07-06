@@ -1,10 +1,10 @@
-mod ptr;
 mod syntax_error;
 mod syntax_node;
 mod validation;
 
 pub mod ast;
 pub mod parsing;
+pub mod ptr;
 
 use std::marker::PhantomData;
 use std::sync::Arc;

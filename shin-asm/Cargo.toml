@@ -17,6 +17,10 @@ shin-derive = { path = "../shin-derive" }
 
 assert_matches = "1.5.0"
 
+rustc-hash = "1.1.0"
+smol_str = "0.2.0"
+internment = { version = "0.7.0", features = ["arena"] }
+
 unicode-xid = "0.2.4"
 unic-emoji-char = "0.9.0"
 

@@ -1721,6 +1721,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "internment"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "161079c3ad892faa215fcfcf3fd7a6a3c9288df2b06a2c2bad7fbfad4f01d69d"
+dependencies = [
+ "hashbrown 0.12.3",
+ "parking_lot",
+]
+
+[[package]]
 name = "io-lifetimes"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3020,8 +3030,11 @@ dependencies = [
  "drop_bomb",
  "either",
  "expect-test",
+ "internment",
  "rowan",
+ "rustc-hash",
  "shin-derive",
+ "smol_str",
  "test-generator",
  "text-size",
  "unic-emoji-char",
@@ -3248,6 +3261,15 @@ dependencies = [
  "wayland-client",
  "wayland-cursor",
  "wayland-protocols",
+]
+
+[[package]]
+name = "smol_str"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74212e6bbe9a4352329b2f68ba3130c15a3f26fe88ff22dbdc6cdd58fa85e99c"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

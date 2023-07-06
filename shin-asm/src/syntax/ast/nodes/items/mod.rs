@@ -25,6 +25,9 @@ impl InstructionsBlock {
     pub fn instructions(&self) -> AstChildren<Instruction> {
         support::children(self.syntax())
     }
+    pub fn labels(&self) -> AstChildren<Label> {
+        support::children(self.syntax())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
@@ -64,6 +67,18 @@ pub struct InstructionArgList {
 impl InstructionArgList {
     pub fn args(&self) -> AstChildren<Expression> {
         support::children(self.syntax())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = LABEL)]
+pub struct Label {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl Label {
+    pub fn name(&self) -> Option<Ident> {
+        support::token(self.syntax())
     }
 }
 
