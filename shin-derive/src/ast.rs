@@ -6,7 +6,27 @@ use syn::spanned::Spanned;
 use syn::{parse_quote, Meta, Token};
 use synstructure::{BindingInfo, Structure, VariantInfo};
 
-use crate::sanitization::AST_NODE;
+#[derive(Debug, Copy, Clone)]
+pub enum AstKind {
+    Node,
+    Token,
+}
+
+impl AstKind {
+    fn trait_ident(&self) -> crate::sanitization::IdentStr {
+        match self {
+            AstKind::Node => crate::sanitization::AST_NODE,
+            AstKind::Token => crate::sanitization::AST_TOKEN,
+        }
+    }
+
+    fn syntax_kind_ty(&self) -> crate::sanitization::IdentStr {
+        match self {
+            AstKind::Node => crate::sanitization::SYNTAX_NODE,
+            AstKind::Token => crate::sanitization::SYNTAX_TOKEN,
+        }
+    }
+}
 
 struct AstNodeInput<'a> {
     structure: Structure<'a>,
@@ -157,7 +177,9 @@ fn get_inner_field<'a>(variant: &'a VariantInfo) -> &'a BindingInfo<'a> {
     binding
 }
 
-fn gen_can_cast(input: &AstNodeInput) -> TokenStream {
+fn gen_can_cast(input: &AstNodeInput, ast_kind: AstKind) -> TokenStream {
+    let trait_ident = ast_kind.trait_ident();
+
     let tokens = input
         .structure
         .variants()
@@ -174,7 +196,7 @@ fn gen_can_cast(input: &AstNodeInput) -> TokenStream {
             AstAttributeContents::Transparent => {
                 let ty = &variant.ast().fields.iter().next().unwrap().ty;
                 quote! {
-                    if <#ty as #AST_NODE>::can_cast(kind) {
+                    if <#ty as #trait_ident>::can_cast(kind) {
                         return true;
                     }
                 }
@@ -187,7 +209,9 @@ fn gen_can_cast(input: &AstNodeInput) -> TokenStream {
     }
 }
 
-fn gen_cast(input: &AstNodeInput) -> TokenStream {
+fn gen_cast(input: &AstNodeInput, ast_kind: AstKind) -> TokenStream {
+    let trait_ident = ast_kind.trait_ident();
+
     let tokens = input
         .structure
         .variants()
@@ -207,7 +231,7 @@ fn gen_cast(input: &AstNodeInput) -> TokenStream {
                 let ty = &variant.ast().fields.iter().next().unwrap().ty;
                 let construct = variant.construct(|_, _| quote!(inner));
                 quote! {
-                    if let Some(inner) = <#ty as #AST_NODE>::cast(syntax.clone()) {
+                    if let Some(inner) = <#ty as #trait_ident>::cast(syntax.clone()) {
                         return Some(#construct);
                     }
                 }
@@ -220,7 +244,9 @@ fn gen_cast(input: &AstNodeInput) -> TokenStream {
     }
 }
 
-fn gen_syntax(input: &AstNodeInput) -> TokenStream {
+fn gen_syntax(input: &AstNodeInput, ast_kind: AstKind) -> TokenStream {
+    let trait_ident = ast_kind.trait_ident();
+
     let mut attr = input.variant_attrs.iter();
     let body = input.structure.each_variant(|variant| {
         let attr = attr.next().unwrap();
@@ -233,7 +259,7 @@ fn gen_syntax(input: &AstNodeInput) -> TokenStream {
             AstAttributeContents::Transparent => {
                 let ty = &variant.ast().fields.iter().next().unwrap().ty;
                 quote! {
-                    <#ty as #AST_NODE>::syntax(#inner_field)
+                    <#ty as #trait_ident>::syntax(#inner_field)
                 }
             }
         }
@@ -246,7 +272,7 @@ fn gen_syntax(input: &AstNodeInput) -> TokenStream {
     }
 }
 
-pub fn impl_ast_node(structure: Structure) -> TokenStream {
+pub fn impl_ast(structure: Structure, ast_kind: AstKind) -> TokenStream {
     let mut variant_attrs = Vec::new();
 
     let error = structure.variants().iter().map(|variant| {
@@ -284,23 +310,25 @@ pub fn impl_ast_node(structure: Structure) -> TokenStream {
         variant_attrs,
     };
 
-    let can_cast_impl = gen_can_cast(&input);
-    let cast_impl = gen_cast(&input);
-    let syntax_impl = gen_syntax(&input);
+    let can_cast_impl = gen_can_cast(&input, ast_kind);
+    let cast_impl = gen_cast(&input, ast_kind);
+    let syntax_impl = gen_syntax(&input, ast_kind);
 
+    let trait_ident = ast_kind.trait_ident();
+    let syntax_kind_ty = ast_kind.syntax_kind_ty();
     input.structure.gen_impl(quote! {
-        gen impl #AST_NODE for @Self {
+        gen impl #trait_ident for @Self {
             fn can_cast(kind: SyntaxKind) -> bool
             where
                 Self: Sized,
             { #can_cast_impl }
 
-            fn cast(syntax: SyntaxNode) -> Option<Self>
+            fn cast(syntax: #syntax_kind_ty) -> Option<Self>
             where
                 Self: Sized,
             { #cast_impl }
 
-            fn syntax(&self) -> &SyntaxNode
+            fn syntax(&self) -> &#syntax_kind_ty
             { #syntax_impl }
         }
         gen impl ::core::fmt::Display for @Self {
@@ -318,14 +346,15 @@ fn test_ast_node() {
 
     assert_eq!(
         unparse(
-            &syn::parse2(impl_ast_node(
+            &syn::parse2(impl_ast(
                 Structure::try_new(&parse_quote! {
                     #[ast(kind = SOURCE_FILE)]
                     struct SourceFile {
                         syntax: SyntaxNode,
                     }
                 })
-                .unwrap()
+                .unwrap(),
+                AstKind::Node
             ))
             .unwrap()
         ),
@@ -376,7 +405,7 @@ fn test_transparent() {
 
     assert_eq!(
         unparse(
-            &syn::parse2(impl_ast_node(
+            &syn::parse2(impl_ast(
                 Structure::try_new(&parse_quote! {
                     enum SourceFileItem {
                         #[ast(transparent)]
@@ -385,7 +414,8 @@ fn test_transparent() {
                         FunctionDefinition(FunctionDefinition),
                     }
                 })
-                .unwrap()
+                .unwrap(),
+                AstKind::Node
             ))
             .unwrap()
         ),

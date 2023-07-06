@@ -6,6 +6,7 @@ use crate::parser::{
     SyntaxKind::{self, *},
     TokenSet, T,
 };
+use assert_matches::assert_matches;
 
 const EOL_SET: TokenSet = TokenSet::new(&[NEWLINE, EOF]);
 

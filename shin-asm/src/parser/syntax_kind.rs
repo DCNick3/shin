@@ -64,8 +64,7 @@ syntax_kind! {
     nodes: [
         SOURCE_FILE,
         FUNCTION_DEFINITION,
-        NAME,
-
+        FUNCTION_NAME,
         FUNCTION_DEFINITION_PARAMS,
         FUNCTION_DEFINITION_PRESERVES,
 

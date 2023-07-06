@@ -1,7 +1,7 @@
 // this is noisy & not well-supported by IDEs
 #![allow(clippy::uninlined_format_args)]
 
-mod ast_node;
+mod ast;
 mod command;
 pub(crate) mod sanitization;
 mod syntax_kind;
@@ -9,7 +9,7 @@ mod texture_archive;
 mod util;
 mod vertex;
 
-use crate::ast_node::impl_ast_node;
+use crate::ast::{impl_ast, AstKind};
 use crate::command::impl_command;
 use crate::syntax_kind::impl_syntax_kind;
 use crate::syntax_kind::SyntaxKindInput;
@@ -107,7 +107,24 @@ pub fn syntax_kind(input: TokenStream) -> TokenStream {
 pub fn derive_ast_node(input: TokenStream) -> TokenStream {
     match synstructure::macros::parse::<DeriveInput>(input) {
         Ok(p) => match synstructure::Structure::try_new(&p) {
-            Ok(s) => synstructure::MacroResult::into_stream(impl_ast_node(s)),
+            Ok(s) => synstructure::MacroResult::into_stream(impl_ast(s, AstKind::Node)),
+            Err(e) => e.to_compile_error().into(),
+        },
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+/// Generates an `AstToken` impl for a struct or enum. For use in `shin-asm`.
+///
+/// The `#[ast]` attribute can be used on the whole struct or on a enum variant in two ways:
+///
+/// - `#[ast(kind = SOURCE_FILE)]` - for direct impl of `AstNode` on the struct. This is used on concrete structs wrapping specific syntax nodes.
+/// - `#[ast(transparent)]` - to delegate impl of `AstNode` to a field of the struct (or variant). This is used on enums combining multiple syntax nodes.
+#[proc_macro_derive(AstToken, attributes(ast))]
+pub fn derive_ast_token(input: TokenStream) -> TokenStream {
+    match synstructure::macros::parse::<DeriveInput>(input) {
+        Ok(p) => match synstructure::Structure::try_new(&p) {
+            Ok(s) => synstructure::MacroResult::into_stream(impl_ast(s, AstKind::Token)),
             Err(e) => e.to_compile_error().into(),
         },
         Err(e) => e.to_compile_error().into(),

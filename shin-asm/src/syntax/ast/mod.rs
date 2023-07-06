@@ -1,4 +1,5 @@
 mod nodes;
+mod tokens;
 
 use std::marker::PhantomData;
 
@@ -8,9 +9,10 @@ use super::{
 };
 use either::Either;
 
-pub use shin_derive::AstNode;
+pub use shin_derive::{AstNode, AstToken};
 
 pub use nodes::*;
+pub use tokens::*;
 
 /// The main trait to go from untyped `SyntaxNode`  to a typed ast. The
 /// conversion itself has zero runtime cost: ast and syntax nodes have exactly
@@ -109,7 +111,7 @@ where
 }
 
 mod support {
-    use super::{AstChildren, AstNode, SyntaxKind, SyntaxNode, SyntaxToken};
+    use super::{AstChildren, AstNode, AstToken, SyntaxKind, SyntaxNode, SyntaxToken};
 
     pub(super) fn child<N: AstNode>(parent: &SyntaxNode) -> Option<N> {
         parent.children().find_map(N::cast)
@@ -119,11 +121,11 @@ mod support {
         AstChildren::new(parent)
     }
 
-    pub(super) fn token(parent: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
+    pub(super) fn token<T: AstToken>(parent: &SyntaxNode) -> Option<T> {
         parent
             .children_with_tokens()
             .filter_map(|it| it.into_token())
-            .find(|it| it.kind() == kind)
+            .find_map(|it| T::cast(it))
     }
 }
 

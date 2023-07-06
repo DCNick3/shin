@@ -2,7 +2,7 @@ SOURCE_FILE
   FUNCTION_DEFINITION
     FUNCTION_KW "function"
     WHITESPACE " "
-    NAME
+    FUNCTION_NAME
       IDENT "FUN_UTIL"
     FUNCTION_DEFINITION_PARAMS
       L_PAREN "("
@@ -19,7 +19,8 @@ SOURCE_FILE
         REGISTER_IDENT "$v3"
       COMMA ","
       WHITESPACE " "
-      REGISTER_IDENT "$v4"
+      REGISTER_RANGE
+        REGISTER_IDENT "$v4"
       R_BRACK "]"
     NEWLINE "\n"
     WHITESPACE "    "

@@ -1,8 +1,4 @@
-use crate::syntax::{
-    ast::{self, support, AstChildren, AstNode},
-    SyntaxKind::{self, *},
-    SyntaxNode, SyntaxToken, T,
-};
+use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 pub enum Expression {
