@@ -13,7 +13,7 @@ use std::collections::hash_map::Entry;
 
 use crate::syntax::AstToken;
 use crate::{
-    file_db::FileDb,
+    // file_db::FileDb,
     file_db::InFile,
     symbols::CodeRef,
     syntax::{ast, ptr::AstPtr},

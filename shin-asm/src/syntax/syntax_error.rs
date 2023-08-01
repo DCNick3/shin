@@ -1,5 +1,6 @@
 //! See docs for `SyntaxError`.
 
+use std::error::Error;
 use std::fmt;
 
 use text_size::{TextRange, TextSize};
@@ -40,5 +41,23 @@ impl SyntaxError {
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+impl Error for SyntaxError {}
+
+impl miette::Diagnostic for SyntaxError {
+    fn severity(&self) -> Option<miette::Severity> {
+        Some(miette::Severity::Error)
+    }
+
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        let Self(_, range) = self;
+
+        Some(Box::new(std::iter::once(miette::LabeledSpan::new(
+            None,
+            range.start().into(),
+            range.len().into(),
+        ))))
     }
 }

@@ -23,6 +23,10 @@ impl SourceFile {
     pub fn items(&self) -> AstChildren<Item> {
         support::children(self.syntax())
     }
+
+    // pub fn numbered_items(&self) -> impl Iterator<Item = (ItemNumber, Item)> + '_ {
+    //     self.items().enumerate().map(|(i, item)| (i.into(), item))
+    // }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]

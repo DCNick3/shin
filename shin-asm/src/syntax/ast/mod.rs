@@ -11,6 +11,7 @@ use either::Either;
 
 pub use shin_derive::{AstNode, AstToken};
 
+use crate::syntax::ptr::AstPtr;
 pub use nodes::*;
 pub use tokens::*;
 
@@ -41,6 +42,14 @@ pub trait AstNode {
         Self::cast(self.syntax().clone_subtree()).unwrap()
     }
 }
+
+pub trait AstNodeExt: AstNode + Sized {
+    fn ptr(&self) -> AstPtr<Self> {
+        AstPtr::new(self)
+    }
+}
+
+impl<T: AstNode> AstNodeExt for T {}
 
 /// Like `AstNode`, but wraps tokens rather than interior nodes.
 pub trait AstToken {

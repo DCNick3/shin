@@ -14,6 +14,8 @@ use std::{
     marker::PhantomData,
 };
 
+use crate::db::file::File;
+use crate::db::in_file::{InFile, MakeInFile};
 use rowan::TextRange;
 
 use crate::syntax::{syntax_node::SalLanguage, AstNode, SyntaxNode};
@@ -100,6 +102,8 @@ impl<N: AstNode> AstPtr<N> {
         })
     }
 }
+
+impl<N: AstNode> MakeInFile for AstPtr<N> {}
 
 impl<N: AstNode> From<AstPtr<N>> for SyntaxNodePtr {
     fn from(ptr: AstPtr<N>) -> SyntaxNodePtr {
