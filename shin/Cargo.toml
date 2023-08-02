@@ -73,6 +73,7 @@ kira = { workspace = true }
 
 [features]
 default = []
+gstreamer-video = ["shin-video/gstreamer"]
 
 [package.metadata.release]
 # this crate is not ready for publishing yet

@@ -1,4 +1,10 @@
-use crate::audio::AacFrameSource;
+use crate::{
+    audio::AacFrameSource,
+    h264_decoder::{Frame, FrameTiming, H264Decoder, H264DecoderTrait},
+    mp4::Mp4,
+    timer::Timer,
+    YuvTexture,
+};
 use anyhow::{Context, Result};
 use glam::Mat4;
 use kira::track::TrackId;
@@ -7,12 +13,7 @@ use shin_core::time::{Ticks, Tween};
 use shin_core::vm::command::types::{Pan, Volume};
 use shin_render::{GpuCommonResources, Renderable, SpriteVertexBuffer};
 use std::io::{Read, Seek};
-use tracing::{error, info, trace};
-
-use crate::h264_decoder::{Frame, FrameTiming, H264Decoder};
-use crate::mp4::Mp4;
-use crate::timer::Timer;
-use crate::YuvTexture;
+use tracing::{error, info, trace, warn};
 
 pub struct VideoPlayer {
     timer: Timer,
@@ -28,6 +29,25 @@ impl VideoPlayer {
         audio_manager: &AudioManager,
         mp4: Mp4<S>,
     ) -> Result<VideoPlayer> {
+        let time_base = mp4
+            .video_track
+            .get_mp4_track_info(|track| track.timescale());
+
+        let start = std::time::Instant::now();
+        let mut video_decoder =
+            H264Decoder::new(mp4.video_track).context("Initializing H264Decoder")?;
+        let pending_frame = video_decoder.read_frame().context("Reading first frame")?;
+        let duration = start.elapsed();
+
+        info!("H264Decoder::new took {:?}", duration);
+
+        let video_texture = YuvTexture::new(
+            resources,
+            video_decoder
+                .frame_size()
+                .context("Getting H264 frame size")?,
+        );
+
         // TODO: use the audio track
         // if we are using audio the timer should be tracking the audio playback
         let audio_handle = if let Some(track) = mp4.audio_track {
@@ -46,27 +66,12 @@ impl VideoPlayer {
             None
         };
 
-        let time_base = mp4
-            .video_track
-            .get_mp4_track_info(|track| track.timescale());
-
         let timer = match audio_handle {
             Some(handle) => Timer::new_audio_tied(time_base, handle),
             None => Timer::new_independent(time_base),
         };
 
-        let mut video_decoder =
-            H264Decoder::new(mp4.video_track).context("Initializing H264Decoder")?;
-        let video_texture = YuvTexture::new(
-            resources,
-            video_decoder
-                .frame_size()
-                .context("Getting H264 frame size")?,
-        );
-
         let vertex_buffer = SpriteVertexBuffer::new_fullscreen(resources);
-
-        let pending_frame = video_decoder.read_frame().context("Reading first frame")?;
 
         Ok(VideoPlayer {
             timer,
@@ -81,11 +86,18 @@ impl VideoPlayer {
         self.timer.update(delta_time);
         let current_time = self.timer.time();
 
+        let mut skipped_frames = 0;
         // find the latest frame that is ready for display
         // this might be the currently pending frame, or any of the frames after it (shouldn't happen often I think)
         while let Some((timing, ref frame)) = self.pending_frame {
             // if it's not time to display the frame yet - stop the loop
             if timing.start_time > current_time {
+                // very noisy
+                // trace!(
+                //     "Not time to display frame #{}, time: {}",
+                //     timing.frame_number,
+                //     timing.start_time
+                // );
                 break;
             }
 
@@ -103,6 +115,10 @@ impl VideoPlayer {
                 .as_ref()
                 .map_or(true, |(timing, _)| timing.start_time > current_time)
             {
+                if skipped_frames > 0 {
+                    warn!("Skipped {} frames", skipped_frames);
+                }
+
                 // then update the texture with the pending frame
                 trace!(
                     "Displaying frame #{}, time: {}",
@@ -112,6 +128,7 @@ impl VideoPlayer {
                 self.video_texture.write_data(frame, queue);
                 // the loop will not enter again, so the pending frame will now be displayed
             } else {
+                skipped_frames += 1;
                 // if the next frame is also ready for display, then we should skip the pending frame
             }
 
