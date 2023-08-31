@@ -23,7 +23,8 @@ kira = { version = "0.8.3", default-features = false }
 egui = "0.22.0"
 image = { version = "0.24.5", default-features = false }
 anyhow = "1.0.69"
-bevy_utils = "0.10.0"
+bevy_utils = "0.11.2"
+itertools = "0.11.0"
 
 [profile.release]
 debug = true

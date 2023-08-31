@@ -15,9 +15,7 @@ shin-core = { path = "../shin-core" }
 shin-tasks = { path = "../shin-tasks" }
 shin-audio = { path = "../shin-audio" }
 
-# git version to support ilst box being before hdrl
-# tracked at https://github.com/alfg/mp4-rust/pull/95
-mp4 = { git = "https://github.com/DCNick3/mp4-rust.git", rev = "20db61e0e9670a7d9ef8996aca21ead15708ba26" }
+mp4 = "0.14.0"
 symphonia = { version = "0.5.2", features = ["aac"], default-features = false }
 
 gst = { package = "gstreamer", version = "0.20.7", optional = true }

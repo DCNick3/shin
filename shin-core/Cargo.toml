@@ -13,14 +13,14 @@ shin-tasks = { path = "../shin-tasks" }
 
 # derive macros
 num-traits = "0.2.15"
-num-derive = "0.3.3"
+num-derive = "0.4.0"
 shin-derive = { path = "../shin-derive" }
 derive_more = "0.99.17"
 enum-map = { workspace = true }
 async-trait = "0.1.58"
 binrw = "0.11.1"
-strum = { version = "0.24.1", features = ["derive"] }
-proc-bitfield = "0.2.2"
+strum = { version = "0.25.0", features = ["derive"] }
+proc-bitfield = "0.3.0"
 derivative = "2.2.0"
 
 anyhow = { workspace = true }
@@ -30,7 +30,7 @@ bytes = "1.2.1"
 glam = { workspace = true }
 float-ord = "0.3.2"
 image = { workspace = true, default-features = false }
-itertools = "0.10.5"
+itertools = { workspace = true }
 smallvec = "1.10.0"
 tracing = "0.1.37"
 smartstring = "1.0.1"

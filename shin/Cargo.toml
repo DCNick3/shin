@@ -31,8 +31,7 @@ dirs-next = "2.0.0"
 
 winit = "0.28.1"
 wgpu = { workspace = true }
-# git version for integer overflow fix https://github.com/nical/etagere/pull/21
-etagere = { git = "https://github.com/DCNick3/etagere", rev = "53c7ba67256408af78b66909bad7bb905648ec97" }
+etagere = "0.2.8"
 
 glam = { workspace = true, features = [
     # "scalar-math" disables the 16-byte alignment requirement for some types
@@ -47,17 +46,17 @@ bevy_utils = { workspace = true }
 
 pollster = "0.3.0"
 
-num-derive = "0.3.3"
+num-derive = "0.4.0"
 num-traits = "0.2.15"
 enum-map = { workspace = true }
 derive_more = "0.99.17"
 enum_dispatch = "0.3.8"
-strum = "0.24.1"
+strum = "0.25.0"
 anymap = "1.0.0-beta.2"
 derivative = "2.2.0"
 serde = "1.0.152"
 
-itertools = "0.10.5"
+itertools = { workspace = true }
 once_cell = "1.16.0"
 petitset = "0.2.1"
 
@@ -66,7 +65,7 @@ petitset = "0.2.1"
 egui = { workspace = true }
 egui-wgpu = "0.22.0"
 # used for implementation of dynamic atlas overlay
-usvg = "0.34.1"
+usvg = "0.35.0"
 
 # kira for audio output
 kira = { workspace = true }
