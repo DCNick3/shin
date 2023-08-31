@@ -10,7 +10,7 @@ use rowan::{GreenNodeBuilder, Language};
 
 use crate::parser::SyntaxKind;
 use crate::syntax::{Parse, SyntaxError};
-pub(crate) use rowan::{GreenNode, GreenToken, NodeOrToken};
+pub(crate) use rowan::GreenNode;
 use text_size::TextSize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -1,6 +1,4 @@
 use crate::db::file::File;
-use crate::db::Db;
-use crate::syntax;
 use either::Either;
 
 /// `InFile<T>` stores a value of `T` inside a particular file/syntax tree.

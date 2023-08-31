@@ -1,7 +1,7 @@
 use crate::{
     db::{file::Program, in_file::InFile, in_file::MakeInFile, Db},
+    syntax::ast,
     syntax::AstToken,
-    syntax::{ast, ast::AstNodeExt, ptr::AstPtr},
 };
 use either::Either;
 use rustc_hash::FxHashMap;

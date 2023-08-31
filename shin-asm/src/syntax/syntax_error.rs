@@ -54,10 +54,12 @@ impl miette::Diagnostic for SyntaxError {
     fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
         let Self(_, range) = self;
 
+        let start = range.start().into();
+        let len: usize = range.len().into();
+        // let len = len.max(1);
+
         Some(Box::new(std::iter::once(miette::LabeledSpan::new(
-            None,
-            range.start().into(),
-            range.len().into(),
+            None, start, len,
         ))))
     }
 }

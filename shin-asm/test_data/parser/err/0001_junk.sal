@@ -1,0 +1,7 @@
+        choice_set_base: u16,
+        choice_index: u16,
+        #[cmd(dest)]
+        dest: MemoryAddress,
+        choice_visibility_mask: NumberSpec,
+        choice_title: U16String,
+        variants: StringArray,

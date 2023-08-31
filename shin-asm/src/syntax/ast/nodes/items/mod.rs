@@ -2,6 +2,7 @@ mod functions;
 
 use super::*;
 use either::Either;
+use smol_str::SmolStr;
 
 pub use functions::*;
 
@@ -56,6 +57,10 @@ impl InstructionName {
     pub fn token(&self) -> Option<Ident> {
         support::token(self.syntax())
     }
+
+    pub fn value(&self) -> Option<SmolStr> {
+        self.token().map(|t| t.text().into())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
@@ -65,7 +70,7 @@ pub struct InstructionArgList {
 }
 
 impl InstructionArgList {
-    pub fn args(&self) -> AstChildren<Expression> {
+    pub fn args(&self) -> AstChildren<Expr> {
         support::children(self.syntax())
     }
 }
@@ -93,7 +98,7 @@ impl AliasDefinition {
         support::child(self.syntax())
     }
 
-    pub fn value(&self) -> Option<Expression> {
+    pub fn value(&self) -> Option<Expr> {
         support::child(self.syntax())
     }
 }

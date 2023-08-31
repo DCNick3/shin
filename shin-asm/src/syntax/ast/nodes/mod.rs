@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-mod expressions;
+mod expr;
 mod items;
 
 use super::tokens::*;
@@ -10,7 +10,7 @@ use crate::syntax::{
     SyntaxNode, SyntaxToken, T,
 };
 
-pub use expressions::*;
+pub use expr::*;
 pub use items::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]

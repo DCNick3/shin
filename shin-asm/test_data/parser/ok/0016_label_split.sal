@@ -1,0 +1,11 @@
+LABEL_2:
+    add $1, -1, 14
+    jt $v0, {
+        0 => SNR_0,
+        1 => SNR_1,
+    }
+LABEL_3:
+    SELECT 1, 2, $choice, 14, "NCSELECT", [
+        "To Be",
+        "Not to Be",
+    ]
