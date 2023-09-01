@@ -3,7 +3,11 @@ use super::*;
 pub(super) fn instructions_block(p: &mut Parser<'_>) {
     let m = p.start();
 
-    while p.at(IDENT) {
+    if p.at(IDENT) {
+        instruction_or_label(p);
+    }
+
+    while p.at(IDENT) && !p.nth_at(1, T![:]) {
         instruction_or_label(p);
     }
 
@@ -51,15 +55,13 @@ fn instruction(p: &mut Parser<'_>) {
 fn instr_arg_list(p: &mut Parser<'_>) {
     let m = p.start();
 
-    while !p.at_ts(EOL_SET) {
-        delimited(
-            p,
-            EOL_SET,
-            T![,],
-            expressions::EXPR_FIRST,
-            |p: &mut Parser<'_>| expressions::expr(p).is_some(),
-        );
-    }
+    delimited(
+        p,
+        EOL_SET,
+        T![,],
+        expressions::EXPR_FIRST,
+        |p: &mut Parser<'_>| expressions::expr(p).is_some(),
+    );
 
     m.complete(p, INSTR_ARG_LIST);
 }

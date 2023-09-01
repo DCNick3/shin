@@ -1,0 +1,20 @@
+SOURCE_FILE
+  INSTRUCTIONS_BLOCK
+    LABEL
+      IDENT "BLOCK_1"
+      COLON ":"
+      NEWLINE "\n"
+    WHITESPACE "    "
+    INSTRUCTION
+      INSTRUCTION_NAME
+        IDENT "hello"
+      NEWLINE "\n"
+  INSTRUCTIONS_BLOCK
+    LABEL
+      IDENT "BLOCK_2"
+      COLON ":"
+      NEWLINE "\n"
+    WHITESPACE "    "
+    INSTRUCTION
+      INSTRUCTION_NAME
+        IDENT "world"
