@@ -36,6 +36,7 @@ pub(super) fn atom_expr(p: &mut Parser<'_>) -> Option<CompletedMarker> {
             p.bump(REGISTER_IDENT);
             m.complete(p, REGISTER_REF_EXPR)
         }
+        T!['('] => paren_expr(p),
         T!['['] => array_expr(p),
         T!['{'] => mapping_expr(p),
         _ => {
@@ -44,6 +45,17 @@ pub(super) fn atom_expr(p: &mut Parser<'_>) -> Option<CompletedMarker> {
         }
     };
     Some(done)
+}
+
+fn paren_expr(p: &mut Parser<'_>) -> CompletedMarker {
+    assert!(p.at(T!['(']));
+    let m = p.start();
+
+    p.bump(T!['(']);
+    expr(p);
+    p.expect(T![')']);
+
+    m.complete(p, PAREN_EXPR)
 }
 
 fn array_expr(p: &mut Parser<'_>) -> CompletedMarker {

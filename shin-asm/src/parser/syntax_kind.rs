@@ -88,6 +88,7 @@ syntax_kind! {
         CALL_EXPR,
         CALL_EXPR_ARG_LIST,
 
+        PAREN_EXPR,
         ARRAY_EXPR,
 
         MAPPING_EXPR,

@@ -15,6 +15,8 @@ pub enum Expr {
     #[ast(transparent)]
     RegisterRefExpr(RegisterRefExpr),
     #[ast(transparent)]
+    ParenExpr(ParenExpr),
+    #[ast(transparent)]
     ArrayExpr(ArrayExpr),
     #[ast(transparent)]
     MappingExpr(MappingExpr),
@@ -48,6 +50,24 @@ impl RegisterRefExpr {
     pub fn value(&self) -> SmolStr {
         let text = self.syntax.text().to_string();
         text.strip_prefix('$').unwrap().into()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = ARRAY_EXPR)]
+pub struct ParenExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl ParenExpr {
+    pub fn l_paren_token(&self) -> Option<LParen> {
+        support::token(self.syntax())
+    }
+    pub fn expr(&self) -> Option<Expr> {
+        support::child(self.syntax())
+    }
+    pub fn r_paren_token(&self) -> Option<RParen> {
+        support::token(self.syntax())
     }
 }
 

@@ -111,7 +111,7 @@ LABEL_3:
     
 LABEL_4:
     // eh, parser seems to get stuck on parenthesis
-    exp $result, 1 * $2 + $3 & 7
+    exp $result, 1 * ($2 + $3 & 7)
             "#
             .to_string(),
         );

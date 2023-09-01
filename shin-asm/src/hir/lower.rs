@@ -88,6 +88,7 @@ impl<'a> BlockCollector<'a> {
                 self.alloc_expr(Expr::NameRef(e.ident().unwrap().text().into()), ptr)
             }
             ast::Expr::RegisterRefExpr(e) => self.alloc_expr(Expr::RegisterRef(e.value()), ptr),
+            ast::Expr::ParenExpr(e) => self.collect_expr_opt(e.expr()), // TODO: handle reverse source map
             ast::Expr::ArrayExpr(e) => {
                 let mut values = Vec::new();
                 for value in e.values() {

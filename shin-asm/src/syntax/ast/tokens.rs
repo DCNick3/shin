@@ -27,3 +27,15 @@ impl RegisterIdent {
         todo!()
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstToken)]
+#[ast(kind = L_PAREN)]
+pub struct LParen {
+    pub(crate) syntax: SyntaxToken,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstToken)]
+#[ast(kind = R_PAREN)]
+pub struct RParen {
+    pub(crate) syntax: SyntaxToken,
+}

@@ -1,0 +1,18 @@
+SOURCE_FILE
+  INSTRUCTIONS_BLOCK
+    INSTRUCTION
+      INSTRUCTION_NAME
+        IDENT "HELLO"
+      WHITESPACE " "
+      INSTR_ARG_LIST
+        PAREN_EXPR
+          L_PAREN "("
+          BIN_EXPR
+            LITERAL
+              INT_NUMBER "2"
+            WHITESPACE " "
+            PLUS "+"
+            WHITESPACE " "
+            LITERAL
+              INT_NUMBER "2"
+          R_PAREN ")"
