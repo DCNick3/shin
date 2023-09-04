@@ -86,14 +86,19 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
         for (item_index, item) in tree.items().enumerate() {
             let item_index = item_index.try_into().unwrap();
             match item {
-                ast::Item::InstructionsBlock(block) => {
-                    if let Some(labels) = block.labels() {
-                        for label in labels.labels() {
-                            if let Some(name) = label.name() {
-                                define(
-                                    Name(name.text().into()),
-                                    DefRefId::new(db, DefRef::Block { item_index }.in_file(file)),
-                                );
+                ast::Item::InstructionsBlockSet(blocks) => {
+                    for block in blocks.blocks() {
+                        if let Some(labels) = block.labels() {
+                            for label in labels.labels() {
+                                if let Some(name) = label.name() {
+                                    define(
+                                        Name(name.text().into()),
+                                        DefRefId::new(
+                                            db,
+                                            DefRef::Block { item_index }.in_file(file),
+                                        ),
+                                    );
+                                }
                             }
                         }
                     }

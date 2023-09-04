@@ -1,5 +1,5 @@
 use super::*;
-use crate::parser::grammar::items::instructions::instructions_block;
+use crate::parser::grammar::items::instructions::instructions_block_set;
 
 pub(super) const FUNCTION_OR_SUBROUTINE_START: TokenSet =
     TokenSet::new(&[T![function], T![subroutine]]);
@@ -33,8 +33,8 @@ pub(super) fn function_definition(p: &mut Parser<'_>) {
 
     newline(p);
 
-    while !p.at_ts(FUNCTION_OR_SUBROUTINE_END) {
-        instructions_block(p);
+    if p.at(IDENT) {
+        instructions_block_set(p);
     }
 
     if !p.eat(expected_end_token) {

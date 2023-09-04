@@ -18,6 +18,10 @@ impl FunctionDefinition {
     pub fn preserves(&self) -> Option<FunctionDefinitionPreserves> {
         support::child(self.syntax())
     }
+
+    pub fn instruction_block_set(&self) -> Option<InstructionsBlockSet> {
+        support::child(self.syntax())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]

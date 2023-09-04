@@ -1,19 +1,20 @@
 SOURCE_FILE
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "HELLO"
-        WHITESPACE " "
-        INSTR_ARG_LIST
-          PAREN_EXPR
-            L_PAREN "("
-            BIN_EXPR
-              LITERAL
-                INT_NUMBER "2"
-              WHITESPACE " "
-              PLUS "+"
-              WHITESPACE " "
-              LITERAL
-                INT_NUMBER "2"
-            R_PAREN ")"
+  INSTRUCTIONS_BLOCK_SET
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "HELLO"
+          WHITESPACE " "
+          INSTR_ARG_LIST
+            PAREN_EXPR
+              L_PAREN "("
+              BIN_EXPR
+                LITERAL
+                  INT_NUMBER "2"
+                WHITESPACE " "
+                PLUS "+"
+                WHITESPACE " "
+                LITERAL
+                  INT_NUMBER "2"
+              R_PAREN ")"

@@ -73,18 +73,20 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> Vec<Block> {
     let source_file = file.parse(db).syntax(db);
     for item in source_file.items() {
         match item {
-            ast::Item::InstructionsBlock(block) => {
-                let mut collector = BlockCollector::new(db, file);
+            ast::Item::InstructionsBlockSet(blocks) => {
+                for block in blocks.blocks() {
+                    let mut collector = BlockCollector::new(db, file);
 
-                if let Some(body) = block.body() {
-                    for instruction in body.instructions() {
-                        collector.collect_instruction(instruction);
+                    if let Some(body) = block.body() {
+                        for instruction in body.instructions() {
+                            collector.collect_instruction(instruction);
+                        }
                     }
+
+                    let (block, source_map) = collector.collect();
+
+                    result.push(block);
                 }
-
-                let (block, source_map) = collector.collect();
-
-                result.push(block);
             }
             ast::Item::FunctionDefinition(_) => {
                 todo!()

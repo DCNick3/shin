@@ -1,14 +1,15 @@
 SOURCE_FILE
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "EXIT"
-        WHITESPACE " "
-        INSTR_ARG_LIST
-          LITERAL
-            INT_NUMBER "0"
-          COMMA ","
+  INSTRUCTIONS_BLOCK_SET
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "EXIT"
           WHITESPACE " "
-          LITERAL
-            INT_NUMBER "0"
+          INSTR_ARG_LIST
+            LITERAL
+              INT_NUMBER "0"
+            COMMA ","
+            WHITESPACE " "
+            LITERAL
+              INT_NUMBER "0"

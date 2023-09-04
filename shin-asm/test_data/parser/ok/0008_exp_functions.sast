@@ -1,46 +1,47 @@
 SOURCE_FILE
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "exp"
-        WHITESPACE " "
-        INSTR_ARG_LIST
-          REGISTER_REF_EXPR
-            REGISTER_IDENT "$v2"
-          COMMA ","
+  INSTRUCTIONS_BLOCK_SET
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "exp"
           WHITESPACE " "
-          BIN_EXPR
-            CALL_EXPR
-              NAME_REF_EXPR
-                IDENT "min"
-              CALL_EXPR_ARG_LIST
-                L_PAREN "("
-                REGISTER_REF_EXPR
-                  REGISTER_IDENT "$v2"
-                COMMA ","
-                WHITESPACE " "
-                LITERAL
-                  INT_NUMBER "0"
-                R_PAREN ")"
-            WHITESPACE " "
-            PLUS "+"
+          INSTR_ARG_LIST
+            REGISTER_REF_EXPR
+              REGISTER_IDENT "$v2"
+            COMMA ","
             WHITESPACE " "
             BIN_EXPR
               CALL_EXPR
                 NAME_REF_EXPR
-                  IDENT "max"
+                  IDENT "min"
                 CALL_EXPR_ARG_LIST
                   L_PAREN "("
                   REGISTER_REF_EXPR
-                    REGISTER_IDENT "$v3"
+                    REGISTER_IDENT "$v2"
                   COMMA ","
                   WHITESPACE " "
-                  NAME_REF_EXPR
-                    IDENT "MAX_V3"
+                  LITERAL
+                    INT_NUMBER "0"
                   R_PAREN ")"
               WHITESPACE " "
-              MOD_KW "mod"
+              PLUS "+"
               WHITESPACE " "
-              LITERAL
-                INT_NUMBER "4"
+              BIN_EXPR
+                CALL_EXPR
+                  NAME_REF_EXPR
+                    IDENT "max"
+                  CALL_EXPR_ARG_LIST
+                    L_PAREN "("
+                    REGISTER_REF_EXPR
+                      REGISTER_IDENT "$v3"
+                    COMMA ","
+                    WHITESPACE " "
+                    NAME_REF_EXPR
+                      IDENT "MAX_V3"
+                    R_PAREN ")"
+                WHITESPACE " "
+                MOD_KW "mod"
+                WHITESPACE " "
+                LITERAL
+                  INT_NUMBER "4"

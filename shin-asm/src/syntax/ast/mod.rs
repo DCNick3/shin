@@ -153,9 +153,10 @@ fn test_exit_parses() {
     eprintln!("{}", file.debug_dump());
 
     let item = file.tree().items().next().unwrap();
-    let Item::InstructionsBlock(block) = item else {
+    let Item::InstructionsBlockSet(blocks) = item else {
         panic!("Expected InstructionsBlock, got {:?}", item);
     };
+    let block = blocks.blocks().next().unwrap();
     let instruction = block.body().unwrap().instructions().next().unwrap();
     let name = instruction.name().unwrap();
     let args = instruction.args().unwrap();

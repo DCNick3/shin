@@ -1,6 +1,20 @@
 use super::*;
 
-pub(super) fn instructions_block(p: &mut Parser<'_>) {
+pub(super) fn instructions_block_set(p: &mut Parser<'_>) {
+    assert!(p.at(IDENT));
+
+    let m = p.start();
+
+    while p.at(IDENT) {
+        instructions_block(p);
+        while p.eat(NEWLINE) {}
+    }
+
+    m.complete(p, INSTRUCTIONS_BLOCK_SET);
+}
+
+fn instructions_block(p: &mut Parser<'_>) {
+    assert!(p.at(IDENT));
     let m = p.start();
 
     labels(p);
@@ -16,6 +30,7 @@ fn labels(p: &mut Parser<'_>) {
     while p.at(IDENT) && p.nth_at(1, T![:]) {
         label(p);
         have_label = true;
+        while p.eat(NEWLINE) {}
     }
 
     if have_label {
@@ -30,9 +45,6 @@ fn label(p: &mut Parser<'_>) {
     p.bump(IDENT);
     p.bump(T![:]);
 
-    // optionally eat a newline
-    p.eat(NEWLINE);
-
     m.complete(p, LABEL);
 }
 
@@ -43,6 +55,7 @@ fn body(p: &mut Parser<'_>) {
     while p.at(IDENT) && !p.nth_at(1, T![:]) {
         instruction(p);
         have_instruction = true;
+        while p.eat(NEWLINE) {}
     }
 
     if have_instruction {

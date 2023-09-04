@@ -1,106 +1,108 @@
 SOURCE_FILE
   WHITESPACE "        "
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "choice_set_base"
-        COLON ":"
-    WHITESPACE " "
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "u16"
-        ERROR
-          COMMA ","
-          NEWLINE "\n"
-  WHITESPACE "        "
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "choice_index"
-        COLON ":"
-    WHITESPACE " "
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "u16"
-        ERROR
-          COMMA ","
-          NEWLINE "\n"
+  INSTRUCTIONS_BLOCK_SET
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_LABELS
+        LABEL
+          IDENT "choice_set_base"
+          COLON ":"
+      WHITESPACE " "
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "u16"
+          ERROR
+            COMMA ","
+            NEWLINE "\n"
+    WHITESPACE "        "
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_LABELS
+        LABEL
+          IDENT "choice_index"
+          COLON ":"
+      WHITESPACE " "
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "u16"
+          ERROR
+            COMMA ","
+            NEWLINE "\n"
   WHITESPACE "        "
   ERROR
     ERROR "#"
   ERROR
     L_BRACK "["
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "cmd"
-        INSTR_ARG_LIST
-          PAREN_EXPR
-            L_PAREN "("
-            NAME_REF_EXPR
-              IDENT "dest"
-            R_PAREN ")"
-        ERROR
-          R_BRACK "]"
-          NEWLINE "\n"
-  WHITESPACE "        "
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "dest"
-        COLON ":"
-    WHITESPACE " "
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "MemoryAddress"
-        ERROR
-          COMMA ","
-          NEWLINE "\n"
-  WHITESPACE "        "
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "choice_visibility_mask"
-        COLON ":"
-    WHITESPACE " "
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "NumberSpec"
-        ERROR
-          COMMA ","
-          NEWLINE "\n"
-  WHITESPACE "        "
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "choice_title"
-        COLON ":"
-    WHITESPACE " "
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "U16String"
-        ERROR
-          COMMA ","
-          NEWLINE "\n"
-  WHITESPACE "        "
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "variants"
-        COLON ":"
-    WHITESPACE " "
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "StringArray"
-        ERROR
-          COMMA ","
+  INSTRUCTIONS_BLOCK_SET
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "cmd"
+          INSTR_ARG_LIST
+            PAREN_EXPR
+              L_PAREN "("
+              NAME_REF_EXPR
+                IDENT "dest"
+              R_PAREN ")"
+          ERROR
+            R_BRACK "]"
+            NEWLINE "\n"
+    WHITESPACE "        "
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_LABELS
+        LABEL
+          IDENT "dest"
+          COLON ":"
+      WHITESPACE " "
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "MemoryAddress"
+          ERROR
+            COMMA ","
+            NEWLINE "\n"
+    WHITESPACE "        "
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_LABELS
+        LABEL
+          IDENT "choice_visibility_mask"
+          COLON ":"
+      WHITESPACE " "
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "NumberSpec"
+          ERROR
+            COMMA ","
+            NEWLINE "\n"
+    WHITESPACE "        "
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_LABELS
+        LABEL
+          IDENT "choice_title"
+          COLON ":"
+      WHITESPACE " "
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "U16String"
+          ERROR
+            COMMA ","
+            NEWLINE "\n"
+    WHITESPACE "        "
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_LABELS
+        LABEL
+          IDENT "variants"
+          COLON ":"
+      WHITESPACE " "
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "StringArray"
+          ERROR
+            COMMA ","
 error 28: expected a newline
 error 55: expected a newline
 error 65: expected an instruction or label

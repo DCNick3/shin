@@ -1,29 +1,26 @@
 SOURCE_FILE
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "LABEL1"
-        COLON ":"
-      WHITESPACE " "
-      LABEL
-        IDENT "LABEL2"
-        COLON ":"
+  INSTRUCTIONS_BLOCK_SET
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_LABELS
+        LABEL
+          IDENT "LABEL1"
+          COLON ":"
+        WHITESPACE " "
+        LABEL
+          IDENT "LABEL2"
+          COLON ":"
         NEWLINE "\n"
-  NEWLINE "\n"
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "LABEL3"
-        COLON ":"
         NEWLINE "\n"
-      LABEL
-        IDENT "LABEL4"
-        COLON ":"
+        LABEL
+          IDENT "LABEL3"
+          COLON ":"
         NEWLINE "\n"
-  NEWLINE "\n"
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_LABELS
-      LABEL
-        IDENT "LABEL5"
-        COLON ":"
+        LABEL
+          IDENT "LABEL4"
+          COLON ":"
+        NEWLINE "\n"
+        NEWLINE "\n"
+        LABEL
+          IDENT "LABEL5"
+          COLON ":"
         NEWLINE "\n"

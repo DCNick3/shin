@@ -1,32 +1,33 @@
 SOURCE_FILE
-  INSTRUCTIONS_BLOCK
-    INSTRUCTIONS_BLOCK_BODY
-      INSTRUCTION
-        INSTRUCTION_NAME
-          IDENT "exp"
-        WHITESPACE " "
-        INSTR_ARG_LIST
-          REGISTER_REF_EXPR
-            REGISTER_IDENT "$v1"
-          COMMA ","
-          WHITESPACE "\\\n     "
-          BIN_EXPR
+  INSTRUCTIONS_BLOCK_SET
+    INSTRUCTIONS_BLOCK
+      INSTRUCTIONS_BLOCK_BODY
+        INSTRUCTION
+          INSTRUCTION_NAME
+            IDENT "exp"
+          WHITESPACE " "
+          INSTR_ARG_LIST
+            REGISTER_REF_EXPR
+              REGISTER_IDENT "$v1"
+            COMMA ","
+            WHITESPACE "\\\n     "
             BIN_EXPR
-              REGISTER_REF_EXPR
-                REGISTER_IDENT "$x"
+              BIN_EXPR
+                REGISTER_REF_EXPR
+                  REGISTER_IDENT "$x"
+                WHITESPACE " "
+                DOT_STAR ".*"
+                WHITESPACE " "
+                REGISTER_REF_EXPR
+                  REGISTER_IDENT "$x"
               WHITESPACE " "
-              DOT_STAR ".*"
-              WHITESPACE " "
-              REGISTER_REF_EXPR
-                REGISTER_IDENT "$x"
-            WHITESPACE " "
-            PLUS "+"
-            WHITESPACE " \\\n     "
-            BIN_EXPR
-              REGISTER_REF_EXPR
-                REGISTER_IDENT "$y"
-              WHITESPACE " "
-              DOT_STAR ".*"
-              WHITESPACE " "
-              REGISTER_REF_EXPR
-                REGISTER_IDENT "$y"
+              PLUS "+"
+              WHITESPACE " \\\n     "
+              BIN_EXPR
+                REGISTER_REF_EXPR
+                  REGISTER_IDENT "$y"
+                WHITESPACE " "
+                DOT_STAR ".*"
+                WHITESPACE " "
+                REGISTER_REF_EXPR
+                  REGISTER_IDENT "$y"

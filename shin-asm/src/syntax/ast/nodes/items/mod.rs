@@ -9,11 +9,23 @@ pub use functions::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 pub enum Item {
     #[ast(transparent)]
-    InstructionsBlock(InstructionsBlock),
+    InstructionsBlockSet(InstructionsBlockSet),
     #[ast(transparent)]
     FunctionDefinition(FunctionDefinition),
     #[ast(transparent)]
     AliasDefinition(AliasDefinition),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = INSTRUCTIONS_BLOCK_SET)]
+pub struct InstructionsBlockSet {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl InstructionsBlockSet {
+    pub fn blocks(&self) -> AstChildren<InstructionsBlock> {
+        support::children(self.syntax())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]

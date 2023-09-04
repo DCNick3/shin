@@ -20,20 +20,21 @@ SOURCE_FILE
       R_BRACK "]"
     NEWLINE "\n"
     WHITESPACE "    "
-    INSTRUCTIONS_BLOCK
-      INSTRUCTIONS_BLOCK_BODY
-        INSTRUCTION
-          INSTRUCTION_NAME
-            IDENT "MSGSET"
-          WHITESPACE " "
-          INSTR_ARG_LIST
-            PREFIX_EXPR
-              MINUS "-"
-              LITERAL
-                INT_NUMBER "1"
-            COMMA ","
+    INSTRUCTIONS_BLOCK_SET
+      INSTRUCTIONS_BLOCK
+        INSTRUCTIONS_BLOCK_BODY
+          INSTRUCTION
+            INSTRUCTION_NAME
+              IDENT "MSGSET"
             WHITESPACE " "
-            LITERAL
-              STRING "\"Hello, world!\""
-          NEWLINE "\n"
+            INSTR_ARG_LIST
+              PREFIX_EXPR
+                MINUS "-"
+                LITERAL
+                  INT_NUMBER "1"
+              COMMA ","
+              WHITESPACE " "
+              LITERAL
+                STRING "\"Hello, world!\""
+            NEWLINE "\n"
     ENDSUB_KW "endsub"

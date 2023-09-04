@@ -24,52 +24,53 @@ SOURCE_FILE
       R_BRACK "]"
     NEWLINE "\n"
     WHITESPACE "    "
-    INSTRUCTIONS_BLOCK
-      INSTRUCTIONS_BLOCK_BODY
-        INSTRUCTION
-          INSTRUCTION_NAME
-            IDENT "add"
-          WHITESPACE " "
-          INSTR_ARG_LIST
-            REGISTER_REF_EXPR
-              REGISTER_IDENT "$v2"
-            COMMA ","
+    INSTRUCTIONS_BLOCK_SET
+      INSTRUCTIONS_BLOCK
+        INSTRUCTIONS_BLOCK_BODY
+          INSTRUCTION
+            INSTRUCTION_NAME
+              IDENT "add"
             WHITESPACE " "
-            REGISTER_REF_EXPR
-              REGISTER_IDENT "$hello"
-            COMMA ","
+            INSTR_ARG_LIST
+              REGISTER_REF_EXPR
+                REGISTER_IDENT "$v2"
+              COMMA ","
+              WHITESPACE " "
+              REGISTER_REF_EXPR
+                REGISTER_IDENT "$hello"
+              COMMA ","
+              WHITESPACE " "
+              REGISTER_REF_EXPR
+                REGISTER_IDENT "$world"
+            NEWLINE "\n"
+          WHITESPACE "    "
+          INSTRUCTION
+            INSTRUCTION_NAME
+              IDENT "mul"
             WHITESPACE " "
-            REGISTER_REF_EXPR
-              REGISTER_IDENT "$world"
-          NEWLINE "\n"
-        WHITESPACE "    "
-        INSTRUCTION
-          INSTRUCTION_NAME
-            IDENT "mul"
-          WHITESPACE " "
-          INSTR_ARG_LIST
-            REGISTER_REF_EXPR
-              REGISTER_IDENT "$v1"
-            COMMA ","
+            INSTR_ARG_LIST
+              REGISTER_REF_EXPR
+                REGISTER_IDENT "$v1"
+              COMMA ","
+              WHITESPACE " "
+              LITERAL
+                FLOAT_NUMBER "10.0"
+              COMMA ","
+              WHITESPACE " "
+              REGISTER_REF_EXPR
+                REGISTER_IDENT "$v2"
+            NEWLINE "\n"
+          WHITESPACE "    "
+          INSTRUCTION
+            INSTRUCTION_NAME
+              IDENT "add"
             WHITESPACE " "
-            LITERAL
-              FLOAT_NUMBER "10.0"
-            COMMA ","
-            WHITESPACE " "
-            REGISTER_REF_EXPR
-              REGISTER_IDENT "$v2"
-          NEWLINE "\n"
-        WHITESPACE "    "
-        INSTRUCTION
-          INSTRUCTION_NAME
-            IDENT "add"
-          WHITESPACE " "
-          INSTR_ARG_LIST
-            REGISTER_REF_EXPR
-              REGISTER_IDENT "$v1"
-            COMMA ","
-            WHITESPACE " "
-            LITERAL
-              INT_NUMBER "1000"
-          NEWLINE "\n"
+            INSTR_ARG_LIST
+              REGISTER_REF_EXPR
+                REGISTER_IDENT "$v1"
+              COMMA ","
+              WHITESPACE " "
+              LITERAL
+                INT_NUMBER "1000"
+            NEWLINE "\n"
     ENDFUN_KW "endfun"
