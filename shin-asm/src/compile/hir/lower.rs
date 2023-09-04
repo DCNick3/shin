@@ -1,5 +1,5 @@
 use super::{
-    Block, BlockSourceMap, Expr, ExprId, ExprPtr, Instruction, InstructionId, InstructionPtr,
+    HirBlockBody, BlockSourceMap, Expr, ExprId, ExprPtr, Instruction, InstructionId, InstructionPtr,
     Literal,
 };
 use crate::compile::{Db, Diagnostics, File};
@@ -154,9 +154,9 @@ impl<'a> BlockCollector<'a> {
         )
     }
 
-    pub fn collect(self) -> (Block, BlockSourceMap) {
+    pub fn collect(self) -> (HirBlockBody, BlockSourceMap) {
         (
-            Block {
+            HirBlockBody {
                 exprs: self.exprs,
                 instructions: self.instructions,
             },

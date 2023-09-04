@@ -1,8 +1,9 @@
 mod lower;
 
-use crate::compile::{Db, File, InFile};
+use crate::compile::{BlockId, Db, File, InFile};
 use crate::syntax::{ast, ptr::AstPtr};
 use lower::BlockCollector;
+use std::rc::Rc;
 
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
@@ -53,7 +54,7 @@ pub struct Instruction {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Block {
+pub struct HirBlockBody {
     exprs: Arena<Expr>,
     instructions: Arena<Instruction>,
 }
@@ -65,35 +66,66 @@ pub struct BlockSourceMap {
 }
 
 #[salsa::tracked]
-pub fn collect_file_bodies(db: &dyn Db, file: File) -> Vec<Block> {
-    let mut result = Vec::new();
+pub struct HirBlockBodies {
+    #[return_ref]
+    bodies: FxHashMap<BlockId, Rc<HirBlockBody>>,
+}
 
-    let source_file = file.parse(db).syntax(db);
-    for item in source_file.items() {
-        match item {
-            ast::Item::InstructionsBlockSet(blocks) => {
-                for block in blocks.blocks() {
-                    let mut collector = BlockCollector::new(db, file);
+#[salsa::tracked]
+impl HirBlockBodies {
+    #[salsa::tracked]
+    pub fn get(self, db: &dyn Db, block_id: BlockId) -> Option<Rc<HirBlockBody>> {
+        self.bodies(db).get(&block_id).cloned()
+    }
 
-                    if let Some(body) = block.body() {
-                        for instruction in body.instructions() {
-                            collector.collect_instruction(instruction);
-                        }
+    pub fn get_block_ids(self, db: &dyn Db) -> impl Iterator<Item = BlockId> {
+        let mut bodies = self.bodies(db).keys().cloned().collect::<Vec<_>>();
+        bodies.sort();
+
+        bodies.into_iter()
+    }
+}
+
+#[salsa::tracked]
+pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
+    // TODO: actually, the map from the BlockId is somewhat dense...
+    // but I don't want to build a specialized container for it (yet)
+    let mut result = FxHashMap::default();
+
+    let source_file = file.parse(db);
+    for (item_index, item) in source_file.items().enumerate() {
+        let item_index = item_index.try_into().unwrap();
+        let mut collect_blocks = |blocks: ast::AstChildren<ast::InstructionsBlock>| {
+            for (block_index, block) in blocks.enumerate() {
+                let block_index = block_index.try_into().unwrap();
+                let mut collector = BlockCollector::new(db, file);
+
+                if let Some(body) = block.body() {
+                    for instruction in body.instructions() {
+                        collector.collect_instruction(instruction);
                     }
-
-                    let (block, source_map) = collector.collect();
-
-                    result.push(block);
                 }
+
+                let (block, source_map) = collector.collect();
+
+                result.insert(BlockId::new_block(item_index, block_index), Rc::new(block));
             }
-            ast::Item::FunctionDefinition(_) => {
-                todo!()
+        };
+
+        match item {
+            ast::Item::InstructionsBlockSet(block_set) => {
+                collect_blocks(block_set.blocks());
+            }
+            ast::Item::FunctionDefinition(function) => {
+                if let Some(block_set) = function.instruction_block_set() {
+                    collect_blocks(block_set.blocks());
+                }
             }
             ast::Item::AliasDefinition(_) => {} // nothing to do here
         }
     }
 
-    result
+    HirBlockBodies::new(db, result)
 }
 
 #[cfg(test)]
@@ -127,17 +159,39 @@ LABEL_3:
 LABEL_4:
     // eh, parser seems to get stuck on parenthesis
     exp $result, 1 * ($2 + $3 & 7)
+    
+function FUN_1($a, $b)[$v2-$v3]
+LABEL_5:
+    MSGSET 12, "HELLO"
+LABEL_6:
+    MSGSET 13, "WORLD" 
+endfun
             "#
             .to_string(),
         );
 
+        // eprintln!("{}", file.parse_debug_dump(db));
+
         let bodies = hir::collect_file_bodies(db, file);
 
-        dbg!(bodies);
+        for block_id in bodies.get_block_ids(db) {
+            // TODO: resolve block names
+            // DefMap would have to be augmented for this
+            eprintln!("{:?}:", block_id.repr());
+            let block = bodies.get(db, block_id).unwrap();
+            eprintln!("  exprs:");
+            for (id, expr) in block.exprs.iter() {
+                eprintln!("    {:?}: {:?}", id, expr);
+            }
+            eprintln!("  isns:");
+            for (id, instruction) in block.instructions.iter() {
+                eprintln!("    {:?}: {:?}", id, instruction)
+            }
+            eprintln!();
+        }
 
         let diagnostics = hir::collect_file_bodies::accumulated::<Diagnostics>(db, file);
         for diagnostic in Diagnostics::with_source(db, diagnostics) {
-            dbg!(diagnostic.labels().unwrap().collect::<Vec<_>>());
             eprintln!("{:?}", diagnostic);
         }
     }

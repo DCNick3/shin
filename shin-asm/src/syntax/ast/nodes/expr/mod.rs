@@ -54,7 +54,7 @@ impl RegisterRefExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
-#[ast(kind = ARRAY_EXPR)]
+#[ast(kind = PAREN_EXPR)]
 pub struct ParenExpr {
     pub(crate) syntax: SyntaxNode,
 }

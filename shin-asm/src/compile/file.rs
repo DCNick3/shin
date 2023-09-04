@@ -12,14 +12,20 @@ pub struct File {
 }
 
 impl File {
-    pub fn parse(self, db: &dyn Db) -> ParsedFile {
+    pub fn parse(self, db: &dyn Db) -> syntax::SourceFile {
         let parse = syntax::SourceFile::parse(self.contents(db));
 
         for error in parse.errors() {
             Diagnostics::emit(db, self, error.clone());
         }
 
-        ParsedFile::new(db, parse.tree())
+        parse.tree()
+    }
+
+    pub fn parse_debug_dump(self, db: &dyn Db) -> String {
+        let parse = syntax::SourceFile::parse(self.contents(db));
+
+        parse.debug_dump()
     }
 }
 
@@ -31,21 +37,10 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn parse_files(self, db: &dyn Db) -> impl Iterator<Item = (File, ParsedFile)> + '_ {
+    pub fn parse_files(self, db: &dyn Db) -> impl Iterator<Item = (File, syntax::SourceFile)> + '_ {
         self.files(db)
             .iter()
             .copied()
             .map(|file| (file, file.parse(db)))
     }
-
-    pub fn file_trees(self, db: &dyn Db) -> impl Iterator<Item = (File, &ast::SourceFile)> + '_ {
-        self.parse_files(db)
-            .map(|(file, parsed)| (file, parsed.syntax(db)))
-    }
-}
-
-#[salsa::tracked]
-pub struct ParsedFile {
-    #[return_ref]
-    pub syntax: syntax::SourceFile,
 }

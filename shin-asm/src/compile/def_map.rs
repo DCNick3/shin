@@ -64,7 +64,7 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
         }
     };
 
-    for (file, tree) in program.file_trees(db) {
+    for (file, tree) in program.parse_files(db) {
         for (item_index, item) in tree.items().enumerate() {
             let item_index = item_index.try_into().unwrap();
             match item {

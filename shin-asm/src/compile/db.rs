@@ -5,13 +5,13 @@ use super::{def_map, diagnostics, file, hir};
 pub struct Jar(
     file::File,
     file::Program,
-    file::ParsedFile,
     diagnostics::Diagnostics,
     def_map::DefMap,
     def_map::DefMap_get,
     def_map::build_def_map,
+    hir::HirBlockBodies,
+    hir::HirBlockBodies_get,
     hir::collect_file_bodies,
-    // items::Item,
 );
 
 pub trait Db: salsa::DbWithJar<Jar> {}
