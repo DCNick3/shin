@@ -1,6 +1,6 @@
 use crate::syntax::{
     ast::{AstToken, SyntaxToken},
-    SyntaxKind::{self, *},
+    SyntaxKind::*,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstToken)]

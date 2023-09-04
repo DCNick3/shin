@@ -145,6 +145,7 @@ impl SourceFile {
 ///     }
 /// }
 /// ```
+#[allow(unused)] // I am not sure whether I'll need to use it..
 macro_rules! match_ast {
     (match $node:ident { $($tt:tt)* }) => { $crate::match_ast!(match ($node) { $($tt)* }) };
 
@@ -156,4 +157,5 @@ macro_rules! match_ast {
         { $catch_all }
     }};
 }
+#[allow(unused)] // I am not sure whether I'll need to use it..
 pub(crate) use match_ast;

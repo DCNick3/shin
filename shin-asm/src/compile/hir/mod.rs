@@ -13,10 +13,12 @@ use smol_str::SmolStr;
 
 type ExprId = Idx<Expr>;
 type ExprPtr = AstPtr<ast::Expr>;
+#[allow(unused)] // Will be used when full hir source maps will be implemented
 type ExprInFile = InFile<ExprPtr>;
 
 type InstructionId = Idx<Instruction>;
 type InstructionPtr = AstPtr<ast::Instruction>;
+#[allow(unused)] // Will be used when full hir source maps will be implemented
 type InstructionInFile = InFile<InstructionPtr>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -126,7 +128,8 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
                     }
                 }
 
-                let (block, source_map) = collector.collect();
+                // TODO: collect source maps
+                let (block, _source_map) = collector.collect();
 
                 result.insert(BlockId::new_block(item_index, block_index), Rc::new(block));
             }

@@ -225,11 +225,8 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::compile::{
-        db::Database, def_map, def_map::Name, DefMap, Diagnostics, File, Program,
-    };
+    use crate::compile::{db::Database, def_map, DefMap, Diagnostics, File, Program};
     use expect_test::expect;
-    use salsa::DebugWithDb;
 
     fn parse_def_map(code: &str) -> (Database, DefMap) {
         let db = Database::default();

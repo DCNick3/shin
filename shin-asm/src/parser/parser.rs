@@ -295,6 +295,7 @@ impl CompletedMarker {
         self
     }
 
+    #[allow(unused)] // unused for now, may be used later
     pub(crate) fn kind(&self) -> SyntaxKind {
         self.kind
     }

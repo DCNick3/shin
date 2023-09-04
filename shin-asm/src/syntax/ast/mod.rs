@@ -140,9 +140,7 @@ mod support {
 
 #[test]
 fn assert_ast_is_object_safe() {
-    fn _f(_: &dyn AstNode, // , _: &dyn HasName
-    ) {
-    }
+    fn _f(_: &dyn AstNode, _: &dyn AstToken) {}
 }
 
 #[test]
