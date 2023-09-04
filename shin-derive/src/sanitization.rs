@@ -89,6 +89,8 @@ ident_str! {
     pub BIN_READ = from_binrw!(BinRead);
     pub BIN_WRITE = from_binrw!(BinWrite);
 
+    pub SYNTAX_KIND = from_shin_asm!(syntax::SyntaxKind);
+
     pub AST_NODE = from_shin_asm!(syntax::AstNode);
     pub AST_TOKEN = from_shin_asm!(syntax::AstToken);
 

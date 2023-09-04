@@ -1,3 +1,4 @@
+use crate::sanitization::{AST_NODE, AST_TOKEN, SYNTAX_KIND, SYNTAX_NODE, SYNTAX_TOKEN};
 use proc_macro2::{Span, TokenStream, TokenTree};
 use quote::{quote, quote_spanned};
 use syn::parse::{Parse, ParseStream};
@@ -15,15 +16,15 @@ pub enum AstKind {
 impl AstKind {
     fn trait_ident(&self) -> crate::sanitization::IdentStr {
         match self {
-            AstKind::Node => crate::sanitization::AST_NODE,
-            AstKind::Token => crate::sanitization::AST_TOKEN,
+            AstKind::Node => AST_NODE,
+            AstKind::Token => AST_TOKEN,
         }
     }
 
     fn syntax_kind_ty(&self) -> crate::sanitization::IdentStr {
         match self {
-            AstKind::Node => crate::sanitization::SYNTAX_NODE,
-            AstKind::Token => crate::sanitization::SYNTAX_TOKEN,
+            AstKind::Node => SYNTAX_NODE,
+            AstKind::Token => SYNTAX_TOKEN,
         }
     }
 }
@@ -41,11 +42,10 @@ enum AstAttributeContents {
 
 impl AstAttributeContents {
     fn from_attributes(attrs: &[syn::Attribute], span: Span) -> Result<Self, TokenStream> {
-        let Some(attr) = attrs.iter().find(|a| a.path() == &parse_quote!(ast))
-        else {
-            return Err(quote_spanned!{ span =>
+        let Some(attr) = attrs.iter().find(|a| a.path() == &parse_quote!(ast)) else {
+            return Err(quote_spanned! { span =>
                 ::core::compile_error!("expected #[ast(...)]")
-            })
+            });
         };
 
         match &attr.meta {
@@ -318,7 +318,7 @@ pub fn impl_ast(structure: Structure, ast_kind: AstKind) -> TokenStream {
     let syntax_kind_ty = ast_kind.syntax_kind_ty();
     input.structure.gen_impl(quote! {
         gen impl #trait_ident for @Self {
-            fn can_cast(kind: SyntaxKind) -> bool
+            fn can_cast(kind: #SYNTAX_KIND) -> bool
             where
                 Self: Sized,
             { #can_cast_impl }
@@ -362,7 +362,7 @@ fn test_ast_node() {
             #[allow(non_upper_case_globals)]
             const _DERIVE_shin_asm_syntax_AstNode_FOR_SourceFile: () = {
                 impl shin_asm::syntax::AstNode for SourceFile {
-                    fn can_cast(kind: SyntaxKind) -> bool
+                    fn can_cast(kind: shin_asm::syntax::SyntaxKind) -> bool
                     where
                         Self: Sized,
                     {
@@ -371,7 +371,7 @@ fn test_ast_node() {
                         }
                         false
                     }
-                    fn cast(syntax: SyntaxNode) -> Option<Self>
+                    fn cast(syntax: shin_asm::syntax::SyntaxNode) -> Option<Self>
                     where
                         Self: Sized,
                     {
@@ -380,7 +380,7 @@ fn test_ast_node() {
                         }
                         None
                     }
-                    fn syntax(&self) -> &SyntaxNode {
+                    fn syntax(&self) -> &shin_asm::syntax::SyntaxNode {
                         match self {
                             SourceFile {
                                 syntax: ref __binding_0,
@@ -423,7 +423,7 @@ fn test_transparent() {
             #[allow(non_upper_case_globals)]
             const _DERIVE_shin_asm_syntax_AstNode_FOR_SourceFileItem: () = {
                 impl shin_asm::syntax::AstNode for SourceFileItem {
-                    fn can_cast(kind: SyntaxKind) -> bool
+                    fn can_cast(kind: shin_asm::syntax::SyntaxKind) -> bool
                     where
                         Self: Sized,
                     {
@@ -435,7 +435,7 @@ fn test_transparent() {
                         }
                         false
                     }
-                    fn cast(syntax: SyntaxNode) -> Option<Self>
+                    fn cast(syntax: shin_asm::syntax::SyntaxNode) -> Option<Self>
                     where
                         Self: Sized,
                     {
@@ -449,7 +449,7 @@ fn test_transparent() {
                         }
                         None
                     }
-                    fn syntax(&self) -> &SyntaxNode {
+                    fn syntax(&self) -> &shin_asm::syntax::SyntaxNode {
                         match self {
                             SourceFileItem::InstructionBlock(ref __binding_0) => {
                                 <InstructionBlock as shin_asm::syntax::AstNode>::syntax(__binding_0)
