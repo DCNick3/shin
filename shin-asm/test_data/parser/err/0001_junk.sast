@@ -11,7 +11,8 @@ SOURCE_FILE
       ERROR
         COMMA ","
         NEWLINE "\n"
-    WHITESPACE "        "
+  WHITESPACE "        "
+  INSTRUCTIONS_BLOCK
     LABEL
       IDENT "choice_index"
       COLON ":"
@@ -40,7 +41,8 @@ SOURCE_FILE
       ERROR
         R_BRACK "]"
         NEWLINE "\n"
-    WHITESPACE "        "
+  WHITESPACE "        "
+  INSTRUCTIONS_BLOCK
     LABEL
       IDENT "dest"
       COLON ":"
@@ -51,7 +53,8 @@ SOURCE_FILE
       ERROR
         COMMA ","
         NEWLINE "\n"
-    WHITESPACE "        "
+  WHITESPACE "        "
+  INSTRUCTIONS_BLOCK
     LABEL
       IDENT "choice_visibility_mask"
       COLON ":"
@@ -62,7 +65,8 @@ SOURCE_FILE
       ERROR
         COMMA ","
         NEWLINE "\n"
-    WHITESPACE "        "
+  WHITESPACE "        "
+  INSTRUCTIONS_BLOCK
     LABEL
       IDENT "choice_title"
       COLON ":"
@@ -73,7 +77,8 @@ SOURCE_FILE
       ERROR
         COMMA ","
         NEWLINE "\n"
-    WHITESPACE "        "
+  WHITESPACE "        "
+  INSTRUCTIONS_BLOCK
     LABEL
       IDENT "variants"
       COLON ":"

@@ -36,10 +36,12 @@ SOURCE_FILE
           REGISTER_REF_EXPR
             REGISTER_IDENT "$world"
         NEWLINE "\n"
+    INSTRUCTIONS_BLOCK
       LABEL
         IDENT "middle"
         COLON ":"
-      WHITESPACE " "
+    WHITESPACE " "
+    INSTRUCTIONS_BLOCK
       LABEL
         IDENT "middle2"
         COLON ":"

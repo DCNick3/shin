@@ -3,6 +3,7 @@ use crate::parser::grammar::items::instructions::instructions_block;
 
 pub(super) const FUNCTION_OR_SUBROUTINE_START: TokenSet =
     TokenSet::new(&[T![function], T![subroutine]]);
+pub(super) const FUNCTION_OR_SUBROUTINE_END: TokenSet = TokenSet::new(&[T![endfun], T![endsub]]);
 
 pub(super) fn function_definition(p: &mut Parser<'_>) {
     assert_matches!(p.current(), T![function] | T![subroutine]);
@@ -32,7 +33,9 @@ pub(super) fn function_definition(p: &mut Parser<'_>) {
 
     newline(p);
 
-    instructions_block(p);
+    while !p.at_ts(FUNCTION_OR_SUBROUTINE_END) {
+        instructions_block(p);
+    }
 
     if !p.eat(expected_end_token) {
         // TODO: maybe this error message is suboptimal

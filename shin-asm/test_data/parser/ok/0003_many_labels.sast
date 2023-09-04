@@ -3,7 +3,8 @@ SOURCE_FILE
     LABEL
       IDENT "LABEL1"
       COLON ":"
-    WHITESPACE " "
+  WHITESPACE " "
+  INSTRUCTIONS_BLOCK
     LABEL
       IDENT "LABEL2"
       COLON ":"
@@ -14,6 +15,7 @@ SOURCE_FILE
       IDENT "LABEL3"
       COLON ":"
       NEWLINE "\n"
+  INSTRUCTIONS_BLOCK
     LABEL
       IDENT "LABEL4"
       COLON ":"
