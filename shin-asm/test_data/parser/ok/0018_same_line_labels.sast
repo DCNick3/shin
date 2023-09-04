@@ -1,23 +1,23 @@
 SOURCE_FILE
   INSTRUCTIONS_BLOCK
-    LABEL
-      IDENT "LABEL1"
-      COLON ":"
-  WHITESPACE " "
-  INSTRUCTIONS_BLOCK
-    LABEL
-      IDENT "LABEL2"
-      COLON ":"
-  WHITESPACE " "
-  INSTRUCTIONS_BLOCK
-    LABEL
-      IDENT "LABEL3"
-      COLON ":"
-    WHITESPACE " "
-    INSTRUCTION
-      INSTRUCTION_NAME
-        IDENT "HELLO"
+    INSTRUCTIONS_BLOCK_LABELS
+      LABEL
+        IDENT "LABEL1"
+        COLON ":"
       WHITESPACE " "
-      INSTR_ARG_LIST
-        LITERAL
-          INT_NUMBER "12"
+      LABEL
+        IDENT "LABEL2"
+        COLON ":"
+      WHITESPACE " "
+      LABEL
+        IDENT "LABEL3"
+        COLON ":"
+    WHITESPACE " "
+    INSTRUCTIONS_BLOCK_BODY
+      INSTRUCTION
+        INSTRUCTION_NAME
+          IDENT "HELLO"
+        WHITESPACE " "
+        INSTR_ARG_LIST
+          LITERAL
+            INT_NUMBER "12"

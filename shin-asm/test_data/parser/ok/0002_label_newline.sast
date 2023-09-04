@@ -1,6 +1,7 @@
 SOURCE_FILE
   INSTRUCTIONS_BLOCK
-    LABEL
-      IDENT "LABEL"
-      COLON ":"
-      NEWLINE "\n"
+    INSTRUCTIONS_BLOCK_LABELS
+      LABEL
+        IDENT "LABEL"
+        COLON ":"
+        NEWLINE "\n"

@@ -3,24 +3,25 @@ use super::*;
 pub(super) fn instructions_block(p: &mut Parser<'_>) {
     let m = p.start();
 
-    if p.at(IDENT) {
-        instruction_or_label(p);
-    }
-
-    while p.at(IDENT) && !p.nth_at(1, T![:]) {
-        instruction_or_label(p);
-    }
+    labels(p);
+    body(p);
 
     m.complete(p, INSTRUCTIONS_BLOCK);
 }
 
-fn instruction_or_label(p: &mut Parser<'_>) {
-    assert!(p.at(IDENT));
+fn labels(p: &mut Parser<'_>) {
+    let m = p.start();
 
-    if p.nth_at(1, T![:]) {
+    let mut have_label = false;
+    while p.at(IDENT) && p.nth_at(1, T![:]) {
         label(p);
+        have_label = true;
+    }
+
+    if have_label {
+        m.complete(p, INSTRUCTIONS_BLOCK_LABELS);
     } else {
-        instruction(p);
+        m.abandon(p);
     }
 }
 
@@ -33,6 +34,22 @@ fn label(p: &mut Parser<'_>) {
     p.eat(NEWLINE);
 
     m.complete(p, LABEL);
+}
+
+fn body(p: &mut Parser<'_>) {
+    let m = p.start();
+
+    let mut have_instruction = false;
+    while p.at(IDENT) && !p.nth_at(1, T![:]) {
+        instruction(p);
+        have_instruction = true;
+    }
+
+    if have_instruction {
+        m.complete(p, INSTRUCTIONS_BLOCK_BODY);
+    } else {
+        m.abandon(p);
+    }
 }
 
 fn instruction(p: &mut Parser<'_>) {

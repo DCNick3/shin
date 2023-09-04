@@ -1,18 +1,20 @@
 SOURCE_FILE
   INSTRUCTIONS_BLOCK
-    LABEL
-      IDENT "LABEL"
-      COLON ":"
-      NEWLINE "\n"
+    INSTRUCTIONS_BLOCK_LABELS
+      LABEL
+        IDENT "LABEL"
+        COLON ":"
+        NEWLINE "\n"
     WHITESPACE "    "
-    INSTRUCTION
-      INSTRUCTION_NAME
-        IDENT "EXIT"
-      WHITESPACE " "
-      INSTR_ARG_LIST
-        LITERAL
-          INT_NUMBER "0"
-        COMMA ","
+    INSTRUCTIONS_BLOCK_BODY
+      INSTRUCTION
+        INSTRUCTION_NAME
+          IDENT "EXIT"
         WHITESPACE " "
-        LITERAL
-          INT_NUMBER "0"
+        INSTR_ARG_LIST
+          LITERAL
+            INT_NUMBER "0"
+          COMMA ","
+          WHITESPACE " "
+          LITERAL
+            INT_NUMBER "0"

@@ -156,7 +156,7 @@ fn test_exit_parses() {
     let Item::InstructionsBlock(block) = item else {
         panic!("Expected InstructionsBlock, got {:?}", item);
     };
-    let instruction = block.instructions().next().unwrap();
+    let instruction = block.body().unwrap().instructions().next().unwrap();
     let name = instruction.name().unwrap();
     let args = instruction.args().unwrap();
 

@@ -34,13 +34,9 @@ pub enum DefRef {
         /// Index of the function item
         item_index: u32,
     },
-    Label {
-        /// Index of the block or function item
+    Block {
+        /// Index of the block
         item_index: u32,
-        /// Index of the label within the block
-        ///
-        /// it's `u16` to make the `DefRef` fit into 64 bits
-        label_index: u16,
     },
     Define {
         /// Index of the define item
@@ -91,20 +87,14 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
             let item_index = item_index.try_into().unwrap();
             match item {
                 ast::Item::InstructionsBlock(block) => {
-                    for (label_index, label) in block.labels().enumerate() {
-                        let label_index = label_index.try_into().unwrap();
-                        if let Some(name) = label.name() {
-                            define(
-                                Name(name.text().into()),
-                                DefRefId::new(
-                                    db,
-                                    DefRef::Label {
-                                        item_index,
-                                        label_index,
-                                    }
-                                    .in_file(file),
-                                ),
-                            );
+                    if let Some(labels) = block.labels() {
+                        for label in labels.labels() {
+                            if let Some(name) = label.name() {
+                                define(
+                                    Name(name.text().into()),
+                                    DefRefId::new(db, DefRef::Block { item_index }.in_file(file)),
+                                );
+                            }
                         }
                     }
                 }

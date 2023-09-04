@@ -75,6 +75,8 @@ syntax_kind! {
         REGISTER_RANGE,
 
         INSTRUCTIONS_BLOCK,
+        INSTRUCTIONS_BLOCK_LABELS,
+        INSTRUCTIONS_BLOCK_BODY,
         LABEL,
         INSTRUCTION,
         INSTRUCTION_NAME,

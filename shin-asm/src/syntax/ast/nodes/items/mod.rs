@@ -23,10 +23,34 @@ pub struct InstructionsBlock {
 }
 
 impl InstructionsBlock {
-    pub fn instructions(&self) -> AstChildren<Instruction> {
+    pub fn labels(&self) -> Option<InstructionsBlockLabels> {
+        support::child(self.syntax())
+    }
+    pub fn body(&self) -> Option<InstructionsBlockBody> {
+        support::child(self.syntax())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = INSTRUCTIONS_BLOCK_LABELS)]
+pub struct InstructionsBlockLabels {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl InstructionsBlockLabels {
+    pub fn labels(&self) -> AstChildren<Label> {
         support::children(self.syntax())
     }
-    pub fn labels(&self) -> AstChildren<Label> {
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = INSTRUCTIONS_BLOCK_BODY)]
+pub struct InstructionsBlockBody {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl InstructionsBlockBody {
+    pub fn instructions(&self) -> AstChildren<Instruction> {
         support::children(self.syntax())
     }
 }

@@ -76,8 +76,10 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> Vec<Block> {
             ast::Item::InstructionsBlock(block) => {
                 let mut collector = BlockCollector::new(db, file);
 
-                for instruction in block.instructions() {
-                    collector.collect_instruction(instruction);
+                if let Some(body) = block.body() {
+                    for instruction in body.instructions() {
+                        collector.collect_instruction(instruction);
+                    }
                 }
 
                 let (block, source_map) = collector.collect();
