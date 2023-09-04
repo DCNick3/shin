@@ -1,0 +1,11 @@
+exprs:
+  0: RegisterRef("result")
+  1: Literal(IntNumber(1))
+  2: RegisterRef("2")
+  3: RegisterRef("3")
+  4: BinaryOp { lhs: Idx::<Expr>(2), rhs: Idx::<Expr>(3), op: Some(Add) }
+  5: Literal(IntNumber(7))
+  6: BinaryOp { lhs: Idx::<Expr>(4), rhs: Idx::<Expr>(5), op: Some(BitwiseAnd) }
+  7: BinaryOp { lhs: Idx::<Expr>(1), rhs: Idx::<Expr>(6), op: Some(Multiply) }
+isns:
+  0: Instruction { name: Some("exp"), args: [Idx::<Expr>(0), Idx::<Expr>(7)] }

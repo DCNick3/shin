@@ -1,0 +1,9 @@
+exprs:
+  0: RegisterRef("2")
+  1: RegisterRef("3")
+  2: Literal(IntNumber(2))
+  3: Literal(IntNumber(1))
+  4: UnaryOp { expr: Idx::<Expr>(3), op: Negate }
+isns:
+  0: Instruction { name: Some("add"), args: [Idx::<Expr>(0), Idx::<Expr>(1), Idx::<Expr>(2)] }
+  1: Instruction { name: Some("MSGINIT"), args: [Idx::<Expr>(4)] }

@@ -1,0 +1,8 @@
+exprs:
+  0: Literal(IntNumber(12))
+  1: Literal(String("HELLO"))
+  2: Literal(IntNumber(13))
+  3: Literal(String("WORLD"))
+isns:
+  0: Instruction { name: Some("MSGSET"), args: [Idx::<Expr>(0), Idx::<Expr>(1)] }
+  1: Instruction { name: Some("MSGSET"), args: [Idx::<Expr>(2), Idx::<Expr>(3)] }

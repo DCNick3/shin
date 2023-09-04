@@ -1,4 +1,6 @@
 mod lower;
+#[cfg(test)]
+mod tests;
 
 use crate::compile::{BlockId, Db, File, InFile};
 use crate::syntax::{ast, ptr::AstPtr};
@@ -59,6 +61,24 @@ pub struct HirBlockBody {
     instructions: Arena<Instruction>,
 }
 
+impl HirBlockBody {
+    pub fn debug_dump(&self) -> String {
+        use std::fmt::Write as _;
+
+        let mut output = String::new();
+        writeln!(output, "exprs:").unwrap();
+        for (id, expr) in self.exprs.iter() {
+            writeln!(output, "  {}: {:?}", id.into_raw(), expr).unwrap();
+        }
+        writeln!(output, "isns:").unwrap();
+        for (id, instruction) in self.instructions.iter() {
+            writeln!(output, "  {}: {:?}", id.into_raw(), instruction).unwrap();
+        }
+
+        output
+    }
+}
+
 #[derive(Default, Clone, Debug, Eq, PartialEq)]
 pub struct BlockSourceMap {
     exprs_source_map: FxHashMap<ExprId, ExprPtr>,
@@ -78,11 +98,11 @@ impl HirBlockBodies {
         self.bodies(db).get(&block_id).cloned()
     }
 
-    pub fn get_block_ids(self, db: &dyn Db) -> impl Iterator<Item = BlockId> {
+    pub fn get_block_ids(self, db: &dyn Db) -> Vec<BlockId> {
         let mut bodies = self.bodies(db).keys().cloned().collect::<Vec<_>>();
         bodies.sort();
 
-        bodies.into_iter()
+        bodies
     }
 }
 
@@ -126,73 +146,4 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
     }
 
     HirBlockBodies::new(db, result)
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::compile::{db::Database, hir, Diagnostics, File};
-
-    #[test]
-    fn bodies() {
-        let db = Database::default();
-        let db = &db;
-        let file = File::new(
-            db,
-            "test.sal".to_string(),
-            r#"
-LABEL_1:
-    add "ass", 2, 2
-    MSGINIT -1
-
-LABEL_2:
-    add $1, -1, 14
-    jt $v0, {
-        0 => SNR_0,
-        1 => SNR_1,
-    } // parser does not split these blocks for some reason..
-LABEL_3:
-    SELECT 1, 2, $choice, 14, "NCSELECT", [
-        "To Be",
-        "Not to Be",
-    ]
-    
-LABEL_4:
-    // eh, parser seems to get stuck on parenthesis
-    exp $result, 1 * ($2 + $3 & 7)
-    
-function FUN_1($a, $b)[$v2-$v3]
-LABEL_5:
-    MSGSET 12, "HELLO"
-LABEL_6:
-    MSGSET 13, "WORLD" 
-endfun
-            "#
-            .to_string(),
-        );
-
-        // eprintln!("{}", file.parse_debug_dump(db));
-
-        let bodies = hir::collect_file_bodies(db, file);
-
-        for block_id in bodies.get_block_ids(db) {
-            // TODO: resolve block names
-            // DefMap would have to be augmented for this
-            eprintln!("{:?}:", block_id.repr());
-            let block = bodies.get(db, block_id).unwrap();
-            eprintln!("  exprs:");
-            for (id, expr) in block.exprs.iter() {
-                eprintln!("    {:?}: {:?}", id, expr);
-            }
-            eprintln!("  isns:");
-            for (id, instruction) in block.instructions.iter() {
-                eprintln!("    {:?}: {:?}", id, instruction)
-            }
-            eprintln!();
-        }
-
-        let diagnostics = hir::collect_file_bodies::accumulated::<Diagnostics>(db, file);
-        for diagnostic in Diagnostics::with_source(db, diagnostics) {
-            eprintln!("{:?}", diagnostic);
-        }
-    }
 }

@@ -1,0 +1,4 @@
+SELECT 1, 2, $choice, 14, "NCSELECT", [
+    "To Be",
+    "Not to Be",
+]

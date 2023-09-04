@@ -1,0 +1,5 @@
+function FUN_1($a, $b)[$v2-$v3]
+LABEL_5:
+    MSGSET 12, "HELLO"
+    MSGSET 13, "WORLD" 
+endfun

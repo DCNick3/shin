@@ -1,0 +1,3 @@
+exprs:
+isns:
+  0: Instruction { name: Some("SHOWCHARS"), args: [] }

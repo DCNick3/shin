@@ -1,7 +1,6 @@
 use super::db::Db;
 use super::diagnostics::Diagnostics;
 use crate::syntax;
-use crate::syntax::ast;
 
 #[salsa::input]
 pub struct File {
