@@ -1,4 +1,4 @@
-use crate::db::file::File;
+use crate::compile::file::File;
 use either::Either;
 
 /// `InFile<T>` stores a value of `T` inside a particular file/syntax tree.
@@ -41,6 +41,8 @@ pub trait MakeInFile: Sized {
         InFile::new(file, self)
     }
 }
+
+impl<N: crate::syntax::AstNode> MakeInFile for crate::syntax::ptr::AstPtr<N> {}
 
 impl<T: Clone> InFile<&T> {
     pub fn cloned(&self) -> InFile<T> {

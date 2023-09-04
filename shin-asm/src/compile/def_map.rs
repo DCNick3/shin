@@ -1,5 +1,5 @@
 use crate::{
-    db::{file::Program, in_file::InFile, in_file::MakeInFile, Db},
+    compile::{BlockId, Db, InFile, MakeInFile, Program},
     syntax::ast,
     syntax::AstToken,
 };
@@ -22,58 +22,40 @@ impl DebugWithDb<<crate::Jar as salsa::jar::Jar<'_>>::DynDb> for Name {
     }
 }
 
-#[salsa::interned]
-pub struct DefRefId {
-    pub code_ref: InFile<DefRef>,
-}
-
 /// Reference to a function or a label within a file
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum DefRef {
-    Function {
-        /// Index of the function item
-        item_index: u32,
-    },
-    Block {
-        /// Index of the block
-        item_index: u32,
-    },
-    Define {
-        /// Index of the define item
-        item_index: u32,
-    },
+    Block(BlockId),
+    Define(u32),
 }
+
+pub type FileDefRef = InFile<DefRef>;
 
 impl MakeInFile for DefRef {}
 
-/// This is a compile-time check that `CodeRef` fits into 64 bits
+/// This is a compile-time check that `DefRef` fits into 64 bits
 const _: () = [(); 1][(core::mem::size_of::<DefRef>() == 8) as usize ^ 1];
 
 // this size is a little sad, but I don't know how to make it smaller
 const _: () = [(); 1][(core::mem::size_of::<InFile<DefRef>>() == 12) as usize ^ 1];
 
-// #[salsa::tracked]
-// pub struct FunctionDefMap {
-//     local_code_refs: FxHashMap<SmolStr, DefRefId>,
-// }
-
 #[salsa::tracked]
 pub struct DefMap {
-    items: FxHashMap<Name, DefRefId>,
+    items: FxHashMap<Name, FileDefRef>,
 }
 
 #[salsa::tracked]
 impl DefMap {
     #[salsa::tracked]
-    pub fn get(self, db: &dyn Db, name: Name) -> Option<DefRefId> {
+    pub fn get(self, db: &dyn Db, name: Name) -> Option<FileDefRef> {
         self.items(db).get(&name).cloned()
     }
 }
 
 #[salsa::tracked]
 pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
-    let mut items: FxHashMap<Name, DefRefId> = FxHashMap::default();
-    let mut define = |name: Name, item: DefRefId| match items.entry(name) {
+    let mut items: FxHashMap<Name, FileDefRef> = FxHashMap::default();
+    let mut define = |name: Name, item: FileDefRef| match items.entry(name) {
         Entry::Occupied(_o) => {
             todo!("report multiple definitions")
         }
@@ -87,16 +69,15 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
             let item_index = item_index.try_into().unwrap();
             match item {
                 ast::Item::InstructionsBlockSet(blocks) => {
-                    for block in blocks.blocks() {
+                    for (block_index, block) in blocks.blocks().enumerate() {
+                        let block_index = block_index.try_into().unwrap();
                         if let Some(labels) = block.labels() {
                             for label in labels.labels() {
                                 if let Some(name) = label.name() {
                                     define(
                                         Name(name.text().into()),
-                                        DefRefId::new(
-                                            db,
-                                            DefRef::Block { item_index }.in_file(file),
-                                        ),
+                                        DefRef::Block(BlockId::new_block(item_index, block_index))
+                                            .in_file(file),
                                     );
                                 }
                             }
@@ -108,7 +89,7 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
                         if let Some(name) = name.token() {
                             define(
                                 Name(name.text().into()),
-                                DefRefId::new(db, DefRef::Function { item_index }.in_file(file)),
+                                DefRef::Block(BlockId::new_function(item_index)).in_file(file),
                             );
                         }
                     }
@@ -120,7 +101,7 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
                         if let Some(name) = name.token() {
                             define(
                                 Name(name.text().into()),
-                                DefRefId::new(db, DefRef::Define { item_index }.in_file(file)),
+                                DefRef::Define(item_index).in_file(file),
                             );
                         }
                     }
@@ -130,4 +111,49 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
     }
 
     DefMap::new(db, items)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::compile::{db::Database, def_map, def_map::Name, File, Program};
+    use salsa::DebugWithDb;
+
+    #[test]
+    fn def_maps() {
+        let db = Database::default();
+        let db = &db;
+        let file = File::new(
+            db,
+            "test.sal".to_string(),
+            r#"
+def ABIBA = 3 + 3
+
+subroutine KEKA
+ABOBA:
+    add $1, 2, 2
+endsub
+
+    add $2, 2, 2
+LABEL1:
+    sub $2, 2, 2
+    j LABEL1
+LABEL2:
+        "#
+            .to_string(),
+        );
+        let program = Program::new(db, vec![file]);
+        let def_map = def_map::build_def_map(db, program);
+
+        dbg!(def_map.debug_all(db));
+
+        let abiba_def = def_map.get(db, Name("ABIBA".into())).unwrap();
+
+        dbg!(abiba_def.file.debug_all(db));
+
+        dbg!(abiba_def);
+        dbg!(def_map.get(db, Name("ABOBA".into())));
+        dbg!(def_map.get(db, Name("KEKA".into())));
+        dbg!(def_map.get(db, Name("LABEL1".into())));
+        dbg!(def_map.get(db, Name("LABEL2".into())));
+    }
 }

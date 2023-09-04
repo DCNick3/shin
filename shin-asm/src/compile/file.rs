@@ -1,5 +1,5 @@
-use crate::db::diagnostics::Diagnostics;
-use crate::db::Db;
+use super::db::Db;
+use super::diagnostics::Diagnostics;
 use crate::syntax;
 use crate::syntax::ast;
 

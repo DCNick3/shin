@@ -3,7 +3,6 @@ use crate::parser::grammar::items::instructions::instructions_block_set;
 
 pub(super) const FUNCTION_OR_SUBROUTINE_START: TokenSet =
     TokenSet::new(&[T![function], T![subroutine]]);
-pub(super) const FUNCTION_OR_SUBROUTINE_END: TokenSet = TokenSet::new(&[T![endfun], T![endsub]]);
 
 pub(super) fn function_definition(p: &mut Parser<'_>) {
     assert_matches!(p.current(), T![function] | T![subroutine]);

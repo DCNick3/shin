@@ -1,8 +1,6 @@
 mod lower;
 
-use crate::db::file::File;
-use crate::db::in_file::InFile;
-use crate::db::Db;
+use crate::compile::{Db, File, InFile};
 use crate::syntax::{ast, ptr::AstPtr};
 use lower::BlockCollector;
 
@@ -12,11 +10,11 @@ use smol_str::SmolStr;
 
 type ExprId = Idx<Expr>;
 type ExprPtr = AstPtr<ast::Expr>;
-type ExprSource = InFile<ExprPtr>;
+type ExprInFile = InFile<ExprPtr>;
 
 type InstructionId = Idx<Instruction>;
 type InstructionPtr = AstPtr<ast::Instruction>;
-type InstructionSource = InFile<InstructionPtr>;
+type InstructionInFile = InFile<InstructionPtr>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Literal {
@@ -96,4 +94,51 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> Vec<Block> {
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::compile::{db::Database, hir, Diagnostics, File};
+
+    #[test]
+    fn bodies() {
+        let db = Database::default();
+        let db = &db;
+        let file = File::new(
+            db,
+            "test.sal".to_string(),
+            r#"
+LABEL_1:
+    add "ass", 2, 2
+    MSGINIT -1
+
+LABEL_2:
+    add $1, -1, 14
+    jt $v0, {
+        0 => SNR_0,
+        1 => SNR_1,
+    } // parser does not split these blocks for some reason..
+LABEL_3:
+    SELECT 1, 2, $choice, 14, "NCSELECT", [
+        "To Be",
+        "Not to Be",
+    ]
+    
+LABEL_4:
+    // eh, parser seems to get stuck on parenthesis
+    exp $result, 1 * ($2 + $3 & 7)
+            "#
+            .to_string(),
+        );
+
+        let bodies = hir::collect_file_bodies(db, file);
+
+        dbg!(bodies);
+
+        let diagnostics = hir::collect_file_bodies::accumulated::<Diagnostics>(db, file);
+        for diagnostic in Diagnostics::with_source(db, diagnostics) {
+            dbg!(diagnostic.labels().unwrap().collect::<Vec<_>>());
+            eprintln!("{:?}", diagnostic);
+        }
+    }
 }

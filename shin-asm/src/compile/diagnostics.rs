@@ -1,12 +1,11 @@
-use crate::db::file::File;
-use crate::db::in_file::InFile;
-use crate::db::Db;
+use crate::compile::{Db, File, InFile};
 use std::fmt;
 use std::fmt::{Debug, Display};
 
 use miette::NamedSource;
 use std::sync::Arc;
 
+// TODO: we need to support diagnostics with source maps represented in hir node ids
 #[salsa::accumulator]
 pub struct Diagnostics(InFile<Arc<miette::Report>>);
 

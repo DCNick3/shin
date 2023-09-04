@@ -120,7 +120,7 @@ where
 }
 
 mod support {
-    use super::{AstChildren, AstNode, AstToken, SyntaxKind, SyntaxNode, SyntaxToken};
+    use super::{AstChildren, AstNode, AstToken, SyntaxNode};
 
     pub(super) fn child<N: AstNode>(parent: &SyntaxNode) -> Option<N> {
         parent.children().find_map(N::cast)

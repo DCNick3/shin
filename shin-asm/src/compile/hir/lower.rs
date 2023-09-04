@@ -2,11 +2,9 @@ use super::{
     Block, BlockSourceMap, Expr, ExprId, ExprPtr, Instruction, InstructionId, InstructionPtr,
     Literal,
 };
-use crate::db::file::File;
-use crate::db::Db;
+use crate::compile::{Db, Diagnostics, File};
 use crate::syntax::{ast, AstToken};
 
-use crate::db::diagnostics::Diagnostics;
 use crate::syntax::ast::AstNodeExt;
 use la_arena::Arena;
 use rustc_hash::FxHashMap;
