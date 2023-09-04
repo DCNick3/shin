@@ -1,3 +1,4 @@
+use crate::compile::MakeInFile;
 use nonmax::NonMaxU32;
 
 /// BlockId identifies a code block in a file.
@@ -47,6 +48,8 @@ impl BlockId {
         }
     }
 }
+
+impl MakeInFile for BlockId {}
 
 #[derive(Debug, Copy, Clone)]
 pub enum BlockIdRepr {

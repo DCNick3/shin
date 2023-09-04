@@ -6,18 +6,15 @@ use std::rc::Rc;
 use test_generator::test_resources;
 
 fn lower_block(code: &str) -> Rc<hir::HirBlockBody> {
-    use std::fmt::Write as _;
-
     let db = Database::default();
     let db = &db;
     let file = File::new(db, "test.sal".to_string(), code.to_string());
     let bodies = hir::collect_file_bodies(db, file);
 
-    let diagnostics = hir::collect_file_bodies::accumulated::<Diagnostics>(db, file);
-    let mut errors = String::new();
-    for diagnostic in Diagnostics::with_source(db, diagnostics) {
-        writeln!(errors, "{:?}", diagnostic).unwrap();
-    }
+    let errors = Diagnostics::debug_dump(
+        db,
+        hir::collect_file_bodies::accumulated::<Diagnostics>(db, file),
+    );
     if !errors.is_empty() {
         panic!("lowering produced errors:\n{}", errors);
     }

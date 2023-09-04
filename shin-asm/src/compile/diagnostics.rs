@@ -95,4 +95,14 @@ impl Diagnostics {
             })
             .collect()
     }
+
+    pub fn debug_dump(db: &dyn Db, diagnostics: Vec<InFile<Arc<miette::Report>>>) -> String {
+        use std::fmt::Write as _;
+
+        let mut errors = String::new();
+        for diagnostic in Diagnostics::with_source(db, diagnostics) {
+            writeln!(errors, "{:?}", diagnostic).unwrap();
+        }
+        errors
+    }
 }
