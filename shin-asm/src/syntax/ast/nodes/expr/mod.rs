@@ -4,7 +4,6 @@ mod operators;
 use super::*;
 pub use literal::*;
 pub use operators::*;
-use smol_str::SmolStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 pub enum Expr {
@@ -47,9 +46,9 @@ pub struct RegisterRefExpr {
 }
 
 impl RegisterRefExpr {
-    pub fn value(&self) -> SmolStr {
-        let text = self.syntax.text().to_string();
-        text.strip_prefix('$').unwrap().into()
+    pub fn value(&self) -> RegisterIdent {
+        support::token(self.syntax())
+            .expect("BUG: register ref expr should have register ident inside")
     }
 }
 

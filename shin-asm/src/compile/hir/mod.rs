@@ -1,25 +1,29 @@
-mod lower;
+mod from_ast;
 #[cfg(test)]
 mod tests;
 
 use crate::compile::{BlockId, Db, File, InFile};
 use crate::syntax::{ast, ptr::AstPtr};
-use lower::BlockCollector;
+use from_ast::HirBlockCollector;
 use std::rc::Rc;
 
+use crate::compile::def_map::Name;
+use crate::syntax::ast::RegisterIdentKind;
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
-type ExprId = Idx<Expr>;
-type ExprPtr = AstPtr<ast::Expr>;
+pub type ExprId = Idx<Expr>;
+pub type ExprIdInFile = InFile<ExprId>;
+pub type ExprPtr = AstPtr<ast::Expr>;
 #[allow(unused)] // Will be used when full hir source maps will be implemented
-type ExprInFile = InFile<ExprPtr>;
+pub type ExprPtrInFile = InFile<ExprPtr>;
 
-type InstructionId = Idx<Instruction>;
-type InstructionPtr = AstPtr<ast::Instruction>;
+pub type InstructionId = Idx<Instruction>;
+pub type InstructionIdInFile = InFile<InstructionId>;
+pub type InstructionPtr = AstPtr<ast::Instruction>;
 #[allow(unused)] // Will be used when full hir source maps will be implemented
-type InstructionInFile = InFile<InstructionPtr>;
+pub type InstructionPtrInFile = InFile<InstructionPtr>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Literal {
@@ -32,8 +36,8 @@ pub enum Literal {
 pub enum Expr {
     Missing,
     Literal(Literal),
-    NameRef(SmolStr),
-    RegisterRef(SmolStr),
+    NameRef(Name),
+    RegisterRef(Option<RegisterIdentKind>),
     Array(Box<[ExprId]>),
     Mapping(Box<[(Option<i32>, ExprId)]>),
     UnaryOp {
@@ -59,8 +63,8 @@ pub struct Instruction {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HirBlockBody {
-    exprs: Arena<Expr>,
-    instructions: Arena<Instruction>,
+    pub exprs: Arena<Expr>,
+    pub instructions: Arena<Instruction>,
 }
 
 impl HirBlockBody {
@@ -120,7 +124,7 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
         let mut collect_blocks = |blocks: ast::AstChildren<ast::InstructionsBlock>| {
             for (block_index, block) in blocks.enumerate() {
                 let block_index = block_index.try_into().unwrap();
-                let mut collector = BlockCollector::new(db, file);
+                let mut collector = HirBlockCollector::new(db, file);
 
                 if let Some(body) = block.body() {
                     for instruction in body.instructions() {

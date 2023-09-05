@@ -66,6 +66,13 @@ pub trait AstToken {
     fn text(&self) -> &str {
         self.syntax().text()
     }
+
+    fn miette_span(&self) -> miette::SourceSpan {
+        let range = self.syntax().text_range();
+        let start: usize = range.start().into();
+        let len: usize = range.len().into();
+        miette::SourceSpan::new(start.into(), len.into())
+    }
 }
 
 /// An iterator over `SyntaxNode` children of a particular AST type.

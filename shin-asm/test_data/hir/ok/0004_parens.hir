@@ -1,8 +1,8 @@
 exprs:
-  0: RegisterRef("result")
+  0: RegisterRef(Some(Alias("result")))
   1: Literal(IntNumber(1))
-  2: RegisterRef("2")
-  3: RegisterRef("3")
+  2: RegisterRef(Some(Alias("2")))
+  3: RegisterRef(Some(Alias("3")))
   4: BinaryOp { lhs: Idx::<Expr>(2), rhs: Idx::<Expr>(3), op: Some(Add) }
   5: Literal(IntNumber(7))
   6: BinaryOp { lhs: Idx::<Expr>(4), rhs: Idx::<Expr>(5), op: Some(BitwiseAnd) }

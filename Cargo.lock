@@ -377,9 +377,9 @@ dependencies = [
 
 [[package]]
 name = "binrw"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "272caaf6e0bfb7d508c0606e541e2c68f85c0d6352b62d0b299924eed59fe384"
+checksum = "ab81d22cbd2d745852348b2138f3db2103afa8ce043117a374581926a523e267"
 dependencies = [
  "array-init",
  "binrw_derive",
@@ -388,9 +388,9 @@ dependencies = [
 
 [[package]]
 name = "binrw_derive"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb4b28c1e534d96213c8966bb9240095757aa0909128985f97d16afd2e7257a8"
+checksum = "d6b019a3efebe7f453612083202887b6f1ace59e20d010672e336eea4ed5be97"
 dependencies = [
  "either",
  "owo-colors",
@@ -3485,6 +3485,7 @@ name = "shin-asm"
 version = "0.5.0"
 dependencies = [
  "assert_matches",
+ "binrw",
  "build-deps",
  "drop_bomb",
  "either",

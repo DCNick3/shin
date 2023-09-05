@@ -666,7 +666,6 @@ pub enum Instruction {
     gt {
         dest: MemoryAddress,
         index: NumberSpec,
-        // TODO: this encoding is wrong! Each element in the table is padded to 4 bytes!
         table: U16SmallList<[Pad4<NumberSpec>; 32]>,
     },
     /// Jump Conditional

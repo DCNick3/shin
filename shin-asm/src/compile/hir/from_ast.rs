@@ -1,15 +1,16 @@
 use super::{
-    HirBlockBody, BlockSourceMap, Expr, ExprId, ExprPtr, Instruction, InstructionId, InstructionPtr,
-    Literal,
+    BlockSourceMap, Expr, ExprId, ExprPtr, HirBlockBody, Instruction, InstructionId,
+    InstructionPtr, Literal,
 };
 use crate::compile::{Db, Diagnostics, File};
 use crate::syntax::{ast, AstToken};
 
+use crate::compile::def_map::Name;
 use crate::syntax::ast::AstNodeExt;
 use la_arena::Arena;
 use rustc_hash::FxHashMap;
 
-pub struct BlockCollector<'a> {
+pub struct HirBlockCollector<'a> {
     db: &'a dyn Db,
     file: File,
     exprs: Arena<Expr>,
@@ -19,7 +20,7 @@ pub struct BlockCollector<'a> {
     // TODO: store info on local register aliases
 }
 
-impl<'a> BlockCollector<'a> {
+impl<'a> HirBlockCollector<'a> {
     pub fn new(db: &'a dyn Db, file: File) -> Self {
         Self {
             db,
@@ -83,9 +84,18 @@ impl<'a> BlockCollector<'a> {
                 self.alloc_expr(Expr::Literal(literal), ptr)
             }
             ast::Expr::NameRefExpr(e) => {
-                self.alloc_expr(Expr::NameRef(e.ident().unwrap().text().into()), ptr)
+                self.alloc_expr(Expr::NameRef(Name(e.ident().unwrap().text().into())), ptr)
             }
-            ast::Expr::RegisterRefExpr(e) => self.alloc_expr(Expr::RegisterRef(e.value()), ptr),
+            ast::Expr::RegisterRefExpr(e) => {
+                let register = match e.value().kind() {
+                    Ok(v) => Some(v),
+                    Err(diag) => {
+                        Diagnostics::emit(self.db, self.file, diag);
+                        None
+                    }
+                };
+                self.alloc_expr(Expr::RegisterRef(register), ptr)
+            }
             ast::Expr::ParenExpr(e) => self.collect_expr_opt(e.expr()), // TODO: handle reverse source map
             ast::Expr::ArrayExpr(e) => {
                 let mut values = Vec::new();

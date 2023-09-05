@@ -1,6 +1,6 @@
 exprs:
-  0: RegisterRef("2")
-  1: RegisterRef("3")
+  0: RegisterRef(Some(Alias("2")))
+  1: RegisterRef(Some(Alias("3")))
   2: Literal(IntNumber(2))
   3: Literal(IntNumber(1))
   4: UnaryOp { expr: Idx::<Expr>(3), op: Negate }
