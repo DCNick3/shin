@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 pub use self::{
-    ast::{AstNode, AstToken, SourceFile},
+    ast::{AstNode, AstSpanned, AstToken, SourceFile},
     // ptr::{AstPtr, SyntaxNodePtr},
     syntax_error::SyntaxError,
     syntax_node::{

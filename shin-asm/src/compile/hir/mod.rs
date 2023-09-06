@@ -8,7 +8,8 @@ use from_ast::HirBlockCollector;
 use std::rc::Rc;
 
 use crate::compile::def_map::Name;
-use crate::syntax::ast::RegisterIdentKind;
+use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
+use crate::syntax::ast::{visit, RegisterIdentKind};
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
@@ -114,43 +115,42 @@ impl HirBlockBodies {
 
 #[salsa::tracked]
 pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
-    // TODO: actually, the map from the BlockId is somewhat dense...
-    // but I don't want to build a specialized container for it (yet)
-    let mut result = FxHashMap::default();
+    struct FileBodiesCollector<'a> {
+        db: &'a dyn Db,
+        // TODO: actually, the map from the BlockId is somewhat dense...
+        // but I don't want to build a specialized container for it (yet)
+        block_bodies: FxHashMap<BlockId, Rc<HirBlockBody>>,
+    }
 
-    let source_file = file.parse(db);
-    for (item_index, item) in source_file.items().enumerate() {
-        let item_index = item_index.try_into().unwrap();
-        let mut collect_blocks = |blocks: ast::AstChildren<ast::InstructionsBlock>| {
-            for (block_index, block) in blocks.enumerate() {
-                let block_index = block_index.try_into().unwrap();
-                let mut collector = HirBlockCollector::new(db, file);
+    impl visit::Visitor for FileBodiesCollector<'_> {
+        fn visit_any_block(
+            &mut self,
+            file: File,
+            item_index: ItemIndex,
+            block_index: BlockIndex,
+            block: ast::InstructionsBlock,
+        ) {
+            let mut collector = HirBlockCollector::new(self.db, file);
 
-                if let Some(body) = block.body() {
-                    for instruction in body.instructions() {
-                        collector.collect_instruction(instruction);
-                    }
-                }
-
-                // TODO: collect source maps
-                let (block, _source_map) = collector.collect();
-
-                result.insert(BlockId::new_block(item_index, block_index), Rc::new(block));
-            }
-        };
-
-        match item {
-            ast::Item::InstructionsBlockSet(block_set) => {
-                collect_blocks(block_set.blocks());
-            }
-            ast::Item::FunctionDefinition(function) => {
-                if let Some(block_set) = function.instruction_block_set() {
-                    collect_blocks(block_set.blocks());
+            if let Some(body) = block.body() {
+                for instruction in body.instructions() {
+                    collector.collect_instruction(instruction);
                 }
             }
-            ast::Item::AliasDefinition(_) => {} // nothing to do here
+
+            // TODO: collect source maps
+            let (block, _source_map) = collector.collect();
+
+            self.block_bodies
+                .insert(BlockId::new_block(item_index, block_index), Rc::new(block));
         }
     }
 
-    HirBlockBodies::new(db, result)
+    let mut visitor = FileBodiesCollector {
+        db,
+        block_bodies: FxHashMap::default(),
+    };
+    visit::visit_file(&mut visitor, file, file.parse(db));
+
+    HirBlockBodies::new(db, visitor.block_bodies)
 }

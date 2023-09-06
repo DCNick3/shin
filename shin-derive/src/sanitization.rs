@@ -90,7 +90,9 @@ ident_str! {
     pub BIN_WRITE = from_binrw!(BinWrite);
 
     pub SYNTAX_KIND = from_shin_asm!(syntax::SyntaxKind);
+    pub TEXT_RANGE = from_shin_asm!(syntax::TextRange);
 
+    pub AST_SPANNED = from_shin_asm!(syntax::AstSpanned);
     pub AST_NODE = from_shin_asm!(syntax::AstNode);
     pub AST_TOKEN = from_shin_asm!(syntax::AstToken);
 

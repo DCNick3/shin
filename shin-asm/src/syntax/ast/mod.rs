@@ -1,5 +1,6 @@
 mod nodes;
 mod tokens;
+pub mod visit;
 
 use std::marker::PhantomData;
 
@@ -15,11 +16,22 @@ use crate::syntax::ptr::AstPtr;
 pub use nodes::*;
 pub use tokens::*;
 
+pub trait AstSpanned {
+    fn text_range(&self) -> crate::syntax::TextRange;
+
+    fn miette_span(&self) -> miette::SourceSpan {
+        let range = self.text_range();
+        let start: usize = range.start().into();
+        let len: usize = range.len().into();
+        miette::SourceSpan::new(start.into(), len.into())
+    }
+}
+
 /// The main trait to go from untyped `SyntaxNode`  to a typed ast. The
 /// conversion itself has zero runtime cost: ast and syntax nodes have exactly
 /// the same representation: a pointer to the tree root and a pointer to the
 /// node itself.
-pub trait AstNode {
+pub trait AstNode: AstSpanned {
     fn can_cast(kind: SyntaxKind) -> bool
     where
         Self: Sized;
@@ -52,7 +64,7 @@ pub trait AstNodeExt: AstNode + Sized {
 impl<T: AstNode> AstNodeExt for T {}
 
 /// Like `AstNode`, but wraps tokens rather than interior nodes.
-pub trait AstToken {
+pub trait AstToken: AstSpanned {
     fn can_cast(token: SyntaxKind) -> bool
     where
         Self: Sized;
@@ -65,13 +77,6 @@ pub trait AstToken {
 
     fn text(&self) -> &str {
         self.syntax().text()
-    }
-
-    fn miette_span(&self) -> miette::SourceSpan {
-        let range = self.syntax().text_range();
-        let start: usize = range.start().into();
-        let len: usize = range.len().into();
-        miette::SourceSpan::new(start.into(), len.into())
     }
 }
 
@@ -95,6 +100,16 @@ impl<N: AstNode> Iterator for AstChildren<N> {
     type Item = N;
     fn next(&mut self) -> Option<N> {
         self.inner.find_map(N::cast)
+    }
+}
+
+impl<L, R> AstSpanned for Either<L, R>
+where
+    L: AstSpanned,
+    R: AstSpanned,
+{
+    fn text_range(&self) -> crate::syntax::TextRange {
+        self.as_ref().either(L::text_range, R::text_range)
     }
 }
 

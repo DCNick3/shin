@@ -1,4 +1,6 @@
-use crate::sanitization::{AST_NODE, AST_TOKEN, SYNTAX_KIND, SYNTAX_NODE, SYNTAX_TOKEN};
+use crate::sanitization::{
+    AST_NODE, AST_SPANNED, AST_TOKEN, SYNTAX_KIND, SYNTAX_NODE, SYNTAX_TOKEN, TEXT_RANGE,
+};
 use proc_macro2::{Span, TokenStream, TokenTree};
 use quote::{quote, quote_spanned};
 use syn::parse::{Parse, ParseStream};
@@ -317,6 +319,12 @@ pub fn impl_ast(structure: Structure, ast_kind: AstKind) -> TokenStream {
     let trait_ident = ast_kind.trait_ident();
     let syntax_kind_ty = ast_kind.syntax_kind_ty();
     input.structure.gen_impl(quote! {
+        gen impl #AST_SPANNED for @Self {
+            fn text_range(&self) -> #TEXT_RANGE {
+                <Self as #trait_ident>::syntax(self).text_range()
+            }
+        }
+
         gen impl #trait_ident for @Self {
             fn can_cast(kind: #SYNTAX_KIND) -> bool
             where

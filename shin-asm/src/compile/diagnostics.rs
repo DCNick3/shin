@@ -78,6 +78,17 @@ impl Diagnostics {
         )
     }
 
+    pub fn emit_for(
+        db: &dyn Db,
+        file: File,
+        diagnostic: impl miette::Diagnostic + Send + Sync + 'static,
+    ) {
+        Self::push(
+            db,
+            InFile::new(file, Arc::new(miette::Report::new(diagnostic))),
+        )
+    }
+
     pub fn with_source(
         db: &dyn Db,
         diagnostics: Vec<InFile<Arc<miette::Report>>>,

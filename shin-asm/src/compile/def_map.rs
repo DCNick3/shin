@@ -1,9 +1,17 @@
+use crate::elements::RegisterRepr;
 use crate::{
-    compile::{BlockId, Db, InFile, MakeInFile, Program},
-    syntax::ast,
+    compile::{BlockId, Db, Diagnostics, File, InFile, MakeInFile, Program},
+    elements::Register,
+    syntax::ast::{
+        self,
+        visit::{self, BlockIndex, ItemIndex},
+        AstSpanned,
+    },
     syntax::AstToken,
 };
+use bind_match::bind_match;
 use either::Either;
+use miette::{diagnostic, LabeledSpan};
 use rustc_hash::FxHashMap;
 use salsa::DebugWithDb;
 use smol_str::SmolStr;
@@ -34,7 +42,7 @@ impl DebugWithDb<<crate::Jar as salsa::jar::Jar<'_>>::DynDb> for Name {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum DefRef {
     Block(BlockId),
-    Define(u32),
+    Define(ItemIndex),
 }
 
 pub type FileDefRef = InFile<DefRef>;
@@ -49,23 +57,23 @@ const _: () = [(); 1][(core::mem::size_of::<InFile<DefRef>>() == 12) as usize ^ 
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum BlockName {
-    GlobalUnnamed(u32),
-    GlobalNamed(Name),
-    Function(Name),
-    LocalUnnamed {
-        function_name: Name,
-        block_index: u32,
-    },
-    LocalNamed {
-        function_name: Name,
-        block_name: Name,
-    },
+    GlobalBlock(Option<Name>),
+    Function(Option<Name>),
+    LocalBlock(Option<Name>),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct RegisterDefMap {
+    pub global_registers: FxHashMap<SmolStr, ast::RegisterIdentKind>,
+    pub local_registers: FxHashMap<ItemIndex, FxHashMap<Name, Register>>,
 }
 
 #[salsa::tracked]
 pub struct DefMap {
     #[return_ref]
     items: FxHashMap<Name, FileDefRef>,
+    #[return_ref]
+    registers: RegisterDefMap,
     #[return_ref]
     block_names: FxHashMap<InFile<BlockId>, BlockName>,
 }
@@ -92,7 +100,7 @@ impl DefMap {
 
         let mut output = String::new();
 
-        let mut items = self.items(db).into_iter().collect::<Vec<_>>();
+        let mut items = self.items(db).iter().collect::<Vec<_>>();
         items.sort();
 
         writeln!(output, "items:").unwrap();
@@ -101,6 +109,25 @@ impl DefMap {
             let def_ref = &def_ref.value;
 
             writeln!(output, "  {}: {:?} @ {}", name, def_ref, file_name).unwrap();
+        }
+
+        let registers = self.registers(db);
+        let mut global_registers = registers.global_registers.iter().collect::<Vec<_>>();
+        global_registers.sort_by_key(|(name, _)| *name);
+        let mut local_registers = registers.local_registers.iter().collect::<Vec<_>>();
+        local_registers.sort_by_key(|(&index, _)| index);
+
+        writeln!(output, "registers:").unwrap();
+        writeln!(output, "  global:").unwrap();
+        for (name, value) in global_registers {
+            writeln!(output, "    {}: {:?}", name, value).unwrap();
+        }
+        writeln!(output, "  local:").unwrap();
+        for (item_index, registers) in local_registers {
+            writeln!(output, "    item {}: ", item_index).unwrap();
+            for (name, value) in registers {
+                writeln!(output, "      {}: {:?}", name, value).unwrap();
+            }
         }
 
         let mut block_names = self.block_names(db).into_iter().collect::<Vec<_>>();
@@ -118,109 +145,303 @@ impl DefMap {
     }
 }
 
-#[salsa::tracked]
-pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
-    let mut items: FxHashMap<Name, FileDefRef> = FxHashMap::default();
-    let mut block_names = FxHashMap::default();
-    let mut define = |name: Name, item: FileDefRef| match items.entry(name) {
-        Entry::Occupied(_o) => {
-            todo!("report multiple definitions")
-        }
-        Entry::Vacant(v) => {
-            v.insert(item);
-        }
-    };
+fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, FileDefRef> {
+    struct DefCollector {
+        items: FxHashMap<Name, FileDefRef>,
+    }
 
-    for (file, tree) in program.parse_files(db) {
-        for (item_index, item) in tree.items().enumerate() {
-            let item_index = item_index.try_into().unwrap();
-            match item {
-                ast::Item::InstructionsBlockSet(blocks) => {
-                    for (block_index, block) in blocks.blocks().enumerate() {
-                        let block_index = block_index.try_into().unwrap();
-
-                        let block_id = BlockId::new_block(item_index, block_index);
-                        let mut block_name = None;
-
-                        if let Some(labels) = block.labels() {
-                            for label in labels.labels() {
-                                if let Some(name) = label.name() {
-                                    let name = Name(name.text().into());
-                                    block_name = Some(name.clone());
-                                    define(name, DefRef::Block(block_id).in_file(file));
-                                }
-                            }
-                        }
-
-                        block_names.insert(
-                            block_id.in_file(file),
-                            match block_name {
-                                None => BlockName::GlobalUnnamed(block_index),
-                                Some(name) => BlockName::GlobalNamed(name),
-                            },
-                        );
-                    }
+    impl DefCollector {
+        fn define(&mut self, name: Name, item: FileDefRef) {
+            match self.items.entry(name) {
+                Entry::Occupied(_o) => {
+                    todo!("report multiple definitions")
                 }
-                ast::Item::FunctionDefinition(fun) => {
-                    let block_id = BlockId::new_function(item_index);
-
-                    if let Some(name) = fun.name() {
-                        if let Some(name) = name.token() {
-                            let function_name = Name(name.text().into());
-                            define(function_name.clone(), DefRef::Block(block_id).in_file(file));
-
-                            block_names.insert(
-                                block_id.in_file(file),
-                                BlockName::Function(function_name.clone()),
-                            );
-
-                            if let Some(block_set) = fun.instruction_block_set() {
-                                for (block_index, block) in block_set.blocks().enumerate() {
-                                    let block_index = block_index.try_into().unwrap();
-
-                                    let block_id = BlockId::new_block(item_index, block_index);
-                                    let block_name = block
-                                        .labels()
-                                        .and_then(|l| l.labels().next())
-                                        .and_then(|l| l.name())
-                                        .map(|name| Name(name.text().into()));
-
-                                    block_names.insert(
-                                        block_id.in_file(file),
-                                        if let Some(name) = block_name {
-                                            BlockName::LocalNamed {
-                                                function_name: function_name.clone(),
-                                                block_name: name,
-                                            }
-                                        } else {
-                                            BlockName::LocalUnnamed {
-                                                function_name: function_name.clone(),
-                                                block_index,
-                                            }
-                                        },
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-                ast::Item::AliasDefinition(def) => {
-                    // NOTE: here we are interested only in value aliases
-                    // we would need to collect register aliases in a different pass
-                    if let Some(Either::Left(name)) = def.name() {
-                        if let Some(name) = name.token() {
-                            define(
-                                Name(name.text().into()),
-                                DefRef::Define(item_index).in_file(file),
-                            );
-                        }
-                    }
+                Entry::Vacant(v) => {
+                    v.insert(item);
                 }
             }
         }
     }
 
-    DefMap::new(db, items, block_names)
+    impl visit::Visitor for DefCollector {
+        fn visit_global_block(
+            &mut self,
+            file: File,
+            item_index: ItemIndex,
+            block_index: BlockIndex,
+            block: ast::InstructionsBlock,
+        ) {
+            let block_id = BlockId::new_block(item_index, block_index);
+
+            for label in block.labels().iter().flat_map(|v| v.labels()) {
+                if let Some(name) = label.name() {
+                    let name = Name(name.text().into());
+                    self.define(name, DefRef::Block(block_id).in_file(file));
+                }
+            }
+        }
+
+        fn visit_function(
+            &mut self,
+            file: File,
+            item_index: ItemIndex,
+            function: ast::FunctionDefinition,
+        ) {
+            let block_id = BlockId::new_function(item_index);
+
+            let Some(name) = function.name().and_then(|v| v.token()) else {
+                return;
+            };
+            let name = Name(name.text().into());
+
+            self.define(name.clone(), DefRef::Block(block_id).in_file(file));
+        }
+
+        fn visit_alias_definition(
+            &mut self,
+            file: File,
+            item_index: ItemIndex,
+            def: ast::AliasDefinition,
+        ) {
+            let Some(name) = def
+                .name()
+                .and_then(|v| bind_match!(v, Either::Left(v) => v)) // filter out only value aliases (not register aliases)
+                .and_then(|v| v.token())
+            else {
+                return;
+            };
+            let name = Name(name.text().into());
+            self.define(name, DefRef::Define(item_index).in_file(file));
+        }
+    }
+
+    let mut visitor = DefCollector {
+        items: FxHashMap::default(),
+    };
+    visit::visit_program(&mut visitor, db, program);
+
+    visitor.items
+}
+
+fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
+    struct RegisterCollector<'a> {
+        db: &'a dyn Db,
+        global_registers: FxHashMap<SmolStr, ast::RegisterIdentKind>,
+        local_registers: FxHashMap<ItemIndex, FxHashMap<Name, Register>>,
+    }
+
+    impl visit::Visitor for RegisterCollector<'_> {
+        fn visit_function(
+            &mut self,
+            file: File,
+            item_index: ItemIndex,
+            function: ast::FunctionDefinition,
+        ) {
+            let mut local_registers = FxHashMap::default();
+
+            for (param_index, param) in function
+                .params()
+                .iter()
+                .flat_map(|v| v.params())
+                .flat_map(|v| v.value())
+                .enumerate()
+            {
+                let param_index: u16 = param_index.try_into().unwrap();
+
+                let argument_register = RegisterRepr::Argument(param_index).register();
+
+                let param = match param.kind() {
+                    Ok(param) => param,
+                    Err(e) => {
+                        Diagnostics::emit(self.db, file, e);
+                        continue;
+                    }
+                };
+                match param {
+                    ast::RegisterIdentKind::Register(reg) => {
+                        if reg != argument_register {
+                            todo!()
+                        }
+                    }
+                    ast::RegisterIdentKind::Alias(name) => {
+                        let name = Name(name);
+                        match local_registers.entry(name) {
+                            Entry::Occupied(_) => {
+                                todo!()
+                            }
+                            Entry::Vacant(e) => {
+                                e.insert(argument_register);
+                            }
+                        }
+                    }
+                }
+            }
+
+            assert!(self
+                .local_registers
+                .insert(item_index, local_registers)
+                .is_none());
+        }
+
+        fn visit_alias_definition(
+            &mut self,
+            file: File,
+            _item_index: ItemIndex,
+            def: ast::AliasDefinition,
+        ) {
+            let Some((name, ident_token)) = def
+                .name()
+                .and_then(|v| bind_match!(v, Either::Right(v) => v)) // filter out only register aliases (not value aliases)
+                .and_then(|v| v.token())
+                .map(|v| (v.kind(), v))
+            else {
+                return;
+            };
+            let name = match name {
+                Ok(name) => name,
+                Err(e) => {
+                    Diagnostics::emit(self.db, file, e);
+                    return;
+                }
+            };
+            let ast::RegisterIdentKind::Alias(name) = name else {
+                let span = LabeledSpan::new_with_span(None, ident_token.miette_span());
+
+                Diagnostics::emit(
+                    self.db,
+                    file,
+                    diagnostic! {
+                        labels = vec![span.clone()],
+                        "Cannot define register alias for a built-in register",
+                    },
+                );
+                return;
+            };
+            let Some(value) = def.value() else { return };
+            let ast::Expr::RegisterRefExpr(value) = value else {
+                let span = LabeledSpan::new_with_span(None, value.miette_span());
+
+                Diagnostics::emit(
+                    self.db,
+                    file,
+                    diagnostic! {
+                        labels = vec![span.clone()],
+                        "Expected a register reference",
+                    },
+                );
+                return;
+            };
+            let value = match value.value().kind() {
+                Ok(value) => value,
+                Err(e) => {
+                    Diagnostics::emit(self.db, file, e);
+                    return;
+                }
+            };
+
+            match self.global_registers.entry(name) {
+                Entry::Occupied(_) => {
+                    todo!()
+                }
+                Entry::Vacant(e) => {
+                    e.insert(value);
+                }
+            }
+        }
+    }
+
+    let mut visitor = RegisterCollector {
+        db,
+        global_registers: FxHashMap::default(),
+        local_registers: FxHashMap::default(),
+    };
+    visit::visit_program(&mut visitor, db, program);
+
+    RegisterDefMap {
+        global_registers: visitor.global_registers,
+        local_registers: visitor.local_registers,
+    }
+}
+
+fn collect_block_names(db: &dyn Db, program: Program) -> FxHashMap<InFile<BlockId>, BlockName> {
+    struct BlockNameCollector {
+        block_names: FxHashMap<InFile<BlockId>, BlockName>,
+    }
+
+    fn block_name(block: &ast::InstructionsBlock) -> Option<Name> {
+        block
+            .labels()
+            .and_then(|l| l.labels().next())
+            .and_then(|l| l.name())
+            .map(|name| Name(name.text().into()))
+    }
+
+    fn function_name(function: &ast::FunctionDefinition) -> Option<Name> {
+        function
+            .name()
+            .and_then(|v| v.token())
+            .map(|name| Name(name.text().into()))
+    }
+
+    impl visit::Visitor for BlockNameCollector {
+        fn visit_global_block(
+            &mut self,
+            file: File,
+            item_index: ItemIndex,
+            block_index: BlockIndex,
+            block: ast::InstructionsBlock,
+        ) {
+            let block_id = BlockId::new_block(item_index, block_index);
+
+            self.block_names.insert(
+                block_id.in_file(file),
+                BlockName::GlobalBlock(block_name(&block)),
+            );
+        }
+
+        fn visit_function(
+            &mut self,
+            file: File,
+            item_index: ItemIndex,
+            function: ast::FunctionDefinition,
+        ) {
+            self.block_names.insert(
+                BlockId::new_function(item_index).in_file(file),
+                BlockName::Function(function_name(&function)),
+            );
+
+            visit::visit_function(self, file, item_index, function)
+        }
+
+        fn visit_function_block(
+            &mut self,
+            file: File,
+            item_index: ItemIndex,
+            block_index: BlockIndex,
+            block: ast::InstructionsBlock,
+        ) {
+            self.block_names.insert(
+                BlockId::new_block(item_index, block_index).in_file(file),
+                BlockName::LocalBlock(block_name(&block)),
+            );
+        }
+    }
+
+    let mut visitor = BlockNameCollector {
+        block_names: FxHashMap::default(),
+    };
+    visit::visit_program(&mut visitor, db, program);
+
+    visitor.block_names
+}
+
+#[salsa::tracked]
+pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
+    let items = collect_item_defs(db, program);
+    let registers = collect_regiter_defs(db, program);
+    let block_names = collect_block_names(db, program);
+
+    DefMap::new(db, items, registers, block_names)
 }
 
 #[cfg(test)]
@@ -250,16 +471,18 @@ mod tests {
         let (db, def_map) = parse_def_map(
             r#"
 def ABIBA = 3 + 3
+def $_aboba = $v17
+def $keka = $_abiba
 
-subroutine KEKA
-    add $1, 2, 2
+function KEKA($a0, $hello, $keka)
+    add $v1, 2, 2
 ABOBA:
-    add $1, 3, 3
-endsub
+    add $v1, 3, 3
+endfun
 
-    add $2, 2, 2
+    add $v2, 2, 2
 LABEL1:
-    sub $2, 2, 2
+    sub $v2, 2, 2
     j LABEL1
 LABEL2:
         "#,
@@ -267,17 +490,25 @@ LABEL2:
 
         expect![[r#"
             items:
-              ABIBA: Define(0) @ test.sal
-              KEKA: Block(BlockId { item_index: 1, block_index: None }) @ test.sal
-              LABEL1: Block(BlockId { item_index: 2, block_index: Some(1) }) @ test.sal
-              LABEL2: Block(BlockId { item_index: 2, block_index: Some(2) }) @ test.sal
+              ABIBA: Define(ItemIndex(0)) @ test.sal
+              KEKA: Block(BlockId { item_index: 3, block_index: None }) @ test.sal
+              LABEL1: Block(BlockId { item_index: 4, block_index: Some(1) }) @ test.sal
+              LABEL2: Block(BlockId { item_index: 4, block_index: Some(2) }) @ test.sal
+            registers:
+              global:
+                _aboba: Register($v17)
+                keka: Alias("_abiba")
+              local:
+                item #3: 
+                  hello: $a1
+                  keka: $a2
             block names:
-              BlockId { item_index: 1, block_index: None } @ test.sal: Function(Name("KEKA"))
-              BlockId { item_index: 1, block_index: Some(0) } @ test.sal: LocalUnnamed { function_name: Name("KEKA"), block_index: 0 }
-              BlockId { item_index: 1, block_index: Some(1) } @ test.sal: LocalNamed { function_name: Name("KEKA"), block_name: Name("ABOBA") }
-              BlockId { item_index: 2, block_index: Some(0) } @ test.sal: GlobalUnnamed(0)
-              BlockId { item_index: 2, block_index: Some(1) } @ test.sal: GlobalNamed(Name("LABEL1"))
-              BlockId { item_index: 2, block_index: Some(2) } @ test.sal: GlobalNamed(Name("LABEL2"))
+              BlockId { item_index: 3, block_index: None } @ test.sal: Function(Some(Name("KEKA")))
+              BlockId { item_index: 3, block_index: Some(0) } @ test.sal: LocalBlock(None)
+              BlockId { item_index: 3, block_index: Some(1) } @ test.sal: LocalBlock(Some(Name("ABOBA")))
+              BlockId { item_index: 4, block_index: Some(0) } @ test.sal: GlobalBlock(None)
+              BlockId { item_index: 4, block_index: Some(1) } @ test.sal: GlobalBlock(Some(Name("LABEL1")))
+              BlockId { item_index: 4, block_index: Some(2) } @ test.sal: GlobalBlock(Some(Name("LABEL2")))
         "#]].assert_eq(&def_map.debug_dump(&db));
     }
 }

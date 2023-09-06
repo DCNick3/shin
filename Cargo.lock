@@ -356,6 +356,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bind_match"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "171f0236f66c7be99f32060539c2bade94033ded356ecf4c9dc9b1e6198326cd"
+
+[[package]]
 name = "bindgen"
 version = "0.61.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3485,6 +3491,7 @@ name = "shin-asm"
 version = "0.5.0"
 dependencies = [
  "assert_matches",
+ "bind_match",
  "binrw",
  "build-deps",
  "drop_bomb",

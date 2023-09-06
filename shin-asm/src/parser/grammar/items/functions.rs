@@ -59,13 +59,23 @@ fn function_definition_params(p: &mut Parser<'_>) {
         EOL_SET.add(T![')']),
         T![,],
         TokenSet::new(&[REGISTER_IDENT]),
-        |p: &mut Parser<'_>| p.expect(REGISTER_IDENT),
+        |p: &mut Parser<'_>| {
+            function_definition_param(p);
+            true
+        },
     );
     // }
 
     p.expect(T![')']);
 
     m.complete(p, FUNCTION_DEFINITION_PARAMS);
+}
+
+fn function_definition_param(p: &mut Parser<'_>) {
+    let m = p.start();
+    // TODO: maybe we can eat some of the different token types here? Idents may be a good idea
+    p.expect(REGISTER_IDENT);
+    m.complete(p, FUNCTION_DEFINITION_PARAM);
 }
 
 fn function_definition_preserves(p: &mut Parser<'_>) {

@@ -30,6 +30,24 @@ pub struct FunctionDefinitionParams {
     pub(crate) syntax: SyntaxNode,
 }
 
+impl FunctionDefinitionParams {
+    pub fn params(&self) -> AstChildren<FunctionDefinitionParam> {
+        support::children(self.syntax())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
+#[ast(kind = FUNCTION_DEFINITION_PARAM)]
+pub struct FunctionDefinitionParam {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl FunctionDefinitionParam {
+    pub fn value(&self) -> Option<RegisterIdent> {
+        support::token(self.syntax())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 #[ast(kind = FUNCTION_DEFINITION_PRESERVES)]
 pub struct FunctionDefinitionPreserves {

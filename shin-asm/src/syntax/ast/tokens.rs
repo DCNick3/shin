@@ -1,5 +1,5 @@
 use crate::syntax::{
-    ast::{AstToken, SyntaxToken},
+    ast::{AstSpanned, AstToken, SyntaxToken},
     SyntaxKind::*,
 };
 use miette::{diagnostic, LabeledSpan};
@@ -11,7 +11,7 @@ pub struct Ident {
     pub(crate) syntax: SyntaxToken,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum RegisterIdentKind {
     Register(crate::elements::Register),
     Alias(SmolStr),
