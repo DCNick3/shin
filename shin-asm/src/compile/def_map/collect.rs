@@ -1,15 +1,15 @@
 use crate::{
     compile::{
-        def_map::{BlockName, Name, RegisterDefMap, RegisterName},
-        emit_diagnostic, BlockId, Db, DefMap, DefRef, File, FileDefRef, MakeWithFile, Program,
-        WithFile,
+        def_map::{BlockName, Name, RegisterName},
+        diagnostics::Span,
+        make_diagnostic, BlockId, Db, DefMap, File, MakeWithFile, Program, WithFile,
     },
     elements::{Register, RegisterRepr},
     syntax::{
         ast,
         ast::visit,
         ast::visit::{BlockIndex, ItemIndex},
-        AstToken,
+        AstSpanned, AstToken,
     },
 };
 use bind_match::bind_match;
@@ -17,13 +17,19 @@ use either::Either;
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 
-fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, FileDefRef> {
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum DefRef {
+    Block(BlockId, Span),
+    Define(ast::Expr, ItemIndex, Span),
+}
+
+fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, DefRef> {
     struct DefCollector {
-        items: FxHashMap<Name, FileDefRef>,
+        items: FxHashMap<Name, DefRef>,
     }
 
     impl DefCollector {
-        fn define(&mut self, name: Name, item: FileDefRef) {
+        fn define(&mut self, name: Name, item: DefRef) {
             match self.items.entry(name) {
                 Entry::Occupied(_o) => {
                     todo!("report multiple definitions")
@@ -48,7 +54,7 @@ fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, FileDefRe
             for label in block.labels().iter().flat_map(|v| v.labels()) {
                 if let Some(name) = label.name() {
                     let name = Name(name.text().into());
-                    self.define(name, DefRef::Block(block_id).in_file(file));
+                    self.define(name, DefRef::Block(block_id, block.span(file)));
                 }
             }
         }
@@ -66,7 +72,11 @@ fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, FileDefRe
             };
             let name = Name(name.text().into());
 
-            self.define(name.clone(), DefRef::Block(block_id).in_file(file));
+            let span = function
+                .name()
+                .map_or_else(|| function.span(file), |n| n.span(file));
+
+            self.define(name.clone(), DefRef::Block(block_id, span));
         }
 
         fn visit_alias_definition(
@@ -82,8 +92,12 @@ fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, FileDefRe
             else {
                 return;
             };
+            let span = name.span(file);
             let name = Name(name.text().into());
-            self.define(name, DefRef::Define(item_index).in_file(file));
+
+            if let Some(value) = def.value() {
+                self.define(name, DefRef::Define(value, item_index, span));
+            }
         }
     }
 
@@ -95,11 +109,90 @@ fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, FileDefRe
     visitor.items
 }
 
-fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
+struct UnresolvedGlobalRegister {
+    register_kind: ast::RegisterIdentKind,
+    definition_span: Span,
+    body_span: Span,
+}
+
+type UnresolvedGlobalRegisters = FxHashMap<RegisterName, UnresolvedGlobalRegister>;
+pub type ResolvedGlobalRegisters = FxHashMap<RegisterName, Register>;
+pub type LocalRegisters = FxHashMap<ItemIndex, FxHashMap<RegisterName, Register>>;
+
+fn collect_global_registers(db: &dyn Db, program: Program) -> UnresolvedGlobalRegisters {
     struct RegisterCollector<'a> {
         db: &'a dyn Db,
-        global_registers: FxHashMap<RegisterName, ast::RegisterIdentKind>,
-        local_registers: FxHashMap<ItemIndex, FxHashMap<RegisterName, Register>>,
+        global_registers: UnresolvedGlobalRegisters,
+    }
+
+    impl visit::Visitor for RegisterCollector<'_> {
+        fn visit_alias_definition(
+            &mut self,
+            file: File,
+            _item_index: ItemIndex,
+            def: ast::AliasDefinition,
+        ) {
+            let Some((name, ident_token)) = def
+                .name()
+                .and_then(|v| bind_match!(v, Either::Right(v) => v)) // filter out only register aliases (not value aliases)
+                .and_then(|v| v.token())
+                .map(|v| (v.kind(), v))
+            else {
+                return;
+            };
+            let name = match name {
+                Ok(name) => name,
+                Err(e) => return e.in_file(file).emit(self.db),
+            };
+            let ast::RegisterIdentKind::Alias(name) = name else {
+                return make_diagnostic!(
+                    ident_token => file,
+                    "Cannot define register alias for a built-in register"
+                )
+                .emit(self.db);
+            };
+            let Some(value) = def.value() else { return };
+            let value_span = value.span(file);
+            let ast::Expr::RegisterRefExpr(value) = value else {
+                return make_diagnostic!(
+                    value => file,
+                    "Expected a register reference"
+                )
+                .emit(self.db);
+            };
+            let value = match value.value().kind() {
+                Ok(value) => value,
+                Err(e) => return e.in_file(file).emit(self.db),
+            };
+
+            match self.global_registers.entry(RegisterName(name)) {
+                Entry::Occupied(_) => {
+                    todo!()
+                }
+                Entry::Vacant(e) => {
+                    e.insert(UnresolvedGlobalRegister {
+                        register_kind: value,
+                        definition_span: ident_token.span(file),
+                        body_span: value_span,
+                    });
+                }
+            }
+        }
+    }
+
+    let mut visitor = RegisterCollector {
+        db,
+        global_registers: FxHashMap::default(),
+    };
+    visit::visit_program(&mut visitor, db, program);
+
+    visitor.global_registers
+}
+
+fn collect_local_registers(db: &dyn Db, program: Program) -> LocalRegisters {
+    struct RegisterCollector<'a> {
+        db: &'a dyn Db,
+        local_registers: LocalRegisters,
     }
 
     impl visit::Visitor for RegisterCollector<'_> {
@@ -152,67 +245,91 @@ fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
                 .insert(item_index, local_registers)
                 .is_none());
         }
-
-        fn visit_alias_definition(
-            &mut self,
-            file: File,
-            _item_index: ItemIndex,
-            def: ast::AliasDefinition,
-        ) {
-            let Some((name, ident_token)) = def
-                .name()
-                .and_then(|v| bind_match!(v, Either::Right(v) => v)) // filter out only register aliases (not value aliases)
-                .and_then(|v| v.token())
-                .map(|v| (v.kind(), v))
-            else {
-                return;
-            };
-            let name = match name {
-                Ok(name) => name,
-                Err(e) => return e.in_file(file).emit(self.db),
-            };
-            let ast::RegisterIdentKind::Alias(name) = name else {
-                return emit_diagnostic!(
-                    self.db,
-                    ident_token => file,
-                    "Cannot define register alias for a built-in register"
-                );
-            };
-            let Some(value) = def.value() else { return };
-            let ast::Expr::RegisterRefExpr(value) = value else {
-                return emit_diagnostic!(
-                    self.db,
-                    value => file,
-                    "Expected a register reference"
-                );
-            };
-            let value = match value.value().kind() {
-                Ok(value) => value,
-                Err(e) => return e.in_file(file).emit(self.db),
-            };
-
-            match self.global_registers.entry(RegisterName(name)) {
-                Entry::Occupied(_) => {
-                    todo!()
-                }
-                Entry::Vacant(e) => {
-                    e.insert(value);
-                }
-            }
-        }
     }
 
     let mut visitor = RegisterCollector {
         db,
-        global_registers: FxHashMap::default(),
         local_registers: FxHashMap::default(),
     };
     visit::visit_program(&mut visitor, db, program);
 
-    RegisterDefMap {
-        global_registers: visitor.global_registers,
-        local_registers: visitor.local_registers,
+    visitor.local_registers
+}
+
+fn resolve_global_registers(
+    db: &dyn Db,
+    global_registers: &UnresolvedGlobalRegisters,
+) -> FxHashMap<RegisterName, Register> {
+    enum NodeState {
+        NotVisited,
+        Visiting,
+        Visited(Register),
     }
+    struct RegisterResolver<'a> {
+        db: &'a dyn Db,
+        global_registers: &'a UnresolvedGlobalRegisters,
+        node_info: FxHashMap<RegisterName, NodeState>,
+    }
+
+    impl RegisterResolver<'_> {
+        fn resolve(&mut self, name: RegisterName, usage_span: Option<Span>) -> Register {
+            let node_entry = self.node_info.entry(name.clone());
+            let node_state = node_entry.or_insert(NodeState::NotVisited);
+
+            match *node_state {
+                NodeState::NotVisited => {
+                    let result = match self.global_registers.get(&name) {
+                        None => {
+                            make_diagnostic!(
+                                usage_span.unwrap(),
+                                "Could not find the definition for register ${}",
+                                name
+                            )
+                            .emit(self.db);
+
+                            Register::dummy()
+                        }
+                        Some(&UnresolvedGlobalRegister {
+                            register_kind: ast::RegisterIdentKind::Register(register),
+                            ..
+                        }) => register,
+                        Some(&UnresolvedGlobalRegister {
+                            register_kind: ast::RegisterIdentKind::Alias(ref aliased_name),
+                            body_span,
+                            ..
+                        }) => {
+                            *node_state = NodeState::Visiting;
+                            self.resolve(RegisterName(aliased_name.clone()), Some(body_span))
+                        }
+                    };
+
+                    // can't use node_state here due to borrow checker
+                    self.node_info.insert(name, NodeState::Visited(result));
+
+                    result
+                }
+                NodeState::Visiting => {
+                    todo!("Handle loops");
+                }
+                NodeState::Visited(result) => result,
+            }
+        }
+    }
+
+    let mut register_resolver = RegisterResolver {
+        db,
+        global_registers,
+        node_info: FxHashMap::default(),
+    };
+
+    global_registers
+        .iter()
+        .map(|(name, &_)| {
+            let result = register_resolver.resolve(name.clone(), None);
+
+            (name.clone(), result)
+        })
+        .collect()
 }
 
 fn collect_block_names(db: &dyn Db, program: Program) -> FxHashMap<WithFile<BlockId>, BlockName> {
@@ -290,12 +407,15 @@ fn collect_block_names(db: &dyn Db, program: Program) -> FxHashMap<WithFile<Bloc
 #[salsa::tracked]
 pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
     let items = collect_item_defs(db, program);
-    let registers = collect_regiter_defs(db, program);
+    let local_registers = collect_local_registers(db, program);
+    let global_registers = collect_global_registers(db, program);
+    let global_registers = resolve_global_registers(db, &global_registers);
     let block_names = collect_block_names(db, program);
 
     DefMap {
-        items,
-        registers,
+        // items,
+        local_registers,
+        global_registers,
         block_names,
     }
 }
@@ -332,7 +452,7 @@ mod tests {
             r#"
 def ABIBA = 3 + 3
 def $_aboba = $v17
-def $keka = $_abiba
+def $keka = $_aboba
 
 function KEKA($a0, $hello, $keka)
     add $v1, 2, 2

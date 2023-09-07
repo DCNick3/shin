@@ -130,7 +130,7 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
             block_index: BlockIndex,
             block: ast::InstructionsBlock,
         ) {
-            let mut collector = HirBlockCollector::new(self.db, file);
+            let mut collector = HirBlockCollector::new();
 
             if let Some(body) = block.body() {
                 for instruction in body.instructions() {
@@ -139,7 +139,11 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
             }
 
             // TODO: collect source maps
-            let (block, _source_map) = collector.collect();
+            let (block, _source_map, diagnostics) = collector.collect();
+
+            for e in diagnostics {
+                e.in_file(file).emit(self.db)
+            }
 
             self.block_bodies
                 .insert(BlockId::new_block(item_index, block_index), Rc::new(block));
@@ -155,7 +159,13 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
     HirBlockBodies::new(db, visitor.block_bodies)
 }
 
-pub fn collect_bare_expression(file: File, expr: ast::Expr) -> (HirBlockBody, ExprId) {
+pub fn collect_bare_expression(expr: ast::Expr) -> (HirBlockBody, ExprId) {
+    let mut collector = HirBlockCollector::new();
+
+    collector.collect_expr(expr);
+
+    let (block_body, _source_map, diagnostiscs) = collector.collect();
+
     // TODO: create a diagnostic adapter... Otherwise we would need to pass the Db here, which is less than ideal
     todo!()
 }

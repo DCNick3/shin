@@ -1,4 +1,4 @@
-use crate::compile::from_hir::{HirId, HirIdWithBlock};
+use crate::compile::from_hir::{HirBlockId, HirId, HirIdWithBlock};
 use crate::compile::{BlockId, Db, File, MakeWithFile, WithFile};
 
 use std::fmt::Debug;
@@ -7,7 +7,7 @@ use ariadne::Span as _;
 use text_size::TextRange;
 
 /// A text range associated with a file. Fully identifies a span of text in the program. Final form of the diagnostic location
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Span(WithFile<TextRange>);
 
 impl Span {
@@ -108,12 +108,6 @@ macro_rules! make_diagnostic {
     };
 }
 pub(crate) use make_diagnostic;
-macro_rules! emit_diagnostic {
-    ($db:expr, $($args:tt)*) => {
-        $crate::compile::diagnostics::make_diagnostic!($($args)*).emit($db)
-    };
-}
-pub(crate) use emit_diagnostic;
 
 impl Diagnostic<TextRange> {
     pub fn in_file(self, file: File) -> Diagnostic<Span> {
@@ -122,7 +116,8 @@ impl Diagnostic<TextRange> {
 }
 
 impl Diagnostic<HirId> {
-    pub fn in_block(self, block: BlockId) -> Diagnostic<HirIdWithBlock> {
+    pub fn in_block(self, block: impl Into<HirBlockId>) -> Diagnostic<HirIdWithBlock> {
+        let block = block.into();
         self.map_location(|location| HirIdWithBlock::new(location, block))
     }
 }

@@ -1,8 +1,6 @@
 mod collect;
-mod resolve;
 
-pub use collect::build_def_map;
-pub use resolve::{ResolvedDefMap, ResolvedDefMap_get_register, ResolvedDefMap_get_value};
+pub use collect::{build_def_map, LocalRegisters, ResolvedGlobalRegisters};
 
 use crate::{
     compile::{BlockId, BlockIdWithFile, Db, MakeWithFile, WithFile},
@@ -30,24 +28,6 @@ impl Display for RegisterName {
         self.0.fmt(f)
     }
 }
-
-/// Reference to a function or a label within a file
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum DefRef {
-    Block(BlockId),
-    Define(ItemIndex),
-}
-
-pub type FileDefRef = WithFile<DefRef>;
-
-impl MakeWithFile for DefRef {}
-
-/// This is a compile-time check that `DefRef` fits into 64 bits
-const _: () = [(); 1][(core::mem::size_of::<DefRef>() == 8) as usize ^ 1];
-
-// this size is a little sad, but I don't know how to make it smaller
-const _: () = [(); 1][(core::mem::size_of::<WithFile<DefRef>>() == 12) as usize ^ 1];
-
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum BlockName {
     GlobalBlock(Option<Name>),
@@ -56,26 +36,17 @@ pub enum BlockName {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct RegisterDefMap {
-    pub global_registers: FxHashMap<RegisterName, ast::RegisterIdentKind>,
-    pub local_registers: FxHashMap<ItemIndex, FxHashMap<RegisterName, Register>>,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DefMap {
-    items: FxHashMap<Name, FileDefRef>,
-    registers: RegisterDefMap,
+    // items: FxHashMap<Name, DefRef>,
+    global_registers: ResolvedGlobalRegisters,
+    local_registers: LocalRegisters,
     block_names: FxHashMap<BlockIdWithFile, BlockName>,
 }
 
 impl DefMap {
-    pub fn get_item(&self, name: &Name) -> Option<FileDefRef> {
-        self.items.get(name).copied()
-    }
-
-    pub fn get_register(&self, name: &RegisterName) -> Option<&ast::RegisterIdentKind> {
-        self.registers.global_registers.get(name)
-    }
+    // pub fn get_item(&self, name: &Name) -> Option<FileDefRef> {
+    //     self.items.get(name).copied()
+    // }
 }
 
 impl DefMap {
@@ -84,21 +55,20 @@ impl DefMap {
 
         let mut output = String::new();
 
-        let mut items = self.items.iter().collect::<Vec<_>>();
-        items.sort();
+        // let mut items = self.items.iter().collect::<Vec<_>>();
+        // items.sort();
+        //
+        // writeln!(output, "items:").unwrap();
+        // for (name, def_ref) in items {
+        //     let file_name = def_ref.file.path(db);
+        //     let def_ref = &def_ref.value;
+        //
+        //     writeln!(output, "  {}: {:?} @ {}", name, def_ref, file_name).unwrap();
+        // }
 
-        writeln!(output, "items:").unwrap();
-        for (name, def_ref) in items {
-            let file_name = def_ref.file.path(db);
-            let def_ref = &def_ref.value;
-
-            writeln!(output, "  {}: {:?} @ {}", name, def_ref, file_name).unwrap();
-        }
-
-        let registers = &self.registers;
-        let mut global_registers = registers.global_registers.iter().collect::<Vec<_>>();
+        let mut global_registers = self.global_registers.iter().collect::<Vec<_>>();
         global_registers.sort_by_key(|(name, _)| *name);
-        let mut local_registers = registers.local_registers.iter().collect::<Vec<_>>();
+        let mut local_registers = self.local_registers.iter().collect::<Vec<_>>();
         local_registers.sort_by_key(|(&index, _)| index);
 
         writeln!(output, "registers:").unwrap();

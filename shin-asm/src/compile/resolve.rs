@@ -1,5 +1,5 @@
 use crate::{
-    compile::{def_map::Name, Db, DefRef},
+    compile::{def_map::Name, Db},
     elements::Register,
     syntax::ast::{self},
 };
@@ -20,7 +20,7 @@ impl<'a> ResolveContext<'a> {
         }
     }
 
-    pub fn resolve_definition(&self, _name: &Name) -> Option<DefRef> {
-        todo!()
-    }
+    // pub fn resolve_definition(&self, _name: &Name) -> Option<DefRef> {
+    //     todo!()
+    // }
 }

@@ -3,6 +3,7 @@ use crate::compile::{
     hir::{self, HirBlockBody},
     resolve, BlockId, MakeWithFile, WithFile,
 };
+use crate::syntax::ast::visit::ItemIndex;
 
 #[derive(Debug, Copy, Clone)]
 pub enum HirId {
@@ -11,18 +12,30 @@ pub enum HirId {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub enum HirBlockId {
+    Block(BlockId),
+    Alias(ItemIndex),
+}
+
+impl From<BlockId> for HirBlockId {
+    fn from(value: BlockId) -> Self {
+        Self::Block(value)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct HirIdWithBlock {
     // TODO: naming is unclear...
     // InBlock -> identifies inside a block or HirId wrapped with a block id (like InFile)
     // Probably should rename the InFile to WithFile
     id: HirId,
-    block_id: BlockId,
+    block_id: HirBlockId,
 }
 
 impl HirIdWithBlock {
-    pub fn new(id: impl Into<HirId>, block_id: BlockId) -> Self {
+    pub fn new(id: impl Into<HirId>, block_id: impl Into<HirBlockId>) -> Self {
         Self {
-            block_id,
+            block_id: block_id.into(),
             id: id.into(),
         }
     }

@@ -6,13 +6,14 @@ use crate::compile::{Db, File};
 use crate::syntax::{ast, AstToken};
 
 use crate::compile::def_map::Name;
+use crate::compile::diagnostics::Diagnostic;
 use crate::syntax::ast::AstNodeExt;
 use la_arena::Arena;
 use rustc_hash::FxHashMap;
+use text_size::TextRange;
 
-pub struct HirBlockCollector<'a> {
-    db: &'a dyn Db,
-    file: File,
+pub struct HirBlockCollector {
+    diagnostics: Vec<Diagnostic<TextRange>>,
     exprs: Arena<Expr>,
     instructions: Arena<Instruction>,
     exprs_source_map: FxHashMap<ExprId, ExprPtr>,
@@ -20,11 +21,10 @@ pub struct HirBlockCollector<'a> {
     // TODO: store info on local register aliases
 }
 
-impl<'a> HirBlockCollector<'a> {
-    pub fn new(db: &'a dyn Db, file: File) -> Self {
+impl HirBlockCollector {
+    pub fn new() -> Self {
         Self {
-            db,
-            file,
+            diagnostics: Vec::new(),
             exprs: Arena::default(),
             instructions: Arena::default(),
             exprs_source_map: FxHashMap::default(),
@@ -54,7 +54,7 @@ impl<'a> HirBlockCollector<'a> {
         match literal.value() {
             Ok(v) => Some(v),
             Err(e) => {
-                e.in_file(self.file).emit(self.db);
+                self.diagnostics.push(e);
                 None
             }
         }
@@ -64,8 +64,8 @@ impl<'a> HirBlockCollector<'a> {
         match literal {
             ast::LiteralKind::String(v) => match v.value() {
                 Ok(v) => Literal::String(v.into()),
-                Err(diag) => {
-                    diag.in_file(self.file).emit(self.db);
+                Err(e) => {
+                    self.diagnostics.push(e);
                     Literal::String("".into())
                 }
             },
@@ -76,7 +76,7 @@ impl<'a> HirBlockCollector<'a> {
         }
     }
 
-    fn collect_expr(&mut self, expr: ast::Expr) -> ExprId {
+    pub fn collect_expr(&mut self, expr: ast::Expr) -> ExprId {
         let ptr = expr.ptr();
         match expr {
             ast::Expr::Literal(e) => {
@@ -89,8 +89,8 @@ impl<'a> HirBlockCollector<'a> {
             ast::Expr::RegisterRefExpr(e) => {
                 let register = match e.value().kind() {
                     Ok(v) => Some(v),
-                    Err(diag) => {
-                        diag.in_file(self.file).emit(self.db);
+                    Err(e) => {
+                        self.diagnostics.push(e);
                         None
                     }
                 };
@@ -164,7 +164,7 @@ impl<'a> HirBlockCollector<'a> {
         )
     }
 
-    pub fn collect(self) -> (HirBlockBody, BlockSourceMap) {
+    pub fn collect(self) -> (HirBlockBody, BlockSourceMap, Vec<Diagnostic<TextRange>>) {
         (
             HirBlockBody {
                 exprs: self.exprs,
@@ -174,6 +174,7 @@ impl<'a> HirBlockCollector<'a> {
                 exprs_source_map: self.exprs_source_map,
                 instructions_source_map: self.instructions_source_map,
             },
+            self.diagnostics,
         )
     }
 }
