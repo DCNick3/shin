@@ -1,12 +1,31 @@
+use crate::compile::diagnostics::{Diagnostic, HirLocation};
 use crate::compile::{
     hir::{self, HirBlockBody},
-    resolve, File, InFile, MakeInFile,
+    resolve, BlockId, InFile, MakeInFile,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum HirId {
     Expr(hir::ExprId),
     Instruction(hir::InstructionId),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct HirIdInBlock {
+    // TODO: naming is unclear...
+    // InBlock -> identifies inside a block or HirId wrapped with a block id (like InFile)
+    // Probably should rename the InFile to WithFile
+    id: HirId,
+    block_id: BlockId,
+}
+
+impl HirIdInBlock {
+    pub fn new(id: impl Into<HirId>, block_id: BlockId) -> Self {
+        Self {
+            block_id,
+            id: id.into(),
+        }
+    }
 }
 
 impl From<hir::ExprId> for HirId {
@@ -21,34 +40,26 @@ impl From<hir::InstructionId> for HirId {
     }
 }
 
-impl MakeInFile for HirId {}
+impl MakeInFile for HirIdInBlock {}
 
-pub type HirIdInFile = InFile<HirId>;
+pub type HirIdInFile = InFile<HirIdInBlock>;
 
-#[derive(Debug)]
-#[allow(unused)] // will be used when hir diagnostic adapters will be implemented
-pub struct HirDiagnostic {
-    location: HirIdInFile,
-    message: String,
-}
+type HirDiagnostic = Box<dyn Diagnostic<HirLocation>>;
 
 #[derive(Default, Debug)]
-pub struct HirDiagnostics {
+pub struct HirDiagnosticCollector {
     diagnostics: Vec<HirDiagnostic>,
 }
 
-impl HirDiagnostics {
+impl HirDiagnosticCollector {
     pub fn new() -> Self {
         Self {
             diagnostics: Vec::new(),
         }
     }
 
-    pub fn emit(&mut self, file: File, location: HirId, message: String) {
-        self.diagnostics.push(HirDiagnostic {
-            location: location.in_file(file),
-            message,
-        });
+    pub fn emit(&mut self, _location: HirId, _message: String) {
+        todo!()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -58,9 +69,8 @@ impl HirDiagnostics {
 
 pub trait FromHirExpr {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnostics,
+        diagnostics: &mut HirDiagnosticCollector,
         resolve_ctx: &resolve::ResolveContext,
-        file: File,
         block: &HirBlockBody,
         expr: hir::ExprId,
     ) -> Self;
@@ -68,9 +78,8 @@ pub trait FromHirExpr {
 
 pub trait FromHirInstruction {
     fn from_hir_instruction(
-        diagnostics: &mut HirDiagnostics,
+        diagnostics: &mut HirDiagnosticCollector,
         resolve_ctx: &resolve::ResolveContext,
-        file: File,
         block: &HirBlockBody,
         instr: hir::InstructionId,
     ) -> Self;

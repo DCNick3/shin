@@ -1,4 +1,5 @@
-use crate::compile::{db::Database, hir, Diagnostics, File};
+use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
+use crate::compile::{db::Database, hir, File};
 use expect_test::expect_file;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -11,17 +12,20 @@ fn lower_block(code: &str) -> Rc<hir::HirBlockBody> {
     let file = File::new(db, "test.sal".to_string(), code.to_string());
     let bodies = hir::collect_file_bodies(db, file);
 
-    let errors = Diagnostics::debug_dump(
-        db,
-        hir::collect_file_bodies::accumulated::<Diagnostics>(db, file),
-    );
-    if !errors.is_empty() {
-        panic!("lowering produced errors:\n{}", errors);
+    let hir_errors = hir::collect_file_bodies::accumulated::<HirDiagnosticAccumulator>(db, file);
+    let source_errors =
+        hir::collect_file_bodies::accumulated::<SourceDiagnosticAccumulator>(db, file);
+    if !source_errors.is_empty() || !hir_errors.is_empty() {
+        panic!(
+            "lowering produced errors:\n\
+                source-level: {source_errors:?}\n\
+                hir-level: {hir_errors:?}"
+        );
     }
 
     let block_ids = bodies.get_block_ids(db);
     assert_eq!(block_ids.len(), 1, "expected exactly one block");
-    bodies.get(db, block_ids[0]).unwrap().clone()
+    bodies.get_block(db, block_ids[0]).unwrap().clone()
 }
 
 #[test_resources("test_data/hir/ok/*.sal")]

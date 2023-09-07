@@ -5,7 +5,7 @@ mod items;
 
 use super::tokens::*;
 use crate::syntax::{
-    ast::{support, AstChildren, AstNode, AstToken},
+    ast::{support, AstChildren, AstNode, AstSpanned, AstToken},
     SyntaxKind::*,
     SyntaxNode, SyntaxToken, T,
 };

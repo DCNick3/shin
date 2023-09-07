@@ -101,7 +101,7 @@ pub struct HirBlockBodies {
 #[salsa::tracked]
 impl HirBlockBodies {
     #[salsa::tracked]
-    pub fn get(self, db: &dyn Db, block_id: BlockId) -> Option<Rc<HirBlockBody>> {
+    pub fn get_block(self, db: &dyn Db, block_id: BlockId) -> Option<Rc<HirBlockBody>> {
         self.bodies(db).get(&block_id).cloned()
     }
 

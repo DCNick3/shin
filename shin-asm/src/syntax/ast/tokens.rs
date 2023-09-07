@@ -1,8 +1,8 @@
+use crate::compile::diagnostics::{make_diagnostic, FileLocation, SimpleDiagnostic};
 use crate::syntax::{
     ast::{AstSpanned, AstToken, SyntaxToken},
     SyntaxKind::*,
 };
-use miette::{diagnostic, LabeledSpan};
 use smol_str::SmolStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstToken)]
@@ -24,24 +24,22 @@ pub struct RegisterIdent {
 }
 
 impl RegisterIdent {
-    pub fn kind(&self) -> Result<RegisterIdentKind, miette::MietteDiagnostic> {
-        let span = LabeledSpan::new_with_span(None, self.miette_span());
-
+    pub fn kind(&self) -> Result<RegisterIdentKind, SimpleDiagnostic<FileLocation>> {
         let mut chars = self.text().chars();
         assert_eq!(chars.next(), Some('$'));
         match chars.clone().next() /* peek */ {
-            None => Err(diagnostic! {
-                labels = vec![span],
-                "Expected register name",
-            }),
+            None => Err(make_diagnostic!(
+                self.file_location(),
+                "Expected register name"
+            )),
             Some(c @ ('a' | 'v')) => {
                 chars.next();
                 let index = chars.as_str().parse().map_err(|e| {
-                    diagnostic! {
-                        labels = vec![span.clone()],
+                    make_diagnostic!(
+                        self.file_location(),
                         "Failed to parse register index: {:?}",
-                        e,
-                    }
+                        e
+                    )
                 })?;
 
                 let register = match c {
@@ -50,11 +48,11 @@ impl RegisterIdent {
                     _ => unreachable!(),
                 }
                 .ok_or_else(|| {
-                    diagnostic! {
-                        labels = vec![span],
-                        "Invalid register index: {}",
-                        index,
-                    }
+                    make_diagnostic!(
+                        self.file_location(),
+                        "file_location register index: {}",
+                        index
+                    )
                 })?;
 
                 Ok(RegisterIdentKind::Register(register))

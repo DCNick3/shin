@@ -19,11 +19,12 @@ pub use tokens::*;
 pub trait AstSpanned {
     fn text_range(&self) -> crate::syntax::TextRange;
 
-    fn miette_span(&self) -> miette::SourceSpan {
-        let range = self.text_range();
-        let start: usize = range.start().into();
-        let len: usize = range.len().into();
-        miette::SourceSpan::new(start.into(), len.into())
+    fn span(&self, file: crate::compile::File) -> crate::compile::diagnostics::Span {
+        crate::compile::diagnostics::Span::new(file, self.text_range())
+    }
+
+    fn file_location(&self) -> crate::compile::diagnostics::FileLocation {
+        crate::compile::diagnostics::FileLocation(self.text_range())
     }
 }
 

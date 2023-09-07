@@ -1,9 +1,9 @@
-use crate::compile::{BlockIdInFile, DefMap, DefRef, InFile, MakeInFile, Program};
+use crate::compile::{BlockIdInFile, DefMap, DefRef, InFile, MakeInFile};
 use crate::syntax::ast;
 use crate::{
     compile::{
         def_map::{Name, RegisterName},
-        BlockId, Db,
+        Db,
     },
     elements::Register,
     syntax::ast::visit::ItemIndex,

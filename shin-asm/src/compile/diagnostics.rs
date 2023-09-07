@@ -1,119 +1,244 @@
-use crate::compile::{Db, File, InFile};
-use std::fmt;
-use std::fmt::{Debug, Display};
+use crate::compile::from_hir::HirIdInBlock;
+use crate::compile::{Db, File, InFile, MakeInFile};
 
-use miette::NamedSource;
-use std::sync::Arc;
+use std::fmt::Debug;
 
-// TODO: we need to support diagnostics with source maps represented in hir node ids
-#[salsa::accumulator]
-pub struct Diagnostics(InFile<Arc<miette::Report>>);
+use ariadne::Span as _;
+use text_size::TextRange;
 
-struct DiagnosticWithSourceCode {
-    error: Arc<miette::Report>,
-    source_code: NamedSource,
-}
+#[derive(Debug, Copy, Clone)]
+pub struct Span(InFile<TextRange>);
 
-impl Debug for DiagnosticWithSourceCode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.error, f)
+impl Span {
+    pub fn new(file: File, range: TextRange) -> Self {
+        Self(range.in_file(file))
     }
 }
 
-impl Display for DiagnosticWithSourceCode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.error, f)
+impl ariadne::Span for Span {
+    type SourceId = File;
+
+    fn source(&self) -> &Self::SourceId {
+        &self.0.file
+    }
+
+    fn start(&self) -> usize {
+        self.0.value.start().into()
+    }
+
+    fn end(&self) -> usize {
+        self.0.value.end().into()
     }
 }
 
-impl std::error::Error for DiagnosticWithSourceCode {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        self.error.source()
+trait DiagnosticLocation: Debug + Copy + 'static {
+    type Context<'a>: Copy;
+
+    fn span(&self, context: Self::Context<'_>) -> Span;
+}
+
+/// A location specified by a range in the file. Does not include the file id. Needs to be enriched with the file id before being emitted.
+#[derive(Debug, Copy, Clone)]
+pub struct FileLocation(pub TextRange);
+
+impl FileLocation {
+    fn in_file(self, file: File) -> SourceLocation {
+        SourceLocation(Span::new(file, self.0))
     }
 }
 
-impl miette::Diagnostic for DiagnosticWithSourceCode {
-    fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        self.error.code()
-    }
+/// A location specified by a text range and a file id.
+#[derive(Debug, Copy, Clone)]
+pub struct SourceLocation(pub Span);
 
-    fn severity(&self) -> Option<miette::Severity> {
-        self.error.severity()
-    }
+/// A location specified by a HIR node range and a file id. Diagnostic machinery will use the HIR source map to get the actual source range.
+#[derive(Debug, Copy, Clone)]
+pub struct HirLocation(pub InFile<(HirIdInBlock, HirIdInBlock)>);
 
-    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        self.error.help()
-    }
-
-    fn url<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        self.error.url()
-    }
-
-    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        Some(&self.source_code)
-    }
-
-    fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
-        self.error.labels()
-    }
-
-    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
-        self.error.related()
-    }
-
-    fn diagnostic_source(&self) -> Option<&dyn miette::Diagnostic> {
-        self.error.diagnostic_source()
+impl HirLocation {
+    pub fn single_node(hir_id_in_block: HirIdInBlock, file: File) -> Self {
+        Self(InFile::new((hir_id_in_block, hir_id_in_block), file))
     }
 }
 
-impl Diagnostics {
-    pub fn emit(
-        db: &dyn Db,
-        file: File,
-        diagnostic: impl miette::Diagnostic + Send + Sync + 'static,
-    ) {
-        Self::push(
-            db,
-            InFile::new(file, Arc::new(miette::Report::new(diagnostic))),
-        )
+impl DiagnosticLocation for SourceLocation {
+    type Context<'a> = ();
+    fn span(&self, _: Self::Context<'_>) -> Span {
+        self.0
+    }
+}
+impl DiagnosticLocation for HirLocation {
+    type Context<'a> = &'a dyn Db;
+
+    fn span(&self, _db: Self::Context<'_>) -> Span {
+        let InFile {
+            file: _file,
+            value: (_start_node, _end_node),
+        } = self.0;
+
+        todo!("Collect HIR source maps and use them to get the location")
+    }
+}
+
+pub trait DiagnosticClone<L> {
+    fn clone_box(&self) -> Box<dyn Diagnostic<L>>;
+}
+
+pub trait Diagnostic<L>: Debug + DiagnosticClone<L> + 'static {
+    fn message(&self) -> String;
+    fn location(&self) -> L;
+    fn additional_labels(&self) -> Vec<(String, L)>;
+}
+
+#[derive(Debug, Clone)]
+pub struct SimpleDiagnostic<L> {
+    message: String,
+    location: L,
+}
+
+impl<L> SimpleDiagnostic<L> {
+    pub fn new(message: String, location: L) -> Self {
+        Self { message, location }
+    }
+}
+
+macro_rules! make_diagnostic {
+    ($token:expr => $file:expr, $($fmt:expr),+) => {
+        {
+            use $crate::syntax::ast::AstSpanned as _;
+            $crate::compile::diagnostics::SimpleDiagnostic::new(
+                format!($($fmt),+),
+                $crate::compile::diagnostics::SourceLocation(
+                    $token.span($file)
+                )
+            )
+        }
+    };
+    ($span:expr, $($fmt:expr),+) => {
+        $crate::compile::diagnostics::SimpleDiagnostic::new(format!($($fmt),+), $span)
+    };
+}
+pub(crate) use make_diagnostic;
+macro_rules! emit_diagnostic {
+    ($db:expr, $($args:tt)*) => {
+        {
+            #[allow(unused_imports)]
+            use $crate::compile::diagnostics::{FileDiagnosticExt as _, SourceDiagnosticExt as _};
+            $crate::compile::diagnostics::make_diagnostic!($($args)*).emit($db)
+        }
+    };
+}
+pub(crate) use emit_diagnostic;
+
+impl<L: Debug + Copy + 'static> DiagnosticClone<L> for SimpleDiagnostic<L> {
+    fn clone_box(&self) -> Box<dyn Diagnostic<L>> {
+        Box::new(self.clone())
+    }
+}
+
+impl<L: Debug + Copy + 'static> Diagnostic<L> for SimpleDiagnostic<L> {
+    fn message(&self) -> String {
+        self.message.clone()
     }
 
-    pub fn emit_for(
-        db: &dyn Db,
-        file: File,
-        diagnostic: impl miette::Diagnostic + Send + Sync + 'static,
-    ) {
-        Self::push(
-            db,
-            InFile::new(file, Arc::new(miette::Report::new(diagnostic))),
-        )
+    fn location(&self) -> L {
+        self.location
     }
 
-    pub fn with_source(
-        db: &dyn Db,
-        diagnostics: Vec<InFile<Arc<miette::Report>>>,
-    ) -> Vec<miette::Report> {
-        diagnostics
+    fn additional_labels(&self) -> Vec<(String, L)> {
+        vec![]
+    }
+}
+
+pub trait FileDiagnosticExt: Sized + Diagnostic<FileLocation> {
+    fn in_file(self, file: File) -> DiagnosticInFile {
+        DiagnosticInFile(InFile::new(Box::new(self), file))
+    }
+}
+
+impl<T: Diagnostic<FileLocation>> FileDiagnosticExt for T {}
+
+#[derive(Debug)]
+pub struct DiagnosticInFile(InFile<Box<dyn Diagnostic<FileLocation>>>);
+
+impl DiagnosticClone<SourceLocation> for DiagnosticInFile {
+    fn clone_box(&self) -> Box<dyn Diagnostic<SourceLocation>> {
+        let &DiagnosticInFile(InFile { ref value, file }) = self;
+        Box::new(Self(InFile::new(value.clone_box(), file)))
+    }
+}
+
+impl Diagnostic<SourceLocation> for DiagnosticInFile {
+    fn message(&self) -> String {
+        self.0.value.message()
+    }
+
+    fn location(&self) -> SourceLocation {
+        let &DiagnosticInFile(InFile { ref value, file }) = self;
+        value.location().in_file(file)
+    }
+
+    fn additional_labels(&self) -> Vec<(String, SourceLocation)> {
+        let &DiagnosticInFile(InFile { ref value, file }) = self;
+        value
+            .additional_labels()
             .into_iter()
-            .map(|diag| {
-                let path = diag.file.path(db);
-                let source_code = diag.file.contents(db).clone();
-
-                miette::Report::new(DiagnosticWithSourceCode {
-                    error: diag.value.clone(),
-                    source_code: NamedSource::new(path, source_code),
-                })
-            })
+            .map(|(message, location)| (message, location.in_file(file)))
             .collect()
     }
+}
 
-    pub fn debug_dump(db: &dyn Db, diagnostics: Vec<InFile<Arc<miette::Report>>>) -> String {
-        use std::fmt::Write as _;
+fn lower_diagnostic_into_ariadne<L: DiagnosticLocation>(
+    context: L::Context<'_>,
+    diagnostic: &dyn Diagnostic<L>,
+) -> ariadne::Report<'static, Span> {
+    let location = diagnostic.location();
+    let span = location.span(context);
 
-        let mut errors = String::new();
-        for diagnostic in Diagnostics::with_source(db, diagnostics) {
-            writeln!(errors, "{:?}", diagnostic).unwrap();
-        }
-        errors
+    ariadne::Report::build(ariadne::ReportKind::Error, *span.source(), span.start())
+        .with_message(diagnostic.message())
+        .with_label(ariadne::Label::new(span))
+        .with_labels(
+            diagnostic
+                .additional_labels()
+                .into_iter()
+                .map(|(message, location)| {
+                    let span = location.span(context);
+                    ariadne::Label::new(span).with_message(message)
+                }),
+        )
+        .finish()
+}
+
+pub trait SourceDiagnosticExt: Sized + Diagnostic<SourceLocation> {
+    fn emit(self, db: &dyn Db) {
+        SourceDiagnosticAccumulator::push(db, Box::new(self))
     }
 }
+impl<T: Diagnostic<SourceLocation>> SourceDiagnosticExt for T {}
+
+pub trait HirDiagnosticExt: Sized + Diagnostic<HirLocation> {
+    fn emit(self, db: &dyn Db) {
+        HirDiagnosticAccumulator::push(db, Box::new(self))
+    }
+}
+impl<T: Diagnostic<HirLocation>> HirDiagnosticExt for T {}
+
+impl Clone for Box<dyn Diagnostic<SourceLocation>> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
+}
+impl Clone for Box<dyn Diagnostic<HirLocation>> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
+}
+
+#[salsa::accumulator]
+pub struct SourceDiagnosticAccumulator(Box<dyn Diagnostic<SourceLocation>>);
+
+#[salsa::accumulator]
+pub struct HirDiagnosticAccumulator(Box<dyn Diagnostic<HirLocation>>);
+
+// TODO: write a macro that gets the accumulated errors and lowers the Hir errors into Source errors

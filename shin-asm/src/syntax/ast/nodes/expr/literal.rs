@@ -1,5 +1,6 @@
 use super::*;
-use miette::{diagnostic, LabeledSpan};
+use crate::compile::diagnostics::{FileLocation, SimpleDiagnostic};
+use crate::compile::make_diagnostic;
 use std::borrow::Cow;
 use std::num::IntErrorKind;
 
@@ -16,7 +17,7 @@ pub struct String {
 }
 
 impl String {
-    pub fn value(&self) -> Result<Cow<'_, str>, miette::MietteDiagnostic> {
+    pub fn value(&self) -> Result<Cow<'_, str>, SimpleDiagnostic<FileLocation>> {
         // TODO: Unescape string
         // TODO: report escape errors
         let text = self.syntax.text();
@@ -84,34 +85,26 @@ impl IntNumber {
         (prefix, text, suffix)
     }
 
-    pub fn value(&self) -> Result<i32, miette::MietteDiagnostic> {
+    pub fn value(&self) -> Result<i32, SimpleDiagnostic<FileLocation>> {
         let (_, text, _) = self.split_into_parts();
         i32::from_str_radix(&text.replace('_', ""), self.radix() as u32).map_err(|e| {
-            let range = self.syntax.text_range();
-            let start: usize = range.start().into();
-            let len: usize = range.len().into();
-            let span =
-                LabeledSpan::new_with_span(None, miette::SourceSpan::new(start.into(), len.into()));
-
             match e.kind() {
                 IntErrorKind::Empty => unreachable!(), // I think??
-                IntErrorKind::InvalidDigit => diagnostic! {
-                    labels = vec![span],
-                    "Invalid digit in integer literal",
-                },
-                IntErrorKind::PosOverflow => diagnostic! {
-                    labels = vec![span],
-                    "Integer literal is too large",
-                },
-                IntErrorKind::NegOverflow => diagnostic! {
-                    labels = vec![span],
-                    "Integer literal is too small",
-                },
+                IntErrorKind::InvalidDigit => {
+                    make_diagnostic!(self.file_location(), "Invalid digit in integer literal")
+                }
+                IntErrorKind::PosOverflow => {
+                    make_diagnostic!(self.file_location(), "Integer literal is too large")
+                }
+                IntErrorKind::NegOverflow => {
+                    make_diagnostic!(self.file_location(), "Integer literal is too small")
+                }
                 IntErrorKind::Zero => unreachable!(),
-                _ => diagnostic! {
-                    labels = vec![span],
-                    "Unknown error occurred while parsing integer literal: {:?}", e,
-                },
+                _ => make_diagnostic!(
+                    self.file_location(),
+                    "Unknown error occurred while parsing integer literal: {:?}",
+                    e
+                ),
             }
         })
     }

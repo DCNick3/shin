@@ -10,9 +10,10 @@ pub mod types;
 
 pub use db::Db;
 pub use def_map::{DefMap, DefRef, FileDefRef};
-pub use diagnostics::Diagnostics;
+pub(crate) use diagnostics::{emit_diagnostic, make_diagnostic};
+pub use diagnostics::{FileDiagnosticExt, SourceDiagnosticExt};
 pub use file::{File, Program};
-pub use from_hir::{FromHirExpr, FromHirInstruction, HirDiagnostics};
+pub use from_hir::{FromHirExpr, FromHirInstruction, HirDiagnosticCollector};
 pub use hir::HirBlockBody;
 pub use resolve::ResolveContext;
 pub use types::{BlockId, BlockIdInFile, BlockIdRepr, InFile, MakeInFile};

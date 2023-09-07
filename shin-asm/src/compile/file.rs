@@ -1,5 +1,5 @@
 use super::db::Db;
-use super::diagnostics::Diagnostics;
+use crate::compile::{FileDiagnosticExt, SourceDiagnosticExt};
 use crate::syntax;
 
 #[salsa::input]
@@ -10,15 +10,22 @@ pub struct File {
     pub contents: String,
 }
 
+#[salsa::tracked]
 impl File {
-    pub fn parse(self, db: &dyn Db) -> syntax::SourceFile {
+    #[salsa::tracked]
+    pub fn emit_diagnostics(self, db: &dyn Db) {
         let parse = syntax::SourceFile::parse(self.contents(db));
-
         for error in parse.errors() {
-            Diagnostics::emit(db, self, error.clone());
+            error.clone().in_file(self).emit(db)
         }
+    }
 
-        parse.tree()
+    pub fn parse(self, db: &dyn Db) -> syntax::SourceFile {
+        // NOTE: currently, we will not emit diagnostics if the file was never parsed
+        // This is unlikely, but probably not very good design?
+        self.emit_diagnostics(db);
+
+        syntax::SourceFile::parse(self.contents(db)).tree()
     }
 
     pub fn parse_debug_dump(self, db: &dyn Db) -> String {

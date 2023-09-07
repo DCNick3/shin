@@ -4,14 +4,16 @@ use super::{def_map, diagnostics, file, hir};
 #[salsa::jar(db = Db)]
 pub struct Jar(
     file::File,
+    file::File_emit_diagnostics,
     file::Program,
-    diagnostics::Diagnostics,
+    diagnostics::SourceDiagnosticAccumulator,
+    diagnostics::HirDiagnosticAccumulator,
     def_map::build_def_map,
     def_map::ResolvedDefMap,
     def_map::ResolvedDefMap_get_value,
     def_map::ResolvedDefMap_get_register,
     hir::HirBlockBodies,
-    hir::HirBlockBodies_get,
+    hir::HirBlockBodies_get_block,
     hir::collect_file_bodies,
 );
 

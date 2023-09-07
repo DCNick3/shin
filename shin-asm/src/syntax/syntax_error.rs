@@ -1,8 +1,6 @@
 //! See docs for `SyntaxError`.
 
-use std::error::Error;
-use std::fmt;
-
+use crate::compile::diagnostics::{Diagnostic, DiagnosticClone, FileLocation};
 use text_size::{TextRange, TextSize};
 
 /// Represents the result of unsuccessful tokenization, parsing
@@ -38,28 +36,22 @@ impl SyntaxError {
     }
 }
 
-impl fmt::Display for SyntaxError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+impl DiagnosticClone<FileLocation> for SyntaxError {
+    fn clone_box(&self) -> Box<dyn Diagnostic<FileLocation>> {
+        Box::new(self.clone())
     }
 }
 
-impl Error for SyntaxError {}
-
-impl miette::Diagnostic for SyntaxError {
-    fn severity(&self) -> Option<miette::Severity> {
-        Some(miette::Severity::Error)
+impl Diagnostic<FileLocation> for SyntaxError {
+    fn message(&self) -> String {
+        self.0.clone()
     }
 
-    fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-        let Self(_, range) = self;
+    fn location(&self) -> FileLocation {
+        FileLocation(self.1)
+    }
 
-        let start = range.start().into();
-        let len: usize = range.len().into();
-        // let len = len.max(1);
-
-        Some(Box::new(std::iter::once(miette::LabeledSpan::new(
-            None, start, len,
-        ))))
+    fn additional_labels(&self) -> Vec<(String, FileLocation)> {
+        vec![]
     }
 }

@@ -2,7 +2,7 @@ use super::{
     BlockSourceMap, Expr, ExprId, ExprPtr, HirBlockBody, Instruction, InstructionId,
     InstructionPtr, Literal,
 };
-use crate::compile::{Db, Diagnostics, File};
+use crate::compile::{Db, File, FileDiagnosticExt, SourceDiagnosticExt};
 use crate::syntax::{ast, AstToken};
 
 use crate::compile::def_map::Name;
@@ -53,8 +53,8 @@ impl<'a> HirBlockCollector<'a> {
     fn collect_int_number(&mut self, literal: ast::IntNumber) -> Option<i32> {
         match literal.value() {
             Ok(v) => Some(v),
-            Err(diag) => {
-                Diagnostics::emit(self.db, self.file, diag);
+            Err(e) => {
+                e.in_file(self.file).emit(self.db);
                 None
             }
         }
@@ -65,7 +65,7 @@ impl<'a> HirBlockCollector<'a> {
             ast::LiteralKind::String(v) => match v.value() {
                 Ok(v) => Literal::String(v.into()),
                 Err(diag) => {
-                    Diagnostics::emit(self.db, self.file, diag);
+                    diag.in_file(self.file).emit(self.db);
                     Literal::String("".into())
                 }
             },
@@ -90,7 +90,7 @@ impl<'a> HirBlockCollector<'a> {
                 let register = match e.value().kind() {
                     Ok(v) => Some(v),
                     Err(diag) => {
-                        Diagnostics::emit(self.db, self.file, diag);
+                        diag.in_file(self.file).emit(self.db);
                         None
                     }
                 };

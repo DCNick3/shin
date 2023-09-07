@@ -1,14 +1,19 @@
-use crate::compile::def_map::{BlockName, Name, RegisterDefMap, RegisterName};
-use crate::compile::{
-    BlockId, Db, DefMap, DefRef, Diagnostics, File, FileDefRef, InFile, MakeInFile, Program,
+use crate::{
+    compile::{
+        def_map::{BlockName, Name, RegisterDefMap, RegisterName},
+        emit_diagnostic, BlockId, Db, DefMap, DefRef, File, FileDefRef, FileDiagnosticExt, InFile,
+        MakeInFile, Program, SourceDiagnosticExt,
+    },
+    elements::{Register, RegisterRepr},
+    syntax::{
+        ast,
+        ast::visit,
+        ast::visit::{BlockIndex, ItemIndex},
+        AstToken,
+    },
 };
-use crate::elements::{Register, RegisterRepr};
-use crate::syntax::ast::visit;
-use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
-use crate::syntax::{ast, AstSpanned, AstToken};
 use bind_match::bind_match;
 use either::Either;
-use miette::{diagnostic, LabeledSpan};
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 
@@ -120,8 +125,7 @@ fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
                 let param = match param.kind() {
                     Ok(param) => param,
                     Err(e) => {
-                        Diagnostics::emit(self.db, file, e);
-                        continue;
+                        return e.in_file(file).emit(self.db);
                     }
                 };
                 match param {
@@ -165,44 +169,26 @@ fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
             };
             let name = match name {
                 Ok(name) => name,
-                Err(e) => {
-                    Diagnostics::emit(self.db, file, e);
-                    return;
-                }
+                Err(e) => return e.in_file(file).emit(self.db),
             };
             let ast::RegisterIdentKind::Alias(name) = name else {
-                let span = LabeledSpan::new_with_span(None, ident_token.miette_span());
-
-                Diagnostics::emit(
+                return emit_diagnostic!(
                     self.db,
-                    file,
-                    diagnostic! {
-                        labels = vec![span.clone()],
-                        "Cannot define register alias for a built-in register",
-                    },
+                    ident_token => file,
+                    "Cannot define register alias for a built-in register"
                 );
-                return;
             };
             let Some(value) = def.value() else { return };
             let ast::Expr::RegisterRefExpr(value) = value else {
-                let span = LabeledSpan::new_with_span(None, value.miette_span());
-
-                Diagnostics::emit(
+                return emit_diagnostic!(
                     self.db,
-                    file,
-                    diagnostic! {
-                        labels = vec![span.clone()],
-                        "Expected a register reference",
-                    },
+                    value => file,
+                    "Expected a register reference"
                 );
-                return;
             };
             let value = match value.value().kind() {
                 Ok(value) => value,
-                Err(e) => {
-                    Diagnostics::emit(self.db, file, e);
-                    return;
-                }
+                Err(e) => return e.in_file(file).emit(self.db),
             };
 
             match self.global_registers.entry(RegisterName(name)) {
@@ -317,7 +303,8 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
 #[cfg(test)]
 mod tests {
     use super::build_def_map;
-    use crate::compile::{db::Database, DefMap, Diagnostics, File, Program};
+    use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
+    use crate::compile::{db::Database, DefMap, File, Program};
     use expect_test::expect;
 
     fn parse_def_map(code: &str) -> (Database, DefMap) {
@@ -326,10 +313,14 @@ mod tests {
         let program = Program::new(&db, vec![file]);
         let def_map = build_def_map(&db, program);
 
-        let errors =
-            Diagnostics::debug_dump(&db, build_def_map::accumulated::<Diagnostics>(&db, program));
-        if !errors.is_empty() {
-            panic!("building def map produced errors:\n{}", errors);
+        let hir_errors = build_def_map::accumulated::<HirDiagnosticAccumulator>(&db, program);
+        let source_errors = build_def_map::accumulated::<SourceDiagnosticAccumulator>(&db, program);
+        if !source_errors.is_empty() || !hir_errors.is_empty() {
+            panic!(
+                "building def map produced errors:\n\
+                source-level: {source_errors:?}\n\
+                hir-level: {hir_errors:?}"
+            );
         }
 
         (db, def_map)

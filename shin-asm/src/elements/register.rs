@@ -1,5 +1,5 @@
 use crate::compile::{
-    hir, hir::ExprId, File, FromHirExpr, HirBlockBody, HirDiagnostics, ResolveContext,
+    hir, hir::ExprId, FromHirExpr, HirBlockBody, HirDiagnosticCollector, ResolveContext,
 };
 use crate::syntax::ast;
 use binrw::{BinRead, BinWrite};
@@ -102,14 +102,13 @@ impl FromStr for Register {
 
 impl FromHirExpr for Register {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnostics,
+        diagnostics: &mut HirDiagnosticCollector,
         resolve_ctx: &ResolveContext,
-        file: File,
         block: &HirBlockBody,
         expr: ExprId,
     ) -> Self {
         let hir::Expr::RegisterRef(register) = &block.exprs[expr] else {
-            diagnostics.emit(file, expr.into(), "Expected a register reference".into());
+            diagnostics.emit(expr.into(), "Expected a register reference".into());
             return Register::dummy();
         };
 
@@ -120,11 +119,7 @@ impl FromHirExpr for Register {
                     let ast::RegisterIdentKind::Alias(alias) = register else {
                         unreachable!("Could not resolve a regular register")
                     };
-                    diagnostics.emit(
-                        file,
-                        expr.into(),
-                        format!("Unknown register alias: `${}`", alias),
-                    );
+                    diagnostics.emit(expr.into(), format!("Unknown register alias: `${}`", alias));
                     Register::dummy()
                 }
                 Some(register) => register,
@@ -187,7 +182,8 @@ impl FromStr for RegisterRepr {
 mod tests {
     use super::Register;
     use crate::compile::db::Database;
-    use crate::compile::{hir, Diagnostics, File, FromHirExpr, HirDiagnostics, ResolveContext};
+    use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
+    use crate::compile::{hir, File, FromHirExpr, HirDiagnosticCollector, ResolveContext};
 
     fn assert_register_roundtrip(s: &str) {
         let register: Register = s.parse().unwrap();
@@ -267,24 +263,27 @@ mod tests {
 
         let bodies = hir::collect_file_bodies(db, file);
 
-        let errors = Diagnostics::debug_dump(
-            db,
-            hir::collect_file_bodies::accumulated::<Diagnostics>(db, file),
-        );
-        if !errors.is_empty() {
-            panic!("lowering produced errors:\n{}", errors);
+        let hir_errors =
+            hir::collect_file_bodies::accumulated::<HirDiagnosticAccumulator>(db, file);
+        let source_errors =
+            hir::collect_file_bodies::accumulated::<SourceDiagnosticAccumulator>(db, file);
+        if !source_errors.is_empty() || !hir_errors.is_empty() {
+            panic!(
+                "lowering produced errors:\n\
+                source-level: {source_errors:?}\n\
+                hir-level: {hir_errors:?}"
+            );
         }
 
-        let block = bodies.get(db, bodies.get_block_ids(db)[0]).unwrap();
+        let block = bodies.get_block(db, bodies.get_block_ids(db)[0]).unwrap();
 
-        let mut diagnostics = HirDiagnostics::new();
+        let mut diagnostics = HirDiagnosticCollector::new();
         let resolve_ctx = ResolveContext::new(db);
 
         assert_eq!(block.exprs.len(), registers.len());
 
         for ((expr_id, _), expected) in block.exprs.iter().zip(registers) {
-            let register =
-                Register::from_hir_expr(&mut diagnostics, &resolve_ctx, file, &block, expr_id);
+            let register = Register::from_hir_expr(&mut diagnostics, &resolve_ctx, &block, expr_id);
             assert!(diagnostics.is_empty());
 
             assert_eq!(register, expected);
