@@ -1,3 +1,4 @@
+pub mod constexpr;
 pub mod db;
 pub mod def_map;
 pub mod diagnostics;
@@ -14,4 +15,4 @@ pub use file::{File, Program};
 pub use from_hir::{FromHirExpr, FromHirInstruction, HirDiagnostics};
 pub use hir::HirBlockBody;
 pub use resolve::ResolveContext;
-pub use types::{BlockId, BlockIdRepr, InFile, MakeInFile};
+pub use types::{BlockId, BlockIdInFile, BlockIdRepr, InFile, MakeInFile};

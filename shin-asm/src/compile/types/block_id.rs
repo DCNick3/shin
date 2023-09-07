@@ -1,4 +1,4 @@
-use crate::compile::MakeInFile;
+use crate::compile::{InFile, MakeInFile};
 use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
 use nonmax::NonMaxU32;
 
@@ -50,6 +50,7 @@ impl BlockId {
     }
 }
 
+pub type BlockIdInFile = InFile<BlockId>;
 impl MakeInFile for BlockId {}
 
 #[derive(Debug, Copy, Clone)]

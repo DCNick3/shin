@@ -154,3 +154,8 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
 
     HirBlockBodies::new(db, visitor.block_bodies)
 }
+
+pub fn collect_bare_expression(file: File, expr: ast::Expr) -> (HirBlockBody, ExprId) {
+    // TODO: create a diagnostic adapter... Otherwise we would need to pass the Db here, which is less than ideal
+    todo!()
+}

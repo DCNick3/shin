@@ -1,149 +1,16 @@
-use crate::elements::RegisterRepr;
-use crate::{
-    compile::{BlockId, Db, Diagnostics, File, InFile, MakeInFile, Program},
-    elements::Register,
-    syntax::ast::{
-        self,
-        visit::{self, BlockIndex, ItemIndex},
-        AstSpanned,
-    },
-    syntax::AstToken,
+use crate::compile::def_map::{BlockName, Name, RegisterDefMap, RegisterName};
+use crate::compile::{
+    BlockId, Db, DefMap, DefRef, Diagnostics, File, FileDefRef, InFile, MakeInFile, Program,
 };
+use crate::elements::{Register, RegisterRepr};
+use crate::syntax::ast::visit;
+use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
+use crate::syntax::{ast, AstSpanned, AstToken};
 use bind_match::bind_match;
 use either::Either;
 use miette::{diagnostic, LabeledSpan};
 use rustc_hash::FxHashMap;
-use salsa::DebugWithDb;
-use smol_str::SmolStr;
 use std::collections::hash_map::Entry;
-use std::fmt::Display;
-
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Ord, PartialOrd)]
-pub struct Name(pub SmolStr);
-
-impl Display for Name {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl DebugWithDb<<crate::Jar as salsa::jar::Jar<'_>>::DynDb> for Name {
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        _db: &<crate::Jar as salsa::jar::Jar<'_>>::DynDb,
-        _include_all_fields: bool,
-    ) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-/// Reference to a function or a label within a file
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum DefRef {
-    Block(BlockId),
-    Define(ItemIndex),
-}
-
-pub type FileDefRef = InFile<DefRef>;
-
-impl MakeInFile for DefRef {}
-
-/// This is a compile-time check that `DefRef` fits into 64 bits
-const _: () = [(); 1][(core::mem::size_of::<DefRef>() == 8) as usize ^ 1];
-
-// this size is a little sad, but I don't know how to make it smaller
-const _: () = [(); 1][(core::mem::size_of::<InFile<DefRef>>() == 12) as usize ^ 1];
-
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-pub enum BlockName {
-    GlobalBlock(Option<Name>),
-    Function(Option<Name>),
-    LocalBlock(Option<Name>),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct RegisterDefMap {
-    pub global_registers: FxHashMap<SmolStr, ast::RegisterIdentKind>,
-    pub local_registers: FxHashMap<ItemIndex, FxHashMap<Name, Register>>,
-}
-
-#[salsa::tracked]
-pub struct DefMap {
-    #[return_ref]
-    items: FxHashMap<Name, FileDefRef>,
-    #[return_ref]
-    registers: RegisterDefMap,
-    #[return_ref]
-    block_names: FxHashMap<InFile<BlockId>, BlockName>,
-}
-
-#[salsa::tracked]
-impl DefMap {
-    #[salsa::tracked]
-    pub fn get(self, db: &dyn Db, name: Name) -> Option<FileDefRef> {
-        self.items(db).get(&name).cloned()
-    }
-
-    pub fn get_block_name(self, db: &dyn Db, block: InFile<BlockId>) -> Option<BlockName> {
-        self.block_names(db).get(&block).cloned()
-    }
-
-    pub fn get_defined_names(self, db: &dyn Db) -> Vec<Name> {
-        self.items(db).keys().cloned().collect()
-    }
-}
-
-impl DefMap {
-    pub fn debug_dump(&self, db: &dyn Db) -> String {
-        use std::fmt::Write as _;
-
-        let mut output = String::new();
-
-        let mut items = self.items(db).iter().collect::<Vec<_>>();
-        items.sort();
-
-        writeln!(output, "items:").unwrap();
-        for (name, def_ref) in items {
-            let file_name = def_ref.file.path(db);
-            let def_ref = &def_ref.value;
-
-            writeln!(output, "  {}: {:?} @ {}", name, def_ref, file_name).unwrap();
-        }
-
-        let registers = self.registers(db);
-        let mut global_registers = registers.global_registers.iter().collect::<Vec<_>>();
-        global_registers.sort_by_key(|(name, _)| *name);
-        let mut local_registers = registers.local_registers.iter().collect::<Vec<_>>();
-        local_registers.sort_by_key(|(&index, _)| index);
-
-        writeln!(output, "registers:").unwrap();
-        writeln!(output, "  global:").unwrap();
-        for (name, value) in global_registers {
-            writeln!(output, "    {}: {:?}", name, value).unwrap();
-        }
-        writeln!(output, "  local:").unwrap();
-        for (item_index, registers) in local_registers {
-            writeln!(output, "    item {}: ", item_index).unwrap();
-            for (name, value) in registers {
-                writeln!(output, "      {}: {:?}", name, value).unwrap();
-            }
-        }
-
-        let mut block_names = self.block_names(db).into_iter().collect::<Vec<_>>();
-        block_names.sort();
-
-        writeln!(output, "block names:").unwrap();
-        for (block_id, name) in block_names {
-            let file_name = block_id.file.path(db);
-            let block_id = &block_id.value;
-
-            writeln!(output, "  {:?} @ {}: {:?}", block_id, file_name, name).unwrap();
-        }
-
-        output
-    }
-}
 
 fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, FileDefRef> {
     struct DefCollector {
@@ -226,8 +93,8 @@ fn collect_item_defs(db: &dyn Db, program: Program) -> FxHashMap<Name, FileDefRe
 fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
     struct RegisterCollector<'a> {
         db: &'a dyn Db,
-        global_registers: FxHashMap<SmolStr, ast::RegisterIdentKind>,
-        local_registers: FxHashMap<ItemIndex, FxHashMap<Name, Register>>,
+        global_registers: FxHashMap<RegisterName, ast::RegisterIdentKind>,
+        local_registers: FxHashMap<ItemIndex, FxHashMap<RegisterName, Register>>,
     }
 
     impl visit::Visitor for RegisterCollector<'_> {
@@ -264,8 +131,7 @@ fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
                         }
                     }
                     ast::RegisterIdentKind::Alias(name) => {
-                        let name = Name(name);
-                        match local_registers.entry(name) {
+                        match local_registers.entry(RegisterName(name)) {
                             Entry::Occupied(_) => {
                                 todo!()
                             }
@@ -339,7 +205,7 @@ fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
                 }
             };
 
-            match self.global_registers.entry(name) {
+            match self.global_registers.entry(RegisterName(name)) {
                 Entry::Occupied(_) => {
                     todo!()
                 }
@@ -441,24 +307,27 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
     let registers = collect_regiter_defs(db, program);
     let block_names = collect_block_names(db, program);
 
-    DefMap::new(db, items, registers, block_names)
+    DefMap {
+        items,
+        registers,
+        block_names,
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::compile::{db::Database, def_map, DefMap, Diagnostics, File, Program};
+    use super::build_def_map;
+    use crate::compile::{db::Database, DefMap, Diagnostics, File, Program};
     use expect_test::expect;
 
     fn parse_def_map(code: &str) -> (Database, DefMap) {
         let db = Database::default();
         let file = File::new(&db, "test.sal".to_string(), code.to_string());
         let program = Program::new(&db, vec![file]);
-        let def_map = def_map::build_def_map(&db, program);
+        let def_map = build_def_map(&db, program);
 
-        let errors = Diagnostics::debug_dump(
-            &db,
-            def_map::build_def_map::accumulated::<Diagnostics>(&db, program),
-        );
+        let errors =
+            Diagnostics::debug_dump(&db, build_def_map::accumulated::<Diagnostics>(&db, program));
         if !errors.is_empty() {
             panic!("building def map produced errors:\n{}", errors);
         }

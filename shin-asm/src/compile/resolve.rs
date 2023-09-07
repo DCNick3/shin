@@ -1,7 +1,7 @@
 use crate::{
     compile::{def_map::Name, Db, DefRef},
     elements::Register,
-    syntax::ast,
+    syntax::ast::{self},
 };
 
 pub struct ResolveContext<'a> {
@@ -10,7 +10,6 @@ pub struct ResolveContext<'a> {
 
 impl<'a> ResolveContext<'a> {
     pub fn new(db: &'a dyn Db) -> Self {
-        // TODO: actually have something here lol
         Self { _db: db }
     }
 
