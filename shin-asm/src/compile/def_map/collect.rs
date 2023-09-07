@@ -1,8 +1,8 @@
 use crate::{
     compile::{
         def_map::{BlockName, Name, RegisterDefMap, RegisterName},
-        emit_diagnostic, BlockId, Db, DefMap, DefRef, File, FileDefRef, FileDiagnosticExt, InFile,
-        MakeInFile, Program, SourceDiagnosticExt,
+        emit_diagnostic, BlockId, Db, DefMap, DefRef, File, FileDefRef, MakeWithFile, Program,
+        WithFile,
     },
     elements::{Register, RegisterRepr},
     syntax::{
@@ -215,9 +215,9 @@ fn collect_regiter_defs(db: &dyn Db, program: Program) -> RegisterDefMap {
     }
 }
 
-fn collect_block_names(db: &dyn Db, program: Program) -> FxHashMap<InFile<BlockId>, BlockName> {
+fn collect_block_names(db: &dyn Db, program: Program) -> FxHashMap<WithFile<BlockId>, BlockName> {
     struct BlockNameCollector {
-        block_names: FxHashMap<InFile<BlockId>, BlockName>,
+        block_names: FxHashMap<WithFile<BlockId>, BlockName>,
     }
 
     fn block_name(block: &ast::InstructionsBlock) -> Option<Name> {

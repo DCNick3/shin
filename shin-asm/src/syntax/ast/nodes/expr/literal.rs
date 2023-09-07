@@ -1,8 +1,9 @@
 use super::*;
-use crate::compile::diagnostics::{FileLocation, SimpleDiagnostic};
+use crate::compile::diagnostics::Diagnostic;
 use crate::compile::make_diagnostic;
 use std::borrow::Cow;
 use std::num::IntErrorKind;
+use text_size::TextRange;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 #[ast(kind = LITERAL)]
@@ -17,7 +18,7 @@ pub struct String {
 }
 
 impl String {
-    pub fn value(&self) -> Result<Cow<'_, str>, SimpleDiagnostic<FileLocation>> {
+    pub fn value(&self) -> Result<Cow<'_, str>, Diagnostic<TextRange>> {
         // TODO: Unescape string
         // TODO: report escape errors
         let text = self.syntax.text();
@@ -85,23 +86,23 @@ impl IntNumber {
         (prefix, text, suffix)
     }
 
-    pub fn value(&self) -> Result<i32, SimpleDiagnostic<FileLocation>> {
+    pub fn value(&self) -> Result<i32, Diagnostic<TextRange>> {
         let (_, text, _) = self.split_into_parts();
         i32::from_str_radix(&text.replace('_', ""), self.radix() as u32).map_err(|e| {
             match e.kind() {
                 IntErrorKind::Empty => unreachable!(), // I think??
                 IntErrorKind::InvalidDigit => {
-                    make_diagnostic!(self.file_location(), "Invalid digit in integer literal")
+                    make_diagnostic!(self.text_range(), "Invalid digit in integer literal")
                 }
                 IntErrorKind::PosOverflow => {
-                    make_diagnostic!(self.file_location(), "Integer literal is too large")
+                    make_diagnostic!(self.text_range(), "Integer literal is too large")
                 }
                 IntErrorKind::NegOverflow => {
-                    make_diagnostic!(self.file_location(), "Integer literal is too small")
+                    make_diagnostic!(self.text_range(), "Integer literal is too small")
                 }
                 IntErrorKind::Zero => unreachable!(),
                 _ => make_diagnostic!(
-                    self.file_location(),
+                    self.text_range(),
                     "Unknown error occurred while parsing integer literal: {:?}",
                     e
                 ),

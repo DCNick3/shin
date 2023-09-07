@@ -1,5 +1,4 @@
 use super::db::Db;
-use crate::compile::{FileDiagnosticExt, SourceDiagnosticExt};
 use crate::syntax;
 
 #[salsa::input]
@@ -16,7 +15,7 @@ impl File {
     pub fn emit_diagnostics(self, db: &dyn Db) {
         let parse = syntax::SourceFile::parse(self.contents(db));
         for error in parse.errors() {
-            error.clone().in_file(self).emit(db)
+            error.clone().into_diagnostic().in_file(self).emit(db)
         }
     }
 

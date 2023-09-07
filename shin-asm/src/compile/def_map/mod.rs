@@ -5,7 +5,7 @@ pub use collect::build_def_map;
 pub use resolve::{ResolvedDefMap, ResolvedDefMap_get_register, ResolvedDefMap_get_value};
 
 use crate::{
-    compile::{BlockId, BlockIdInFile, Db, InFile, MakeInFile},
+    compile::{BlockId, BlockIdWithFile, Db, MakeWithFile, WithFile},
     elements::Register,
     syntax::ast::{self, visit::ItemIndex},
 };
@@ -38,15 +38,15 @@ pub enum DefRef {
     Define(ItemIndex),
 }
 
-pub type FileDefRef = InFile<DefRef>;
+pub type FileDefRef = WithFile<DefRef>;
 
-impl MakeInFile for DefRef {}
+impl MakeWithFile for DefRef {}
 
 /// This is a compile-time check that `DefRef` fits into 64 bits
 const _: () = [(); 1][(core::mem::size_of::<DefRef>() == 8) as usize ^ 1];
 
 // this size is a little sad, but I don't know how to make it smaller
-const _: () = [(); 1][(core::mem::size_of::<InFile<DefRef>>() == 12) as usize ^ 1];
+const _: () = [(); 1][(core::mem::size_of::<WithFile<DefRef>>() == 12) as usize ^ 1];
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum BlockName {
@@ -65,7 +65,7 @@ pub struct RegisterDefMap {
 pub struct DefMap {
     items: FxHashMap<Name, FileDefRef>,
     registers: RegisterDefMap,
-    block_names: FxHashMap<BlockIdInFile, BlockName>,
+    block_names: FxHashMap<BlockIdWithFile, BlockName>,
 }
 
 impl DefMap {

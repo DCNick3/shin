@@ -1,9 +1,10 @@
-use crate::compile::diagnostics::{make_diagnostic, FileLocation, SimpleDiagnostic};
+use crate::compile::diagnostics::{make_diagnostic, Diagnostic};
 use crate::syntax::{
     ast::{AstSpanned, AstToken, SyntaxToken},
     SyntaxKind::*,
 };
 use smol_str::SmolStr;
+use text_size::TextRange;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstToken)]
 #[ast(kind = IDENT)]
@@ -24,19 +25,19 @@ pub struct RegisterIdent {
 }
 
 impl RegisterIdent {
-    pub fn kind(&self) -> Result<RegisterIdentKind, SimpleDiagnostic<FileLocation>> {
+    pub fn kind(&self) -> Result<RegisterIdentKind, Diagnostic<TextRange>> {
         let mut chars = self.text().chars();
         assert_eq!(chars.next(), Some('$'));
         match chars.clone().next() /* peek */ {
             None => Err(make_diagnostic!(
-                self.file_location(),
+                self.text_range(),
                 "Expected register name"
             )),
             Some(c @ ('a' | 'v')) => {
                 chars.next();
                 let index = chars.as_str().parse().map_err(|e| {
                     make_diagnostic!(
-                        self.file_location(),
+                        self.text_range(),
                         "Failed to parse register index: {:?}",
                         e
                     )
@@ -49,7 +50,7 @@ impl RegisterIdent {
                 }
                 .ok_or_else(|| {
                     make_diagnostic!(
-                        self.file_location(),
+                        self.text_range(),
                         "file_location register index: {}",
                         index
                     )

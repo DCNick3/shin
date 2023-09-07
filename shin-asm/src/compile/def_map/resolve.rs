@@ -1,4 +1,4 @@
-use crate::compile::{BlockIdInFile, DefMap, DefRef, InFile, MakeInFile};
+use crate::compile::{BlockIdWithFile, DefMap, DefRef, MakeWithFile, WithFile};
 use crate::syntax::ast;
 use crate::{
     compile::{
@@ -15,7 +15,7 @@ pub struct ConstexprValue(Option<i32>);
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ResolvedDef {
     Undefined,
-    Block(BlockIdInFile),
+    Block(BlockIdWithFile),
     Define(ConstexprValue),
 }
 
@@ -31,11 +31,11 @@ impl ResolvedDefMap {
     pub fn get_value(self, db: &dyn Db, name: Name) -> ResolvedDef {
         match self.def_map(db).get_item(&name) {
             None => ResolvedDef::Undefined,
-            Some(InFile {
+            Some(WithFile {
                 file,
                 value: DefRef::Block(block),
             }) => ResolvedDef::Block(block.in_file(file)),
-            Some(InFile {
+            Some(WithFile {
                 file,
                 value: DefRef::Define(define_item_index),
             }) => {

@@ -1,6 +1,6 @@
 //! See docs for `SyntaxError`.
 
-use crate::compile::diagnostics::{Diagnostic, DiagnosticClone, FileLocation};
+use crate::compile::diagnostics::Diagnostic;
 use text_size::{TextRange, TextSize};
 
 /// Represents the result of unsuccessful tokenization, parsing
@@ -34,24 +34,8 @@ impl SyntaxError {
         self.1 = range;
         self
     }
-}
 
-impl DiagnosticClone<FileLocation> for SyntaxError {
-    fn clone_box(&self) -> Box<dyn Diagnostic<FileLocation>> {
-        Box::new(self.clone())
-    }
-}
-
-impl Diagnostic<FileLocation> for SyntaxError {
-    fn message(&self) -> String {
-        self.0.clone()
-    }
-
-    fn location(&self) -> FileLocation {
-        FileLocation(self.1)
-    }
-
-    fn additional_labels(&self) -> Vec<(String, FileLocation)> {
-        vec![]
+    pub fn into_diagnostic(self) -> Diagnostic<TextRange> {
+        Diagnostic::new(self.0, self.1)
     }
 }

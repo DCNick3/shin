@@ -22,10 +22,6 @@ pub trait AstSpanned {
     fn span(&self, file: crate::compile::File) -> crate::compile::diagnostics::Span {
         crate::compile::diagnostics::Span::new(file, self.text_range())
     }
-
-    fn file_location(&self) -> crate::compile::diagnostics::FileLocation {
-        crate::compile::diagnostics::FileLocation(self.text_range())
-    }
 }
 
 /// The main trait to go from untyped `SyntaxNode`  to a typed ast. The

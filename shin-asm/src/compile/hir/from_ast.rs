@@ -2,7 +2,7 @@ use super::{
     BlockSourceMap, Expr, ExprId, ExprPtr, HirBlockBody, Instruction, InstructionId,
     InstructionPtr, Literal,
 };
-use crate::compile::{Db, File, FileDiagnosticExt, SourceDiagnosticExt};
+use crate::compile::{Db, File};
 use crate::syntax::{ast, AstToken};
 
 use crate::compile::def_map::Name;

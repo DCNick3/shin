@@ -1,7 +1,7 @@
 use crate::compile::diagnostics::{Diagnostic, HirLocation};
 use crate::compile::{
     hir::{self, HirBlockBody},
-    resolve, BlockId, InFile, MakeInFile,
+    resolve, BlockId, MakeWithFile, WithFile,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -11,7 +11,7 @@ pub enum HirId {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct HirIdInBlock {
+pub struct HirIdWithBlock {
     // TODO: naming is unclear...
     // InBlock -> identifies inside a block or HirId wrapped with a block id (like InFile)
     // Probably should rename the InFile to WithFile
@@ -19,7 +19,7 @@ pub struct HirIdInBlock {
     block_id: BlockId,
 }
 
-impl HirIdInBlock {
+impl HirIdWithBlock {
     pub fn new(id: impl Into<HirId>, block_id: BlockId) -> Self {
         Self {
             block_id,
@@ -40,11 +40,11 @@ impl From<hir::InstructionId> for HirId {
     }
 }
 
-impl MakeInFile for HirIdInBlock {}
+impl MakeWithFile for HirIdWithBlock {}
 
-pub type HirIdInFile = InFile<HirIdInBlock>;
+pub type HirIdWithFile = WithFile<HirIdWithBlock>;
 
-type HirDiagnostic = Box<dyn Diagnostic<HirLocation>>;
+type HirDiagnostic = Diagnostic<HirLocation>;
 
 #[derive(Default, Debug)]
 pub struct HirDiagnosticCollector {

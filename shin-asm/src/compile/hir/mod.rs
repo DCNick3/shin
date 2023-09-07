@@ -2,7 +2,7 @@ mod from_ast;
 #[cfg(test)]
 mod tests;
 
-use crate::compile::{BlockId, Db, File, InFile};
+use crate::compile::{BlockId, Db, File, WithFile};
 use crate::syntax::{ast, ptr::AstPtr};
 use from_ast::HirBlockCollector;
 use std::rc::Rc;
@@ -15,16 +15,16 @@ use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
 pub type ExprId = Idx<Expr>;
-pub type ExprIdInFile = InFile<ExprId>;
+pub type ExprIdInFile = WithFile<ExprId>;
 pub type ExprPtr = AstPtr<ast::Expr>;
 #[allow(unused)] // Will be used when full hir source maps will be implemented
-pub type ExprPtrInFile = InFile<ExprPtr>;
+pub type ExprPtrInFile = WithFile<ExprPtr>;
 
 pub type InstructionId = Idx<Instruction>;
-pub type InstructionIdInFile = InFile<InstructionId>;
+pub type InstructionIdInFile = WithFile<InstructionId>;
 pub type InstructionPtr = AstPtr<ast::Instruction>;
 #[allow(unused)] // Will be used when full hir source maps will be implemented
-pub type InstructionPtrInFile = InFile<InstructionPtr>;
+pub type InstructionPtrInFile = WithFile<InstructionPtr>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Literal {
