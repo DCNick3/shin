@@ -92,7 +92,7 @@ mod parse {
     #[cfg(test)]
     mod tests {
         use super::parse_register_kind;
-        use crate::{elements::Register, syntax::ast::RegisterIdentKind};
+        use crate::syntax::ast::RegisterIdentKind;
 
         #[test]
         fn parse_argument() {

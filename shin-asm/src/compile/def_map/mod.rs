@@ -146,6 +146,7 @@ mod tests {
         let (db, def_map, errors) = parse_def_map(
             r#"
 def ABIBA = 3 + 3
+def BEBA = ABIBA * 2
 def $_aboba = $v17
 def $keka = $_aboba
 
@@ -167,21 +168,26 @@ LABEL2:
 
         expect![[r#"
             items:
+              ABIBA: Value(6)
+              BEBA: Value(12)
+              KEKA: Block(WithFile { value: BlockId { item_index: 4, block_index: None }, file: File(Id { value: 1 }) })
+              LABEL1: Block(WithFile { value: BlockId { item_index: 5, block_index: Some(1) }, file: File(Id { value: 1 }) })
+              LABEL2: Block(WithFile { value: BlockId { item_index: 5, block_index: Some(2) }, file: File(Id { value: 1 }) })
             registers:
               global:
                 _aboba: $v17
                 keka: $v17
               local:
-                item #3: 
+                item #4: 
                   hello: $a1
                   keka: $a2
             block names:
-              BlockId { item_index: 3, block_index: None } @ test.sal: Function(Some(Name("KEKA")))
-              BlockId { item_index: 3, block_index: Some(0) } @ test.sal: LocalBlock(None)
-              BlockId { item_index: 3, block_index: Some(1) } @ test.sal: LocalBlock(Some(Name("ABOBA")))
-              BlockId { item_index: 4, block_index: Some(0) } @ test.sal: GlobalBlock(None)
-              BlockId { item_index: 4, block_index: Some(1) } @ test.sal: GlobalBlock(Some(Name("LABEL1")))
-              BlockId { item_index: 4, block_index: Some(2) } @ test.sal: GlobalBlock(Some(Name("LABEL2")))
+              BlockId { item_index: 4, block_index: None } @ test.sal: Function(Some(Name("KEKA")))
+              BlockId { item_index: 4, block_index: Some(0) } @ test.sal: LocalBlock(None)
+              BlockId { item_index: 4, block_index: Some(1) } @ test.sal: LocalBlock(Some(Name("ABOBA")))
+              BlockId { item_index: 5, block_index: Some(0) } @ test.sal: GlobalBlock(None)
+              BlockId { item_index: 5, block_index: Some(1) } @ test.sal: GlobalBlock(Some(Name("LABEL1")))
+              BlockId { item_index: 5, block_index: Some(2) } @ test.sal: GlobalBlock(Some(Name("LABEL2")))
         "#]].assert_eq(&def_map.debug_dump(&db));
     }
 
@@ -206,6 +212,31 @@ def $b = $a
               global:
                 a: $dummy
                 b: $dummy
+              local:
+            block names:
+        "#]]
+        .assert_eq(&def_map.debug_dump(&db));
+    }
+
+    #[test]
+    fn constexpr_overflow() {
+        let (db, def_map, errors) = parse_def_map(
+            r#"
+def A = 65536 * 65536
+        "#,
+        );
+
+        expect![[r#"
+            building def map produced errors:
+            source-level: []
+            hir-level: []"#]]
+        .assert_eq(errors.as_deref().unwrap());
+
+        expect![[r#"
+            items:
+              A: Value(ConstexprValue(<dummy>))
+            registers:
+              global:
               local:
             block names:
         "#]]

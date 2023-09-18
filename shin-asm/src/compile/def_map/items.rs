@@ -1,6 +1,10 @@
-use crate::compile::constexpr::ConstexprValue;
+use crate::compile::constexpr::{constexpr_evaluate, ContexprContextValue};
+use crate::compile::{hir, make_diagnostic, MakeWithFile};
 use crate::{
-    compile::{def_map::Name, diagnostics::Span, BlockId, Db, File, Program},
+    compile::{
+        constexpr::ConstexprValue, def_map::Name, diagnostics::Span, BlockId, BlockIdWithFile, Db,
+        File, Program,
+    },
     syntax::{
         ast::visit,
         ast::visit::BlockIndex,
@@ -16,13 +20,13 @@ use std::collections::hash_map::Entry;
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum DefRef {
     Block(BlockId, Span),
-    Define(ast::Expr, ItemIndex, Span),
+    Value(ast::Expr, ItemIndex, Span),
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum DefValue {
-    Block(BlockId),
-    Define(ConstexprValue),
+    Block(BlockIdWithFile),
+    Value(ConstexprValue),
 }
 
 type UnresolvedDefMap = FxHashMap<Name, DefRef>;
@@ -101,7 +105,7 @@ pub fn collect_item_defs(db: &dyn Db, program: Program) -> UnresolvedDefMap {
             let name = Name(name.text().into());
 
             if let Some(value) = def.value() {
-                self.define(name, DefRef::Define(value, item_index, span));
+                self.define(name, DefRef::Value(value, item_index, span));
             }
         }
     }
@@ -115,6 +119,111 @@ pub fn collect_item_defs(db: &dyn Db, program: Program) -> UnresolvedDefMap {
 }
 
 pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedDefMap) -> ResolvedDefMap {
-    // TODO: implement
-    ResolvedDefMap::default()
+    enum NodeState {
+        NotVisited,
+        Visiting,
+        Visited((DefValue, Option<Span>)),
+    }
+    struct DefResolver<'a> {
+        db: &'a dyn Db,
+        def_map: &'a UnresolvedDefMap,
+        node_info: FxHashMap<Name, NodeState>,
+    }
+
+    impl DefResolver<'_> {
+        fn resolve(&mut self, name: Name, usage_span: Option<Span>) -> (DefValue, Option<Span>) {
+            let node_entry = self.node_info.entry(name.clone());
+            let node_state = node_entry.or_insert(NodeState::NotVisited);
+
+            match &*node_state {
+                NodeState::NotVisited => {
+                    let result = match self.def_map.get(&name) {
+                        None => {
+                            make_diagnostic!(
+                                usage_span.unwrap(),
+                                "Could not find the definition of `{}`",
+                                name
+                            )
+                            .emit(self.db);
+
+                            (DefValue::Value(ConstexprValue::dummy()), None)
+                        }
+                        Some(&DefRef::Block(block_id, span)) => {
+                            (DefValue::Block(block_id.in_file(span.file())), Some(span))
+                        }
+                        Some(&DefRef::Value(ref expr, _item_index, span)) => {
+                            let (block, root_expr_id, diagnostics) =
+                                hir::collect_bare_expression_raw(expr.clone());
+
+                            for diag in diagnostics {
+                                diag.in_file(span.file()).emit(self.db);
+                            }
+
+                            *node_state = NodeState::Visiting;
+
+                            let mut constexpr_context = FxHashMap::default();
+                            for expr in block.exprs.values() {
+                                if let hir::Expr::NameRef(name) = expr {
+                                    // TODO: use hir source map to provide a more granular `usage_span`
+                                    let (value, span) = self.resolve(name.clone(), Some(span));
+
+                                    let value = match value {
+                                        DefValue::Block(_) => ContexprContextValue::Block(
+                                            span.expect("BUG: block value without span"),
+                                        ),
+                                        DefValue::Value(value) => {
+                                            ContexprContextValue::Value(value, span)
+                                        }
+                                    };
+
+                                    constexpr_context.insert(name.clone(), value);
+                                }
+                            }
+
+                            let (value, diagnostics) =
+                                constexpr_evaluate(&constexpr_context, &block, root_expr_id);
+
+                            for _diag in diagnostics {
+                                todo!("Resolve Hir source map and emit the diagnostic")
+                            }
+
+                            (DefValue::Value(value), Some(span))
+                        }
+                    };
+
+                    // can't use node_state here due to borrow checker
+                    self.node_info
+                        .insert(name, NodeState::Visited(result.clone()));
+
+                    result
+                }
+                NodeState::Visiting => {
+                    make_diagnostic!(
+                        usage_span.unwrap(),
+                        "Encountered a loop while resolving the definition of `{}`",
+                        name
+                    )
+                    .emit(self.db);
+
+                    return (DefValue::Value(ConstexprValue::dummy()), None);
+                }
+                NodeState::Visited(result) => result.clone(),
+            }
+        }
+    }
+
+    let mut def_map_resolver = DefResolver {
+        db,
+        def_map,
+        node_info: FxHashMap::default(),
+    };
+
+    def_map
+        .iter()
+        .map(|(name, &_)| {
+            let (value, _span) = def_map_resolver.resolve(name.clone(), None);
+
+            (name.clone(), value)
+        })
+        .collect()
 }

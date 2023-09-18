@@ -8,11 +8,13 @@ use from_ast::HirBlockCollector;
 use std::rc::Rc;
 
 use crate::compile::def_map::Name;
+use crate::compile::diagnostics::Diagnostic;
 use crate::syntax::ast::visit;
 use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
+use text_size::TextRange;
 
 pub type ExprId = Idx<Expr>;
 pub type ExprIdInFile = WithFile<ExprId>;
@@ -159,13 +161,20 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
     HirBlockBodies::new(db, visitor.block_bodies)
 }
 
-pub fn collect_bare_expression(expr: ast::Expr) -> (HirBlockBody, ExprId) {
+/// Collects an expression without a real Block into a Hir expression
+///
+/// It constructs a fake block to contain the expression
+///
+/// Note that unlike [`collect_file_bodies`], this doesn't doesn't use salsa db and doesn't emit diagnostics for you
+pub fn collect_bare_expression_raw(
+    expr: ast::Expr,
+) -> (HirBlockBody, ExprId, Vec<Diagnostic<TextRange>>) {
     let mut collector = HirBlockCollector::new();
 
-    collector.collect_expr(expr);
+    let expr_id = collector.collect_expr(expr);
 
+    // TODO: expose the source map in some way
     let (block_body, _source_map, diagnostiscs) = collector.collect();
 
-    // TODO: create a diagnostic adapter... Otherwise we would need to pass the Db here, which is less than ideal
-    todo!()
+    (block_body, expr_id, diagnostiscs)
 }

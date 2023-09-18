@@ -14,6 +14,10 @@ impl Span {
     pub fn new(file: File, range: TextRange) -> Self {
         Self(range.in_file(file))
     }
+
+    pub fn file(&self) -> File {
+        self.0.file
+    }
 }
 
 impl ariadne::Span for Span {
@@ -81,6 +85,11 @@ impl<L> Diagnostic<L> {
             location,
             additional_labels: Vec::new(),
         }
+    }
+
+    pub fn with_additional_label(mut self, message: String, location: L) -> Self {
+        self.additional_labels.push((message, location));
+        self
     }
 
     fn map_location<NewL, F: Fn(L) -> NewL>(self, f: F) -> Diagnostic<NewL> {

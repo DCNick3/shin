@@ -2,7 +2,6 @@ use super::{
     BlockSourceMap, Expr, ExprId, ExprPtr, HirBlockBody, Instruction, InstructionId,
     InstructionPtr, Literal,
 };
-use crate::compile::{Db, File};
 use crate::syntax::{ast, AstToken};
 
 use crate::compile::def_map::Name;
@@ -32,6 +31,16 @@ impl HirBlockCollector {
         }
     }
 
+    fn handle_result<T>(&mut self, result: Result<T, Diagnostic<TextRange>>, fallback: T) -> T {
+        match result {
+            Ok(v) => v,
+            Err(e) => {
+                self.diagnostics.push(e);
+                fallback
+            }
+        }
+    }
+
     fn alloc_expr(&mut self, expr: Expr, ptr: ExprPtr) -> ExprId {
         let expr_id = self.exprs.alloc(expr);
         self.exprs_source_map.insert(expr_id, ptr);
@@ -51,24 +60,15 @@ impl HirBlockCollector {
     }
 
     fn collect_int_number(&mut self, literal: ast::IntNumber) -> Option<i32> {
-        match literal.value() {
-            Ok(v) => Some(v),
-            Err(e) => {
-                self.diagnostics.push(e);
-                None
-            }
-        }
+        self.handle_result(literal.value().map(Some), None)
     }
 
     fn collect_literal(&mut self, literal: ast::LiteralKind) -> Literal {
         match literal {
-            ast::LiteralKind::String(v) => match v.value() {
-                Ok(v) => Literal::String(v.into()),
-                Err(e) => {
-                    self.diagnostics.push(e);
-                    Literal::String("".into())
-                }
-            },
+            ast::LiteralKind::String(v) => self.handle_result(
+                v.value().map(|v| Literal::String(v.into())),
+                Literal::String("".into()),
+            ),
             ast::LiteralKind::IntNumber(v) => {
                 Literal::IntNumber(self.collect_int_number(v).unwrap_or(1))
             }

@@ -1,5 +1,5 @@
 use crate::{
-    compile::{def_map::Name, Db},
+    compile::Db,
     elements::Register,
     syntax::ast::{self},
 };
