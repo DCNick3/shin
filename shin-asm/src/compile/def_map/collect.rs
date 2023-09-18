@@ -491,4 +491,25 @@ LABEL2:
               BlockId { item_index: 4, block_index: Some(2) } @ test.sal: GlobalBlock(Some(Name("LABEL2")))
         "#]].assert_eq(&def_map.debug_dump(&db));
     }
+
+    #[test]
+    fn register_loop() {
+        let (db, def_map) = parse_def_map(
+            r#"
+def $a = $b
+def $b = $a
+        "#,
+        );
+
+        expect![[r#"
+            items:
+            registers:
+              global:
+                a: Register($dummy)
+                b: Register($dummy)
+              local:
+            block names:
+        "#]]
+        .assert_eq(&def_map.debug_dump(&db));
+    }
 }

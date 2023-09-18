@@ -8,8 +8,8 @@ use from_ast::HirBlockCollector;
 use std::rc::Rc;
 
 use crate::compile::def_map::Name;
+use crate::syntax::ast::visit;
 use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
-use crate::syntax::ast::{visit, RegisterIdentKind};
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
@@ -38,7 +38,7 @@ pub enum Expr {
     Missing,
     Literal(Literal),
     NameRef(Name),
-    RegisterRef(Option<RegisterIdentKind>),
+    RegisterRef(Option<ast::RegisterIdentKind>),
     Array(Box<[ExprId]>),
     Mapping(Box<[(Option<i32>, ExprId)]>),
     UnaryOp {

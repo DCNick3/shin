@@ -117,7 +117,7 @@ impl FromHirExpr for Register {
             Some(register) => match resolve_ctx.resolve_register(register) {
                 None => {
                     let ast::RegisterIdentKind::Alias(alias) = register else {
-                        unreachable!("Could not resolve a regular register")
+                        unreachable!("BUG: a regular register should always resolve");
                     };
                     diagnostics.emit(expr.into(), format!("Unknown register alias: `${}`", alias));
                     Register::dummy()
