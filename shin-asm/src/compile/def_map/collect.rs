@@ -309,7 +309,14 @@ fn resolve_global_registers(
                     result
                 }
                 NodeState::Visiting => {
-                    todo!("Handle loops");
+                    make_diagnostic!(
+                        usage_span.unwrap(),
+                        "Encountered a loop while resolving register ${}",
+                        name
+                    )
+                    .emit(self.db);
+
+                    return Register::dummy();
                 }
                 NodeState::Visited(result) => result,
             }
@@ -427,7 +434,7 @@ mod tests {
     use crate::compile::{db::Database, DefMap, File, Program};
     use expect_test::expect;
 
-    fn parse_def_map(code: &str) -> (Database, DefMap) {
+    fn parse_def_map(code: &str) -> (Database, DefMap, Option<String>) {
         let db = Database::default();
         let file = File::new(&db, "test.sal".to_string(), code.to_string());
         let program = Program::new(&db, vec![file]);
@@ -435,20 +442,21 @@ mod tests {
 
         let hir_errors = build_def_map::accumulated::<HirDiagnosticAccumulator>(&db, program);
         let source_errors = build_def_map::accumulated::<SourceDiagnosticAccumulator>(&db, program);
-        if !source_errors.is_empty() || !hir_errors.is_empty() {
-            panic!(
+
+        let errors = (!source_errors.is_empty() || !hir_errors.is_empty()).then(|| {
+            format!(
                 "building def map produced errors:\n\
                 source-level: {source_errors:?}\n\
                 hir-level: {hir_errors:?}"
-            );
-        }
+            )
+        });
 
-        (db, def_map)
+        (db, def_map, errors)
     }
 
     #[test]
     fn check_map_dump() {
-        let (db, def_map) = parse_def_map(
+        let (db, def_map, errors) = parse_def_map(
             r#"
 def ABIBA = 3 + 3
 def $_aboba = $v17
@@ -467,6 +475,8 @@ LABEL1:
 LABEL2:
         "#,
         );
+
+        assert!(errors.is_none());
 
         expect![[r#"
             items:
@@ -494,7 +504,7 @@ LABEL2:
 
     #[test]
     fn register_loop() {
-        let (db, def_map) = parse_def_map(
+        let (db, def_map, errors) = parse_def_map(
             r#"
 def $a = $b
 def $b = $a
@@ -502,11 +512,16 @@ def $b = $a
         );
 
         expect![[r#"
-            items:
+            building def map produced errors:
+            source-level: [Diagnostic { message: "Encountered a loop while resolving register $b", location: Span(WithFile { value: 10..12, file: File(Id { value: 1 }) }), additional_labels: [] }]
+            hir-level: []"#]]
+        .assert_eq(errors.as_deref().unwrap());
+
+        expect![[r#"
             registers:
               global:
-                a: Register($dummy)
-                b: Register($dummy)
+                a: $dummy
+                b: $dummy
               local:
             block names:
         "#]]
