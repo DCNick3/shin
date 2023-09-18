@@ -1,5 +1,5 @@
 use crate::compile::from_hir::{HirBlockId, HirId, HirIdWithBlock};
-use crate::compile::{BlockId, Db, File, MakeWithFile, WithFile};
+use crate::compile::{Db, File, MakeWithFile, WithFile};
 
 use std::fmt::Debug;
 
