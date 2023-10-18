@@ -368,7 +368,12 @@ fn test_ast_node() {
         ),
         unparse(&parse_quote! {
             #[allow(non_upper_case_globals)]
-            const _DERIVE_shin_asm_syntax_AstNode_FOR_SourceFile: () = {
+            const _DERIVE_shin_asm_syntax_AstSpanned_FOR_SourceFile: () = {
+                impl shin_asm::syntax::AstSpanned for SourceFile {
+                    fn text_range(&self) -> shin_asm::syntax::TextRange {
+                        <Self as shin_asm::syntax::AstNode>::syntax(self).text_range()
+                    }
+                }
                 impl shin_asm::syntax::AstNode for SourceFile {
                     fn can_cast(kind: shin_asm::syntax::SyntaxKind) -> bool
                     where
@@ -429,7 +434,12 @@ fn test_transparent() {
         ),
         unparse(&parse_quote! {
             #[allow(non_upper_case_globals)]
-            const _DERIVE_shin_asm_syntax_AstNode_FOR_SourceFileItem: () = {
+            const _DERIVE_shin_asm_syntax_AstSpanned_FOR_SourceFileItem: () = {
+                impl shin_asm::syntax::AstSpanned for SourceFileItem {
+                    fn text_range(&self) -> shin_asm::syntax::TextRange {
+                        <Self as shin_asm::syntax::AstNode>::syntax(self).text_range()
+                    }
+                }
                 impl shin_asm::syntax::AstNode for SourceFileItem {
                     fn can_cast(kind: shin_asm::syntax::SyntaxKind) -> bool
                     where
