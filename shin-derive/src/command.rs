@@ -1,5 +1,5 @@
 use crate::sanitization::{
-    BIN_READ, BIN_WRITE, COMMAND_RESULT, FROM_VM_CTX, FROM_VM_CTX_DEFAULT, MEMORY_ADDRESS, VM_CTX,
+    BIN_READ, BIN_WRITE, COMMAND_RESULT, FROM_VM_CTX, FROM_VM_CTX_DEFAULT, REGISTER, VM_CTX,
 };
 use crate::util::{parse_attribute, parse_opt_attribute};
 use darling::FromMeta;
@@ -248,9 +248,9 @@ fn codegen_command_token_type(input: &CommandVariant) -> TokenStream {
         TokenKind::DestinationAddress(_) => {
             quote! {
                 #[derive(Debug)]
-                pub struct #name(#MEMORY_ADDRESS);
+                pub struct #name(#REGISTER);
                 impl #name {
-                    pub(super) fn new(addr: #MEMORY_ADDRESS) -> Self {
+                    pub(super) fn new(addr: #REGISTER) -> Self {
                         Self(addr)
                     }
 

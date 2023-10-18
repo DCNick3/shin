@@ -2,9 +2,10 @@ mod from_vm_ctx;
 
 pub use from_vm_ctx::*;
 
+use crate::format::scenario::instruction_elements::Register;
 use crate::format::scenario::instructions::{
     BinaryOperationType, CodeAddress, Expression, ExpressionTerm, JumpCond, JumpCondType,
-    MemoryAddress, NumberSpec,
+    NumberSpec,
 };
 use smallvec::SmallVec;
 use tracing::warn;
@@ -25,7 +26,7 @@ pub struct VmCtx {
     ///
     /// Stores the arguments for each call instruction
     ///
-    /// Can be addressed via [MemoryAddress] with addresses > 0x1000
+    /// Can be addressed via [Register] with addresses > 0x1000
     ///
     /// Also called mem3 in ShinDataUtil
     arguments_stack: Vec<i32>,
@@ -88,7 +89,7 @@ impl VmCtx {
     ///
     /// The address can be a stack offset (mem3) or main memory address (mem1)
     #[inline]
-    pub fn get_memory(&self, addr: MemoryAddress) -> i32 {
+    pub fn get_memory(&self, addr: Register) -> i32 {
         if let Some(offset) = addr.as_stack_offset() {
             self.arguments_stack[self.arguments_stack.len() - 1 - (offset) as usize]
         } else {
@@ -100,7 +101,7 @@ impl VmCtx {
     ///
     /// The address can be a stack offset (mem3) or main memory address (mem1)
     #[inline]
-    pub fn set_memory(&mut self, addr: MemoryAddress, val: i32) {
+    pub fn set_memory(&mut self, addr: Register, val: i32) {
         if let Some(offset) = addr.as_stack_offset() {
             let len = self.arguments_stack.len();
             // the top of the data stack is always the frame size
@@ -116,7 +117,7 @@ impl VmCtx {
     pub fn get_number(&self, number: NumberSpec) -> i32 {
         match number {
             NumberSpec::Constant(c) => c,
-            NumberSpec::Memory(addr) => self.get_memory(addr),
+            NumberSpec::Register(addr) => self.get_memory(addr),
         }
     }
 

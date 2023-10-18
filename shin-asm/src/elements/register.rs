@@ -8,6 +8,7 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 
 #[derive(BinRead, BinWrite, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+// TODO: add a niche for `Option<Register>` to have an efficient representation
 pub struct Register(u16);
 
 impl Register {
@@ -16,7 +17,6 @@ impl Register {
     const REGULAR_REGISTERS_END: u16 = Self::ARGUMENTS_START - 1;
     const ARGUMENTS_START: u16 = 0x1000;
     const ARGUMENTS_END: u16 = 0x1fff;
-    const DUMMY: u16 = u16::MAX;
 
     pub fn try_from_regular_register(index: u16) -> Option<Self> {
         if index <= Self::REGULAR_REGISTERS_END - Self::REGULAR_REGISTERS_START {
@@ -40,14 +40,6 @@ impl Register {
 
     pub fn from_argument(index: u16) -> Self {
         Self::try_from_argument(index).expect("Argument register index out of range")
-    }
-
-    pub fn dummy() -> Self {
-        Self(Self::DUMMY)
-    }
-
-    pub fn is_dummy(self) -> bool {
-        matches!(self.repr(), RegisterRepr::Dummy)
     }
 
     pub fn repr(self) -> RegisterRepr {
@@ -76,7 +68,6 @@ impl From<Register> for RegisterRepr {
             Register::ARGUMENTS_START..=Register::ARGUMENTS_END => {
                 RegisterRepr::Argument(value.0 - Register::ARGUMENTS_START)
             }
-            Register::DUMMY => RegisterRepr::Dummy,
             value => unreachable!("Invalid register: {}", value),
         }
     }
@@ -87,7 +78,6 @@ impl From<RegisterRepr> for Register {
         match value {
             RegisterRepr::Regular(regular) => Self(regular),
             RegisterRepr::Argument(argument) => Self(Register::ARGUMENTS_START + argument),
-            RegisterRepr::Dummy => Self(Register::DUMMY),
         }
     }
 }
@@ -106,31 +96,28 @@ impl FromHirExpr for Register {
         resolve_ctx: &ResolveContext,
         block: &HirBlockBody,
         expr: ExprId,
-    ) -> Self {
+    ) -> Option<Self> {
         let hir::Expr::RegisterRef(register) = &block.exprs[expr] else {
             diagnostics.emit(expr.into(), "Expected a register reference".into());
-            return Register::dummy();
+            return None;
         };
 
-        match register {
-            None => Register::dummy(),
-            Some(register) => match resolve_ctx.resolve_register(register) {
-                None => {
-                    let ast::RegisterIdentKind::Alias(alias) = register else {
-                        unreachable!("BUG: a regular register should always resolve");
-                    };
-                    diagnostics.emit(expr.into(), format!("Unknown register alias: `${}`", alias));
-                    Register::dummy()
-                }
-                Some(register) => register,
-            },
+        let register = register.as_ref()?;
+        match resolve_ctx.resolve_register(register) {
+            Some(register) => Some(register),
+            None => {
+                let ast::RegisterIdentKind::Alias(alias) = register else {
+                    unreachable!("BUG: a regular register should always resolve");
+                };
+                diagnostics.emit(expr.into(), format!("Unknown register alias: `${}`", alias));
+                None
+            }
         }
     }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum RegisterRepr {
-    Dummy,
     Argument(u16),
     Regular(u16),
 }
@@ -144,7 +131,6 @@ impl RegisterRepr {
 impl Display for RegisterRepr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegisterRepr::Dummy => write!(f, "$dummy"),
             RegisterRepr::Argument(argument) => write!(f, "$a{}", argument),
             RegisterRepr::Regular(regular) => write!(f, "$v{}", regular),
         }
@@ -170,8 +156,6 @@ impl FromStr for RegisterRepr {
         } else if let Some(s) = s.strip_prefix('v') {
             let index = s.parse().map_err(RegisterReprParseError::InvalidIndex)?;
             Ok(RegisterRepr::Regular(index))
-        } else if s == "dummy" {
-            Ok(RegisterRepr::Dummy)
         } else {
             Err(RegisterReprParseError::InvalidPrefix)
         }
@@ -202,7 +186,6 @@ mod tests {
         assert_register_roundtrip("$a2");
         assert_register_roundtrip("$a3");
         assert_register_roundtrip("$a4095");
-        assert_register_roundtrip("$dummy");
     }
 
     fn assert_register_value(s: &str, value: u16) {
@@ -221,7 +204,6 @@ mod tests {
         assert_register_value("$a2", 0x1002);
         assert_register_value("$a3", 0x1003);
         assert_register_value("$a4095", 0x1fff);
-        assert_register_value("$dummy", 0xffff);
     }
 
     fn assert_constructor(r: Register, s: &str) {
@@ -239,7 +221,6 @@ mod tests {
         assert_constructor(Register::from_argument(2), "$a2");
         assert_constructor(Register::from_argument(3), "$a3");
         assert_constructor(Register::from_argument(4095), "$a4095");
-        assert_constructor(Register::dummy(), "$dummy");
     }
 
     #[test]
@@ -286,7 +267,7 @@ mod tests {
             let register = Register::from_hir_expr(&mut diagnostics, &resolve_ctx, &block, expr_id);
             assert!(diagnostics.is_empty());
 
-            assert_eq!(register, expected);
+            assert_eq!(register, Some(expected));
         }
     }
 }

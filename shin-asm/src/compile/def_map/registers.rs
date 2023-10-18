@@ -18,7 +18,7 @@ pub struct UnresolvedGlobalRegister {
 }
 
 type UnresolvedGlobalRegisters = FxHashMap<RegisterName, UnresolvedGlobalRegister>;
-pub type ResolvedGlobalRegisters = FxHashMap<RegisterName, Register>;
+pub type ResolvedGlobalRegisters = FxHashMap<RegisterName, Option<Register>>;
 pub type LocalRegisters = FxHashMap<ItemIndex, FxHashMap<RegisterName, Register>>;
 
 pub fn collect_global_registers(db: &dyn Db, program: Program) -> UnresolvedGlobalRegisters {
@@ -161,11 +161,11 @@ pub fn collect_local_registers(db: &dyn Db, program: Program) -> LocalRegisters 
 pub fn resolve_global_registers(
     db: &dyn Db,
     global_registers: &UnresolvedGlobalRegisters,
-) -> FxHashMap<RegisterName, Register> {
+) -> FxHashMap<RegisterName, Option<Register>> {
     enum NodeState {
         NotVisited,
         Visiting,
-        Visited(Register),
+        Visited(Option<Register>),
     }
     struct RegisterResolver<'a> {
         db: &'a dyn Db,
@@ -174,7 +174,7 @@ pub fn resolve_global_registers(
     }
 
     impl RegisterResolver<'_> {
-        fn resolve(&mut self, name: RegisterName, usage_span: Option<Span>) -> Register {
+        fn resolve(&mut self, name: RegisterName, usage_span: Option<Span>) -> Option<Register> {
             let node_entry = self.node_info.entry(name.clone());
             let node_state = node_entry.or_insert(NodeState::NotVisited);
 
@@ -189,12 +189,12 @@ pub fn resolve_global_registers(
                             )
                             .emit(self.db);
 
-                            Register::dummy()
+                            None
                         }
                         Some(&UnresolvedGlobalRegister {
                             register_kind: ast::RegisterIdentKind::Register(register),
                             ..
-                        }) => register,
+                        }) => Some(register),
                         Some(&UnresolvedGlobalRegister {
                             register_kind: ast::RegisterIdentKind::Alias(ref aliased_name),
                             body_span,
@@ -218,7 +218,7 @@ pub fn resolve_global_registers(
                     )
                     .emit(self.db);
 
-                    return Register::dummy();
+                    return None;
                 }
                 NodeState::Visited(result) => result,
             }

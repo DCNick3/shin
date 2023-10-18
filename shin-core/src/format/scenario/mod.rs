@@ -3,6 +3,7 @@
 //! See also [crate::vm] for the VM that runs the scenario.
 
 pub mod info;
+pub mod instruction_elements;
 pub mod instructions;
 pub mod types;
 

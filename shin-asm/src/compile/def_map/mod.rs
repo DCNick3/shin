@@ -2,8 +2,9 @@ mod collect;
 mod items;
 mod registers;
 
-pub use items::ResolvedDefMap;
+pub use items::ResolvedItems;
 pub use registers::{LocalRegisters, ResolvedGlobalRegisters};
+use std::borrow::Cow;
 
 use crate::compile::Program;
 use crate::compile::{BlockIdWithFile, Db};
@@ -37,7 +38,7 @@ pub enum BlockName {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DefMap {
-    items: ResolvedDefMap,
+    items: ResolvedItems,
     global_registers: ResolvedGlobalRegisters,
     local_registers: LocalRegisters,
     block_names: FxHashMap<BlockIdWithFile, BlockName>,
@@ -71,7 +72,13 @@ impl DefMap {
         writeln!(output, "registers:").unwrap();
         writeln!(output, "  global:").unwrap();
         for (name, value) in global_registers {
-            writeln!(output, "    {}: {:?}", name, value).unwrap();
+            writeln!(
+                output,
+                "    {}: {}",
+                name,
+                value.map_or(Cow::from("[ERROR]"), |r| format!("{:?}", r).into())
+            )
+            .unwrap();
         }
         writeln!(output, "  local:").unwrap();
         for (item_index, registers) in local_registers {
@@ -210,8 +217,8 @@ def $b = $a
             items:
             registers:
               global:
-                a: $dummy
-                b: $dummy
+                a: [ERROR]
+                b: [ERROR]
               local:
             block names:
         "#]]

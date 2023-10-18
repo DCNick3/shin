@@ -1,3 +1,4 @@
+use crate::format::scenario::instruction_elements::Register;
 use crate::format::scenario::types::{Pad4, U16SmallList, U8SmallList, U8SmallNumberList};
 use crate::vm::command::CompiletimeCommand;
 use binrw::{BinRead, BinResult, BinWrite, Endian};
@@ -25,50 +26,6 @@ impl Display for CodeAddress {
     }
 }
 
-/// Memory address in the VM
-///
-/// It can refer to the global memory (for values smaller than [`MemoryAddress::STACK_ADDR_START`]) or to the stack
-#[derive(BinRead, BinWrite, Copy, Clone)]
-#[brw(little)]
-pub struct MemoryAddress(u16);
-
-impl Debug for MemoryAddress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(offset) = self.as_stack_offset() {
-            write!(f, "stack[{}]", offset)
-        } else {
-            write!(f, "0x{:x}", self.0)
-        }
-    }
-}
-
-impl MemoryAddress {
-    /// Addresses larger than 0x1000 are treated as relative to the stack top (Aka mem3)
-    pub const STACK_ADDR_START: u16 = 0x1000;
-
-    pub fn as_stack_offset(&self) -> Option<u16> {
-        if self.0 >= Self::STACK_ADDR_START {
-            Some(self.raw() - Self::STACK_ADDR_START + 1)
-        } else {
-            None
-        }
-    }
-
-    pub fn from_stack_offset(offset: u16) -> Self {
-        assert!(offset > 0);
-        Self(offset + Self::STACK_ADDR_START - 1)
-    }
-
-    pub fn from_memory_addr(addr: u16) -> Self {
-        assert!(addr < Self::STACK_ADDR_START);
-        Self(addr)
-    }
-
-    pub fn raw(&self) -> u16 {
-        self.0
-    }
-}
-
 /// Specifies how to get a 32-bit signed number at runtime
 ///
 /// It can be a constant or a reference to memory
@@ -76,9 +33,8 @@ impl MemoryAddress {
 /// [FromVmCtx](crate::vm::FromVmCtx) trait is used to convert it to runtime representation in command definitions (see [crate::vm::command])
 #[derive(Debug, Copy, Clone)]
 pub enum NumberSpec {
-    /// A constant number
     Constant(i32),
-    Memory(MemoryAddress),
+    Register(Register),
 }
 
 impl BinRead for NumberSpec {
@@ -121,11 +77,11 @@ impl BinRead for NumberSpec {
                     let b3 = u8::read_options(reader, endian, ())? as i32;
                     Self::Constant(b3 | (b2 << 8) | (b1 << 16) | (k_sext << 24))
                 }
-                3 => Self::Memory(MemoryAddress::from_memory_addr(k as u16)),
-                4 => Self::Memory(MemoryAddress::from_memory_addr(
+                3 => Self::Register(Register::from_memory_addr(k as u16)),
+                4 => Self::Register(Register::from_memory_addr(
                     u8::read_options(reader, endian, ())? as u16 | (k as u16) << 8,
                 )),
-                5 => Self::Memory(MemoryAddress::from_stack_offset(k as u16 + 1)),
+                5 => Self::Register(Register::from_stack_offset(k as u16 + 1)),
                 _ => unreachable!("unknown number spec type: P={}", p),
             }
         } else {
@@ -165,7 +121,7 @@ pub enum UnaryOperationType {
 pub struct UnaryOperation {
     pub ty: UnaryOperationType,
     /// Where to write the result to
-    pub destination: MemoryAddress,
+    pub destination: Register,
     /// The input value
     pub source: NumberSpec,
 }
@@ -186,11 +142,11 @@ impl BinRead for UnaryOperation {
                 format!("unknown binary operation type: {}", temp & 0x7f),
             ))
         })?;
-        let destination = MemoryAddress::read_options(reader, endian, ())?;
+        let destination = Register::read_options(reader, endian, ())?;
         let source = if temp & 0x80 != 0 {
             NumberSpec::read_options(reader, endian, ())?
         } else {
-            NumberSpec::Memory(destination)
+            NumberSpec::Register(destination)
         };
         Ok(Self {
             ty,
@@ -266,7 +222,7 @@ pub enum BinaryOperationType {
 #[derive(Debug, Copy, Clone)]
 pub struct BinaryOperation {
     pub ty: BinaryOperationType,
-    pub destination: MemoryAddress,
+    pub destination: Register,
     pub left: NumberSpec,
     pub right: NumberSpec,
 }
@@ -287,11 +243,11 @@ impl BinRead for BinaryOperation {
                 format!("unknown binary operation type: {}", temp & 0x7f),
             ))
         })?;
-        let destination = MemoryAddress::read_options(reader, endian, ())?;
+        let destination = Register::read_options(reader, endian, ())?;
         let left = if temp & 0x80 != 0 {
             NumberSpec::read_options(reader, endian, ())?
         } else {
-            NumberSpec::Memory(destination)
+            NumberSpec::Register(destination)
         };
         let right = NumberSpec::read_options(reader, endian, ())?;
 
@@ -654,17 +610,14 @@ pub enum Instruction {
     ///
     /// The expression itself is encoded as a reverse polish notation expression.
     #[brw(magic(0x42u8))]
-    exp {
-        dest: MemoryAddress,
-        expr: Expression,
-    },
+    exp { dest: Register, expr: Expression },
 
     /// Get Table
     ///
     /// This selects a number from a table based on the value of the index and stores the result at the destination address.
     #[brw(magic(0x44u8))]
     gt {
-        dest: MemoryAddress,
+        dest: Register,
         index: NumberSpec,
         table: U16SmallList<[Pad4<NumberSpec>; 32]>,
     },
@@ -710,7 +663,7 @@ pub enum Instruction {
     /// Generate a random number between min and max (inclusive)
     #[brw(magic(0x4cu8))]
     rnd {
-        dest: MemoryAddress,
+        dest: Register,
         min: NumberSpec,
         max: NumberSpec,
     },
@@ -723,9 +676,7 @@ pub enum Instruction {
     ///
     /// Used to restore values of memory previously pushed by [push](Instruction::push)
     #[brw(magic(0x4eu8))]
-    pop {
-        dest: U8SmallList<[MemoryAddress; 6]>,
-    },
+    pop { dest: U8SmallList<[Register; 6]> },
     /// Call Subroutine with Parameters
     ///
     /// The return must be done with [return](`Instruction::return`).

@@ -2,9 +2,8 @@
 
 pub mod types;
 
-use crate::format::scenario::instructions::{
-    BitmaskNumberArray, MemoryAddress, MessageId, NumberSpec,
-};
+use crate::format::scenario::instruction_elements::Register;
+use crate::format::scenario::instructions::{BitmaskNumberArray, MessageId, NumberSpec};
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String};
 use crate::time::Ticks;
@@ -44,7 +43,7 @@ pub enum Command {
     #[cmd(opcode = 0x81u8)]
     SGET {
         #[cmd(dest)]
-        dest: MemoryAddress,
+        dest: Register,
         slot_number: NumberSpec,
     },
     /// Set persistent value
@@ -108,7 +107,7 @@ pub enum Command {
         choice_set_base: u16,
         choice_index: u16,
         #[cmd(dest)]
-        dest: MemoryAddress,
+        dest: Register,
         choice_visibility_mask: NumberSpec,
         choice_title: U16String,
         variants: StringArray,
@@ -371,7 +370,7 @@ pub enum Command {
     #[cmd(opcode = 0xe2u8)]
     QUIZ {
         #[cmd(dest)]
-        dest: MemoryAddress,
+        dest: Register,
         arg: NumberSpec,
     },
     /// Show "Characters" menu
@@ -398,7 +397,7 @@ pub enum CommandResult {
     /// No result
     None,
     /// The result is a single integer that should be written to the given memory address
-    WriteMemory(MemoryAddress, i32),
+    WriteMemory(Register, i32),
 }
 
 impl RuntimeCommand {

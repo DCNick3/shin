@@ -11,6 +11,7 @@ authors = ["DCNick3"]
 
 [dependencies]
 shin-derive = { path = "../shin-derive" }
+shin-core = { path = "../shin-core" }
 
 assert_matches = "1.5.0"
 

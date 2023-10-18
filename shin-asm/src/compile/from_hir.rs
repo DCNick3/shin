@@ -80,20 +80,20 @@ impl HirDiagnosticCollector {
     }
 }
 
-pub trait FromHirExpr {
+pub trait FromHirExpr: Sized {
     fn from_hir_expr(
         diagnostics: &mut HirDiagnosticCollector,
         resolve_ctx: &resolve::ResolveContext,
         block: &HirBlockBody,
         expr: hir::ExprId,
-    ) -> Self;
+    ) -> Option<Self>;
 }
 
-pub trait FromHirInstruction {
+pub trait FromHirInstruction: Sized {
     fn from_hir_instruction(
         diagnostics: &mut HirDiagnosticCollector,
         resolve_ctx: &resolve::ResolveContext,
         block: &HirBlockBody,
         instr: hir::InstructionId,
-    ) -> Self;
+    ) -> Option<Self>;
 }

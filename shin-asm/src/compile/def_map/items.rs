@@ -29,10 +29,10 @@ pub enum DefValue {
     Value(ConstexprValue),
 }
 
-type UnresolvedDefMap = FxHashMap<Name, DefRef>;
-pub type ResolvedDefMap = FxHashMap<Name, DefValue>;
+type UnresolvedItems = FxHashMap<Name, DefRef>;
+pub type ResolvedItems = FxHashMap<Name, DefValue>;
 
-pub fn collect_item_defs(db: &dyn Db, program: Program) -> UnresolvedDefMap {
+pub fn collect_item_defs(db: &dyn Db, program: Program) -> UnresolvedItems {
     struct DefCollector {
         items: FxHashMap<Name, DefRef>,
     }
@@ -118,7 +118,7 @@ pub fn collect_item_defs(db: &dyn Db, program: Program) -> UnresolvedDefMap {
     visitor.items
 }
 
-pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedDefMap) -> ResolvedDefMap {
+pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedItems) -> ResolvedItems {
     enum NodeState {
         NotVisited,
         Visiting,
@@ -126,7 +126,7 @@ pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedDefMap) -> ResolvedDef
     }
     struct DefResolver<'a> {
         db: &'a dyn Db,
-        def_map: &'a UnresolvedDefMap,
+        def_map: &'a UnresolvedItems,
         node_info: FxHashMap<Name, NodeState>,
     }
 

@@ -3466,6 +3466,7 @@ dependencies = [
  "rowan",
  "rustc-hash",
  "salsa-2022",
+ "shin-core",
  "shin-derive",
  "smol_str",
  "test-generator",
