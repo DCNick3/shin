@@ -1,4 +1,4 @@
-use crate::format::scenario::instructions::NumberSpec;
+use crate::format::scenario::instruction_elements::NumberSpec;
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::vm::{FromVmCtx, VmCtx};
 use enum_map::Enum;

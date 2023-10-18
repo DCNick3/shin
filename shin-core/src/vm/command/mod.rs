@@ -2,8 +2,9 @@
 
 pub mod types;
 
-use crate::format::scenario::instruction_elements::Register;
-use crate::format::scenario::instructions::{BitmaskNumberArray, MessageId, NumberSpec};
+use crate::format::scenario::instruction_elements::{
+    BitmaskNumberArray, MessageId, NumberSpec, Register,
+};
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String};
 use crate::time::Ticks;

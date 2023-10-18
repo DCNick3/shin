@@ -299,7 +299,7 @@ pub fn impl_command(input: Structure) -> TokenStream {
             #compiletime_types
         }
 
-        /// This module contains compile-time representation of commands.
+        /// This module contains run-time representation of commands.
         ///
         /// Unlike compile-time representation, this one contains `token` field and `NumberSpec` values are resolved to `i32` or other strongly-typed values.
         pub mod runtime {

@@ -10,7 +10,7 @@ pub use id::{
 };
 pub use property::{LayerProperty, LayerPropertySmallList};
 
-use crate::format::scenario::instructions::NumberSpec;
+use crate::format::scenario::instruction_elements::NumberSpec;
 use crate::vm::{FromVmCtx, VmCtx};
 use num_derive::FromPrimitive;
 

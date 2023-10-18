@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 /// Register address in the vm
 ///
-/// It can either refer to an argument register (implemented as a stack) or a regular global register.
+/// It can either refer to an argument register (to access args passed by a `call` instruction) or a regular global register.
 #[derive(BinRead, BinWrite, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 // TODO: add a niche for `Option<Register>` to have an efficient representation
 pub struct Register(u16);
@@ -89,6 +89,7 @@ impl FromStr for Register {
     }
 }
 
+/// A decoded register representation - either an argument register or a regular register
 #[derive(Debug, Copy, Clone)]
 pub enum RegisterRepr {
     Argument(u16),

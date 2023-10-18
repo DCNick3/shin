@@ -8,10 +8,11 @@ pub mod instructions;
 pub mod types;
 
 use crate::format::scenario::info::ScenarioInfoTables;
-use crate::format::scenario::instructions::{CodeAddress, Instruction};
+use crate::format::scenario::instructions::Instruction;
 use anyhow::{bail, Result};
 use binrw::BinRead;
 use bytes::Bytes;
+use instruction_elements::CodeAddress;
 use std::io::Cursor;
 
 #[derive(BinRead)]

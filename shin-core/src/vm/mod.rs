@@ -25,8 +25,9 @@ mod ctx;
 
 pub use ctx::*;
 
+use crate::format::scenario::instruction_elements::CodeAddress;
 use crate::format::scenario::instructions::{
-    BinaryOperation, CodeAddress, Instruction, UnaryOperation, UnaryOperationType,
+    BinaryOperation, Instruction, UnaryOperation, UnaryOperationType,
 };
 use crate::format::scenario::{InstructionReader, Scenario};
 use crate::vm::breakpoint::{BreakpointHandle, CodeBreakpointSet};

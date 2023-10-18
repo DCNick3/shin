@@ -1,110 +1,15 @@
-use crate::format::scenario::instruction_elements::Register;
+//! Defines the [`Instruction`] type, along with some helper types used for their encoding.
+
+use crate::format::scenario::instruction_elements::{CodeAddress, NumberSpec, Register};
 use crate::format::scenario::types::{Pad4, U16SmallList, U8SmallList, U8SmallNumberList};
 use crate::vm::command::CompiletimeCommand;
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use smallvec::SmallVec;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::io;
 use std::io::SeekFrom;
-
-/// Code address - offset into the scenario file
-#[derive(BinRead, BinWrite, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-#[brw(little)]
-pub struct CodeAddress(pub u32);
-
-impl Debug for CodeAddress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "0x{:x}j", self.0)
-    }
-}
-
-impl Display for CodeAddress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-/// Specifies how to get a 32-bit signed number at runtime
-///
-/// It can be a constant or a reference to memory
-///
-/// [FromVmCtx](crate::vm::FromVmCtx) trait is used to convert it to runtime representation in command definitions (see [crate::vm::command])
-#[derive(Debug, Copy, Clone)]
-pub enum NumberSpec {
-    Constant(i32),
-    Register(Register),
-}
-
-impl BinRead for NumberSpec {
-    type Args<'a> = ();
-
-    //noinspection SpellCheckingInspection
-    fn read_options<R: io::Read + io::Seek>(
-        reader: &mut R,
-        endian: Endian,
-        _: (),
-    ) -> BinResult<Self> {
-        let t = u8::read_options(reader, endian, ())?;
-        // t=TXXXXXXX
-        // T=0 => XXXXXXX is a 7-bit signed constant
-        // T=1 => futher processing needed
-        Ok(if t & 0x80 != 0 {
-            // t=1PPPKKKK
-            let p = (t & 0x70) >> 4;
-            let k = t & 0x0F;
-            // does the sign extension of k, using bits [0:3] (4 bit number)
-            let k_sext = (k as i32) << 28 >> 28;
-            // P=0 => 12-bit signed constant (KKKK denotes the upper 4 bits, lsb is read from the next byte)
-            // P=1 => 20-bit signed constant (KKKK denotes the upper 4 bits, 2 lower bytes are read from the stream)
-            // P=2 => 26-bit signed constante (KKKK denotes the upper 4 bits, 3 lower bytes are read from the stream)
-            // P=3 => 4-bit Mem1 address, KKKK is the address
-            // P=4 => 12-bit Mem1 address, KKKK denotes the upper 4 bits, lsb is read from the next byte
-            // P=5 => 4-bit Mem3 address, KKKK + 1 is the address
-            match p {
-                0 => Self::Constant(u8::read_options(reader, endian, ())? as i32 | (k_sext << 8)),
-                1 => {
-                    // it's big endian......
-                    let b1 = u8::read_options(reader, endian, ())? as i32;
-                    let b2 = u8::read_options(reader, endian, ())? as i32;
-                    Self::Constant(b2 | (b1 << 8) | (k_sext << 16))
-                }
-                2 => {
-                    // it's big endian......
-                    let b1 = u8::read_options(reader, endian, ())? as i32;
-                    let b2 = u8::read_options(reader, endian, ())? as i32;
-                    let b3 = u8::read_options(reader, endian, ())? as i32;
-                    Self::Constant(b3 | (b2 << 8) | (b1 << 16) | (k_sext << 24))
-                }
-                3 => Self::Register(Register::from_regular_register(k as u16)),
-                4 => Self::Register(Register::from_regular_register(
-                    u8::read_options(reader, endian, ())? as u16 | (k as u16) << 8,
-                )),
-                5 => Self::Register(Register::from_argument(k as u16)),
-                _ => unreachable!("unknown number spec type: P={}", p),
-            }
-        } else {
-            // signed 7-bit integer
-            // does the sign extension of t, using bits [0:6]
-            let res = (t as i32 & 0x7f) << 25 >> 25;
-            Self::Constant(res)
-        })
-    }
-}
-
-impl BinWrite for NumberSpec {
-    type Args<'a> = ();
-
-    fn write_options<W: io::Write + io::Seek>(
-        &self,
-        _writer: &mut W,
-        _endian: Endian,
-        _: (),
-    ) -> BinResult<()> {
-        todo!()
-    }
-}
 
 #[derive(Debug, Copy, Clone, FromPrimitive)]
 pub enum UnaryOperationType {
@@ -501,90 +406,6 @@ impl BinWrite for Expression {
         _: (),
     ) -> BinResult<()> {
         todo!()
-    }
-}
-
-/// Represents 8 numbers, each of which may or may not be present.
-///
-/// If the number is not present, it is represented as `NumberSpec::Constant(0)`.
-#[derive(Debug, Copy, Clone)]
-pub struct BitmaskNumberArray(pub [NumberSpec; 8]);
-
-impl BinRead for BitmaskNumberArray {
-    type Args<'a> = ();
-
-    fn read_options<R: io::Read + io::Seek>(
-        reader: &mut R,
-
-        endian: Endian,
-        _: (),
-    ) -> BinResult<Self> {
-        let mut res = [NumberSpec::Constant(0); 8];
-        let mut mask = u8::read_options(reader, endian, ())?;
-        for res in res.iter_mut() {
-            if mask & 1 != 0 {
-                *res = NumberSpec::read_options(reader, endian, ())?;
-            }
-            mask >>= 1;
-        }
-        Ok(Self(res))
-    }
-}
-
-impl BinWrite for BitmaskNumberArray {
-    type Args<'a> = ();
-
-    fn write_options<W: io::Write + io::Seek>(
-        &self,
-        _writer: &mut W,
-        _endian: Endian,
-        _: (),
-    ) -> BinResult<()> {
-        todo!()
-    }
-}
-
-/// Message ID - a 24-bit integer
-///
-/// It is used to check whether a message was seen before.
-pub struct MessageId(pub u32);
-
-impl BinRead for MessageId {
-    type Args<'a> = ();
-
-    fn read_options<R: io::Read + io::Seek>(
-        reader: &mut R,
-
-        endian: Endian,
-        _: (),
-    ) -> BinResult<Self> {
-        // MessageId is a 24-bit (sic!) integer
-        let b0 = u8::read_options(reader, endian, ())?;
-        let b1 = u8::read_options(reader, endian, ())?;
-        let b2 = u8::read_options(reader, endian, ())?;
-
-        let id = (b0 as u32) | ((b1 as u32) << 8) | ((b2 as u32) << 16);
-
-        Ok(Self(id))
-    }
-}
-
-impl BinWrite for MessageId {
-    type Args<'a> = ();
-
-    fn write_options<W: io::Write + io::Seek>(
-        &self,
-        _writer: &mut W,
-        _endian: Endian,
-        _: (),
-    ) -> BinResult<()> {
-        todo!()
-    }
-}
-
-impl Debug for MessageId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
     }
 }
 

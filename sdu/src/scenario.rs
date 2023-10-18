@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use itertools::Itertools;
-use shin_core::format::scenario::instructions::CodeAddress;
+use shin_core::format::scenario::instruction_elements::CodeAddress;
 use shin_core::vm::command::{CommandResult, RuntimeCommand};
 use std::fs::File;
 use std::path::PathBuf;

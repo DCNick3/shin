@@ -18,7 +18,7 @@ use egui::Window;
 use glam::Mat4;
 use itertools::Itertools;
 use shin_audio::AudioManager;
-use shin_core::format::scenario::instructions::CodeAddress;
+use shin_core::format::scenario::instruction_elements::CodeAddress;
 use shin_core::format::scenario::Scenario;
 use shin_core::vm::breakpoint::BreakpointObserver;
 use shin_core::vm::command::types::{LayerId, VLayerId, VLayerIdRepr, PLANES_COUNT};

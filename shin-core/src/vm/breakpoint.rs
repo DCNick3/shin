@@ -1,6 +1,6 @@
 //! Contains breakpoint functionality for the VM
 
-use crate::format::scenario::instructions::CodeAddress;
+use crate::format::scenario::instruction_elements::CodeAddress;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};

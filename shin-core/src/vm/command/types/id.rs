@@ -1,4 +1,4 @@
-use crate::format::scenario::instructions::NumberSpec;
+use crate::format::scenario::instruction_elements::NumberSpec;
 use crate::vm::{FromVmCtx, VmCtx};
 
 pub const LAYERBANKS_COUNT: u8 = 0x30;

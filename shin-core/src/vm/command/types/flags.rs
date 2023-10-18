@@ -1,4 +1,4 @@
-use crate::format::scenario::instructions::NumberSpec;
+use crate::format::scenario::instruction_elements::NumberSpec;
 use crate::vm::{FromVmCtx, VmCtx};
 use bitflags::bitflags;
 use proc_bitfield::bitfield;

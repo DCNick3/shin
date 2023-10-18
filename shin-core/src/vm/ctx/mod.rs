@@ -2,10 +2,11 @@ mod from_vm_ctx;
 
 pub use from_vm_ctx::*;
 
-use crate::format::scenario::instruction_elements::{Register, RegisterRepr};
+use crate::format::scenario::instruction_elements::{
+    CodeAddress, NumberSpec, Register, RegisterRepr,
+};
 use crate::format::scenario::instructions::{
-    BinaryOperationType, CodeAddress, Expression, ExpressionTerm, JumpCond, JumpCondType,
-    NumberSpec,
+    BinaryOperationType, Expression, ExpressionTerm, JumpCond, JumpCondType,
 };
 use smallvec::SmallVec;
 use tracing::warn;

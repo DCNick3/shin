@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::{Context, Result};
 use glam::Mat4;
-use shin_core::format::scenario::instructions::CodeAddress;
+use shin_core::format::scenario::instruction_elements::CodeAddress;
 use tracing::{debug, info, warn};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::window::Fullscreen;

@@ -1,4 +1,4 @@
-use crate::format::scenario::instructions::NumberSpec;
+use crate::format::scenario::instruction_elements::NumberSpec;
 use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
 use derivative::Derivative;
 use smallvec::SmallVec;

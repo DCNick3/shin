@@ -2,7 +2,7 @@
 //!
 //! Also contains implementation for std types & stuff defined in `shin_core::format`, like `U8String` -> `String` stuff
 
-use crate::format::scenario::instructions::{BitmaskNumberArray, MessageId, NumberSpec};
+use crate::format::scenario::instruction_elements::{BitmaskNumberArray, MessageId, NumberSpec};
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String, U8FixupString, U8String};
 use crate::time::Ticks;
