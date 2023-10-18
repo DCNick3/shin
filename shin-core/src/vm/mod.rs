@@ -117,7 +117,7 @@ impl Scripter {
 
                 trace!(?pc, ?ty, ?destination, ?source, ?result, "uo");
 
-                self.ctx.set_memory(destination, result);
+                self.ctx.write_register(destination, result);
             }
             Instruction::bo(BinaryOperation {
                 ty,
@@ -131,13 +131,13 @@ impl Scripter {
 
                 trace!(?pc, ?ty, ?destination, ?left, ?right, ?result, "bo");
 
-                self.ctx.set_memory(destination, result);
+                self.ctx.write_register(destination, result);
             }
 
             Instruction::exp { dest, expr } => {
                 let result = self.ctx.evaluate_expression(&expr);
                 trace!(?pc, ?dest, ?result, ?expr, "exp");
-                self.ctx.set_memory(dest, result);
+                self.ctx.write_register(dest, result);
             }
             Instruction::gt { dest, index, table } => {
                 let index = self.ctx.get_number(index);
@@ -148,7 +148,7 @@ impl Scripter {
                     0
                 };
                 trace!(?pc, ?index, ?result, ?dest, table_len = ?table.0.len(), "gt");
-                self.ctx.set_memory(dest, result);
+                self.ctx.write_register(dest, result);
             }
             Instruction::jc {
                 cond,
@@ -195,7 +195,7 @@ impl Scripter {
                 let max = self.ctx.get_number(max);
                 let result = self.ctx.run_prng(min, max);
                 trace!(?pc, ?dest, ?min, ?max, ?result, prng_state = ?self.ctx.get_prng_state(), "rnd");
-                self.ctx.set_memory(dest, result);
+                self.ctx.write_register(dest, result);
             }
             Instruction::call { target, args } => {
                 let args = args
@@ -231,7 +231,7 @@ impl Scripter {
                 trace!(?pc, ?values, "pop");
 
                 for (dest, value) in dest.0.iter().zip(values) {
-                    self.ctx.set_memory(*dest, value);
+                    self.ctx.write_register(*dest, value);
                 }
             }
             Instruction::r#return {} => {
@@ -266,7 +266,7 @@ impl Scripter {
         match prev_command_result {
             CommandResult::None => {}
             CommandResult::WriteMemory(addr, value) => {
-                self.ctx.set_memory(addr, value);
+                self.ctx.write_register(addr, value);
             }
         }
 

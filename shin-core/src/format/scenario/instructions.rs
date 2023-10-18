@@ -77,11 +77,11 @@ impl BinRead for NumberSpec {
                     let b3 = u8::read_options(reader, endian, ())? as i32;
                     Self::Constant(b3 | (b2 << 8) | (b1 << 16) | (k_sext << 24))
                 }
-                3 => Self::Register(Register::from_memory_addr(k as u16)),
-                4 => Self::Register(Register::from_memory_addr(
+                3 => Self::Register(Register::from_regular_register(k as u16)),
+                4 => Self::Register(Register::from_regular_register(
                     u8::read_options(reader, endian, ())? as u16 | (k as u16) << 8,
                 )),
-                5 => Self::Register(Register::from_stack_offset(k as u16 + 1)),
+                5 => Self::Register(Register::from_argument(k as u16)),
                 _ => unreachable!("unknown number spec type: P={}", p),
             }
         } else {

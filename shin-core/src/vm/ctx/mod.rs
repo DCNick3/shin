@@ -2,7 +2,7 @@ mod from_vm_ctx;
 
 pub use from_vm_ctx::*;
 
-use crate::format::scenario::instruction_elements::Register;
+use crate::format::scenario::instruction_elements::{Register, RegisterRepr};
 use crate::format::scenario::instructions::{
     BinaryOperationType, CodeAddress, Expression, ExpressionTerm, JumpCond, JumpCondType,
     NumberSpec,
@@ -15,7 +15,7 @@ use tracing::warn;
 /// It consists of a memory, two stacks (call and data)
 pub struct VmCtx {
     /// Memory (aka registers I guess)
-    memory: [i32; 0x1000],
+    regular_registers: [i32; 0x1000],
     /// Call stack
     ///
     /// Stores the return address for each call instruction
@@ -26,10 +26,10 @@ pub struct VmCtx {
     ///
     /// Stores the arguments for each call instruction
     ///
-    /// Can be addressed via [Register] with addresses > 0x1000
+    /// Can be addressed via [Register] with value > 0x1000
     ///
     /// Also called mem3 in ShinDataUtil
-    arguments_stack: Vec<i32>,
+    arguments_stack: Vec<SmallVec<[i32; 6]>>,
     /// PRNG state, updated on each instruction executed
     prng_state: u32,
 }
@@ -74,9 +74,9 @@ impl VmCtx {
         memory[0] = init_val;
 
         Self {
-            memory,
+            regular_registers: memory,
             call_stack: Vec::new(),
-            arguments_stack: vec![0; 0x16], // Umineko scenario writes out of bounds of the stack so we add some extra space
+            arguments_stack: Vec::new(),
             prng_state: random_seed,
         }
     }
@@ -89,11 +89,16 @@ impl VmCtx {
     ///
     /// The address can be a stack offset (mem3) or main memory address (mem1)
     #[inline]
-    pub fn get_memory(&self, addr: Register) -> i32 {
-        if let Some(offset) = addr.as_stack_offset() {
-            self.arguments_stack[self.arguments_stack.len() - 1 - (offset) as usize]
-        } else {
-            self.memory[addr.raw() as usize]
+    pub fn read_register(&self, register: Register) -> i32 {
+        match register.repr() {
+            RegisterRepr::Argument(index) => {
+                let frame = self
+                    .arguments_stack
+                    .last()
+                    .expect("Attempt to read argument on empty stack");
+                frame[index as usize]
+            }
+            RegisterRepr::Regular(index) => self.regular_registers[index as usize],
         }
     }
 
@@ -101,14 +106,16 @@ impl VmCtx {
     ///
     /// The address can be a stack offset (mem3) or main memory address (mem1)
     #[inline]
-    pub fn set_memory(&mut self, addr: Register, val: i32) {
-        if let Some(offset) = addr.as_stack_offset() {
-            let len = self.arguments_stack.len();
-            // the top of the data stack is always the frame size
-            // so we need to subtract 1 to get the actual top of the stack
-            self.arguments_stack[len - 1 - (offset) as usize] = val;
-        } else {
-            self.memory[addr.raw() as usize] = val;
+    pub fn write_register(&mut self, register: Register, val: i32) {
+        match register.repr() {
+            RegisterRepr::Argument(index) => {
+                let frame = self
+                    .arguments_stack
+                    .last_mut()
+                    .expect("Attempt to write argument on empty stack");
+                frame[index as usize] = val;
+            }
+            RegisterRepr::Regular(index) => self.regular_registers[index as usize] = val,
         }
     }
 
@@ -117,7 +124,7 @@ impl VmCtx {
     pub fn get_number(&self, number: NumberSpec) -> i32 {
         match number {
             NumberSpec::Constant(c) => c,
-            NumberSpec::Register(addr) => self.get_memory(addr),
+            NumberSpec::Register(addr) => self.read_register(addr),
         }
     }
 
@@ -150,17 +157,11 @@ impl VmCtx {
     }
 
     pub fn push_data_stack_frame(&mut self, val: &[i32]) {
-        for &v in val.iter().rev() {
-            self.arguments_stack.push(v);
-        }
-        self.arguments_stack.push(val.len() as i32);
+        self.arguments_stack.push(SmallVec::from_slice(val));
     }
 
     pub fn pop_data_stack_frame(&mut self) {
-        let count = self.arguments_stack.pop().unwrap() as usize;
-        for _ in 0..count {
-            self.arguments_stack.pop().unwrap();
-        }
+        self.arguments_stack.pop().unwrap();
     }
 
     /// Evaluate a RPN expression in this context
