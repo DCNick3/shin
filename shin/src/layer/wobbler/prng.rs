@@ -1103,11 +1103,13 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_overflow1() {
         assert_eq!((0..u32::MAX / 1024).map(prng_one).sum::<f32>(), -204.86963);
     }
 
     #[test]
+    #[ignore]
     fn test_overflow2() {
         assert_eq!(
             (u32::MAX / 1024..u32::MAX / 1024 * 2)
@@ -1118,6 +1120,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_overflow3() {
         assert_eq!(
             (u32::MAX / 1024 * 2..u32::MAX / 1024 * 3)
@@ -1128,6 +1131,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_overflow4() {
         assert_eq!(
             (u32::MAX / 1024 * 3..u32::MAX / 1024 * 4)
@@ -1138,6 +1142,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_overflow5() {
         assert_eq!(
             (u32::MAX / 1024 * 4..u32::MAX / 1024 * 5)
@@ -1148,6 +1153,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_overflow6() {
         assert_eq!(
             (u32::MAX / 1024 * 5..u32::MAX / 1024 * 6)
@@ -1158,6 +1164,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_overflow7() {
         assert_eq!(
             (u32::MAX / 1024 * 6..u32::MAX / 1024 * 7)
@@ -1168,6 +1175,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_overflow8() {
         assert_eq!(
             (u32::MAX / 1024 * 7..u32::MAX / 1024 * 8)

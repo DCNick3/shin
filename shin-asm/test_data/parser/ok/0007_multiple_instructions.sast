@@ -30,7 +30,7 @@ SOURCE_FILE
             COMMA ","
             WHITESPACE " "
             LITERAL
-              FLOAT_NUMBER "10.0"
+              RATIONAL_NUMBER "10.0"
             COMMA ","
             WHITESPACE " "
             REGISTER_REF_EXPR

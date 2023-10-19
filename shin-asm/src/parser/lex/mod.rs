@@ -504,7 +504,7 @@ impl Cursor<'_> {
                 }
 
                 // Also not a base prefix; nothing more to do here.
-                '.' | 'e' | 'E' => {}
+                '.' => {}
 
                 // Just a 0.
                 _ => {
@@ -524,29 +524,10 @@ impl Cursor<'_> {
                 // might have stuff after the ., and if it does, it needs to start
                 // with a number
                 self.bump();
-                let mut empty_exponent = false;
                 if self.first().is_digit(10) {
                     self.eat_decimal_digits();
-                    match self.first() {
-                        'e' | 'E' => {
-                            self.bump();
-                            empty_exponent = !self.eat_float_exponent();
-                        }
-                        _ => (),
-                    }
                 }
-                if empty_exponent {
-                    self.emit_error("Missing digits after the exponent symbol");
-                }
-                FLOAT_NUMBER
-            }
-            'e' | 'E' => {
-                self.bump();
-                let empty_exponent = !self.eat_float_exponent();
-                if empty_exponent {
-                    self.emit_error("Missing digits after the exponent symbol");
-                }
-                FLOAT_NUMBER
+                RATIONAL_NUMBER
             }
             _ => INT_NUMBER,
         }
@@ -604,15 +585,5 @@ impl Cursor<'_> {
             }
         }
         has_digits
-    }
-
-    /// Eats the float exponent. Returns true if at least one digit was met,
-    /// and returns false otherwise.
-    fn eat_float_exponent(&mut self) -> bool {
-        debug_assert!(self.prev() == 'e' || self.prev() == 'E');
-        if self.first() == '-' || self.first() == '+' {
-            self.bump();
-        }
-        self.eat_decimal_digits()
     }
 }

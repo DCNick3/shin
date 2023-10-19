@@ -182,7 +182,7 @@ impl Parse for SyntaxKindItem {
 // },
 // literals: [
 //   INT_NUMBER,
-//   FLOAT_NUMBER,
+//   RATIONAL_NUMBER,
 //   STRING,
 // ],
 // tokens: [

@@ -52,7 +52,7 @@ syntax_kind! {
     },
     literals: [
         INT_NUMBER,
-        FLOAT_NUMBER,
+        RATIONAL_NUMBER,
         STRING,
     ],
     tokens: [

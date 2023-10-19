@@ -9,6 +9,7 @@ use crate::compile::diagnostics::Diagnostic;
 use crate::syntax::ast::AstNodeExt;
 use la_arena::Arena;
 use rustc_hash::FxHashMap;
+use shin_core::rational::Rational;
 use text_size::TextRange;
 
 pub struct HirBlockCollector {
@@ -63,6 +64,10 @@ impl HirBlockCollector {
         self.handle_result(literal.value().map(Some), None)
     }
 
+    fn collect_rational_number(&mut self, literal: ast::RationalNumber) -> Option<Rational> {
+        self.handle_result(literal.value().map(Some), None)
+    }
+
     fn collect_literal(&mut self, literal: ast::LiteralKind) -> Literal {
         match literal {
             ast::LiteralKind::String(v) => self.handle_result(
@@ -72,7 +77,9 @@ impl HirBlockCollector {
             ast::LiteralKind::IntNumber(v) => {
                 Literal::IntNumber(self.collect_int_number(v).unwrap_or(1))
             }
-            ast::LiteralKind::FloatNumber(_v) => todo!("float number"),
+            ast::LiteralKind::RationalNumber(v) => {
+                Literal::RationalNumber(self.collect_rational_number(v).unwrap_or(Rational::ONE))
+            }
         }
     }
 

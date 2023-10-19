@@ -75,8 +75,9 @@ impl EvaluateContext<'_> {
 fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> ConstexprValue {
     match ctx.block.exprs[expr] {
         Expr::Missing => ConstexprValue::dummy(),
-        Expr::Literal(hir::Literal::IntNumber(value) | hir::Literal::FloatNumber(value)) => {
-            ConstexprValue::constant(value)
+        Expr::Literal(hir::Literal::IntNumber(value)) => ConstexprValue::constant(value),
+        Expr::Literal(hir::Literal::RationalNumber(value)) => {
+            ConstexprValue::constant(value.into_raw())
         }
         Expr::Literal(hir::Literal::String(_)) => {
             ctx.error(type_mismatch(Either::Left(expr), "int or float", "string"))

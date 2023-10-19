@@ -1,6 +1,7 @@
 use super::*;
 use crate::compile::diagnostics::Diagnostic;
 use crate::compile::make_diagnostic;
+use shin_core::rational::Rational;
 use std::borrow::Cow;
 use std::num::IntErrorKind;
 use text_size::TextRange;
@@ -71,6 +72,7 @@ impl IntNumber {
         let radix = self.radix();
         let (prefix, mut text) = self.text().split_at(radix.prefix_len());
 
+        // TODO: do we need to handle suffixes? I _think_ the lexer doesn't allow them
         let is_suffix_start: fn(&(usize, char)) -> bool = match radix {
             Radix::Hexadecimal => |(_, c)| matches!(c, 'g'..='z' | 'G'..='Z'),
             _ => |(_, c)| c.is_ascii_alphabetic(),
@@ -112,16 +114,24 @@ impl IntNumber {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstToken)]
-#[ast(kind = FLOAT_NUMBER)]
-pub struct FloatNumber {
+#[ast(kind = RATIONAL_NUMBER)]
+pub struct RationalNumber {
     pub(crate) syntax: SyntaxToken,
+}
+
+impl RationalNumber {
+    pub fn value(&self) -> Result<Rational, Diagnostic<TextRange>> {
+        let text = self.text().replace('_', "");
+        text.parse()
+            .map_err(|_| make_diagnostic!(self.text_range(), "Invalid float literal"))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LiteralKind {
     String(String),
     IntNumber(IntNumber),
-    FloatNumber(FloatNumber),
+    RationalNumber(RationalNumber),
     // Bool(bool),
 }
 
@@ -141,8 +151,8 @@ impl Literal {
             LiteralKind::String(t)
         } else if let Some(t) = IntNumber::cast(token.clone()) {
             LiteralKind::IntNumber(t)
-        } else if let Some(t) = FloatNumber::cast(token.clone()) {
-            LiteralKind::FloatNumber(t)
+        } else if let Some(t) = RationalNumber::cast(token.clone()) {
+            LiteralKind::RationalNumber(t)
         } else {
             unreachable!()
         }

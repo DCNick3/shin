@@ -12,5 +12,6 @@ pub use shin_tasks::create_task_pools;
 
 pub mod format;
 pub mod layout;
+pub mod rational;
 pub mod time;
 pub mod vm;

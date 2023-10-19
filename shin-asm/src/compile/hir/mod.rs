@@ -13,6 +13,7 @@ use crate::syntax::ast::visit;
 use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
+use shin_core::rational::Rational;
 use smol_str::SmolStr;
 use text_size::TextRange;
 
@@ -32,7 +33,7 @@ pub type InstructionPtrInFile = WithFile<InstructionPtr>;
 pub enum Literal {
     String(SmolStr),
     IntNumber(i32),
-    FloatNumber(i32), // TODO: this should be fixed decimal point (1.0 is represented as 1000)
+    RationalNumber(Rational),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,8 +61,8 @@ pub enum Expr {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Instruction {
-    name: Option<SmolStr>,
-    args: Box<[ExprId]>,
+    pub name: Option<SmolStr>,
+    pub args: Box<[ExprId]>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

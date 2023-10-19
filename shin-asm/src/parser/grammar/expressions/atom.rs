@@ -1,6 +1,6 @@
 use super::*;
 
-pub(crate) const LITERAL_FIRST: TokenSet = TokenSet::new(&[INT_NUMBER, FLOAT_NUMBER, STRING]);
+pub(crate) const LITERAL_FIRST: TokenSet = TokenSet::new(&[INT_NUMBER, RATIONAL_NUMBER, STRING]);
 
 pub(crate) fn literal(p: &mut Parser<'_>) -> Option<CompletedMarker> {
     if !p.at_ts(LITERAL_FIRST) {

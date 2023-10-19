@@ -81,6 +81,7 @@ ident_str! {
     pub FROM_VM_CTX_DEFAULT = from_shin_core!(vm::FromVmCtxDefault);
     pub REGISTER = from_shin_core!(format::scenario::instruction_elements::Register);
     pub COMMAND_RESULT = from_shin_core!(vm::command::CommandResult);
+    pub RATIONAL = from_shin_core!(rational::Rational);
 
     pub TEXTURE_ARCHIVE = from_shin!(asset::texture_archive::TextureArchive);
     pub TEXTURE_ARCHIVE_BUILDER = from_shin!(asset::texture_archive::TextureArchiveBuilder);

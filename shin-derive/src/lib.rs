@@ -3,6 +3,7 @@
 
 mod ast;
 mod command;
+mod rational;
 pub(crate) mod sanitization;
 mod syntax_kind;
 mod texture_archive;
@@ -127,6 +128,15 @@ pub fn derive_ast_token(input: TokenStream) -> TokenStream {
             Ok(s) => synstructure::MacroResult::into_stream(impl_ast(s, AstKind::Token)),
             Err(e) => e.to_compile_error().into(),
         },
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+/// Creates a `Rational` literal
+#[proc_macro]
+pub fn rat(input: TokenStream) -> TokenStream {
+    match syn::parse::<syn::Lit>(input) {
+        Ok(p) => rational::impl_rational(p).into(),
         Err(e) => e.to_compile_error().into(),
     }
 }
