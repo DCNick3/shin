@@ -1,7 +1,9 @@
 use super::Register;
+use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::fmt::Debug;
 use std::io;
+use std::marker::PhantomData;
 
 /// Specifies how to get a 32-bit signed number at runtime
 ///
@@ -9,12 +11,12 @@ use std::io;
 ///
 /// [FromVmCtx](crate::vm::FromVmCtx) trait is used to convert it to runtime representation in command definitions (see [crate::vm::command])
 #[derive(Copy, Clone)]
-pub enum NumberSpec {
+pub enum UntypedNumberSpec {
     Constant(i32),
     Register(Register),
 }
 
-impl Debug for NumberSpec {
+impl Debug for UntypedNumberSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Constant(c) => write!(f, "{}", c),
@@ -23,7 +25,7 @@ impl Debug for NumberSpec {
     }
 }
 
-impl BinRead for NumberSpec {
+impl BinRead for UntypedNumberSpec {
     type Args<'a> = ();
 
     //noinspection SpellCheckingInspection
@@ -79,7 +81,7 @@ impl BinRead for NumberSpec {
     }
 }
 
-impl BinWrite for NumberSpec {
+impl BinWrite for UntypedNumberSpec {
     type Args<'a> = ();
 
     fn write_options<W: io::Write + io::Seek>(
@@ -89,5 +91,64 @@ impl BinWrite for NumberSpec {
         _: (),
     ) -> BinResult<()> {
         todo!()
+    }
+}
+
+#[derive(Copy, Clone, BinRead)]
+pub struct NumberSpec<T = i32>(UntypedNumberSpec, PhantomData<T>);
+
+impl<T> NumberSpec<T> {
+    pub fn new(spec: UntypedNumberSpec) -> Self {
+        Self(spec, PhantomData)
+    }
+
+    pub fn into_untyped(self) -> UntypedNumberSpec {
+        self.0
+    }
+}
+
+// See https://github.com/jam1garner/binrw/pull/230
+impl<T> BinWrite for NumberSpec<T> {
+    type Args<'a> = ();
+
+    fn write_options<W: io::Write + io::Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        args: Self::Args<'_>,
+    ) -> BinResult<()> {
+        self.0.write_options(writer, endian, args)
+    }
+}
+
+impl<T> Debug for NumberSpec<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.0, f)
+    }
+}
+
+// TODO: remove when BNA is made like the NumberSpec
+impl<T: FromNumber> FromVmCtx<NumberSpec<T>> for T {
+    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec<T>) -> Self {
+        ctx.get_number(input)
+    }
+}
+impl<T: FromNumber> FromVmCtxDefault for NumberSpec<T> {
+    type Output = T;
+}
+
+pub trait FromNumber {
+    fn from_number(number: i32) -> Self;
+}
+
+impl FromNumber for bool {
+    fn from_number(number: i32) -> Self {
+        number != 0
+    }
+}
+
+impl FromNumber for i32 {
+    fn from_number(number: i32) -> Self {
+        number
     }
 }

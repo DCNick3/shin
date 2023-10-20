@@ -3,7 +3,7 @@ mod from_vm_ctx;
 pub use from_vm_ctx::*;
 
 use crate::format::scenario::instruction_elements::{
-    CodeAddress, NumberSpec, Register, RegisterRepr,
+    CodeAddress, FromNumber, NumberSpec, Register, RegisterRepr, UntypedNumberSpec,
 };
 use crate::format::scenario::instructions::{
     BinaryOperationType, Expression, ExpressionTerm, JumpCond, JumpCondType,
@@ -122,11 +122,12 @@ impl VmCtx {
 
     /// Read NumberSpec from memory (or return the constant value)
     #[inline]
-    pub fn get_number(&self, number: NumberSpec) -> i32 {
-        match number {
-            NumberSpec::Constant(c) => c,
-            NumberSpec::Register(addr) => self.read_register(addr),
-        }
+    pub fn get_number<T: FromNumber>(&self, number: NumberSpec<T>) -> T {
+        let value = match number.into_untyped() {
+            UntypedNumberSpec::Constant(c) => c,
+            UntypedNumberSpec::Register(addr) => self.read_register(addr),
+        };
+        T::from_number(value)
     }
 
     /// Evaluate jump condition in this context

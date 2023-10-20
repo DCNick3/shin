@@ -1,4 +1,4 @@
-use crate::format::scenario::instruction_elements::NumberSpec;
+use crate::format::scenario::instruction_elements::FromNumber;
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::vm::{FromVmCtx, VmCtx};
 use enum_map::Enum;
@@ -183,11 +183,10 @@ impl LayerProperty {
     }
 }
 
-impl FromVmCtx<NumberSpec> for LayerProperty {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        let num = ctx.get_number(input);
-        FromPrimitive::from_i32(num)
-            .unwrap_or_else(|| panic!("LayerProperty::from_vm_ctx: invalid layer type: {}", num))
+impl FromNumber for LayerProperty {
+    fn from_number(number: i32) -> Self {
+        FromPrimitive::from_i32(number)
+            .unwrap_or_else(|| panic!("LayerProperty::from_vm_ctx: invalid layer type: {}", number))
     }
 }
 

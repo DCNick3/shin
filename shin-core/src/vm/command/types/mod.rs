@@ -10,8 +10,7 @@ pub use id::{
 };
 pub use property::{LayerProperty, LayerPropertySmallList};
 
-use crate::format::scenario::instruction_elements::NumberSpec;
-use crate::vm::{FromVmCtx, VmCtx};
+use crate::format::scenario::instruction_elements::FromNumber;
 use num_derive::FromPrimitive;
 
 #[derive(FromPrimitive, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -28,11 +27,10 @@ pub enum LayerType {
     Quiz = 9,
 }
 
-impl FromVmCtx<NumberSpec> for LayerType {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        let num = ctx.get_number(input);
-        num_traits::FromPrimitive::from_i32(num)
-            .unwrap_or_else(|| panic!("LayerType::from_vm_ctx: invalid layer type: {}", num))
+impl FromNumber for LayerType {
+    fn from_number(number: i32) -> Self {
+        num_traits::FromPrimitive::from_i32(number)
+            .unwrap_or_else(|| panic!("LayerType::from_vm_ctx: invalid layer type: {}", number))
     }
 }
 
@@ -70,12 +68,11 @@ impl Default for MessageboxStyle {
     }
 }
 
-impl FromVmCtx<NumberSpec> for MessageboxStyle {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        let v = ctx.get_number(input);
-        assert!(v >= 0);
-        let msgbox_type = v & 0xf;
-        let text_layout = (v >> 4) & 0xf;
+impl FromNumber for MessageboxStyle {
+    fn from_number(number: i32) -> Self {
+        assert!(number >= 0);
+        let msgbox_type = number & 0xf;
+        let text_layout = (number >> 4) & 0xf;
         Self {
             messagebox_type: num_traits::FromPrimitive::from_i32(msgbox_type).unwrap_or_else(
                 || panic!("MsgInit::from: unknown messagebox type: {}", msgbox_type),
@@ -96,9 +93,9 @@ impl Default for Volume {
     }
 }
 
-impl FromVmCtx<NumberSpec> for Volume {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        Self((ctx.get_number(input) as f32 / 1000.0).clamp(0.0, 1.0)) // TODO: warn if out of range
+impl FromNumber for Volume {
+    fn from_number(number: i32) -> Self {
+        Self((number as f32 / 1000.0).clamp(0.0, 1.0)) // TODO: warn if out of range
     }
 }
 
@@ -112,8 +109,8 @@ impl Default for Pan {
     }
 }
 
-impl FromVmCtx<NumberSpec> for Pan {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        Self((ctx.get_number(input) as f32 / 1000.0).clamp(-1.0, 1.0)) // TODO: warn if out of range
+impl FromNumber for Pan {
+    fn from_number(number: i32) -> Self {
+        Self((number as f32 / 1000.0).clamp(-1.0, 1.0)) // TODO: warn if out of range
     }
 }

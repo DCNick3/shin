@@ -2,7 +2,9 @@
 //!
 //! Also contains implementation for std types & stuff defined in `shin_core::format`, like `U8String` -> `String` stuff
 
-use crate::format::scenario::instruction_elements::{BitmaskNumberArray, MessageId, NumberSpec};
+use crate::format::scenario::instruction_elements::{
+    BitmaskNumberArray, MessageId, NumberSpec, UntypedNumberSpec,
+};
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String, U8FixupString, U8String};
 use crate::time::Ticks;
@@ -59,7 +61,7 @@ identity_from_vm_ctx_default!(u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, Me
 
 macro_rules! impl_from_vm_ctx_tuple {
     ($($name:ident),+) => {
-        impl<$($name: FromVmCtx<NumberSpec>),+> FromVmCtx<BitmaskNumberArray> for ($($name,)+) {
+        impl<$($name: FromVmCtx<UntypedNumberSpec>),+> FromVmCtx<BitmaskNumberArray> for ($($name,)+) {
             fn from_vm_ctx(ctx: &VmCtx, input: BitmaskNumberArray) -> Self {
                 let mut iter = input.0.iter().cloned();
                 ($(
@@ -79,18 +81,13 @@ impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6);
 impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6, T7);
 impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6, T7, T8);
 
-impl FromVmCtx<NumberSpec> for i32 {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        ctx.get_number(input)
+impl FromVmCtx<UntypedNumberSpec> for i32 {
+    fn from_vm_ctx(ctx: &VmCtx, input: UntypedNumberSpec) -> Self {
+        ctx.get_number(NumberSpec::new(input))
     }
 }
-impl FromVmCtxDefault for NumberSpec {
+impl FromVmCtxDefault for UntypedNumberSpec {
     type Output = i32;
-}
-impl FromVmCtx<NumberSpec> for bool {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        ctx.get_number(input) != 0
-    }
 }
 impl FromVmCtx<u8> for bool {
     fn from_vm_ctx(_: &VmCtx, input: u8) -> Self {
@@ -145,7 +142,7 @@ impl FromVmCtxDefault for StringArray {
 
 impl FromVmCtx<BitmaskNumberArray> for [i32; 8] {
     fn from_vm_ctx(ctx: &VmCtx, input: BitmaskNumberArray) -> Self {
-        input.0.map(|n| ctx.get_number(n))
+        input.0.map(|n| ctx.get_number(NumberSpec::new(n)))
     }
 }
 impl FromVmCtxDefault for BitmaskNumberArray {
@@ -161,8 +158,9 @@ impl FromVmCtxDefault for U8SmallNumberList {
     type Output = SmallVec<[i32; 6]>;
 }
 
-impl FromVmCtx<NumberSpec> for Ticks {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        Ticks::from_i32(ctx.get_number(input))
+// TODO: remove when BitmaskNumberArray is made like the NumberSpec
+impl FromVmCtx<UntypedNumberSpec> for Ticks {
+    fn from_vm_ctx(ctx: &VmCtx, input: UntypedNumberSpec) -> Self {
+        Ticks::from_i32(ctx.get_number(NumberSpec::new(input)))
     }
 }

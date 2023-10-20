@@ -3,7 +3,7 @@
 pub mod types;
 
 use crate::format::scenario::instruction_elements::{
-    BitmaskNumberArray, MessageId, NumberSpec, Register,
+    BitmaskNumberArray, MessageId, NumberSpec, Register, U8Bool,
 };
 use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String};
@@ -57,17 +57,14 @@ pub enum Command {
     #[cmd(opcode = 0x83u8)]
     WAIT {
         /// If true - allow skipping the wait by pressing "advance" button
-        #[cmd(rty = "bool")]
-        allow_interrupt: u8,
-        #[cmd(rty = "Ticks")]
-        wait_amount: NumberSpec,
+        allow_interrupt: U8Bool,
+        wait_amount: NumberSpec<Ticks>,
     },
     // 0x84 is unused
     /// Set messagebox style & text layout
     #[cmd(opcode = 0x85u8)]
     MSGINIT {
-        #[cmd(rty = "MessageboxStyle")]
-        messagebox_style: NumberSpec,
+        messagebox_style: NumberSpec<MessageboxStyle>,
     },
     /// Show the message
     ///
@@ -79,8 +76,7 @@ pub enum Command {
         /// If true - do not continue execution until the message is finished
         ///
         /// If the message is not waited, [MSGWAIT](Command::MSGWAIT) can be called to synchronize with parts the message
-        #[cmd(rty = "bool")]
-        auto_wait: u8,
+        auto_wait: U8Bool,
         text: U16FixupString,
     }, // TODO: this string needs a fixup (see ShinDataUtil's OpcodeDefinitions.NeedsStringFixup)
     /// Waits for message to reach the specified section
@@ -98,8 +94,7 @@ pub enum Command {
     #[cmd(opcode = 0x8au8)]
     MSGCLOSE {
         /// If true - wait for the messagebox close animation to finish
-        #[cmd(rty = "bool")]
-        wait_for_close: u8,
+        wait_for_close: U8Bool,
     },
 
     /// Show a choice menu, store the selected variant in `dest`
@@ -127,33 +122,24 @@ pub enum Command {
     BGMPLAY {
         /// BGM ID (stored in scenario header)
         bgm_data_id: NumberSpec,
-        #[cmd(rty = "Ticks")]
-        fade_in_time: NumberSpec,
+        fade_in_time: NumberSpec<Ticks>,
         /// If true - do not restart the track when it's finished
-        #[cmd(rty = "bool")]
-        no_repeat: NumberSpec,
-        #[cmd(rty = "Volume")]
-        volume: NumberSpec,
+        no_repeat: NumberSpec<bool>,
+        volume: NumberSpec<Volume>,
     },
     /// Stop the current BGM track
     #[cmd(opcode = 0x91u8)]
-    BGMSTOP {
-        #[cmd(rty = "Ticks")]
-        fade_out_time: NumberSpec,
-    },
+    BGMSTOP { fade_out_time: NumberSpec<Ticks> },
     /// Change the volume of the current BGM track
     #[cmd(opcode = 0x92u8)]
     BGMVOL {
-        #[cmd(rty = "Volume")]
-        volume: NumberSpec,
-        #[cmd(rty = "Ticks")]
-        fade_in_time: NumberSpec,
+        volume: NumberSpec<Volume>,
+        fade_in_time: NumberSpec<Ticks>,
     },
     /// Wait for the BGM track to reach the specified status
     #[cmd(opcode = 0x93u8)]
     BGMWAIT {
-        #[cmd(rty = "AudioWaitStatus")]
-        target_status: NumberSpec,
+        target_status: NumberSpec<AudioWaitStatus>,
     },
     /// Wait for BGM to reach the specified time ¿in ticks?
     #[cmd(opcode = 0x94u8)]
@@ -163,53 +149,40 @@ pub enum Command {
     SEPLAY {
         se_slot: NumberSpec,
         se_data_id: NumberSpec,
-        #[cmd(rty = "Ticks")]
-        fade_in_time: NumberSpec,
-        #[cmd(rty = "bool")]
-        no_repeat: NumberSpec,
-        #[cmd(rty = "Volume")]
-        volume: NumberSpec,
-        #[cmd(rty = "Pan")]
-        pan: NumberSpec,
+        fade_in_time: NumberSpec<Ticks>,
+        no_repeat: NumberSpec<bool>,
+        volume: NumberSpec<Volume>,
+        pan: NumberSpec<Pan>,
         play_speed: NumberSpec,
     },
     /// Stop a SE track in the specified slot
     #[cmd(opcode = 0x96u8)]
     SESTOP {
         se_slot: NumberSpec,
-        #[cmd(rty = "Ticks")]
-        fade_out_time: NumberSpec,
+        fade_out_time: NumberSpec<Ticks>,
     },
     /// Stop all SE tracks
     #[cmd(opcode = 0x97u8)]
-    SESTOPALL {
-        #[cmd(rty = "Ticks")]
-        fade_out_time: NumberSpec,
-    },
+    SESTOPALL { fade_out_time: NumberSpec<Ticks> },
     /// Change the volume of a SE track in the specified slot
     #[cmd(opcode = 0x98u8)]
     SEVOL {
         se_slot: NumberSpec,
-        #[cmd(rty = "Volume")]
-        volume: NumberSpec,
-        #[cmd(rty = "Ticks")]
-        fade_in_time: NumberSpec,
+        volume: NumberSpec<Volume>,
+        fade_in_time: NumberSpec<Ticks>,
     },
     /// Change the pan of a SE track in the specified slot
     #[cmd(opcode = 0x99u8)]
     SEPAN {
         se_slot: NumberSpec,
-        #[cmd(rty = "Pan")]
-        pan: NumberSpec,
-        #[cmd(rty = "Ticks")]
-        fade_in_time: NumberSpec,
+        pan: NumberSpec<Pan>,
+        fade_in_time: NumberSpec<Ticks>,
     },
     /// Wait for a SE track in the specified slot to reach the specified status
     #[cmd(opcode = 0x9au8)]
     SEWAIT {
         se_slot: NumberSpec, // may have a special value of -1
-        #[cmd(rty = "AudioWaitStatus")]
-        target_status: NumberSpec,
+        target_status: NumberSpec<AudioWaitStatus>,
     },
     /// ¿Play an SE without a slot?
     #[cmd(opcode = 0x9bu8)]
@@ -223,16 +196,14 @@ pub enum Command {
     #[cmd(opcode = 0x9cu8)]
     VOICEPLAY {
         name: U16String,
-        #[cmd(rty = "Volume")]
-        volume: NumberSpec,
+        volume: NumberSpec<Volume>,
         flags: NumberSpec,
     },
     #[cmd(opcode = 0x9du8)]
     VOICESTOP {},
     #[cmd(opcode = 0x9eu8)]
     VOICEWAIT {
-        #[cmd(rty = "AudioWaitStatus")]
-        target_status: NumberSpec,
+        target_status: NumberSpec<AudioWaitStatus>,
     },
     /// Play a system sound effect (from `/sysse.bin`)
     #[cmd(opcode = 0x9fu8)]
@@ -275,35 +246,27 @@ pub enum Command {
 
     /// Reset property values to their initial state
     #[cmd(opcode = 0xc0u8)]
-    LAYERINIT {
-        #[cmd(rty = "VLayerId")]
-        layer_id: NumberSpec,
-    },
+    LAYERINIT { layer_id: NumberSpec<VLayerId> },
     /// Load a user layer
     /// There are multiple layer types and they have different arguments
     #[cmd(opcode = 0xc1u8)]
     LAYERLOAD {
-        #[cmd(rty = "VLayerId")]
-        layer_id: NumberSpec,
-        #[cmd(rty = "LayerType")]
-        layer_type: NumberSpec,
+        layer_id: NumberSpec<VLayerId>,
+        layer_type: NumberSpec<LayerType>,
         // TODO: what does this mean again?
         leave_uninitialized: NumberSpec,
         params: BitmaskNumberArray,
     },
     #[cmd(opcode = 0xc2u8)]
     LAYERUNLOAD {
-        #[cmd(rty = "VLayerId")]
-        layer_id: NumberSpec,
+        layer_id: NumberSpec<VLayerId>,
         delay_time: NumberSpec,
     },
     /// Change layer property, possibly through a transition.
     #[cmd(opcode = 0xc3u8)]
     LAYERCTRL {
-        #[cmd(rty = "VLayerId")]
-        layer_id: NumberSpec,
-        #[cmd(rty = "LayerProperty")]
-        property_id: NumberSpec,
+        layer_id: NumberSpec<VLayerId>,
+        property_id: NumberSpec<LayerProperty>,
         /// (target_value, time, flags, easing_param)
         #[cmd(rty = "(i32, Ticks, LayerCtrlFlags, i32)")]
         params: BitmaskNumberArray,
@@ -311,8 +274,7 @@ pub enum Command {
     /// Wait for property transitions to finish.
     #[cmd(opcode = 0xc4u8)]
     LAYERWAIT {
-        #[cmd(rty = "VLayerId")]
-        layer_id: NumberSpec,
+        layer_id: NumberSpec<VLayerId>,
         #[cmd(rty = "LayerPropertySmallList")]
         wait_properties: U8SmallNumberList,
     },
@@ -323,15 +285,12 @@ pub enum Command {
     #[cmd(opcode = 0xc6u8)]
     LAYERSELECT {
         // AFAIK, those can't use the virtual layer numbers
-        #[cmd(rty = "LayerId")]
-        selection_start_id: NumberSpec,
-        #[cmd(rty = "LayerId")]
-        selection_end_id: NumberSpec,
+        selection_start_id: NumberSpec<LayerId>,
+        selection_end_id: NumberSpec<LayerId>,
     },
     #[cmd(opcode = 0xc7u8)]
     MOVIEWAIT {
-        #[cmd(rty = "LayerId")]
-        layer_id: NumberSpec,
+        layer_id: NumberSpec<LayerId>,
         target_status: NumberSpec,
     },
     // 0xc8 unused
@@ -353,10 +312,8 @@ pub enum Command {
     #[cmd(opcode = 0xceu8)]
     MASKLOAD {
         mask_data_id: NumberSpec,
-        #[cmd(rty = "MaskFlags")]
-        mask_flags: NumberSpec,
-        #[cmd(rty = "bool")]
-        smth_smth_transition: NumberSpec,
+        mask_flags: NumberSpec<MaskFlags>,
+        smth_smth_transition: NumberSpec<bool>,
     },
     #[cmd(opcode = 0xcfu8)]
     MASKUNLOAD {},

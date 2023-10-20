@@ -1,4 +1,4 @@
-use super::NumberSpec;
+use super::UntypedNumberSpec;
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::io;
 
@@ -6,7 +6,7 @@ use std::io;
 ///
 /// If the number is not present, it is treated as `NumberSpec::Constant(0)`.
 #[derive(Debug, Copy, Clone)]
-pub struct BitmaskNumberArray(pub [NumberSpec; 8]);
+pub struct BitmaskNumberArray(pub [UntypedNumberSpec; 8]);
 
 impl BinRead for BitmaskNumberArray {
     type Args<'a> = ();
@@ -17,11 +17,11 @@ impl BinRead for BitmaskNumberArray {
         endian: Endian,
         _: (),
     ) -> BinResult<Self> {
-        let mut res = [NumberSpec::Constant(0); 8];
+        let mut res = [UntypedNumberSpec::Constant(0); 8];
         let mut mask = u8::read_options(reader, endian, ())?;
         for res in res.iter_mut() {
             if mask & 1 != 0 {
-                *res = NumberSpec::read_options(reader, endian, ())?;
+                *res = UntypedNumberSpec::read_options(reader, endian, ())?;
             }
             mask >>= 1;
         }

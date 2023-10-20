@@ -1,4 +1,4 @@
-use crate::format::scenario::instruction_elements::NumberSpec;
+use crate::format::scenario::instruction_elements::{FromNumber, NumberSpec, UntypedNumberSpec};
 use crate::vm::{FromVmCtx, VmCtx};
 use bitflags::bitflags;
 use proc_bitfield::bitfield;
@@ -22,9 +22,16 @@ bitfield! {
     }
 }
 
-impl FromVmCtx<NumberSpec> for LayerCtrlFlags {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        Self(ctx.get_number(input))
+impl FromNumber for LayerCtrlFlags {
+    fn from_number(number: i32) -> Self {
+        Self(number)
+    }
+}
+
+// TODO: remove this when BNA is refactored
+impl FromVmCtx<UntypedNumberSpec> for LayerCtrlFlags {
+    fn from_vm_ctx(ctx: &VmCtx, input: UntypedNumberSpec) -> Self {
+        Self(ctx.get_number(NumberSpec::new(input)))
     }
 }
 
@@ -39,9 +46,9 @@ bitflags! {
     }
 }
 
-impl FromVmCtx<NumberSpec> for MaskFlags {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        MaskFlags::from_bits(ctx.get_number(input)).expect("Invalid MaskFlags")
+impl FromNumber for MaskFlags {
+    fn from_number(number: i32) -> Self {
+        MaskFlags::from_bits(number).expect("Invalid MaskFlags")
     }
 }
 
@@ -59,8 +66,8 @@ bitflags! {
     }
 }
 
-impl FromVmCtx<NumberSpec> for AudioWaitStatus {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        AudioWaitStatus::from_bits(ctx.get_number(input)).expect("Invalid AudioWaitStatus")
+impl FromNumber for AudioWaitStatus {
+    fn from_number(number: i32) -> Self {
+        AudioWaitStatus::from_bits(number).expect("Invalid AudioWaitStatus")
     }
 }

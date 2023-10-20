@@ -8,6 +8,7 @@ use std::ops::Div;
 use std::time::Duration;
 use tracing::warn;
 
+use crate::format::scenario::instruction_elements::FromNumber;
 pub use tween::{Easing, Tween};
 pub use tweener::Tweener;
 
@@ -103,5 +104,11 @@ impl Debug for Ticks {
 impl Display for Ticks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Display::fmt(&self.0, f)
+    }
+}
+
+impl FromNumber for Ticks {
+    fn from_number(value: i32) -> Self {
+        Self::from_i32(value)
     }
 }

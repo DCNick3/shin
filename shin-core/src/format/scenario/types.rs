@@ -24,8 +24,10 @@ pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, A: smallvec::Arr
 pub type U8SmallList<A> = SmallList<u8, A>;
 pub type U16SmallList<A> = SmallList<u16, A>;
 
-pub type U8SmallNumberList<A = [NumberSpec; 6]> = U8SmallList<A>;
-pub type U16SmallNumberList<A = [NumberSpec; 6]> = U16SmallList<A>;
+pub const SMALL_LIST_SIZE: usize = 6;
+
+pub type U8SmallNumberList<T = i32> = U8SmallList<[NumberSpec<T>; SMALL_LIST_SIZE]>;
+pub type U16SmallNumberList<T = i32> = U16SmallList<[NumberSpec<T>; SMALL_LIST_SIZE]>;
 
 /// Pad the contents to 4 bytes
 ///

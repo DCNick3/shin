@@ -1,5 +1,4 @@
-use crate::format::scenario::instruction_elements::NumberSpec;
-use crate::vm::{FromVmCtx, VmCtx};
+use crate::format::scenario::instruction_elements::FromNumber;
 
 pub const LAYERBANKS_COUNT: u8 = 0x30;
 pub const LAYERS_COUNT: u32 = 0x100;
@@ -108,14 +107,14 @@ impl VLayerId {
     }
 }
 
-impl FromVmCtx<NumberSpec> for VLayerId {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        VLayerId::new(ctx.get_number(input))
+impl FromNumber for VLayerId {
+    fn from_number(number: i32) -> Self {
+        VLayerId::new(number)
     }
 }
 
-impl FromVmCtx<NumberSpec> for LayerId {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec) -> Self {
-        LayerId::new(ctx.get_number(input).try_into().unwrap())
+impl FromNumber for LayerId {
+    fn from_number(number: i32) -> Self {
+        LayerId::new(number.try_into().unwrap())
     }
 }

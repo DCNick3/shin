@@ -1,6 +1,8 @@
 //! Defines the [`Instruction`] type, along with some helper types used for their encoding.
 
-use crate::format::scenario::instruction_elements::{CodeAddress, NumberSpec, Register};
+use crate::format::scenario::instruction_elements::{
+    CodeAddress, NumberSpec, Register, UntypedNumberSpec,
+};
 use crate::format::scenario::types::{Pad4, U16SmallList, U8SmallList, U8SmallNumberList};
 use crate::vm::command::CompiletimeCommand;
 use binrw::{BinRead, BinResult, BinWrite, Endian};
@@ -51,7 +53,7 @@ impl BinRead for UnaryOperation {
         let source = if temp & 0x80 != 0 {
             NumberSpec::read_options(reader, endian, ())?
         } else {
-            NumberSpec::Register(destination)
+            NumberSpec::new(UntypedNumberSpec::Register(destination))
         };
         Ok(Self {
             ty,
@@ -152,7 +154,7 @@ impl BinRead for BinaryOperation {
         let left = if temp & 0x80 != 0 {
             NumberSpec::read_options(reader, endian, ())?
         } else {
-            NumberSpec::Register(destination)
+            NumberSpec::new(UntypedNumberSpec::Register(destination))
         };
         let right = NumberSpec::read_options(reader, endian, ())?;
 
