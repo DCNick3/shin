@@ -67,7 +67,6 @@ impl State {
         let surface = unsafe { instance.create_surface(window) }.context("Creating surface")?;
         let adapter = wgpu::util::initialize_adapter_from_env_or_default(
             &instance,
-            backends,
             // NOTE: this select the low-power GPU by default
             // it's fine, but if we want to use the high-perf one in the future we will have to ditch this function
             Some(&surface),

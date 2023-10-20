@@ -2,7 +2,7 @@
 
 use crate::format::lz77;
 use anyhow::anyhow;
-use binrw::{BinRead, BinResult, BinWrite, Endian, FilePtr32, VecArgs};
+use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
 use glam::{vec2, Vec2};
 use image::GrayImage;
 use std::borrow::Cow;
@@ -361,26 +361,17 @@ impl<G: GlyphTrait> BinRead for Font<G> {
         let mut glyphs = HashMap::new();
 
         for (character_index, &glyph_offset) in character_table.iter().enumerate() {
-            // we can't directly read FilePtr32 array because it's too large, the stack overflows
-            let mut glyph_offset: FilePtr32<G> = FilePtr32 {
-                ptr: glyph_offset,
-                value: None,
-            };
-            let known_glyph = known_glyph_offsets.contains_key(&glyph_offset.ptr);
-            if !known_glyph {
-                glyph_offset.after_parse(reader, endian, Default::default())?;
-            }
-
             let next_glyph_id = GlyphId(known_glyph_offsets.len() as u32);
             let glyph_id = *known_glyph_offsets
-                .entry(glyph_offset.ptr)
+                .entry(glyph_offset)
                 .or_insert(next_glyph_id);
             characters[character_index] = glyph_id;
 
             match glyphs.entry(glyph_id) {
                 Entry::Occupied(_) => continue,
                 Entry::Vacant(entry) => {
-                    entry.insert(glyph_offset.into_inner());
+                    reader.seek(SeekFrom::Start(glyph_offset as u64))?;
+                    entry.insert(G::read_options(reader, endian, Default::default())?);
                 }
             }
         }

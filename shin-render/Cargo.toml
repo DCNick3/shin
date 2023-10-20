@@ -13,7 +13,7 @@ shin-core = { path = "../shin-core" }
 anyhow = { workspace = true }
 tracing = "0.1.37"
 
-winit = "0.28.1"
+winit = { workspace = true }
 wgpu = { workspace = true }
 # TODO: this can be reimplemented in shin-derive (I want to have my own traits for this anyways)
 wrld = "1.0.0"

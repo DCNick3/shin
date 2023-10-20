@@ -29,7 +29,7 @@ clap = { version = "4.1.4", features = ["derive"] }
 clap-num = "1.0.2"
 dirs-next = "2.0.0"
 
-winit = "0.28.1"
+winit = { workspace = true }
 wgpu = { workspace = true }
 etagere = "0.2.8"
 
@@ -60,12 +60,10 @@ itertools = { workspace = true }
 once_cell = "1.16.0"
 petitset = "0.2.1"
 
-# egui used for debug overlays
-# git version for wgpu 0.15 support
 egui = { workspace = true }
-egui-wgpu = "0.22.0"
+egui-wgpu = { workspace = true }
 # used for implementation of dynamic atlas overlay
-usvg = "0.35.0"
+usvg = "0.36.0"
 
 # kira for audio output
 kira = { workspace = true }

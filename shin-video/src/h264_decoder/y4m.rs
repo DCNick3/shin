@@ -292,6 +292,8 @@ impl Default for Limits {
 }
 
 /// YUV4MPEG2 decoder.
+// gstreamer impl does not use YUV4MPEG2, but passes stuff directly in-memory
+#[cfg_attr(feature = "gstreamer", allow(unused))]
 pub struct Decoder<R: AsyncRead> {
     reader: BufReader<R>,
     params_buf: Vec<u8>,
@@ -300,6 +302,7 @@ pub struct Decoder<R: AsyncRead> {
     plane_sizes: [PlaneSize; 3],
 }
 
+#[cfg_attr(feature = "gstreamer", allow(unused))]
 impl<R: AsyncRead + Unpin> Decoder<R> {
     /// Create a new decoder instance.
     pub async fn new(reader: R) -> Result<Decoder<R>, Error> {

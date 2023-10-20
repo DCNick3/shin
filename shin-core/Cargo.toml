@@ -18,7 +18,7 @@ shin-derive = { path = "../shin-derive" }
 derive_more = "0.99.17"
 enum-map = { workspace = true }
 async-trait = "0.1.58"
-binrw = "0.11.1"
+binrw = { workspace = true }
 strum = { version = "0.25.0", features = ["derive"] }
 proc-bitfield = "0.3.0"
 derivative = "2.2.0"
