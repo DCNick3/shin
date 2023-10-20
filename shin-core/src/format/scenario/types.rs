@@ -1,21 +1,13 @@
 use crate::format::scenario::instruction_elements::NumberSpec;
-use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
+use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
+use binrw::{BinRead, BinResult, BinWrite, Endian};
 use derivative::Derivative;
 use smallvec::SmallVec;
 use std::fmt;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
-// TODO: make lists generic over the type of length
-/// A list of `T` with a u8 length
-#[derive(Debug)]
-pub struct U8List<T>(pub Vec<T>);
-
-/// A list of `T` with a u16 length
-#[derive(Debug)]
-pub struct U16List<T>(pub Vec<T>);
-
-/// A list of `T` with a length of `L`, stored in a `SmallVec` with array `A`
+/// A list of `T` with a length of `L`, stored in a `SmallVec` with size `N`
 pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, T, const N: usize>(
     pub SmallVec<T, N>,
     pub PhantomData<L>,
@@ -37,64 +29,6 @@ pub type U16SmallNumberList<T = i32, const N: usize = SMALL_LIST_SIZE> =
 #[derive(Derivative)]
 #[derivative(Debug = "transparent")]
 pub struct Pad4<T>(pub T);
-
-impl<T: for<'a> BinRead<Args<'a> = ()> + 'static> BinRead for U8List<T> {
-    type Args<'a> = ();
-
-    fn read_options<R: Read + Seek>(reader: &mut R, endian: Endian, _: ()) -> BinResult<Self> {
-        let len = u8::read_options(reader, endian, ())?;
-
-        Ok(Self(<_>::read_options(
-            reader,
-            endian,
-            VecArgs {
-                count: len as usize,
-                inner: (),
-            },
-        )?))
-    }
-}
-impl<T: for<'a> BinWrite<Args<'a> = ()>> BinWrite for U8List<T> {
-    type Args<'a> = ();
-
-    fn write_options<W: Write + Seek>(
-        &self,
-        _writer: &mut W,
-        _endian: Endian,
-        _: (),
-    ) -> BinResult<()> {
-        todo!()
-    }
-}
-
-impl<T: for<'a> BinRead<Args<'a> = ()> + 'static> BinRead for U16List<T> {
-    type Args<'a> = ();
-
-    fn read_options<R: Read + Seek>(reader: &mut R, endian: Endian, _: ()) -> BinResult<Self> {
-        let len = u16::read_options(reader, endian, ())?;
-
-        Ok(Self(<_>::read_options(
-            reader,
-            endian,
-            VecArgs {
-                count: len as usize,
-                inner: (),
-            },
-        )?))
-    }
-}
-impl<T: for<'a> BinWrite<Args<'a> = ()>> BinWrite for U16List<T> {
-    type Args<'a> = ();
-
-    fn write_options<W: Write + Seek>(
-        &self,
-        _writer: &mut W,
-        _endian: Endian,
-        _: (),
-    ) -> BinResult<()> {
-        todo!()
-    }
-}
 
 impl<L: Into<usize> + TryFrom<usize>, T, const N: usize> fmt::Debug for SmallList<L, T, N>
 where
@@ -142,6 +76,28 @@ impl<
     ) -> BinResult<()> {
         todo!()
     }
+}
+
+impl<L, Ts, Td, const N: usize> FromVmCtx<SmallList<L, Ts, N>> for SmallVec<Td, N>
+where
+    L: Into<usize> + TryFrom<usize>,
+    Td: FromVmCtx<Ts>,
+{
+    fn from_vm_ctx(ctx: &VmCtx, input: SmallList<L, Ts, N>) -> Self {
+        input
+            .0
+            .into_iter()
+            .map(|ts| Td::from_vm_ctx(ctx, ts))
+            .collect()
+    }
+}
+impl<L, Ts, Td, const N: usize> FromVmCtxDefault for SmallList<L, Ts, N>
+where
+    L: Into<usize> + TryFrom<usize>,
+    Td: FromVmCtx<Ts>,
+    Ts: FromVmCtxDefault<Output = Td>,
+{
+    type Output = SmallVec<Ts::Output, N>;
 }
 
 impl<T: for<'a> BinRead<Args<'a> = ()> + 'static> BinRead for Pad4<T> {

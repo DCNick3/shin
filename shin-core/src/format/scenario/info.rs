@@ -8,7 +8,7 @@
 //!
 //! Apart from the asset tables, there are also a few other data blocks for various game-specific features, such as the Picture Box (`cgmode`) and Music Box (`bgmmode`), or Umineko's character relationship grid (`chars`). These may be somewhat more freeform in structure than the simple tables listed above, and their corresponding entry structs often also contain IDs linking to other data tables, as explained above.
 
-use crate::format::scenario::types::{U16List, U8List};
+use crate::format::scenario::types::{U16SmallList, U8SmallList};
 use crate::format::text::U16String;
 use binrw::file_ptr::FilePtrArgs;
 use binrw::{BinRead, BinResult, BinWrite, Endian, FilePtr32};
@@ -141,7 +141,7 @@ pub struct VoiceMappingInfoItem {
     pub name_pattern: U16String,
 
     /// List of character IDs for which a bustup with a matching lipsync character ID in its [`BustupInfoItem`] should have its lips animated if it is currently being displayed while a voice file matching the pattern is being played back.
-    pub lipsync_character_ids: U8List<u8>,
+    pub lipsync_character_ids: U8SmallList<u8>,
 }
 pub type VoiceMappingInfo = Vec<VoiceMappingInfoItem>;
 
@@ -152,7 +152,7 @@ pub struct PictureBoxInfoItem {
     pub name: U16String,
 
     /// List of picture IDs (indexing into [`PictureInfo`]) that will be shown in sequence as the player clicks through the entry.
-    pub picture_ids: U16List<u16>,
+    pub picture_ids: U16SmallList<u16>,
 }
 pub type PictureBoxInfo = Vec<PictureBoxInfoItem>;
 
