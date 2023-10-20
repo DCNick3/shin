@@ -300,7 +300,7 @@ impl AdvState {
                     self.current_plane_layer_group(vm_state)
                         .get_layers(selection)
                         .map(|v| v.into())
-                        .collect::<SmallVec<[AnyLayer; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
+                        .collect::<SmallVec<AnyLayer, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
                 } else {
                     warn!("AdvState::iter_vlayer: no layer selected");
                     smallvec![]
@@ -340,7 +340,7 @@ impl AdvState {
                     self.current_plane_layer_group_mut(vm_state)
                         .get_layers_mut(selection)
                         .map(|v| v.into())
-                        .collect::<SmallVec<[AnyLayerMut; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
+                        .collect::<SmallVec<AnyLayerMut, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
                 } else {
                     warn!("AdvState::get_vlayer_mut: no layer selected");
                     smallvec![]

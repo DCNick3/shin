@@ -69,7 +69,7 @@ pub struct SJisString<L: StringLengthDesc, F: StringFixup + 'static = NoFixup>(
 );
 
 #[derive(Debug)]
-pub struct StringArray(pub SmallVec<[String; 4]>);
+pub struct StringArray(pub SmallVec<String, 4>);
 
 impl<L: StringLengthDesc, F: StringFixup> BinRead for SJisString<L, F> {
     type Args<'a> = ();

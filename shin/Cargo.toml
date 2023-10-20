@@ -19,7 +19,7 @@ shin-video = { path = "../shin-video" }
 anyhow = { workspace = true }
 async-trait = "0.1.58"
 futures = "0.3.25"
-smallvec = "1.10.0"
+smallvec = { workspace = true }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 arrayvec = "0.7.2"

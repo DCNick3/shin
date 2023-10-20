@@ -176,7 +176,7 @@ impl LayersState {
                         .iter()
                         .filter(move |(id, _)| selection.contains(**id))
                         .map(|(_, l)| l)
-                        .collect::<SmallVec<[&LayerState; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
+                        .collect::<SmallVec<&LayerState, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
                 } else {
                     warn!("LayersState::get_vlayer: no selection");
                     smallvec![]
@@ -217,7 +217,7 @@ impl LayersState {
                         // it unloads the layers in the VmState first
                         // and then it sucks ass, because it wouldn't unload
                         // .filter(|&id| self.get_layer(id).is_some())
-                        .collect::<SmallVec<[LayerId; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
+                        .collect::<SmallVec<LayerId, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
                         .into_iter()
                 } else {
                     warn!("get_vlayer_ids: no selection");
@@ -247,7 +247,7 @@ impl LayersState {
                         .iter_mut()
                         .filter(|&(&id, _)| selection.contains(id))
                         .map(|(_, v)| v)
-                        .collect::<SmallVec<[&mut LayerState; ITER_VLAYER_SMALL_VECTOR_SIZE]>>()
+                        .collect::<SmallVec<&mut LayerState, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
                 } else {
                     warn!("LayersState::get_vlayer_mut: no selection");
                     smallvec![]

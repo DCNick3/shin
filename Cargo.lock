@@ -596,7 +596,7 @@ version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b40ccee03b5175c18cde8f37e7d2a33bcef6f8ec8f7cc0d81090d1bb380949c9"
 dependencies = [
- "smallvec",
+ "smallvec 1.10.0",
  "target-lexicon",
 ]
 
@@ -1238,16 +1238,18 @@ dependencies = [
 
 [[package]]
 name = "enum-map"
-version = "2.5.0"
-source = "git+https://github.com/xfix/enum-map.git?rev=41493d462d401a8a5b99972543d1249a931a7e03#41493d462d401a8a5b99972543d1249a931a7e03"
+version = "3.0.0-0.gat.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a8cebad462e0fbefff023f78f8f17866a0cf287221d1b1a23aaa487fa42d610"
 dependencies = [
  "enum-map-derive",
 ]
 
 [[package]]
 name = "enum-map-derive"
-version = "0.11.0"
-source = "git+https://github.com/xfix/enum-map.git?rev=41493d462d401a8a5b99972543d1249a931a7e03#41493d462d401a8a5b99972543d1249a931a7e03"
+version = "1.0.0-0.gat.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48c69b3965971f5d0ea6a6dd26b55cdd517ae0e1425dc8d94e482a5915bd7ddf"
 dependencies = [
  "proc-macro2 1.0.63",
  "quote 1.0.29",
@@ -1629,7 +1631,7 @@ dependencies = [
  "libc",
  "memchr",
  "once_cell",
- "smallvec",
+ "smallvec 1.10.0",
  "thiserror",
 ]
 
@@ -1772,7 +1774,7 @@ dependencies = [
  "option-operations",
  "paste",
  "pretty-hex",
- "smallvec",
+ "smallvec 1.10.0",
  "thiserror",
 ]
 
@@ -2799,7 +2801,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "redox_syscall 0.2.16",
- "smallvec",
+ "smallvec 1.10.0",
  "windows-sys 0.45.0",
 ]
 
@@ -3235,7 +3237,7 @@ checksum = "162bdf42e261bee271b3957691018634488084ef577dddeb6420a9684cab2a6a"
 dependencies = [
  "bitflags 1.3.2",
  "bytemuck",
- "smallvec",
+ "smallvec 1.10.0",
  "ttf-parser 0.18.1",
  "unicode-bidi-mirroring",
  "unicode-ccc",
@@ -3264,7 +3266,7 @@ dependencies = [
  "parking_lot",
  "rustc-hash",
  "salsa-2022-macros",
- "smallvec",
+ "smallvec 1.10.0",
 ]
 
 [[package]]
@@ -3440,7 +3442,7 @@ dependencies = [
  "shin-render",
  "shin-tasks",
  "shin-video",
- "smallvec",
+ "smallvec 1.9.0",
  "strum",
  "tracing",
  "tracing-subscriber",
@@ -3520,7 +3522,7 @@ dependencies = [
  "serde-big-array",
  "shin-derive",
  "shin-tasks",
- "smallvec",
+ "smallvec 1.9.0",
  "smartstring",
  "strum",
  "tracing",
@@ -3666,6 +3668,11 @@ checksum = "e1e08e261d0e8f5c43123b7adf3e4ca1690d655377ac93a03b2c9d3e98de1342"
 dependencies = [
  "version_check",
 ]
+
+[[package]]
+name = "smallvec"
+version = "1.9.0"
+source = "git+https://github.com/servo/rust-smallvec.git?rev=98b49e4d974c20f6d44a0804071074f267be0d88#98b49e4d974c20f6d44a0804071074f267be0d88"
 
 [[package]]
 name = "smallvec"
@@ -4153,7 +4160,7 @@ dependencies = [
  "once_cell",
  "regex",
  "sharded-slab",
- "smallvec",
+ "smallvec 1.10.0",
  "thread_local",
  "tracing",
  "tracing-core",
@@ -4502,7 +4509,7 @@ checksum = "8691f134d584a33a6606d9d717b95c4fa20065605f798a3f350d78dced02a902"
 dependencies = [
  "nix 0.24.3",
  "once_cell",
- "smallvec",
+ "smallvec 1.10.0",
  "wayland-sys",
 ]
 
@@ -4582,7 +4589,7 @@ dependencies = [
  "naga 0.9.0",
  "parking_lot",
  "raw-window-handle 0.4.3",
- "smallvec",
+ "smallvec 1.10.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -4605,7 +4612,7 @@ dependencies = [
  "parking_lot",
  "profiling",
  "raw-window-handle 0.5.0",
- "smallvec",
+ "smallvec 1.10.0",
  "static_assertions",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -4633,7 +4640,7 @@ dependencies = [
  "parking_lot",
  "profiling",
  "raw-window-handle 0.4.3",
- "smallvec",
+ "smallvec 1.10.0",
  "thiserror",
  "web-sys",
  "wgpu-hal 0.13.2",
@@ -4656,7 +4663,7 @@ dependencies = [
  "profiling",
  "raw-window-handle 0.5.0",
  "rustc-hash",
- "smallvec",
+ "smallvec 1.10.0",
  "thiserror",
  "web-sys",
  "wgpu-hal 0.16.1",
@@ -4736,7 +4743,7 @@ dependencies = [
  "raw-window-handle 0.5.0",
  "renderdoc-sys 1.0.0",
  "rustc-hash",
- "smallvec",
+ "smallvec 1.10.0",
  "thiserror",
  "wasm-bindgen",
  "web-sys",

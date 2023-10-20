@@ -203,7 +203,7 @@ impl Scripter {
                     .0
                     .into_iter()
                     .map(|v| self.ctx.get_number(v))
-                    .collect::<SmallVec<[i32; 6]>>();
+                    .collect::<SmallVec<i32, 6>>();
                 trace!(?pc, ?target, ?args, "call");
 
                 self.ctx.push_code_stack(self.instruction_reader.position());
@@ -218,7 +218,7 @@ impl Scripter {
                     .0
                     .into_iter()
                     .map(|v| CodeAddress(self.ctx.get_number(v).try_into().unwrap()))
-                    .collect::<SmallVec<[CodeAddress; 6]>>();
+                    .collect::<SmallVec<CodeAddress, 6>>();
                 trace!(?pc, ?values, "push");
 
                 for value in values {
@@ -228,7 +228,7 @@ impl Scripter {
             Instruction::pop { dest } => {
                 let values = (0..dest.0.len())
                     .map(|_| self.ctx.pop_code_stack().0.try_into().unwrap())
-                    .collect::<SmallVec<[i32; 6]>>();
+                    .collect::<SmallVec<i32, 6>>();
                 trace!(?pc, ?values, "pop");
 
                 for (dest, value) in dest.0.iter().zip(values) {

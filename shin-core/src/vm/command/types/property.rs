@@ -190,7 +190,7 @@ impl FromNumber for LayerProperty {
     }
 }
 
-pub type LayerPropertySmallList = smallvec::SmallVec<[LayerProperty; 6]>;
+pub type LayerPropertySmallList = smallvec::SmallVec<LayerProperty, 6>;
 
 impl FromVmCtx<U8SmallNumberList> for LayerPropertySmallList {
     fn from_vm_ctx(ctx: &VmCtx, input: U8SmallNumberList) -> Self {

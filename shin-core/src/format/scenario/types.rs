@@ -16,18 +16,20 @@ pub struct U8List<T>(pub Vec<T>);
 pub struct U16List<T>(pub Vec<T>);
 
 /// A list of `T` with a length of `L`, stored in a `SmallVec` with array `A`
-pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, A: smallvec::Array>(
-    pub SmallVec<A>,
+pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, T, const N: usize>(
+    pub SmallVec<T, N>,
     pub PhantomData<L>,
 );
 
-pub type U8SmallList<A> = SmallList<u8, A>;
-pub type U16SmallList<A> = SmallList<u16, A>;
-
 pub const SMALL_LIST_SIZE: usize = 6;
 
-pub type U8SmallNumberList<T = i32> = U8SmallList<[NumberSpec<T>; SMALL_LIST_SIZE]>;
-pub type U16SmallNumberList<T = i32> = U16SmallList<[NumberSpec<T>; SMALL_LIST_SIZE]>;
+pub type U8SmallList<T, const N: usize = SMALL_LIST_SIZE> = SmallList<u8, T, N>;
+pub type U16SmallList<T, const N: usize = SMALL_LIST_SIZE> = SmallList<u16, T, N>;
+
+pub type U8SmallNumberList<T = i32, const N: usize = SMALL_LIST_SIZE> =
+    U8SmallList<NumberSpec<T>, N>;
+pub type U16SmallNumberList<T = i32, const N: usize = SMALL_LIST_SIZE> =
+    U16SmallList<NumberSpec<T>, N>;
 
 /// Pad the contents to 4 bytes
 ///
@@ -94,9 +96,9 @@ impl<T: for<'a> BinWrite<Args<'a> = ()>> BinWrite for U16List<T> {
     }
 }
 
-impl<L: Into<usize> + TryFrom<usize>, A: smallvec::Array> fmt::Debug for SmallList<L, A>
+impl<L: Into<usize> + TryFrom<usize>, T, const N: usize> fmt::Debug for SmallList<L, T, N>
 where
-    A::Item: fmt::Debug,
+    T: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("U8SmallList").field(&self.0).finish()
@@ -105,9 +107,9 @@ where
 
 impl<
         L: Into<usize> + TryFrom<usize> + for<'a> BinRead<Args<'a> = ()>,
-        A: smallvec::Array<Item = T> + 'static,
         T: for<'a> BinRead<Args<'a> = ()>,
-    > BinRead for SmallList<L, A>
+        const N: usize,
+    > BinRead for SmallList<L, T, N>
 {
     type Args<'a> = ();
 
@@ -126,9 +128,9 @@ impl<
 
 impl<
         L: Into<usize> + TryFrom<usize> + for<'a> BinWrite<Args<'a> = ()>,
-        A: smallvec::Array<Item = T> + 'static,
         T: for<'a> BinWrite<Args<'a> = ()>,
-    > BinWrite for SmallList<L, A>
+        const N: usize,
+    > BinWrite for SmallList<L, T, N>
 {
     type Args<'a> = ();
 

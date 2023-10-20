@@ -30,7 +30,7 @@ pub struct VmCtx {
     /// Can be addressed via [Register] with value > 0x1000
     ///
     /// Also called mem3 in ShinDataUtil
-    arguments_stack: Vec<SmallVec<[i32; 6]>>,
+    arguments_stack: Vec<SmallVec<i32, 6>>,
     /// PRNG state, updated on each instruction executed
     prng_state: u32,
 }
@@ -168,7 +168,7 @@ impl VmCtx {
 
     /// Evaluate a RPN expression in this context
     pub fn evaluate_expression(&self, expr: &Expression) -> i32 {
-        let mut stack = SmallVec::<[i32; 16]>::new();
+        let mut stack = SmallVec::<i32, 16>::new();
         for term in expr.0.iter() {
             match term {
                 &ExpressionTerm::Push(v) => stack.push(self.get_number(v)),

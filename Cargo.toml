@@ -16,8 +16,9 @@ resolver = "2"
 [workspace.dependencies]
 glam = "0.24.0"
 # git version for GATs
-enum-map = { git = "https://github.com/xfix/enum-map.git", rev = "41493d462d401a8a5b99972543d1249a931a7e03" }
+enum-map = "3.0.0-0.gat.0"
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
+smallvec = { git = "https://github.com/servo/rust-smallvec.git", rev = "98b49e4d974c20f6d44a0804071074f267be0d88" }
 wgpu = "0.16.1"
 kira = { version = "0.8.3", default-features = false }
 egui = "0.22.0"

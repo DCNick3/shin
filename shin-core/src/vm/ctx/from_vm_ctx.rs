@@ -5,7 +5,7 @@
 use crate::format::scenario::instruction_elements::{
     BitmaskNumberArray, MessageId, NumberSpec, UntypedNumberSpec,
 };
-use crate::format::scenario::types::U8SmallNumberList;
+use crate::format::scenario::types::{U8SmallNumberList, SMALL_LIST_SIZE};
 use crate::format::text::{StringArray, U16FixupString, U16String, U8FixupString, U8String};
 use crate::time::Ticks;
 use crate::vm::VmCtx;
@@ -131,13 +131,13 @@ impl FromVmCtxDefault for U16FixupString {
     type Output = String;
 }
 
-impl FromVmCtx<StringArray> for SmallVec<[String; 4]> {
+impl FromVmCtx<StringArray> for SmallVec<String, 4> {
     fn from_vm_ctx(_: &VmCtx, input: StringArray) -> Self {
         input.0
     }
 }
 impl FromVmCtxDefault for StringArray {
-    type Output = SmallVec<[String; 4]>;
+    type Output = SmallVec<String, 4>;
 }
 
 impl FromVmCtx<BitmaskNumberArray> for [i32; 8] {
@@ -149,13 +149,13 @@ impl FromVmCtxDefault for BitmaskNumberArray {
     type Output = [i32; 8];
 }
 
-impl FromVmCtx<U8SmallNumberList> for SmallVec<[i32; 6]> {
+impl FromVmCtx<U8SmallNumberList> for SmallVec<i32, { SMALL_LIST_SIZE }> {
     fn from_vm_ctx(ctx: &VmCtx, input: U8SmallNumberList) -> Self {
         input.0.into_iter().map(|n| ctx.get_number(n)).collect()
     }
 }
 impl FromVmCtxDefault for U8SmallNumberList {
-    type Output = SmallVec<[i32; 6]>;
+    type Output = SmallVec<i32, { SMALL_LIST_SIZE }>;
 }
 
 // TODO: remove when BitmaskNumberArray is made like the NumberSpec

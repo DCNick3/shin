@@ -373,7 +373,7 @@ pub enum ExpressionTerm {
 /// An expression is a sequence of terms that are evaluated in order.
 /// This is basically a reverse polish notation expression, which can be evaluated with a stack machine.
 #[derive(Debug, Clone)]
-pub struct Expression(pub SmallVec<[ExpressionTerm; 6]>);
+pub struct Expression(pub SmallVec<ExpressionTerm, 6>);
 
 impl BinRead for Expression {
     type Args<'a> = ();
@@ -442,7 +442,7 @@ pub enum Instruction {
     gt {
         dest: Register,
         index: NumberSpec,
-        table: U16SmallList<[Pad4<NumberSpec>; 32]>,
+        table: U16SmallList<Pad4<NumberSpec>, 32>,
     },
     /// Jump Conditional
     ///
@@ -480,7 +480,7 @@ pub enum Instruction {
     #[brw(magic(0x4au8))]
     jt {
         index: NumberSpec,
-        table: U16SmallList<[CodeAddress; 32]>,
+        table: U16SmallList<CodeAddress, 32>,
     },
     // 0x4b not implemented
     /// Generate a random number between min and max (inclusive)
@@ -499,7 +499,7 @@ pub enum Instruction {
     ///
     /// Used to restore values of memory previously pushed by [push](Instruction::push)
     #[brw(magic(0x4eu8))]
-    pop { dest: U8SmallList<[Register; 6]> },
+    pop { dest: U8SmallList<Register> },
     /// Call Subroutine with Parameters
     ///
     /// The return must be done with [return](`Instruction::return`).
