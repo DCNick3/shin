@@ -127,7 +127,6 @@ impl<T> Debug for NumberSpec<T> {
     }
 }
 
-// TODO: remove when BNA is made like the NumberSpec
 impl<T: FromNumber> FromVmCtx<NumberSpec<T>> for T {
     fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec<T>) -> Self {
         ctx.get_number(input)

@@ -7,7 +7,7 @@ mod number_spec;
 mod register;
 mod u8_bool;
 
-pub use bitmask_number_array::BitmaskNumberArray;
+pub use bitmask_number_array::{BitmaskNumberArray, UntypedNumberArray};
 pub use code_address::CodeAddress;
 pub use message_id::MessageId;
 pub use number_spec::{FromNumber, NumberSpec, UntypedNumberSpec};

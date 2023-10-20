@@ -37,6 +37,7 @@ use crate::asset::AnyAssetServer;
 use crate::layer::wobbler::Wobbler;
 use crate::update::{Updatable, UpdateContext};
 use shin_core::format::scenario::info::{BustupInfoItem, MovieInfoItem, PictureInfoItem};
+use shin_core::format::scenario::instruction_elements::UntypedNumberArray;
 use shin_core::format::scenario::Scenario;
 use shin_core::time::{Ticks, Tweener};
 use shin_core::vm::command::types::{LayerProperty, LayerType};
@@ -250,18 +251,18 @@ impl UserLayer {
         audio_manager: &AudioManager,
         scenario: &Scenario,
         layer_ty: LayerType,
-        params: [i32; 8],
+        params: UntypedNumberArray,
     ) -> Self {
         // TODO: this API is not ideal, as we are blocking the main thread for layer loading
         // ideally we want to mimic the API of LayerLoader in the original game
         match layer_ty {
             LayerType::Null => NullLayer::new().into(),
             LayerType::Tile => {
-                let [tile_color, offset_x, offset_y, width, height, _, _, _] = params;
+                let (tile_color, offset_x, offset_y, width, height, ..) = params;
                 TileLayer::new(resources, tile_color, offset_x, offset_y, width, height).into()
             }
             LayerType::Picture => {
-                let [pic_id, _, _, _, _, _, _, _] = params;
+                let (pic_id, ..) = params;
                 let pic_info @ PictureInfoItem { name, linked_cg_id } =
                     scenario.info_tables().picture_info(pic_id);
                 debug!("Load picture: {} -> {} {}", pic_id, name, linked_cg_id);
@@ -272,7 +273,7 @@ impl UserLayer {
                 PictureLayer::new(resources, pic, Some(name.to_string())).into()
             }
             LayerType::Bustup => {
-                let [bup_id, _, _, _, _, _, _, _] = params;
+                let (bup_id, ..) = params;
                 let bup_info @ BustupInfoItem {
                     name,
                     emotion,
@@ -290,7 +291,7 @@ impl UserLayer {
                 BustupLayer::new(resources, bup, Some(name.to_string()), emotion.as_str()).into()
             }
             LayerType::Movie => {
-                let [movie_id, _volume, _flags, _, _, _, _, _] = params;
+                let (movie_id, _volume, _flags, ..) = params;
                 let movie_info @ MovieInfoItem {
                     name,
                     linked_picture_id,
@@ -309,7 +310,7 @@ impl UserLayer {
                 MovieLayer::new(resources, audio_manager, movie, Some(name.to_string())).into()
             }
             LayerType::Rain => {
-                let [_always_zero, _min_distance, _max_distance, _, _, _, _, _] = params;
+                let (_always_zero, _min_distance, _max_distance, ..) = params;
 
                 warn!("Loading NullLayer instead of RainLayer");
                 NullLayer::new().into()

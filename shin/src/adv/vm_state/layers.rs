@@ -1,6 +1,7 @@
 use crate::layer::LayerPropertiesSnapshot;
 use bevy_utils::hashbrown::hash_map::Entry;
 use bevy_utils::StableHashMap;
+use shin_core::format::scenario::instruction_elements::UntypedNumberArray;
 use shin_core::vm::command::types::LayerType;
 use shin_core::vm::command::types::{LayerId, LayerIdOpt, VLayerId, VLayerIdRepr, PLANES_COUNT};
 use smallvec::{smallvec, SmallVec};
@@ -58,7 +59,7 @@ impl Iterator for LayerSelectionIter {
 
 #[derive(Debug, Clone)]
 pub struct LayerState {
-    pub layerinit_params: Option<(LayerType, [i32; 0x8])>,
+    pub layerinit_params: Option<(LayerType, UntypedNumberArray)>,
     pub properties: LayerPropertiesSnapshot,
 }
 

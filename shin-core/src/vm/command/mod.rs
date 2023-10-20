@@ -268,8 +268,7 @@ pub enum Command {
         layer_id: NumberSpec<VLayerId>,
         property_id: NumberSpec<LayerProperty>,
         /// (target_value, time, flags, easing_param)
-        #[cmd(rty = "(i32, Ticks, LayerCtrlFlags, i32)")]
-        params: BitmaskNumberArray,
+        params: BitmaskNumberArray<i32, Ticks, LayerCtrlFlags, i32>,
     },
     /// Wait for property transitions to finish.
     #[cmd(opcode = 0xc4u8)]

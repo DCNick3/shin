@@ -3,7 +3,7 @@ use shin_core::time::{Easing, Tween};
 
 impl StartableCommand for command::runtime::LAYERCTRL {
     fn apply_state(&self, state: &mut VmState) {
-        let (target_value, _time, _flags, _easing_param) = self.params;
+        let (target_value, _time, _flags, _easing_param, ..) = self.params;
 
         state
             .layers
@@ -22,7 +22,7 @@ impl StartableCommand for command::runtime::LAYERCTRL {
         vm_state: &VmState,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        let (target_value, duration, flags, easing_param) = self.params;
+        let (target_value, duration, flags, easing_param, ..) = self.params;
 
         if flags.unused_1() != 0 || flags.unused_2() != 0 || flags.unused_3() != 0 {
             panic!("LAYERCTRL: unused flags are set: {:?}", flags);
