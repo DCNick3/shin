@@ -1,5 +1,4 @@
-use crate::format::scenario::instruction_elements::{FromNumber, NumberSpec, UntypedNumberSpec};
-use crate::vm::{FromVmCtx, VmCtx};
+use crate::format::scenario::instruction_elements::FromNumber;
 use bitflags::bitflags;
 use proc_bitfield::bitfield;
 
@@ -25,13 +24,6 @@ bitfield! {
 impl FromNumber for LayerCtrlFlags {
     fn from_number(number: i32) -> Self {
         Self(number)
-    }
-}
-
-// TODO: remove this when BNA is refactored
-impl FromVmCtx<UntypedNumberSpec> for LayerCtrlFlags {
-    fn from_vm_ctx(ctx: &VmCtx, input: UntypedNumberSpec) -> Self {
-        Self(ctx.get_number(NumberSpec::new(input)))
     }
 }
 

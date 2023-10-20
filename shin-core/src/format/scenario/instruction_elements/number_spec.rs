@@ -1,5 +1,5 @@
 use super::Register;
-use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
+use crate::vm::{IntoRuntimeForm, VmCtx};
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::fmt::Debug;
 use std::io;
@@ -127,13 +127,11 @@ impl<T> Debug for NumberSpec<T> {
     }
 }
 
-impl<T: FromNumber> FromVmCtx<NumberSpec<T>> for T {
-    fn from_vm_ctx(ctx: &VmCtx, input: NumberSpec<T>) -> Self {
-        ctx.get_number(input)
-    }
-}
-impl<T: FromNumber> FromVmCtxDefault for NumberSpec<T> {
+impl<T: FromNumber> IntoRuntimeForm for NumberSpec<T> {
     type Output = T;
+    fn into_runtime_form(self, ctx: &VmCtx) -> Self::Output {
+        ctx.get_number(self)
+    }
 }
 
 pub trait FromNumber {

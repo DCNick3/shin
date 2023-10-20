@@ -1,10 +1,12 @@
 use super::prelude::*;
-use shin_core::vm::command::types::LayerPropertySmallList;
+use shin_core::format::scenario::types::SMALL_LIST_SIZE;
+use shin_core::vm::command::types::LayerProperty;
+use smallvec::SmallVec;
 use std::fmt::{Debug, Formatter};
 
 pub struct LAYERWAIT {
     layer_id: VLayerId,
-    properties: LayerPropertySmallList,
+    properties: SmallVec<LayerProperty, { SMALL_LIST_SIZE }>,
     token: Option<command::token::LAYERWAIT>,
 }
 

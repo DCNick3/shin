@@ -9,11 +9,9 @@ use crate::format::scenario::types::U8SmallNumberList;
 use crate::format::text::{StringArray, U16FixupString, U16String};
 use crate::time::Ticks;
 use shin_derive::Command;
-// those are actually used by the generated code (it's a bit messy, i know)
-#[allow(unused)]
 use types::{
-    AudioWaitStatus, LayerCtrlFlags, LayerId, LayerProperty, LayerPropertySmallList, LayerType,
-    MaskFlags, MessageboxStyle, Pan, VLayerId, Volume,
+    AudioWaitStatus, LayerCtrlFlags, LayerId, LayerProperty, LayerType, MaskFlags, MessageboxStyle,
+    Pan, VLayerId, Volume,
 };
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
@@ -274,8 +272,7 @@ pub enum Command {
     #[cmd(opcode = 0xc4u8)]
     LAYERWAIT {
         layer_id: NumberSpec<VLayerId>,
-        #[cmd(rty = "LayerPropertySmallList")]
-        wait_properties: U8SmallNumberList,
+        wait_properties: U8SmallNumberList<LayerProperty>,
     },
     #[cmd(opcode = 0xc5u8)]
     LAYERSWAP { arg1: NumberSpec, arg2: NumberSpec },

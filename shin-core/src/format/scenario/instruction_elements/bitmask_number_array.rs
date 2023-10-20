@@ -1,6 +1,6 @@
 use super::UntypedNumberSpec;
 use crate::format::scenario::instruction_elements::{FromNumber, NumberSpec};
-use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
+use crate::vm::{IntoRuntimeForm, VmCtx};
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::io;
 
@@ -88,35 +88,20 @@ impl<
         T6: FromNumber,
         T7: FromNumber,
         T8: FromNumber,
-    > FromVmCtxDefault for BitmaskNumberArray<T1, T2, T3, T4, T5, T6, T7, T8>
+    > IntoRuntimeForm for BitmaskNumberArray<T1, T2, T3, T4, T5, T6, T7, T8>
 {
     type Output = (T1, T2, T3, T4, T5, T6, T7, T8);
+
+    fn into_runtime_form(self, ctx: &VmCtx) -> Self::Output {
+        (
+            self.0.into_runtime_form(ctx),
+            self.1.into_runtime_form(ctx),
+            self.2.into_runtime_form(ctx),
+            self.3.into_runtime_form(ctx),
+            self.4.into_runtime_form(ctx),
+            self.5.into_runtime_form(ctx),
+            self.6.into_runtime_form(ctx),
+            self.7.into_runtime_form(ctx),
+        )
+    }
 }
-
-macro_rules! impl_from_vm_ctx_tuple {
-    ($($name:ident),+) => {
-        impl<$($name: FromNumber),+> FromVmCtx<BitmaskNumberArray<$($name,)+>> for ($($name,)+) {
-            #[inline]
-            fn from_vm_ctx(ctx: &VmCtx, input: BitmaskNumberArray<$($name,)+>) -> Self {
-                #[allow(non_snake_case)] // we do a little bit of abuse and use type parameter names as variable names
-                let BitmaskNumberArray(
-                    $($name),+,
-                    ..
-                ) = input;
-
-                ($(
-                    $name::from_vm_ctx(ctx, $name),
-                )+)
-            }
-        }
-    };
-}
-
-impl_from_vm_ctx_tuple!(T1);
-impl_from_vm_ctx_tuple!(T1, T2);
-impl_from_vm_ctx_tuple!(T1, T2, T3);
-impl_from_vm_ctx_tuple!(T1, T2, T3, T4);
-impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5);
-impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6);
-impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6, T7);
-impl_from_vm_ctx_tuple!(T1, T2, T3, T4, T5, T6, T7, T8);

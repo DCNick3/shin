@@ -1,5 +1,5 @@
 use crate::format::scenario::instruction_elements::NumberSpec;
-use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
+use crate::vm::{IntoRuntimeForm, VmCtx};
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use derivative::Derivative;
 use smallvec::SmallVec;
@@ -78,26 +78,18 @@ impl<
     }
 }
 
-impl<L, Ts, Td, const N: usize> FromVmCtx<SmallList<L, Ts, N>> for SmallVec<Td, N>
+impl<L, Ts, Td, const N: usize> IntoRuntimeForm for SmallList<L, Ts, N>
 where
     L: Into<usize> + TryFrom<usize>,
-    Td: FromVmCtx<Ts>,
-{
-    fn from_vm_ctx(ctx: &VmCtx, input: SmallList<L, Ts, N>) -> Self {
-        input
-            .0
-            .into_iter()
-            .map(|ts| Td::from_vm_ctx(ctx, ts))
-            .collect()
-    }
-}
-impl<L, Ts, Td, const N: usize> FromVmCtxDefault for SmallList<L, Ts, N>
-where
-    L: Into<usize> + TryFrom<usize>,
-    Td: FromVmCtx<Ts>,
-    Ts: FromVmCtxDefault<Output = Td>,
+    Ts: IntoRuntimeForm<Output = Td>,
 {
     type Output = SmallVec<Ts::Output, N>;
+    fn into_runtime_form(self, ctx: &VmCtx) -> Self::Output {
+        self.0
+            .into_iter()
+            .map(|ts| ts.into_runtime_form(ctx))
+            .collect()
+    }
 }
 
 impl<T: for<'a> BinRead<Args<'a> = ()> + 'static> BinRead for Pad4<T> {

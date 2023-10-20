@@ -1,4 +1,4 @@
-use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
+use crate::vm::{IntoRuntimeForm, VmCtx};
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::fmt::Debug;
 use std::io;
@@ -37,11 +37,10 @@ impl BinWrite for U8Bool {
     }
 }
 
-impl FromVmCtx<U8Bool> for bool {
-    fn from_vm_ctx(_: &VmCtx, input: U8Bool) -> Self {
-        input.0
-    }
-}
-impl FromVmCtxDefault for U8Bool {
+impl IntoRuntimeForm for U8Bool {
     type Output = bool;
+
+    fn into_runtime_form(self, _: &VmCtx) -> Self::Output {
+        self.0
+    }
 }

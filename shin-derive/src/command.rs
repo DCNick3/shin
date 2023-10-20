@@ -1,5 +1,5 @@
 use crate::sanitization::{
-    BIN_READ, BIN_WRITE, COMMAND_RESULT, FROM_VM_CTX, FROM_VM_CTX_DEFAULT, REGISTER, VM_CTX,
+    BIN_READ, BIN_WRITE, COMMAND_RESULT, INTO_RUNTIME_FORM, REGISTER, VM_CTX,
 };
 use crate::util::{parse_attribute, parse_opt_attribute};
 use darling::FromMeta;
@@ -12,8 +12,6 @@ use synstructure::{Structure, VariantInfo};
 struct CommandFieldMeta {
     #[darling(default)]
     dest: bool,
-    #[darling(default)]
-    rty: Option<String>,
 }
 
 struct CommandField {
@@ -94,27 +92,16 @@ impl CommandVariant {
 
 impl CommandField {
     pub fn runtime_type(&self) -> TokenStream {
-        if let Some(ref rty) = self.meta.rty {
-            let rty = syn::parse_str::<syn::Type>(rty).unwrap();
-            quote!(#rty)
-        } else {
-            let ty = &self.field.ty;
-            quote! {
-                <#ty as #FROM_VM_CTX_DEFAULT>::Output
-            }
+        let ty = &self.field.ty;
+        quote! {
+            <#ty as #INTO_RUNTIME_FORM>::Output
         }
     }
 
     pub fn as_conv_trait(&self) -> TokenStream {
-        if let Some(ref rty) = self.meta.rty {
-            let ty = &self.field.ty;
-            let rty = syn::parse_str::<syn::Type>(rty).unwrap();
-            quote!(<#rty as #FROM_VM_CTX<#ty>>)
-        } else {
-            let ty = &self.field.ty;
-            quote! {
-                <#ty as #FROM_VM_CTX_DEFAULT>
-            }
+        let ty = &self.field.ty;
+        quote! {
+            <#ty as #INTO_RUNTIME_FORM>
         }
     }
 }
@@ -138,7 +125,7 @@ fn codegen_command_runtime_type(input: &CommandVariant) -> TokenStream {
         }
         TokenKind::DestinationAddress(field) => {
             quote! {
-                super::token::#name::new(input.#field)
+                super::token::#name::new(self.#field)
             }
         }
     };
@@ -146,7 +133,7 @@ fn codegen_command_runtime_type(input: &CommandVariant) -> TokenStream {
         let ident = f.field.ident.as_ref().unwrap();
         let cty = f.as_conv_trait();
         quote! {
-            #ident: #cty::from_vm_ctx(ctx, input.#ident)
+            #ident: #cty::into_runtime_form(self.#ident, ctx)
         }
     });
     let display = input
@@ -180,9 +167,10 @@ fn codegen_command_runtime_type(input: &CommandVariant) -> TokenStream {
             #(#fields),*
         }
 
-        impl #FROM_VM_CTX<super::compiletime::#name> for #name {
-            fn from_vm_ctx(ctx: &#VM_CTX, input: super::compiletime::#name) -> Self {
-                Self {
+        impl #INTO_RUNTIME_FORM for super::compiletime::#name {
+            type Output = #name;
+            fn into_runtime_form(self, ctx: &#VM_CTX) -> Self::Output {
+                Self::Output {
                     token: #make_token,
                     #(#arms),*
                 }
@@ -288,7 +276,7 @@ pub fn impl_command(input: Structure) -> TokenStream {
         .collect();
 
     // this is for some reason necessary... Otherwise a strange error in the quote! machinery pops out
-    let from_vm_ctx = &FROM_VM_CTX;
+    let into_runtime_form = &INTO_RUNTIME_FORM;
 
     quote! {
         /// This module contains compile-time representation of commands.
@@ -328,17 +316,17 @@ pub fn impl_command(input: Structure) -> TokenStream {
             #(#variant_names(runtime::#variant_names)),*
         }
 
-        impl #from_vm_ctx<CompiletimeCommand> for RuntimeCommand {
+        impl #into_runtime_form for CompiletimeCommand {
+            type Output = RuntimeCommand;
+
             #[inline]
-            fn from_vm_ctx(ctx: &#VM_CTX, input: CompiletimeCommand) -> Self {
-                match input {
-                    #(CompiletimeCommand::#variant_names(v) => RuntimeCommand::#variant_names(#from_vm_ctx::from_vm_ctx(ctx, v))),*
+            fn into_runtime_form(self, ctx: &#VM_CTX) -> Self::Output {
+                match self {
+                    #(CompiletimeCommand::#variant_names(v) => RuntimeCommand::#variant_names(#into_runtime_form::into_runtime_form(v, ctx))),*
                 }
             }
         }
-        impl #FROM_VM_CTX_DEFAULT for CompiletimeCommand {
-            type Output = RuntimeCommand;
-        }
+
         impl std::fmt::Display for RuntimeCommand {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self {

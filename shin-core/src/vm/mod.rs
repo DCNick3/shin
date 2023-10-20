@@ -242,7 +242,7 @@ impl Scripter {
                 self.instruction_reader.set_position(target);
             }
             Instruction::Command(command) => {
-                let command = RuntimeCommand::from_vm_ctx(&self.ctx, command);
+                let command = command.into_runtime_form(&self.ctx);
                 trace!(?pc, ?command, "command");
                 return Some(command);
             }

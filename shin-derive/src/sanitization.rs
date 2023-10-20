@@ -77,8 +77,7 @@ macro_rules! from_binrw {
 
 ident_str! {
     pub VM_CTX = from_shin_core!(vm::VmCtx);
-    pub FROM_VM_CTX = from_shin_core!(vm::FromVmCtx);
-    pub FROM_VM_CTX_DEFAULT = from_shin_core!(vm::FromVmCtxDefault);
+    pub INTO_RUNTIME_FORM = from_shin_core!(vm::IntoRuntimeForm);
     pub REGISTER = from_shin_core!(format::scenario::instruction_elements::Register);
     pub COMMAND_RESULT = from_shin_core!(vm::command::CommandResult);
     pub RATIONAL = from_shin_core!(rational::Rational);

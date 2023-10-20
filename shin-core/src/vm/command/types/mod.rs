@@ -8,7 +8,7 @@ pub use flags::{AudioWaitStatus, LayerCtrlFlags, MaskFlags};
 pub use id::{
     LayerId, LayerIdOpt, VLayerId, VLayerIdRepr, LAYERBANKS_COUNT, LAYERS_COUNT, PLANES_COUNT,
 };
-pub use property::{LayerProperty, LayerPropertySmallList};
+pub use property::LayerProperty;
 
 use crate::format::scenario::instruction_elements::FromNumber;
 use num_derive::FromPrimitive;

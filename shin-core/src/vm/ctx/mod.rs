@@ -1,6 +1,6 @@
-mod from_vm_ctx;
+mod into_runtime_form;
 
-pub use from_vm_ctx::*;
+pub use into_runtime_form::*;
 
 use crate::format::scenario::instruction_elements::{
     CodeAddress, FromNumber, NumberSpec, Register, RegisterRepr, UntypedNumberSpec,

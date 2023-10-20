@@ -1,4 +1,4 @@
-use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
+use crate::vm::{IntoRuntimeForm, VmCtx};
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::fmt::Debug;
 use std::io;
@@ -47,11 +47,9 @@ impl Debug for MessageId {
     }
 }
 
-impl FromVmCtx<MessageId> for MessageId {
-    fn from_vm_ctx(_: &VmCtx, input: MessageId) -> Self {
-        input
-    }
-}
-impl FromVmCtxDefault for MessageId {
+impl IntoRuntimeForm for MessageId {
     type Output = MessageId;
+    fn into_runtime_form(self, _: &VmCtx) -> Self::Output {
+        self
+    }
 }

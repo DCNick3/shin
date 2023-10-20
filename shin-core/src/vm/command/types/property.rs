@@ -1,6 +1,4 @@
 use crate::format::scenario::instruction_elements::FromNumber;
-use crate::format::scenario::types::U8SmallNumberList;
-use crate::vm::{FromVmCtx, VmCtx};
 use enum_map::Enum;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -187,25 +185,5 @@ impl FromNumber for LayerProperty {
     fn from_number(number: i32) -> Self {
         FromPrimitive::from_i32(number)
             .unwrap_or_else(|| panic!("LayerProperty::from_vm_ctx: invalid layer type: {}", number))
-    }
-}
-
-pub type LayerPropertySmallList = smallvec::SmallVec<LayerProperty, 6>;
-
-impl FromVmCtx<U8SmallNumberList> for LayerPropertySmallList {
-    fn from_vm_ctx(ctx: &VmCtx, input: U8SmallNumberList) -> Self {
-        input
-            .0
-            .into_iter()
-            .map(|n| {
-                let n = ctx.get_number(n);
-                FromPrimitive::from_i32(n).unwrap_or_else(|| {
-                    panic!(
-                        "LayerPropertySmallList::from_vm_ctx: invalid layer type: {}",
-                        n
-                    )
-                })
-            })
-            .collect()
     }
 }
