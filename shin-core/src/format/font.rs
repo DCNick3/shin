@@ -106,6 +106,7 @@ pub enum GlyphMipLevel {
     Level3 = 3,
 }
 
+/// A newtype representing an ID of the glyph within the FNT file
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GlyphId(pub u32);
 
@@ -114,6 +115,9 @@ enum GlyphData {
     Compressed(Vec<u8>),
 }
 
+/// Glyph that has not been decompressed yet
+///
+/// Useful for on-demand decompression, as most of the glyphs are not needed right away by the game
 pub struct LazyGlyph {
     info: GlyphInfo,
     texture_size: (u8, u8),
@@ -205,6 +209,7 @@ impl BinRead for LazyGlyph {
     }
 }
 
+/// Glyph that has been decompressed
 pub struct Glyph {
     info: GlyphInfo,
     mip_level_0: GrayImage,

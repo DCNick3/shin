@@ -1,3 +1,5 @@
+//! Glue together `shin-core` and `kira` to provide an API to play NXA audio files.
+
 mod data;
 mod handle;
 mod manager;

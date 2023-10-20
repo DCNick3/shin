@@ -1,3 +1,5 @@
+//! Just random one-time use scripts to parse some data.
+
 use clap::Parser;
 
 mod buffer_parser;

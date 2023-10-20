@@ -1,3 +1,5 @@
+//! Rendering framework for the shin engine.
+
 use glam::Mat4;
 use std::ops::{Deref, DerefMut};
 

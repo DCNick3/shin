@@ -1,3 +1,5 @@
+//! Glue together mp4 demuxing, h264 and aac decoding and `shin-render` APIs to implement video playback in `shin`.
+
 mod audio;
 mod h264_decoder;
 pub mod mp4;

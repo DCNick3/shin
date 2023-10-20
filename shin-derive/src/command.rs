@@ -110,7 +110,7 @@ fn codegen_command_runtime_type(input: &CommandVariant) -> TokenStream {
     let name = &input.name;
     let name_str = name.to_string();
     let fields = input.fields.iter().filter(|f| !f.meta.dest).map(|f| {
-        let ident = f.field.ident.as_ref().unwrap();
+        let ident = f.field.ident.as_ref().expect("Field must have a name");
         let rty = f.runtime_type();
         quote! {
             pub #ident: #rty

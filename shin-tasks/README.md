@@ -1,6 +1,6 @@
 # shin_tasks
 
-This is a fork of bevy_tasks. Currently, no changes are made, but they are expected.
+This is a fork of bevy_tasks. Currently, no substantial changes are made besides the simplification of thread pool setup.
 
 The original readme follows.
 

@@ -1,4 +1,15 @@
 //! Support for BUP files, storing the character bustup sprites.
+//!
+//! The BUP format is re-using the machinery from the picture format, but it has some additions on top.
+//!
+//! The character sprite is composed of three layers:
+//! - the base image, which is the character's body
+//! - the expression, which displays the character's facial expression
+//! - the mouth, which displays the character's mouth
+//!
+//! The layers are separate because one base image can have multiple facial expressions layered on top, using storage more efficiently.
+//!
+//! The mouth is also separate because it is usually animated, storing multiple versions with varying openness.
 
 use crate::format::picture::{read_picture_chunk, PictureChunk};
 use anyhow::{bail, Result};
@@ -140,7 +151,6 @@ pub fn read_bustup(source: &[u8]) -> Result<Bustup> {
     }
     let additional_chunks = additional_chunks.into_iter().collect::<Vec<_>>();
 
-    // TODO: ditch rayon?
     // TODO: actually, collecting all of these is not the most efficient in terms of memory...
     // It might be better to first collect the "base" chunks into the base picture (the same way it's done in picture)
     // and then we can start reading the expressions and their mouths.

@@ -411,6 +411,12 @@ impl BinWrite for Expression {
     }
 }
 
+// NOTE: theoretically, it might have sense to use the same macro as we do for Command to create separate runtime and compile-time instruction representations
+// But I believe this not really necessary.
+// First of all, there aren't a lot of instructions. It doesn't hurt that much to repeat the `IntoRuntimeForm` invokactions for some of types (numbers).
+// Second, the types we would need to convert are not like the ones used in commands, and they are sometimes nasty (think about expressions for example). It's just easier to convert & execute them in one go.
+// Finally, unlike commands, instruction don't have to live for a long time in a game loop, but are always executed immediately without yielding control to the game engine.
+
 /// Represents an instruction read from a script.
 #[allow(non_camel_case_types)]
 #[derive(BinRead, BinWrite, Debug)]
@@ -468,10 +474,14 @@ pub enum Instruction {
     ///
     /// The umi scenario still uses this (a bit).
     ///
+    /// NOTE: this is called `call` in ShinDataUtil.
+    ///
     /// The return must be done with [retsub](Instruction::retsub).
     #[brw(magic(0x48u8))]
     gosub { target: CodeAddress },
     /// Return from a Subroutine called with [gosub](Instruction::gosub)
+    ///
+    /// NOTE: this is called `return` in ShinDataUtil.
     #[brw(magic(0x49u8))]
     retsub {},
     /// Jump via Table

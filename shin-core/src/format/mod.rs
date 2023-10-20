@@ -1,4 +1,5 @@
-// CORE: the compression & text encoding
+//! Implement support for various formats used in the game.
+
 pub mod lz77;
 pub mod text;
 

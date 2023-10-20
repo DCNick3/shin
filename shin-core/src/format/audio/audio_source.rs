@@ -84,6 +84,7 @@ impl AudioBufferReader {
     }
 }
 
+/// An audio source providing audio in frames
 pub trait AudioFrameSource {
     /// Maximum size of the frame
     ///
@@ -111,6 +112,7 @@ pub trait AudioFrameSource {
     fn current_sample_position(&self) -> u32;
 }
 
+/// A wrapper around an [`AudioFrameSource`] that provides a sample-based interface
 pub struct AudioSource<S: AudioFrameSource> {
     source: S,
     reader: AudioBufferReader,

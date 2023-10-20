@@ -1,4 +1,8 @@
 //! Support for decoding PIC format used by the game
+//!
+//! The picture format splits the picture in chunks that are first separately transformed by using a dictionary or a differential encoding and an optional lz77 compression on top.
+//!
+//! It also stores vertices for each chunk specifying which regions of the image have transparency and which don't. This potentially allows for a more efficient GPU rendering (this implementation doesn't do this yet).
 
 use anyhow::{bail, Context, Result};
 use binrw::prelude::*;

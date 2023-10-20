@@ -1,3 +1,5 @@
+//! A CLI tool to work with file formats of shin engine games
+
 mod assembler;
 mod rom;
 mod savedata;

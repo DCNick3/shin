@@ -25,7 +25,7 @@ use synstructure::macros::DeriveInput;
 ///
 /// The finish token is used to achieve strong typing on important side-effects of commands: some of them are expected to return a value. As such, a token is required to finish executing the command and will force the implementor to pass the return value.
 ///
-/// It also generates a `FromVmCtx` impl to convert from compile-time to runtime representations.
+/// It also generates a `IntoRuntimeForm` impl to convert from compile-time to runtime representations.
 #[proc_macro_derive(Command, attributes(cmd))]
 pub fn derive_command(input: TokenStream) -> TokenStream {
     match synstructure::macros::parse::<DeriveInput>(input) {

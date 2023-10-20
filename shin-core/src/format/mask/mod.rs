@@ -1,4 +1,4 @@
-//! Support for MSK format, storing 8-bit mask textures
+//! Support for MSK format, storing 8-bit grayscale mask textures
 
 use anyhow::Result;
 use binrw::{BinRead, BinWrite};

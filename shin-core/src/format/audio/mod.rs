@@ -1,4 +1,8 @@
-//! Support for NXA format, storing opus audio. (The format seems to be specific for Nintendo Switch?)
+//! Support for NXA format, storing opus audio. (The format might be specific for Nintendo Switch?)
+//!
+//! It is a simple container storing opus frames mostly as-is. The only addition compared to usual opus formats are loop points.
+//!
+//! The header specifies loop start and loop end points in samples. When looping is enabled and loop end is reached, the decoder seeks to the loop start.
 
 mod audio_source;
 
@@ -42,6 +46,7 @@ pub struct AudioInfo {
     pub loop_end: u32,
 }
 
+// A fully in-memory, but not yet decoded audio file
 pub struct AudioFile {
     info: AudioInfo,
     data: Vec<u8>,
