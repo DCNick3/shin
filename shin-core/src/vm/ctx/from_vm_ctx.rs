@@ -2,10 +2,7 @@
 //!
 //! Also contains implementation for std types & stuff defined in `shin_core::format`, like `U8String` -> `String` stuff
 
-use crate::format::scenario::instruction_elements::MessageId;
-use crate::format::text::{StringArray, U16FixupString, U16String, U8FixupString, U8String};
 use crate::vm::VmCtx;
-use smallvec::SmallVec;
 
 /// Defines how to convert a compile-time representation `I` to a runtime representation `Self`
 ///
@@ -53,49 +50,4 @@ macro_rules! identity_from_vm_ctx_default {
     };
 }
 
-identity_from_vm_ctx_default!(u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, MessageId);
-
-impl FromVmCtx<U8String> for String {
-    fn from_vm_ctx(_: &VmCtx, input: U8String) -> Self {
-        input.0
-    }
-}
-impl FromVmCtxDefault for U8String {
-    type Output = String;
-}
-
-impl FromVmCtx<U16String> for String {
-    fn from_vm_ctx(_: &VmCtx, input: U16String) -> Self {
-        input.0
-    }
-}
-impl FromVmCtxDefault for U16String {
-    type Output = String;
-}
-
-impl FromVmCtx<U8FixupString> for String {
-    fn from_vm_ctx(_: &VmCtx, input: U8FixupString) -> Self {
-        input.0
-    }
-}
-impl FromVmCtxDefault for U8FixupString {
-    type Output = String;
-}
-
-impl FromVmCtx<U16FixupString> for String {
-    fn from_vm_ctx(_: &VmCtx, input: U16FixupString) -> Self {
-        input.0
-    }
-}
-impl FromVmCtxDefault for U16FixupString {
-    type Output = String;
-}
-
-impl FromVmCtx<StringArray> for SmallVec<String, 4> {
-    fn from_vm_ctx(_: &VmCtx, input: StringArray) -> Self {
-        input.0
-    }
-}
-impl FromVmCtxDefault for StringArray {
-    type Output = SmallVec<String, 4>;
-}
+identity_from_vm_ctx_default!(u8, u16, u32, u64, i8, i16, i32, i64, f32, f64);

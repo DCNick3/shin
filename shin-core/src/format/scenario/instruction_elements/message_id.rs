@@ -1,3 +1,4 @@
+use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::fmt::Debug;
 use std::io;
@@ -44,4 +45,13 @@ impl Debug for MessageId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
+}
+
+impl FromVmCtx<MessageId> for MessageId {
+    fn from_vm_ctx(_: &VmCtx, input: MessageId) -> Self {
+        input
+    }
+}
+impl FromVmCtxDefault for MessageId {
+    type Output = MessageId;
 }

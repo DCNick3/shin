@@ -1,4 +1,5 @@
 use crate::format::text;
+use crate::vm::{FromVmCtx, FromVmCtxDefault, VmCtx};
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use smallvec::SmallVec;
 use std::fmt::Debug;
@@ -124,6 +125,15 @@ impl<L: StringLengthDesc, F: StringFixup> SJisString<L, F> {
     }
 }
 
+impl<L: StringLengthDesc, F: StringFixup> FromVmCtx<SJisString<L, F>> for String {
+    fn from_vm_ctx(_: &VmCtx, input: SJisString<L, F>) -> Self {
+        input.0
+    }
+}
+impl<L: StringLengthDesc, F: StringFixup> FromVmCtxDefault for SJisString<L, F> {
+    type Output = String;
+}
+
 impl BinRead for StringArray {
     type Args<'a> = ();
 
@@ -161,4 +171,13 @@ impl BinWrite for StringArray {
     ) -> BinResult<()> {
         todo!()
     }
+}
+
+impl FromVmCtx<StringArray> for SmallVec<String, 4> {
+    fn from_vm_ctx(_: &VmCtx, input: StringArray) -> Self {
+        input.0
+    }
+}
+impl FromVmCtxDefault for StringArray {
+    type Output = SmallVec<String, 4>;
 }
