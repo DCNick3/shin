@@ -16,7 +16,7 @@ use std::{
 
 use rowan::TextRange;
 
-use crate::syntax::{syntax_node::SalLanguage, AstNode, SyntaxNode};
+use crate::syntax::{syntax_node::SalLanguage, AstNode, AstSpanned, SyntaxNode};
 
 /// A "pointer" to a [`SyntaxNode`], via location in the source code.
 pub type SyntaxNodePtr = rowan::ast::SyntaxNodePtr<SalLanguage>;
@@ -68,10 +68,6 @@ impl<N: AstNode> AstPtr<N> {
         self.raw.clone()
     }
 
-    pub fn text_range(&self) -> TextRange {
-        self.raw.text_range()
-    }
-
     pub fn cast<U: AstNode>(self) -> Option<AstPtr<U>> {
         if !U::can_cast(self.raw.kind()) {
             return None;
@@ -98,6 +94,12 @@ impl<N: AstNode> AstPtr<N> {
             raw,
             _ty: PhantomData,
         })
+    }
+}
+
+impl<N: AstNode> AstSpanned for AstPtr<N> {
+    fn text_range(&self) -> TextRange {
+        self.raw.text_range()
     }
 }
 

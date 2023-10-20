@@ -235,13 +235,13 @@ def A = 65536 * 65536
 
         expect![[r#"
             building def map produced errors:
-            source-level: []
+            source-level: [Diagnostic { message: "Overflow in constant expression", location: Span(WithFile { value: 9..22, file: File(Id { value: 1 }) }), additional_labels: [] }]
             hir-level: []"#]]
         .assert_eq(errors.as_deref().unwrap());
 
         expect![[r#"
             items:
-              A: Value(ConstexprValue(<dummy>))
+              A: Value(<dummy>)
             registers:
               global:
               local:

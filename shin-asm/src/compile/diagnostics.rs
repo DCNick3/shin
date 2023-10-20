@@ -92,7 +92,7 @@ impl<L> Diagnostic<L> {
         self
     }
 
-    fn map_location<NewL, F: Fn(L) -> NewL>(self, f: F) -> Diagnostic<NewL> {
+    pub fn map_location<NewL, F: Fn(L) -> NewL>(self, f: F) -> Diagnostic<NewL> {
         Diagnostic {
             message: self.message,
             location: f(self.location),

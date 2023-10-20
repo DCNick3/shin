@@ -169,13 +169,23 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
 /// Note that unlike [`collect_file_bodies`], this doesn't doesn't use salsa db and doesn't emit diagnostics for you
 pub fn collect_bare_expression_raw(
     expr: ast::Expr,
-) -> (HirBlockBody, ExprId, Vec<Diagnostic<TextRange>>) {
+) -> (
+    HirBlockBody,
+    ExprId,
+    FxHashMap<ExprId, ExprPtr>,
+    Vec<Diagnostic<TextRange>>,
+) {
     let mut collector = HirBlockCollector::new();
 
     let expr_id = collector.collect_expr(expr);
 
     // TODO: expose the source map in some way
-    let (block_body, _source_map, diagnostiscs) = collector.collect();
+    let (block_body, source_map, diagnostiscs) = collector.collect();
 
-    (block_body, expr_id, diagnostiscs)
+    (
+        block_body,
+        expr_id,
+        source_map.exprs_source_map,
+        diagnostiscs,
+    )
 }

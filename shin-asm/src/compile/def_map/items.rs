@@ -152,7 +152,7 @@ pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedItems) -> ResolvedItem
                             (DefValue::Block(block_id.in_file(span.file())), Some(span))
                         }
                         Some(&DefRef::Value(ref expr, _item_index, span)) => {
-                            let (block, root_expr_id, diagnostics) =
+                            let (block, root_expr_id, expr_source_map, diagnostics) =
                                 hir::collect_bare_expression_raw(expr.clone());
 
                             for diag in diagnostics {
@@ -183,8 +183,13 @@ pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedItems) -> ResolvedItem
                             let (value, diagnostics) =
                                 constexpr_evaluate(&constexpr_context, &block, root_expr_id);
 
-                            for _diag in diagnostics {
-                                todo!("Resolve Hir source map and emit the diagnostic")
+                            for diag in diagnostics {
+                                diag.map_location(|location| {
+                                    location.right_or_else(|id| {
+                                        expr_source_map.get(&id).unwrap().span(span.file())
+                                    })
+                                })
+                                .emit(self.db);
                             }
 
                             (DefValue::Value(value), Some(span))
