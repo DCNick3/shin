@@ -1,4 +1,5 @@
 mod from_ast;
+mod lower;
 #[cfg(test)]
 mod tests;
 

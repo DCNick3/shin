@@ -84,7 +84,7 @@ impl FromNumber for MessageboxStyle {
 }
 
 /// A volume value, in the range [0.0, 1.0].
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone)]
 pub struct Volume(pub f32);
 
 impl Default for Volume {
@@ -93,6 +93,14 @@ impl Default for Volume {
     }
 }
 
+impl PartialEq for Volume {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.total_cmp(&other.0) == std::cmp::Ordering::Equal
+    }
+}
+
+impl Eq for Volume {}
+
 impl FromNumber for Volume {
     fn from_number(number: i32) -> Self {
         Self((number as f32 / 1000.0).clamp(0.0, 1.0)) // TODO: warn if out of range
@@ -100,7 +108,7 @@ impl FromNumber for Volume {
 }
 
 /// Defines a pan value in the range [-1.0, 1.0], where `0.0` is the center and `-1.0` is the hard left and `1.0` is the hard right.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone)]
 pub struct Pan(pub f32);
 
 impl Default for Pan {
@@ -108,6 +116,14 @@ impl Default for Pan {
         Self(0.0)
     }
 }
+
+impl PartialEq for Pan {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.total_cmp(&other.0) == std::cmp::Ordering::Equal
+    }
+}
+
+impl Eq for Pan {}
 
 impl FromNumber for Pan {
     fn from_number(number: i32) -> Self {

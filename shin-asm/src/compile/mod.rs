@@ -12,7 +12,7 @@ pub use db::Db;
 pub use def_map::DefMap;
 pub(crate) use diagnostics::make_diagnostic;
 pub use file::{File, Program};
-pub use from_hir::{FromHirExpr, FromHirInstruction, HirDiagnosticCollector};
+pub use from_hir::{FromHirExpr, HirDiagnosticCollector};
 pub use hir::HirBlockBody;
 pub use resolve::ResolveContext;
 pub use types::{BlockId, BlockIdRepr, BlockIdWithFile, MakeWithFile, WithFile};

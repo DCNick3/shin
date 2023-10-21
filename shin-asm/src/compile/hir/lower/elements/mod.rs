@@ -1,5 +1,3 @@
-use binrw::{BinRead, BinWrite};
-
 mod prelude {
     pub use crate::compile::{
         hir, hir::ExprId, FromHirExpr, HirBlockBody, HirDiagnosticCollector, ResolveContext,
@@ -9,10 +7,6 @@ mod prelude {
 
 mod numbers;
 mod register;
-
-pub use shin_core::format::scenario::instruction_elements::{Register, RegisterRepr};
-
-pub trait InstructionElement: BinRead + BinWrite {}
 
 #[cfg(test)]
 fn check_from_hir_ok<T: crate::compile::FromHirExpr + Eq + std::fmt::Debug>(

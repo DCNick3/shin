@@ -69,7 +69,14 @@ pub struct SJisString<L: StringLengthDesc, F: StringFixup + 'static = NoFixup>(
     pub PhantomData<(L, F)>,
 );
 
-#[derive(Debug)]
+impl<L: StringLengthDesc, F: StringFixup + 'static> PartialEq for SJisString<L, F> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+impl<L: StringLengthDesc, F: StringFixup + 'static> Eq for SJisString<L, F> {}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct StringArray(pub SmallVec<String, 4>);
 
 impl<L: StringLengthDesc, F: StringFixup> BinRead for SJisString<L, F> {

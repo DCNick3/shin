@@ -10,7 +10,7 @@ pub type UntypedNumberArray = (i32, i32, i32, i32, i32, i32, i32, i32);
 /// Represents 8 numbers, each of which may or may not be present.
 ///
 /// If the number is not present, it is treated as `NumberSpec::Constant(0)`.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BitmaskNumberArray<
     T1 = i32,
     T2 = i32,

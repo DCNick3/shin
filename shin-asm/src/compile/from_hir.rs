@@ -88,12 +88,3 @@ pub trait FromHirExpr: Sized {
         expr: hir::ExprId,
     ) -> Option<Self>;
 }
-
-pub trait FromHirInstruction: Sized {
-    fn from_hir_instruction(
-        diagnostics: &mut HirDiagnosticCollector,
-        resolve_ctx: &resolve::ResolveContext,
-        block: &HirBlockBody,
-        instr: hir::InstructionId,
-    ) -> Option<Self>;
-}

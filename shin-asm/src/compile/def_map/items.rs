@@ -1,4 +1,4 @@
-use crate::compile::constexpr::{constexpr_evaluate, ContexprContextValue};
+use crate::compile::constexpr::{constexpr_evaluate, ConstexprContextValue};
 use crate::compile::{hir, make_diagnostic, MakeWithFile};
 use crate::{
     compile::{
@@ -168,11 +168,11 @@ pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedItems) -> ResolvedItem
                                     let (value, span) = self.resolve(name.clone(), Some(span));
 
                                     let value = match value {
-                                        DefValue::Block(_) => ContexprContextValue::Block(
+                                        DefValue::Block(_) => ConstexprContextValue::Block(
                                             span.expect("BUG: block value without span"),
                                         ),
                                         DefValue::Value(value) => {
-                                            ContexprContextValue::Value(value, span)
+                                            ConstexprContextValue::Value(value, span)
                                         }
                                     };
 

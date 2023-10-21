@@ -3,6 +3,7 @@ use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::fmt::Debug;
 use std::io;
 
+#[derive(PartialEq, Eq)]
 pub struct U8Bool(pub bool);
 
 impl Debug for U8Bool {

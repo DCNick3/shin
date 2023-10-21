@@ -13,18 +13,18 @@ use std::fmt::Debug;
 use std::io;
 use std::io::SeekFrom;
 
-#[derive(Debug, Copy, Clone, FromPrimitive)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, FromPrimitive)]
 pub enum UnaryOperationType {
     /// Ignore the source and return 0
     Zero = 0,
     /// Xor the input with 0xFFFF
-    XorFFFF = 1,
+    Not16 = 1,
     /// Negate the input
     Negate = 2,
     /// Take the absolute value of the input
     Abs = 3,
 }
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct UnaryOperation {
     pub ty: UnaryOperationType,
     /// Where to write the result to
@@ -79,7 +79,7 @@ impl BinWrite for UnaryOperation {
 /// An operation on two numbers
 ///
 /// See [ExpressionTerm] for details on how the numbers are interpreted and functions used to describe operations
-#[derive(Debug, Copy, Clone, FromPrimitive)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, FromPrimitive)]
 pub enum BinaryOperationType {
     /// `R`: Ignore the left operand and return the right operand
     MovRight = 0x00,
@@ -126,7 +126,7 @@ pub enum BinaryOperationType {
     /// For the love of god, I can't figure out what this is supposed to do.
     ACursedOperation = 0x11,
 }
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BinaryOperation {
     pub ty: BinaryOperationType,
     pub destination: Register,
@@ -180,7 +180,7 @@ impl BinWrite for BinaryOperation {
     }
 }
 
-#[derive(FromPrimitive, Copy, Clone, Debug)]
+#[derive(FromPrimitive, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum JumpCondType {
     /// `L == R`
     Equal = 0x0,
@@ -203,7 +203,7 @@ pub enum JumpCondType {
 /// Jump condition
 ///
 /// Describes how to get a boolean value from two numbers
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct JumpCond {
     /// If true, the condition is negated
     pub is_negated: bool,
@@ -269,7 +269,7 @@ impl BinWrite for JumpCond {
 /// - unbool(x): Convert boolean to integer (e.g. `false` -> `0`, `true` -> `-1` (sic!))
 /// - angle(x): Convert fixed-point integer to angle in radians (e.g. `1000` -> 2pi)
 /// - unangle(x): Convert angle in radians to fixed-point integer (e.g. 2pi -> `1000`)
-#[derive(BinRead, BinWrite, Copy, Clone, Debug)]
+#[derive(BinRead, BinWrite, Copy, Clone, Debug, PartialEq, Eq)]
 #[brw(little)]
 pub enum ExpressionTerm {
     /// Push a number onto the stack
@@ -372,7 +372,7 @@ pub enum ExpressionTerm {
 
 /// An expression is a sequence of terms that are evaluated in order.
 /// This is basically a reverse polish notation expression, which can be evaluated with a stack machine.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expression(pub SmallVec<ExpressionTerm, 6>);
 
 impl BinRead for Expression {
@@ -419,8 +419,8 @@ impl BinWrite for Expression {
 
 /// Represents an instruction read from a script.
 #[allow(non_camel_case_types)]
-#[derive(BinRead, BinWrite, Debug)]
-#[br(little)]
+#[derive(BinRead, BinWrite, PartialEq, Eq, Debug)]
+#[brw(little)]
 pub enum Instruction {
     /// Unary operation
     ///

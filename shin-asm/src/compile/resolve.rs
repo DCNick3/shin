@@ -1,8 +1,8 @@
 use crate::{
     compile::Db,
-    elements::Register,
     syntax::ast::{self},
 };
+use shin_core::format::scenario::instruction_elements::Register;
 
 pub struct ResolveContext<'a> {
     _db: &'a dyn Db,

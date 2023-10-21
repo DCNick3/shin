@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 /// It can be a constant or be referencing a register.
 ///
 /// [FromVmCtx](crate::vm::FromVmCtx) trait is used to convert it to runtime representation in command definitions (see [crate::vm::command])
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum UntypedNumberSpec {
     Constant(i32),
     Register(Register),
@@ -94,7 +94,7 @@ impl BinWrite for UntypedNumberSpec {
     }
 }
 
-#[derive(Copy, Clone, BinRead)]
+#[derive(Copy, Clone, PartialEq, Eq, BinRead)]
 pub struct NumberSpec<T = i32>(UntypedNumberSpec, PhantomData<T>);
 
 impl<T> NumberSpec<T> {

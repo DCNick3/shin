@@ -32,7 +32,7 @@ impl std::fmt::Debug for ConstexprValue {
     }
 }
 
-pub enum ContexprContextValue {
+pub enum ConstexprContextValue {
     Value(ConstexprValue, Option<Span>),
     // This only exists to make the constexpr evaluator know that the value exists, but is of wrong type
     // we can't really meaningfully use a block reference in a constexpr expression, so there's no value associated with it
@@ -43,7 +43,7 @@ pub enum ContexprContextValue {
 // however, it would require some design work to make sure it is sane (for example, we might want to do const fold instead of evaluating, think of `$v1 + 2 * 8`)
 // thus, for now, constexpr evaluation only happens in value alias context
 // (these different contexts will require some adapters)
-pub type ConstexprContext = FxHashMap<Name, ContexprContextValue>;
+pub type ConstexprContext = FxHashMap<Name, ConstexprContextValue>;
 
 fn type_mismatch(
     location: Either<hir::ExprId, Span>,
@@ -83,8 +83,8 @@ fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> ConstexprValue {
             ctx.error(type_mismatch(Either::Left(expr), "int or float", "string"))
         }
         Expr::NameRef(ref name) => match ctx.context[name] {
-            ContexprContextValue::Value(ref value, _) => value.clone(),
-            ContexprContextValue::Block(location) => ctx.error(
+            ConstexprContextValue::Value(ref value, _) => value.clone(),
+            ConstexprContextValue::Block(location) => ctx.error(
                 type_mismatch(Either::Left(expr), "int or float", "code reference")
                     .with_additional_label(
                         "Code reference defined at".to_string(),
