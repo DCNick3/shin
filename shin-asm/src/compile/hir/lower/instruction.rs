@@ -205,19 +205,19 @@ mod tests {
         check_from_hir_err(
             "zero 42",
             expect![[r#"
-            Error: Expected a register reference, but got an integer literal
-               ╭─[test.sal:1:6]
-               │
-             1 │ zero 42
-               │      ──  
-               │           
-            ───╯
-        "#]],
+                Error: Expected a register, but got an integer literal
+                   ╭─[test.sal:1:6]
+                   │
+                 1 │ zero 42
+                   │      ──  
+                   │           
+                ───╯
+            "#]],
         );
         check_from_hir_err(
             "zero namae_or_whatever",
             expect![[r#"
-                Error: Expected a register reference, but got a name reference
+                Error: Expected a register, but got a name reference
                    ╭─[test.sal:1:6]
                    │
                  1 │ zero namae_or_whatever
@@ -231,7 +231,7 @@ mod tests {
         check_from_hir_err(
             "zero зелибоба",
             expect![[r#"
-                Error: Expected a register reference, but got a name reference
+                Error: Expected a register, but got a name reference
                    ╭─[test.sal:1:6]
                    │
                  1 │ zero зелибоба

@@ -1,4 +1,10 @@
-use crate::compile::{resolve, BlockIdWithFile, HirBlockBody, HirDiagnosticCollectorWithBlock};
+use crate::compile::diagnostics::HirDiagnosticAccumulator;
+use crate::compile::from_hir::HirBlockId;
+use crate::compile::types::SalsaBlockIdWithFile;
+use crate::compile::{
+    hir, resolve, BlockIdWithFile, Db, HirBlockBody, HirDiagnosticCollector,
+    HirDiagnosticCollectorWithBlock, ResolveContext, WithFile,
+};
 use binrw::io::NoSeek;
 use binrw::BinWrite;
 use shin_core::format::scenario::instructions::Instruction;
@@ -31,6 +37,7 @@ impl io::Write for CountWrite {
 }
 
 /// Stores the lowered instructions block. The instructions are final, except they don't have fixed addresses yet (kinda like a relocatable object file ig).
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredBlock {
     /// Stores the lowered instructions. `None` means that the instruction was not lowered due to an error.
     ///
@@ -112,57 +119,182 @@ impl LoweredBlock {
     }
 }
 
+#[salsa::tracked]
+pub fn lower_block(db: &dyn Db, block: SalsaBlockIdWithFile) -> LoweredBlock {
+    let WithFile {
+        file,
+        value: block_id,
+    } = block.block_id(db);
+    let block_bodies = hir::collect_file_bodies(db, file);
+    let block_hir = block_bodies.get_block(db, block_id).unwrap();
+
+    let mut diagnostics = HirDiagnosticCollector::new();
+    let resolve_ctx = ResolveContext::new(db);
+
+    let result = LoweredBlock::from_hir(
+        &mut diagnostics
+            .with_file(file)
+            .with_block(HirBlockId::Block(block_id)),
+        &resolve_ctx,
+        &block_hir,
+    );
+
+    for diag in diagnostics.into_diagnostics() {
+        HirDiagnosticAccumulator::push(db, diag)
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod tests {
-    use super::LoweredBlock;
+    use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
     use crate::compile::hir::lower::test_utils;
+    use crate::compile::types::SalsaBlockIdWithFile;
+    use crate::compile::{hir, File, MakeWithFile};
     use expect_test::{expect, Expect};
+    use indoc::indoc;
 
-    fn check_from_hir_ok(source: &str, expected: Expect) {
-        use crate::compile::{
-            db::Database, from_hir::HirDiagnosticCollector, resolve::ResolveContext,
-        };
+    fn check_from_hir(source: &str, expected: Expect) {
+        use crate::compile::db::Database;
+        use std::fmt::Write;
 
         let db = Database::default();
         let db = &db;
-        let (file, block_id, block) = test_utils::lower_hir_block_ok(db, source);
 
-        let mut diagnostics = HirDiagnosticCollector::new();
-        let resolve_ctx = ResolveContext::new(db);
+        let file = File::new(db, "test.sal".to_string(), source.to_string());
+        let bodies = hir::collect_file_bodies(db, file);
 
-        let lowered = LoweredBlock::from_hir(
-            &mut diagnostics.with_file(file).with_block(block_id.into()),
-            &resolve_ctx,
-            &block,
-        );
+        let block_ids = bodies.get_block_ids(db);
+        assert_eq!(block_ids.len(), 1, "expected exactly one block");
+        let block_id = block_ids[0];
 
-        if !diagnostics.is_empty() {
-            panic!(
-                "hir lowering produced errors:\n\
-                {:#?}",
-                test_utils::diagnostic_collector_to_str(db, diagnostics)
-            );
+        // put it into a salsa interner
+        let block = SalsaBlockIdWithFile::new(db, block_id.in_file(file));
+        let lowered = super::lower_block(db, block);
+
+        let hir_errors = super::lower_block::accumulated::<HirDiagnosticAccumulator>(db, block);
+        let source_errors =
+            super::lower_block::accumulated::<SourceDiagnosticAccumulator>(db, block);
+        let diags = test_utils::diagnostics_to_str(db, hir_errors, source_errors);
+
+        let mut result = String::new();
+        if !diags.is_empty() {
+            writeln!(result, "Diagnostics:\n{}", diags).unwrap();
         }
 
-        let lowered = lowered.debug_dump();
+        write!(result, "{}", lowered.debug_dump()).unwrap();
 
-        expected.assert_eq(&lowered);
+        expected.assert_eq(&result);
     }
 
     #[test]
     pub fn check_basic() {
-        check_from_hir_ok(
+        check_from_hir(
             r#"
             zero $v0
             abs $v1, 42
             not16 $v2, $v1
             "#,
             expect![[r#"
-            instructions:
-              uo(UnaryOperation { ty: Zero, destination: $v0, source: 0 })
-              uo(UnaryOperation { ty: Abs, destination: $v1, source: 42 })
-              uo(UnaryOperation { ty: Not16, destination: $v2, source: $v1 })
-            code addresses:
+                instructions:
+                  uo(UnaryOperation { ty: Zero, destination: $v0, source: 0 })
+                  uo(UnaryOperation { ty: Abs, destination: $v1, source: 42 })
+                  uo(UnaryOperation { ty: Not16, destination: $v2, source: $v1 })
+                code addresses:
+            "#]],
+        );
+    }
+
+    #[test]
+    pub fn check_error() {
+        check_from_hir(
+            indoc! {r#"
+                x 96
+                42
+            "#},
+            expect![[r#"
+                Diagnostics:
+                Error: expected an instruction or label
+                   ╭─[test.sal:2:1]
+                   │
+                 2 │ 42
+                   │ ─  
+                   │     
+                ───╯
+
+
+                Error: Unknown instruction: `x`
+                   ╭─[test.sal:1:1]
+                   │
+                 1 │ x 96
+                   │ ─────  
+                   │         
+                ───╯
+
+                instructions:
+                  <error>
+                code addresses:
+            "#]],
+        );
+
+        check_from_hir(
+            indoc! {r#"
+                zero $v0 aslk as
+                abs 42, 42
+                not16 $v2, $v1
+            "#},
+            expect![[r#"
+                Diagnostics:
+                Error: expected COMMA
+                   ╭─[test.sal:1:9]
+                   │
+                 1 │ zero $v0 aslk as
+                   │         ─  
+                   │             
+                ───╯
+
+
+                Error: expected COMMA
+                   ╭─[test.sal:1:14]
+                   │
+                 1 │ zero $v0 aslk as
+                   │              ─  
+                   │                  
+                ───╯
+
+
+                Error: Expected no more than 2 arguments
+                   ╭─[test.sal:1:15]
+                   │
+                 1 │ zero $v0 aslk as
+                   │               ──  
+                   │                    
+                ───╯
+
+
+                Error: Expected either a number or a register, found a name reference
+                   ╭─[test.sal:1:10]
+                   │
+                 1 │ zero $v0 aslk as
+                   │          ────  
+                   │                 
+                ───╯
+
+
+                Error: Expected a register, but got an integer literal
+                   ╭─[test.sal:2:5]
+                   │
+                 2 │ abs 42, 42
+                   │     ──  
+                   │          
+                ───╯
+
+                instructions:
+                  uo(UnaryOperation { ty: Zero, destination: $v0, source: 0 })
+                  <error>
+                  uo(UnaryOperation { ty: Not16, destination: $v2, source: $v1 })
+                code addresses:
             "#]],
         );
     }

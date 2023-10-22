@@ -23,7 +23,11 @@ impl SyntaxError {
         Self(message.into(), range)
     }
     pub fn new_at_offset(message: impl Into<String>, offset: TextSize) -> Self {
-        Self(message.into(), TextRange::empty(offset))
+        Self(
+            message.into(),
+            // A hack to get syntax errors to show up
+            TextRange::at(offset, TextSize::new(1)),
+        )
     }
 
     pub fn range(&self) -> TextRange {

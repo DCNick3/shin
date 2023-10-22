@@ -206,7 +206,7 @@ fn codegen_command_compiletime_type(input: &CommandVariant) -> TokenStream {
         .unwrap_or_else(|| quote!());
 
     quote! {
-        #[derive(#BIN_READ, #BIN_WRITE, PartialEq, Eq, Debug)]
+        #[derive(#BIN_READ, #BIN_WRITE, PartialEq, Eq, Clone, Debug)]
         #doc
         #[brw(little, magic(#magic))]
         pub struct #name {
@@ -305,7 +305,7 @@ pub fn impl_command(input: Structure) -> TokenStream {
         }
 
         /// Enum over all possible commands (compile-time representation).
-        #[derive(#BIN_READ, #BIN_WRITE, PartialEq, Eq, Debug)]
+        #[derive(#BIN_READ, #BIN_WRITE, PartialEq, Eq, Clone, Debug)]
         pub enum CompiletimeCommand {
             #(#variant_names(compiletime::#variant_names)),*
         }

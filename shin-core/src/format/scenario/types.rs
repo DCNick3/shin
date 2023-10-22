@@ -8,7 +8,7 @@ use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
 /// A list of `T` with a length of `L`, stored in a `SmallVec` with size `N`
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct SmallList<L: Into<usize> + TryFrom<usize> + 'static, T, const N: usize>(
     pub SmallVec<T, N>,
     pub PhantomData<L>,
@@ -27,7 +27,7 @@ pub type U16SmallNumberList<T = i32, const N: usize = SMALL_LIST_SIZE> =
 /// Pad the contents to 4 bytes
 ///
 /// (Used in [super::Instruction::jt])
-#[derive(Derivative, PartialEq, Eq)]
+#[derive(Derivative, PartialEq, Eq, Copy, Clone)]
 #[derivative(Debug = "transparent")]
 pub struct Pad4<T>(pub T);
 

@@ -40,6 +40,7 @@ ariadne = "0.3.0"
 [dev-dependencies]
 test-generator = { git = "https://github.com/JamesGuthrie/test-generator.git", rev = "82e799979980962aec1aa324ec6e0e4cad781f41" }
 expect-test = "1.4.1"
+indoc = "2.0.4"
 
 [build-dependencies]
 build-deps = "0.1.4"

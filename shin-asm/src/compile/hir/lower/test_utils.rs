@@ -7,17 +7,17 @@ use crate::compile::{hir, BlockId, Db, File, HirBlockBody, HirDiagnosticCollecto
 use itertools::Itertools;
 use std::rc::Rc;
 
-fn diagnostics_to_str(
+pub fn diagnostics_to_str(
     db: &dyn Db,
     hir_diags: Vec<Diagnostic<HirLocation>>,
     source_diags: Vec<Diagnostic<Span>>,
 ) -> String {
     let mut cache = AriadneDbCache::new(db);
 
-    hir_diags
+    source_diags
         .into_iter()
         .map(|diag| diag.into_ariadne(db))
-        .chain(source_diags.into_iter().map(|diag| diag.into_ariadne(db)))
+        .chain(hir_diags.into_iter().map(|diag| diag.into_ariadne(db)))
         .map(|diag| {
             let mut out = Vec::new();
             diag.write(&mut cache, &mut out).unwrap();

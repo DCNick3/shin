@@ -53,6 +53,11 @@ impl BlockId {
 pub type BlockIdWithFile = WithFile<BlockId>;
 impl MakeWithFile for BlockId {}
 
+#[salsa::interned]
+pub struct SalsaBlockIdWithFile {
+    pub block_id: BlockIdWithFile,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum BlockIdRepr {
     Dummy,

@@ -12,7 +12,7 @@ impl FromHirExpr for Register {
             diagnostics.emit(
                 expr.into(),
                 format!(
-                    "Expected a register reference, but got {}",
+                    "Expected a register, but got {}",
                     block.exprs[expr].describe_ty()
                 ),
             );
@@ -26,7 +26,10 @@ impl FromHirExpr for Register {
                 let ast::RegisterIdentKind::Alias(alias) = register else {
                     unreachable!("BUG: a regular register should always resolve");
                 };
-                diagnostics.emit(expr.into(), format!("Unknown register alias: `${}`", alias));
+                diagnostics.emit(
+                    expr.into(),
+                    format!("Unresolved register alias: `${}`", alias),
+                );
                 None
             }
         }

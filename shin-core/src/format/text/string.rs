@@ -76,7 +76,13 @@ impl<L: StringLengthDesc, F: StringFixup + 'static> PartialEq for SJisString<L, 
 }
 impl<L: StringLengthDesc, F: StringFixup + 'static> Eq for SJisString<L, F> {}
 
-#[derive(Debug, PartialEq, Eq)]
+impl<L: StringLengthDesc, F: StringFixup + 'static> Clone for SJisString<L, F> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone(), PhantomData)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StringArray(pub SmallVec<String, 4>);
 
 impl<L: StringLengthDesc, F: StringFixup> BinRead for SJisString<L, F> {

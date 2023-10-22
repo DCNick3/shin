@@ -419,7 +419,7 @@ impl BinWrite for Expression {
 
 /// Represents an instruction read from a script.
 #[allow(non_camel_case_types)]
-#[derive(BinRead, BinWrite, PartialEq, Eq, Debug)]
+#[derive(BinRead, BinWrite, PartialEq, Eq, Debug, Clone)]
 #[brw(little)]
 pub enum Instruction {
     /// Unary operation

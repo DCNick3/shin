@@ -27,7 +27,7 @@ impl FromHirExpr for i32 {
         let lit = try_lit_i32(block, expr);
 
         let Some(lit) = lit else {
-            diagnostics.emit(expr.into(), "Expected a number literal".into());
+            diagnostics.emit(expr.into(), "Expected a number".into());
             return None;
         };
 
@@ -54,7 +54,10 @@ impl FromHirExpr for NumberSpec {
             } else {
                 diagnostics.emit(
                     expr.into(),
-                    "Expected either a number literal or a register reference".into(),
+                    format!(
+                        "Expected either a number or a register, found {}",
+                        block.exprs[expr].describe_ty()
+                    ),
                 );
                 None
             }

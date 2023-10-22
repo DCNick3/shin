@@ -94,8 +94,21 @@ impl BinWrite for UntypedNumberSpec {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, BinRead)]
+#[derive(BinRead)]
 pub struct NumberSpec<T = i32>(UntypedNumberSpec, PhantomData<T>);
+
+impl<T> Clone for NumberSpec<T> {
+    fn clone(&self) -> Self {
+        Self(self.0, PhantomData)
+    }
+}
+impl<T> Copy for NumberSpec<T> {}
+impl<T> PartialEq for NumberSpec<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+impl<T> Eq for NumberSpec<T> {}
 
 impl<T> NumberSpec<T> {
     pub fn new(spec: UntypedNumberSpec) -> Self {
