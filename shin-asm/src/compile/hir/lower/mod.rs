@@ -4,7 +4,10 @@ mod block;
 mod elements;
 mod instruction;
 
-pub use block::lower_block;
+mod file;
 
 #[cfg(test)]
 mod test_utils;
+
+pub use block::{lower_block, LoweredBlock};
+pub use file::{lower_file, LoweredFile};

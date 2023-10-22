@@ -13,11 +13,14 @@ pub struct Jar(
     def_map::build_def_map,
     hir::HirBlockBodies,
     hir::HirBlockBodies_get_block,
+    hir::HirBlockBodies_get_block_ids,
     hir::HirBlockBodySourceMaps,
     hir::HirBlockBodySourceMaps_get_block,
     hir::collect_file_bodies_with_source_maps,
     hir::collect_file_bodies,
     hir::lower::lower_block,
+    hir::lower::lower_file,
+    hir::lower::LoweredFile,
 );
 
 pub trait Db: salsa::DbWithJar<Jar> {}

@@ -142,6 +142,7 @@ impl HirBlockBodies {
         self.bodies(db).get(&block_id).cloned()
     }
 
+    #[salsa::tracked]
     pub fn get_block_ids(self, db: &dyn Db) -> Vec<BlockId> {
         let mut bodies = self.bodies(db).keys().cloned().collect::<Vec<_>>();
         bodies.sort();
