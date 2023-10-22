@@ -100,41 +100,21 @@ pub fn instruction_from_hir(
 
 #[cfg(test)]
 mod tests {
+    use crate::compile::hir::lower::test_utils;
+    use expect_test::{expect, Expect};
     use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
     use shin_core::format::scenario::instructions::{
         Instruction, UnaryOperation, UnaryOperationType,
     };
 
-    fn check_from_hir_ok(source: &str, expected: Instruction) {
+    fn from_hir(source: &str) -> Result<Instruction, String> {
         use crate::compile::{
-            db::Database,
-            diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator},
-            file::File,
-            from_hir::HirDiagnosticCollector,
-            hir,
-            resolve::ResolveContext,
+            db::Database, from_hir::HirDiagnosticCollector, hir, resolve::ResolveContext,
         };
 
         let db = Database::default();
         let db = &db;
-        let file = File::new(db, "test.sal".to_string(), source.to_string());
-
-        let bodies = hir::collect_file_bodies(db, file);
-
-        let hir_errors =
-            hir::collect_file_bodies::accumulated::<HirDiagnosticAccumulator>(db, file);
-        let source_errors =
-            hir::collect_file_bodies::accumulated::<SourceDiagnosticAccumulator>(db, file);
-        if !source_errors.is_empty() || !hir_errors.is_empty() {
-            panic!(
-                "hir lowering produced errors:\n\
-                source-level: {source_errors:?}\n\
-                hir-level: {hir_errors:?}"
-            );
-        }
-
-        let block_id = bodies.get_block_ids(db)[0];
-        let block = bodies.get_block(db, block_id).unwrap();
+        let (file, block_id, block) = test_utils::lower_hir_block_ok(db, source);
 
         let mut diagnostics = HirDiagnosticCollector::new();
         let resolve_ctx = ResolveContext::new(db);
@@ -153,14 +133,23 @@ mod tests {
             todo!("code addresses are not supported yet")
         }
 
-        let Some(instr) = instr else {
-            panic!(
-                "instruction was not lowered. diagnostics: {:#?}",
-                diagnostics
-            );
-        };
+        if diagnostics.is_empty() {
+            Ok(instr.unwrap())
+        } else {
+            Err(test_utils::diagnostic_collector_to_str(db, diagnostics))
+        }
+    }
+
+    fn check_from_hir_ok(source: &str, expected: Instruction) {
+        let instr = from_hir(source).expect("failed to lower hir to instruction");
 
         assert_eq!(instr, expected);
+    }
+
+    fn check_from_hir_err(source: &str, expected: Expect) {
+        let err = from_hir(source).expect_err("expected hir lowering to fail");
+
+        expected.assert_eq(&err);
     }
 
     #[test]
@@ -213,13 +202,43 @@ mod tests {
 
     #[test]
     fn test_type_error() {
-        check_from_hir_ok(
+        check_from_hir_err(
             "zero 42",
-            Instruction::uo(UnaryOperation {
-                ty: UnaryOperationType::Zero,
-                destination: "$v0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Register("$v1".parse().unwrap())),
-            }),
+            expect![[r#"
+            Error: Expected a register reference, but got an integer literal
+               ╭─[test.sal:1:6]
+               │
+             1 │ zero 42
+               │      ──  
+               │           
+            ───╯
+        "#]],
+        );
+        check_from_hir_err(
+            "zero namae_or_whatever",
+            expect![[r#"
+                Error: Expected a register reference, but got a name reference
+                   ╭─[test.sal:1:6]
+                   │
+                 1 │ zero namae_or_whatever
+                   │      ─────────────────  
+                   │                          
+                ───╯
+            "#]],
+        );
+
+        // this checks that the spans are correct for unicode characters
+        check_from_hir_err(
+            "zero зелибоба",
+            expect![[r#"
+                Error: Expected a register reference, but got a name reference
+                   ╭─[test.sal:1:6]
+                   │
+                 1 │ zero зелибоба
+                   │      ────────  
+                   │                 
+                ───╯
+            "#]],
         );
     }
 }

@@ -115,38 +115,17 @@ impl LoweredBlock {
 #[cfg(test)]
 mod tests {
     use super::LoweredBlock;
+    use crate::compile::hir::lower::test_utils;
     use expect_test::{expect, Expect};
 
     fn check_from_hir_ok(source: &str, expected: Expect) {
         use crate::compile::{
-            db::Database,
-            diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator},
-            file::File,
-            from_hir::HirDiagnosticCollector,
-            hir,
-            resolve::ResolveContext,
+            db::Database, from_hir::HirDiagnosticCollector, resolve::ResolveContext,
         };
 
         let db = Database::default();
         let db = &db;
-        let file = File::new(db, "test.sal".to_string(), source.to_string());
-
-        let bodies = hir::collect_file_bodies(db, file);
-
-        let hir_errors =
-            hir::collect_file_bodies::accumulated::<HirDiagnosticAccumulator>(db, file);
-        let source_errors =
-            hir::collect_file_bodies::accumulated::<SourceDiagnosticAccumulator>(db, file);
-        if !source_errors.is_empty() || !hir_errors.is_empty() {
-            panic!(
-                "hir lowering produced errors:\n\
-                source-level: {source_errors:?}\n\
-                hir-level: {hir_errors:?}"
-            );
-        }
-
-        let block_id = bodies.get_block_ids(db)[0];
-        let block = bodies.get_block(db, block_id).unwrap();
+        let (file, block_id, block) = test_utils::lower_hir_block_ok(db, source);
 
         let mut diagnostics = HirDiagnosticCollector::new();
         let resolve_ctx = ResolveContext::new(db);
@@ -161,7 +140,7 @@ mod tests {
             panic!(
                 "hir lowering produced errors:\n\
                 {:#?}",
-                diagnostics
+                test_utils::diagnostic_collector_to_str(db, diagnostics)
             );
         }
 

@@ -4,12 +4,13 @@ mod lower;
 mod tests;
 
 use crate::compile::{BlockId, Db, File, WithFile};
-use crate::syntax::{ast, ptr::AstPtr};
+use crate::syntax::{ast, ptr::AstPtr, AstSpanned};
 use from_ast::HirBlockCollector;
 use std::rc::Rc;
 
 use crate::compile::def_map::Name;
 use crate::compile::diagnostics::Diagnostic;
+use crate::compile::from_hir::HirId;
 use crate::syntax::ast::visit;
 use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
 use la_arena::{Arena, Idx};
@@ -60,6 +61,23 @@ pub enum Expr {
     },
 }
 
+impl Expr {
+    pub fn describe_ty(&self) -> String {
+        match self {
+            Expr::Missing => "a missing expression",
+            Expr::Literal(Literal::String(_)) => "a string literal",
+            Expr::Literal(Literal::IntNumber(_)) => "an integer literal",
+            Expr::Literal(Literal::RationalNumber(_)) => "a rational literal",
+            Expr::NameRef(_) => "a name reference",
+            Expr::RegisterRef(_) => "a register reference",
+            Expr::Array(_) => "an array",
+            Expr::Mapping(_) => "a mapping",
+            _ => "an expression",
+        }
+        .to_string()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Instruction {
     pub name: Option<SmolStr>,
@@ -92,8 +110,23 @@ impl HirBlockBody {
 
 #[derive(Default, Clone, Debug, Eq, PartialEq)]
 pub struct BlockSourceMap {
-    exprs_source_map: FxHashMap<ExprId, ExprPtr>,
+    expressions_source_map: FxHashMap<ExprId, ExprPtr>,
     instructions_source_map: FxHashMap<InstructionId, InstructionPtr>,
+}
+
+impl BlockSourceMap {
+    pub fn get_text_range(&self, id: HirId) -> Option<TextRange> {
+        match id {
+            HirId::Expr(id) => self
+                .expressions_source_map
+                .get(&id)
+                .map(|ptr| ptr.text_range()),
+            HirId::Instruction(id) => self
+                .instructions_source_map
+                .get(&id)
+                .map(|ptr| ptr.text_range()),
+        }
+    }
 }
 
 #[salsa::tracked]
@@ -118,12 +151,30 @@ impl HirBlockBodies {
 }
 
 #[salsa::tracked]
-pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
+pub struct HirBlockBodySourceMaps {
+    #[return_ref]
+    bodies: FxHashMap<BlockId, Rc<BlockSourceMap>>,
+}
+
+#[salsa::tracked]
+impl HirBlockBodySourceMaps {
+    #[salsa::tracked]
+    pub fn get_block(self, db: &dyn Db, block_id: BlockId) -> Option<Rc<BlockSourceMap>> {
+        self.bodies(db).get(&block_id).cloned()
+    }
+}
+
+#[salsa::tracked]
+pub fn collect_file_bodies_with_source_maps(
+    db: &dyn Db,
+    file: File,
+) -> (HirBlockBodies, HirBlockBodySourceMaps) {
     struct FileBodiesCollector<'a> {
         db: &'a dyn Db,
         // TODO: actually, the map from the BlockId is somewhat dense...
         // but I don't want to build a specialized container for it (yet)
         block_bodies: FxHashMap<BlockId, Rc<HirBlockBody>>,
+        block_source_maps: FxHashMap<BlockId, Rc<BlockSourceMap>>,
     }
 
     impl visit::Visitor for FileBodiesCollector<'_> {
@@ -142,25 +193,36 @@ pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
                 }
             }
 
-            // TODO: collect source maps
-            let (block, _source_map, diagnostics) = collector.collect();
+            let (block, source_map, diagnostics) = collector.collect();
 
             for e in diagnostics {
                 e.in_file(file).emit(self.db)
             }
 
-            self.block_bodies
-                .insert(BlockId::new_block(item_index, block_index), Rc::new(block));
+            let block_id = BlockId::new_block(item_index, block_index);
+            self.block_bodies.insert(block_id, Rc::new(block));
+            self.block_source_maps.insert(block_id, Rc::new(source_map));
         }
     }
 
     let mut visitor = FileBodiesCollector {
         db,
         block_bodies: FxHashMap::default(),
+        block_source_maps: FxHashMap::default(),
     };
     visit::visit_file(&mut visitor, file, file.parse(db));
 
-    HirBlockBodies::new(db, visitor.block_bodies)
+    let bodies = HirBlockBodies::new(db, visitor.block_bodies);
+    let source_maps = HirBlockBodySourceMaps::new(db, visitor.block_source_maps);
+
+    (bodies, source_maps)
+}
+
+#[salsa::tracked]
+pub fn collect_file_bodies(db: &dyn Db, file: File) -> HirBlockBodies {
+    let (bodies, _) = collect_file_bodies_with_source_maps(db, file);
+
+    bodies
 }
 
 /// Collects an expression without a real Block into a Hir expression
@@ -180,13 +242,12 @@ pub fn collect_bare_expression_raw(
 
     let expr_id = collector.collect_expr(expr);
 
-    // TODO: expose the source map in some way
     let (block_body, source_map, diagnostiscs) = collector.collect();
 
     (
         block_body,
         expr_id,
-        source_map.exprs_source_map,
+        source_map.expressions_source_map,
         diagnostiscs,
     )
 }

@@ -19,6 +19,9 @@ rustc-hash = "1.1.0"
 smol_str = "0.2.0"
 la-arena = "0.3.1"
 
+strip-ansi-escapes = "0.2.0"
+itertools = "0.11.0"
+
 binrw = { workspace = true }
 
 unicode-xid = "0.2.4"

@@ -1,9 +1,11 @@
 use crate::compile::from_hir::{HirBlockId, HirId, HirIdWithBlock};
 use crate::compile::{Db, File, MakeWithFile, WithFile};
+use std::collections::hash_map::Entry;
 
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
-use ariadne::Span as _;
+use ariadne::{Source, Span as _};
+use rustc_hash::FxHashMap;
 use text_size::TextRange;
 
 /// A text range associated with a file. Fully identifies a span of text in the program. Final form of the diagnostic location
@@ -18,9 +20,39 @@ impl Span {
     pub fn file(&self) -> File {
         self.0.file
     }
+
+    pub fn to_char_span(&self, db: &dyn Db) -> CharSpan {
+        let file = self.file();
+        let char_map = char_map(db, file);
+        let start: usize = self.0.value.start().into();
+        let end: usize = self.0.value.end().into();
+        let range = (char_map[start], char_map[end]);
+        CharSpan(WithFile::new(range, file))
+    }
 }
 
-impl ariadne::Span for Span {
+#[salsa::tracked]
+pub fn char_map(db: &dyn Db, file: File) -> Vec<u32> {
+    // stolen from https://github.com/apollographql/apollo-rs/pull/668/files#diff-19fd09cc90a56224f51027101143c2190b9b913993ae35727bfbde19b96f87f7R24
+    let contents = file.contents(db);
+    let mut map = vec![0; contents.len() + 1];
+    let mut char_index = 0;
+    for (byte_index, _) in contents.char_indices() {
+        map[byte_index] = char_index;
+        char_index += 1;
+    }
+
+    // Support 1 past the end of the string, for use in exclusive ranges.
+    map[contents.len()] = char_index;
+
+    map
+}
+
+/// Same as [`Span`], but in terms of characters instead of bytes. This is required until https://github.com/zesterer/ariadne/issues/8 is fixed
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub struct CharSpan(WithFile<(u32, u32)>);
+
+impl ariadne::Span for CharSpan {
     type SourceId = File;
 
     fn source(&self) -> &Self::SourceId {
@@ -28,23 +60,20 @@ impl ariadne::Span for Span {
     }
 
     fn start(&self) -> usize {
-        self.0.value.start().into()
+        self.0.value.0 as usize
     }
 
     fn end(&self) -> usize {
-        self.0.value.end().into()
+        self.0.value.1 as usize
     }
 }
 
 trait DiagnosticLocation: Debug + Copy + 'static {
-    type Context<'a>: Copy;
-
-    fn span(&self, context: Self::Context<'_>) -> Span;
+    fn span(&self, db: &dyn Db) -> Span;
 }
 
 impl DiagnosticLocation for Span {
-    type Context<'a> = ();
-    fn span(&self, _: Self::Context<'_>) -> Span {
+    fn span(&self, _: &dyn Db) -> Span {
         *self
     }
 }
@@ -52,15 +81,16 @@ impl DiagnosticLocation for Span {
 pub type HirLocation = WithFile<HirIdWithBlock>;
 
 impl DiagnosticLocation for HirLocation {
-    type Context<'a> = &'a dyn Db;
+    fn span(&self, db: &dyn Db) -> Span {
+        let &WithFile { file, value: node } = self;
 
-    fn span(&self, _db: Self::Context<'_>) -> Span {
-        let WithFile {
-            file: _file,
-            value: _node,
-        } = self;
+        let (_, maps) = collect_file_bodies_with_source_maps(db, file);
+        let map = match node.block_id {
+            HirBlockId::Block(block) => maps.get_block(db, block).unwrap(),
+            HirBlockId::Alias(_) => todo!(),
+        };
 
-        todo!("Collect HIR source maps and use them to get the location")
+        Span::new(file, map.get_text_range(node.id).unwrap())
     }
 }
 
@@ -109,11 +139,18 @@ macro_rules! make_diagnostic {
         $crate::compile::diagnostics::Diagnostic::new(format!($($fmt),+), $span)
     };
 }
+use crate::compile::hir::collect_file_bodies_with_source_maps;
 pub(crate) use make_diagnostic;
 
 impl Diagnostic<TextRange> {
     pub fn in_file(self, file: File) -> Diagnostic<Span> {
         self.map_location(|location| Span::new(file, location))
+    }
+}
+
+impl Diagnostic<Span> {
+    pub fn into_ariadne(self, db: &dyn Db) -> ariadne::Report<'static, CharSpan> {
+        lower_diagnostic_into_ariadne(db, self)
     }
 }
 
@@ -130,11 +167,21 @@ impl Diagnostic<HirIdWithBlock> {
     }
 }
 
+impl Diagnostic<HirLocation> {
+    pub fn into_source(self, db: &dyn Db) -> Diagnostic<Span> {
+        self.map_location(|location| location.span(db))
+    }
+
+    pub fn into_ariadne(self, db: &dyn Db) -> ariadne::Report<'static, CharSpan> {
+        lower_diagnostic_into_ariadne(db, self)
+    }
+}
+
 fn lower_diagnostic_into_ariadne<L: DiagnosticLocation>(
-    context: L::Context<'_>,
+    db: &dyn Db,
     diagnostic: Diagnostic<L>,
-) -> ariadne::Report<'static, Span> {
-    let span = diagnostic.location.span(context);
+) -> ariadne::Report<'static, CharSpan> {
+    let span = diagnostic.location.span(db).to_char_span(db);
 
     ariadne::Report::build(ariadne::ReportKind::Error, *span.source(), span.start())
         .with_message(diagnostic.message)
@@ -144,11 +191,38 @@ fn lower_diagnostic_into_ariadne<L: DiagnosticLocation>(
                 .additional_labels
                 .into_iter()
                 .map(|(message, location)| {
-                    let span = location.span(context);
+                    let span = location.span(db).to_char_span(db);
                     ariadne::Label::new(span).with_message(message)
                 }),
         )
         .finish()
+}
+
+pub struct AriadneDbCache<'db> {
+    db: &'db dyn Db,
+    sources: FxHashMap<File, Source>,
+}
+
+impl<'db> AriadneDbCache<'db> {
+    pub fn new(db: &'db dyn Db) -> Self {
+        Self {
+            db,
+            sources: FxHashMap::default(),
+        }
+    }
+}
+
+impl ariadne::Cache<File> for AriadneDbCache<'_> {
+    fn fetch(&mut self, &id: &File) -> Result<&Source, Box<dyn Debug + '_>> {
+        Ok(match self.sources.entry(id) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => entry.insert(Source::from(id.contents(self.db))),
+        })
+    }
+
+    fn display<'a>(&self, &id: &'a File) -> Option<Box<dyn Display + 'a>> {
+        Some(Box::new(id.path(self.db)))
+    }
 }
 
 impl Diagnostic<Span> {

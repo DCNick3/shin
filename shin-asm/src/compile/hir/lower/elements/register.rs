@@ -9,7 +9,13 @@ impl FromHirExpr for Register {
         expr: ExprId,
     ) -> Option<Self> {
         let hir::Expr::RegisterRef(register) = &block.exprs[expr] else {
-            diagnostics.emit(expr.into(), "Expected a register reference".into());
+            diagnostics.emit(
+                expr.into(),
+                format!(
+                    "Expected a register reference, but got {}",
+                    block.exprs[expr].describe_ty()
+                ),
+            );
             return None;
         };
 

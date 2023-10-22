@@ -120,7 +120,7 @@ struct SpriteVertex {
 #[derive(BinRead, Debug)]
 #[brw(little)]
 struct SpriteVertices {
-    #[br(parse_with = binrw::until_eof)]
+    #[br(parse_with = binrw::helpers::until_eof)]
     pub vertices: Vec<SpriteVertex>,
 }
 

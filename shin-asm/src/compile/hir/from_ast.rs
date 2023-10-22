@@ -178,7 +178,7 @@ impl HirBlockCollector {
                 instructions: self.instructions,
             },
             BlockSourceMap {
-                exprs_source_map: self.exprs_source_map,
+                expressions_source_map: self.exprs_source_map,
                 instructions_source_map: self.instructions_source_map,
             },
             self.diagnostics,

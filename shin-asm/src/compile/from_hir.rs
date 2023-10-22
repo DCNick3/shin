@@ -28,8 +28,8 @@ pub struct HirIdWithBlock {
     // TODO: naming is unclear...
     // InBlock -> identifies inside a block or HirId wrapped with a block id (like InFile)
     // Probably should rename the InFile to WithFile
-    id: HirId,
-    block_id: HirBlockId,
+    pub id: HirId,
+    pub block_id: HirBlockId,
 }
 
 impl HirIdWithBlock {
