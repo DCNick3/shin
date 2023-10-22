@@ -49,23 +49,16 @@ impl DiagnosticLocation for Span {
     }
 }
 
-/// A location specified by a HIR node range and a file id. Diagnostic machinery will use the HIR source map to get the actual source range.
-#[derive(Debug, Copy, Clone)]
-pub struct HirLocation(pub WithFile<(HirIdWithBlock, HirIdWithBlock)>);
+pub type HirLocation = WithFile<HirIdWithBlock>;
 
-impl HirLocation {
-    pub fn single_node(hir_id_in_block: HirIdWithBlock, file: File) -> Self {
-        Self(WithFile::new((hir_id_in_block, hir_id_in_block), file))
-    }
-}
 impl DiagnosticLocation for HirLocation {
     type Context<'a> = &'a dyn Db;
 
     fn span(&self, _db: Self::Context<'_>) -> Span {
         let WithFile {
             file: _file,
-            value: (_start_node, _end_node),
-        } = self.0;
+            value: _node,
+        } = self;
 
         todo!("Collect HIR source maps and use them to get the location")
     }
@@ -133,7 +126,7 @@ impl Diagnostic<HirId> {
 
 impl Diagnostic<HirIdWithBlock> {
     pub fn in_file(self, file: File) -> Diagnostic<HirLocation> {
-        self.map_location(|location| HirLocation::single_node(location, file))
+        self.map_location(|location| location.in_file(file))
     }
 }
 

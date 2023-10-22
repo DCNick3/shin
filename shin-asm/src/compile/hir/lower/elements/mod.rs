@@ -1,6 +1,7 @@
 mod prelude {
     pub use crate::compile::{
-        hir, hir::ExprId, FromHirExpr, HirBlockBody, HirDiagnosticCollector, ResolveContext,
+        hir, hir::ExprId, FromHirExpr, HirBlockBody, HirDiagnosticCollectorWithBlock,
+        ResolveContext,
     };
     pub use crate::syntax::ast;
 }
@@ -39,7 +40,8 @@ fn check_from_hir_ok<T: crate::compile::FromHirExpr + Eq + std::fmt::Debug>(
         );
     }
 
-    let block = bodies.get_block(db, bodies.get_block_ids(db)[0]).unwrap();
+    let block_id = bodies.get_block_ids(db)[0];
+    let block = bodies.get_block(db, block_id).unwrap();
 
     let mut diagnostics = HirDiagnosticCollector::new();
     let resolve_ctx = ResolveContext::new(db);
@@ -50,7 +52,12 @@ fn check_from_hir_ok<T: crate::compile::FromHirExpr + Eq + std::fmt::Debug>(
     assert_eq!(args.len(), expected.len());
 
     for (&expr_id, expected) in args.iter().zip(expected) {
-        let register = T::from_hir_expr(&mut diagnostics, &resolve_ctx, &block, expr_id);
+        let register = T::from_hir_expr(
+            &mut diagnostics.with_file(file).with_block(block_id.into()),
+            &resolve_ctx,
+            &block,
+            expr_id,
+        );
         assert!(diagnostics.is_empty());
 
         assert_eq!(register.as_ref(), Some(expected));

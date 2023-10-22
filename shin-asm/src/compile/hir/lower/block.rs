@@ -1,4 +1,4 @@
-use crate::compile::{resolve, BlockIdWithFile, HirBlockBody, HirDiagnosticCollector};
+use crate::compile::{resolve, BlockIdWithFile, HirBlockBody, HirDiagnosticCollectorWithBlock};
 use binrw::io::NoSeek;
 use binrw::BinWrite;
 use shin_core::format::scenario::instructions::Instruction;
@@ -45,7 +45,7 @@ pub struct LoweredBlock {
 
 impl LoweredBlock {
     pub fn from_hir(
-        diagnostics: &mut HirDiagnosticCollector,
+        diagnostics: &mut HirDiagnosticCollectorWithBlock,
         resolve_ctx: &resolve::ResolveContext,
         block: &HirBlockBody,
     ) -> Self {
@@ -145,12 +145,17 @@ mod tests {
             );
         }
 
-        let block = bodies.get_block(db, bodies.get_block_ids(db)[0]).unwrap();
+        let block_id = bodies.get_block_ids(db)[0];
+        let block = bodies.get_block(db, block_id).unwrap();
 
         let mut diagnostics = HirDiagnosticCollector::new();
         let resolve_ctx = ResolveContext::new(db);
 
-        let lowered = LoweredBlock::from_hir(&mut diagnostics, &resolve_ctx, &block);
+        let lowered = LoweredBlock::from_hir(
+            &mut diagnostics.with_file(file).with_block(block_id.into()),
+            &resolve_ctx,
+            &block,
+        );
 
         if !diagnostics.is_empty() {
             panic!(

@@ -3,7 +3,7 @@ use shin_core::format::scenario::instruction_elements::Register;
 
 impl FromHirExpr for Register {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollector,
+        diagnostics: &mut HirDiagnosticCollectorWithBlock,
         resolve_ctx: &ResolveContext,
         block: &HirBlockBody,
         expr: ExprId,

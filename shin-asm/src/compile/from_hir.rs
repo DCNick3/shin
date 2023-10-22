@@ -1,7 +1,7 @@
 use crate::compile::diagnostics::{Diagnostic, HirLocation};
 use crate::compile::{
     hir::{self, HirBlockBody},
-    resolve, BlockId, MakeWithFile, WithFile,
+    resolve, BlockId, File, MakeWithFile, WithFile,
 };
 use crate::syntax::ast::visit::ItemIndex;
 
@@ -71,18 +71,67 @@ impl HirDiagnosticCollector {
         }
     }
 
-    pub fn emit(&mut self, _location: HirId, _message: String) {
-        todo!()
+    pub fn emit(&mut self, location: HirLocation, message: String) {
+        self.diagnostics.push(HirDiagnostic::new(message, location));
     }
 
     pub fn is_empty(&self) -> bool {
         self.diagnostics.is_empty()
     }
+
+    pub fn with_file(&mut self, file: File) -> HirDiagnosticCollectorWithFile<'_> {
+        HirDiagnosticCollectorWithFile::new(self, file)
+    }
+
+    pub fn into_diagnostics(self) -> Vec<HirDiagnostic> {
+        self.diagnostics
+    }
+}
+
+pub struct HirDiagnosticCollectorWithFile<'a> {
+    diagnostics: &'a mut HirDiagnosticCollector,
+    file: File,
+}
+
+impl<'a> HirDiagnosticCollectorWithFile<'a> {
+    pub fn new(
+        diagnostics: &'a mut HirDiagnosticCollector,
+        file: File,
+    ) -> HirDiagnosticCollectorWithFile<'a> {
+        HirDiagnosticCollectorWithFile { diagnostics, file }
+    }
+
+    pub fn with_block(&'a mut self, block: HirBlockId) -> HirDiagnosticCollectorWithBlock<'a> {
+        HirDiagnosticCollectorWithBlock::new(self, block)
+    }
+
+    pub fn emit(&mut self, location: HirIdWithBlock, message: String) {
+        self.diagnostics.emit(location.in_file(self.file), message);
+    }
+}
+
+pub struct HirDiagnosticCollectorWithBlock<'a> {
+    diagnostics: &'a mut HirDiagnosticCollectorWithFile<'a>,
+    block: HirBlockId,
+}
+
+impl<'a> HirDiagnosticCollectorWithBlock<'a> {
+    pub fn new(
+        diagnostics: &'a mut HirDiagnosticCollectorWithFile<'a>,
+        block: HirBlockId,
+    ) -> HirDiagnosticCollectorWithBlock<'a> {
+        HirDiagnosticCollectorWithBlock { diagnostics, block }
+    }
+
+    pub fn emit(&mut self, location: HirId, message: String) {
+        self.diagnostics
+            .emit(HirIdWithBlock::new(location, self.block), message);
+    }
 }
 
 pub trait FromHirExpr: Sized {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollector,
+        diagnostics: &mut HirDiagnosticCollectorWithBlock<'_>,
         resolve_ctx: &resolve::ResolveContext,
         block: &HirBlockBody,
         expr: hir::ExprId,

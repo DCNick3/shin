@@ -19,7 +19,7 @@ fn try_lit_i32(block: &HirBlockBody, expr: ExprId) -> Option<i32> {
 
 impl FromHirExpr for i32 {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollector,
+        diagnostics: &mut HirDiagnosticCollectorWithBlock,
         _resolve_ctx: &ResolveContext,
         block: &HirBlockBody,
         expr: ExprId,
@@ -39,7 +39,7 @@ impl FromHirExpr for i32 {
 // we probably want to allow symbolic names for constants if the type is an enum
 impl FromHirExpr for NumberSpec {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollector,
+        diagnostics: &mut HirDiagnosticCollectorWithBlock,
         resolve_ctx: &ResolveContext,
         block: &HirBlockBody,
         expr: ExprId,

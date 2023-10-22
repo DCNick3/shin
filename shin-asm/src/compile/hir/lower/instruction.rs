@@ -1,11 +1,11 @@
 use crate::compile::{
-    hir, resolve, BlockIdWithFile, FromHirExpr, HirBlockBody, HirDiagnosticCollector,
+    hir, resolve, BlockIdWithFile, FromHirExpr, HirBlockBody, HirDiagnosticCollectorWithBlock,
 };
 use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
 use shin_core::format::scenario::instructions::{Instruction, UnaryOperation, UnaryOperationType};
 
 fn expect_no_more_args<const N: usize>(
-    diagnostics: &mut HirDiagnosticCollector,
+    diagnostics: &mut HirDiagnosticCollectorWithBlock,
     block: &HirBlockBody,
     instr: hir::InstructionId,
 ) -> [Option<hir::ExprId>; N] {
@@ -26,7 +26,7 @@ fn expect_no_more_args<const N: usize>(
 }
 
 pub fn instruction_from_hir(
-    diagnostics: &mut HirDiagnosticCollector,
+    diagnostics: &mut HirDiagnosticCollectorWithBlock,
     resolve_ctx: &resolve::ResolveContext,
     _code_addresses: &mut Vec<BlockIdWithFile>,
     block: &HirBlockBody,
@@ -133,7 +133,8 @@ mod tests {
             );
         }
 
-        let block = bodies.get_block(db, bodies.get_block_ids(db)[0]).unwrap();
+        let block_id = bodies.get_block_ids(db)[0];
+        let block = bodies.get_block(db, block_id).unwrap();
 
         let mut diagnostics = HirDiagnosticCollector::new();
         let resolve_ctx = ResolveContext::new(db);
@@ -141,7 +142,7 @@ mod tests {
         let mut code_addresses = Vec::new();
         let (instr, _) = block.instructions.iter().next().unwrap();
         let instr = hir::lower::instruction::instruction_from_hir(
-            &mut diagnostics,
+            &mut diagnostics.with_file(file).with_block(block_id.into()),
             &resolve_ctx,
             &mut code_addresses,
             &block,
@@ -206,6 +207,18 @@ mod tests {
                 ty: UnaryOperationType::Not16,
                 destination: "$v0".parse().unwrap(),
                 source: NumberSpec::new(UntypedNumberSpec::Constant(42)),
+            }),
+        );
+    }
+
+    #[test]
+    fn test_type_error() {
+        check_from_hir_ok(
+            "zero 42",
+            Instruction::uo(UnaryOperation {
+                ty: UnaryOperationType::Zero,
+                destination: "$v0".parse().unwrap(),
+                source: NumberSpec::new(UntypedNumberSpec::Register("$v1".parse().unwrap())),
             }),
         );
     }
