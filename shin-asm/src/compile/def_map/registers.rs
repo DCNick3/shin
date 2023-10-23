@@ -1,5 +1,8 @@
 use crate::{
-    compile::{def_map::RegisterName, diagnostics::Span, make_diagnostic, Db, File, Program},
+    compile::{
+        def_map::RegisterName, diagnostics::Span, make_diagnostic, Db, File, MakeWithFile, Program,
+        WithFile,
+    },
     syntax::{
         ast::{self, visit, visit::ItemIndex},
         AstSpanned,
@@ -19,7 +22,7 @@ pub struct UnresolvedGlobalRegister {
 
 type UnresolvedGlobalRegisters = FxHashMap<RegisterName, UnresolvedGlobalRegister>;
 pub type ResolvedGlobalRegisters = FxHashMap<RegisterName, Option<Register>>;
-pub type LocalRegisters = FxHashMap<ItemIndex, FxHashMap<RegisterName, Register>>;
+pub type LocalRegisters = FxHashMap<WithFile<ItemIndex>, FxHashMap<RegisterName, Register>>;
 
 pub fn collect_global_registers(db: &dyn Db, program: Program) -> UnresolvedGlobalRegisters {
     struct RegisterCollector<'a> {
@@ -144,7 +147,7 @@ pub fn collect_local_registers(db: &dyn Db, program: Program) -> LocalRegisters 
 
             assert!(self
                 .local_registers
-                .insert(item_index, local_registers)
+                .insert(item_index.in_file(file), local_registers)
                 .is_none());
         }
     }

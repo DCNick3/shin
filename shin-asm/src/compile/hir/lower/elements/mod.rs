@@ -10,7 +10,9 @@ mod numbers;
 mod register;
 
 #[cfg(test)]
-use crate::compile::hir::lower::test_utils;
+use crate::compile::{
+    def_map::build_def_map, def_map::ResolveKind, hir::lower::test_utils, MakeWithFile, Program,
+};
 
 #[cfg(test)]
 fn check_from_hir_ok<T: crate::compile::FromHirExpr + Eq + std::fmt::Debug>(
@@ -22,9 +24,15 @@ fn check_from_hir_ok<T: crate::compile::FromHirExpr + Eq + std::fmt::Debug>(
     let db = Database::default();
     let db = &db;
     let (file, block_id, block) = test_utils::lower_hir_block_ok(db, source);
+    let program = Program::new(db, vec![file]);
+    let def_map = build_def_map(db, program);
 
     let mut diagnostics = HirDiagnosticCollector::new();
-    let resolve_ctx = ResolveContext::new(db);
+    let resolve_ctx = ResolveContext::new(
+        db,
+        def_map,
+        ResolveKind::LocalAndGlobal(block_id.in_file(file)),
+    );
 
     let (_, instr) = block.instructions.iter().next().unwrap();
     let args = instr.args.as_ref();

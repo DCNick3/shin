@@ -4,6 +4,7 @@
 
 use crate::compile::{Db, File, Program};
 use crate::syntax::ast;
+use shin_asm::compile::MakeWithFile;
 use std::fmt::Display;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -23,6 +24,8 @@ impl From<ItemIndex> for u32 {
         v.0
     }
 }
+
+impl MakeWithFile for ItemIndex {}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct BlockIndex(u32);

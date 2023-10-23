@@ -1,6 +1,6 @@
 use crate::compile::hir::lower::LoweredBlock;
 use crate::compile::types::SalsaBlockIdWithFile;
-use crate::compile::{hir, BlockId, Db, File, MakeWithFile};
+use crate::compile::{hir, BlockId, Db, DefMap, File, MakeWithFile};
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
@@ -28,7 +28,7 @@ impl LoweredFile {
 }
 
 #[salsa::tracked]
-pub fn lower_file(db: &dyn Db, file: File) -> LoweredFile {
+pub fn lower_file(db: &dyn Db, def_map: DefMap, file: File) -> LoweredFile {
     let block_bodies = hir::collect_file_bodies(db, file);
 
     let mut bodies = FxHashMap::default();
@@ -37,7 +37,7 @@ pub fn lower_file(db: &dyn Db, file: File) -> LoweredFile {
         let salsa_block_id = SalsaBlockIdWithFile::new(db, block_id.in_file(file));
         bodies.insert(
             block_id,
-            Rc::new(hir::lower::lower_block(db, salsa_block_id)),
+            Rc::new(hir::lower::lower_block(db, def_map, salsa_block_id)),
         );
     }
 
@@ -46,9 +46,10 @@ pub fn lower_file(db: &dyn Db, file: File) -> LoweredFile {
 
 #[cfg(test)]
 mod tests {
+    use crate::compile::def_map::build_def_map;
     use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
     use crate::compile::hir::lower::test_utils;
-    use crate::compile::File;
+    use crate::compile::{File, Program};
     use expect_test::{expect, Expect};
     use indoc::indoc;
 
@@ -60,10 +61,15 @@ mod tests {
         let db = &db;
 
         let file = File::new(db, "test.sal".to_string(), source.to_string());
-        let lowered_file = super::lower_file(db, file);
+        let program = Program::new(db, vec![file]);
+        let def_map = build_def_map(db, program);
 
-        let hir_errors = super::lower_file::accumulated::<HirDiagnosticAccumulator>(db, file);
-        let source_errors = super::lower_file::accumulated::<SourceDiagnosticAccumulator>(db, file);
+        let lowered_file = super::lower_file(db, def_map, file);
+
+        let hir_errors =
+            super::lower_file::accumulated::<HirDiagnosticAccumulator>(db, def_map, file);
+        let source_errors =
+            super::lower_file::accumulated::<SourceDiagnosticAccumulator>(db, def_map, file);
         let diags = test_utils::diagnostics_to_str(db, hir_errors, source_errors);
 
         let mut result = String::new();
@@ -80,22 +86,24 @@ mod tests {
     fn check_basic() {
         check_from_hir(
             indoc! {"
+                def $BIBA = $a0
+
                 BLOCK1:
                     abs $v0, 42
-                    zero $a0
+                    zero $BIBA
                 
                 BLOCK2:
                     not16 $v1, $v0
-                    abs $a1, $a0
+                    abs $a1, $BIBA
             "},
             expect![[r#"
-                block Block { item_index: ItemIndex(0), block_index: BlockIndex(0) }:
+                block Block { item_index: ItemIndex(1), block_index: BlockIndex(0) }:
                 instructions:
                   uo(UnaryOperation { ty: Abs, destination: $v0, source: 42 })
                   uo(UnaryOperation { ty: Zero, destination: $a0, source: 0 })
                 code addresses:
 
-                block Block { item_index: ItemIndex(0), block_index: BlockIndex(1) }:
+                block Block { item_index: ItemIndex(1), block_index: BlockIndex(1) }:
                 instructions:
                   uo(UnaryOperation { ty: Not16, destination: $v1, source: $v0 })
                   uo(UnaryOperation { ty: Abs, destination: $a1, source: $a0 })
@@ -115,7 +123,7 @@ mod tests {
             
             BLOCK2:
                 zero 42, 43
-                not16 $v1, z
+                not16 $KEKAS, z
             "},
             expect![[r#"
                 Diagnostics:
@@ -146,12 +154,21 @@ mod tests {
                 ───╯
 
 
-                Error: Expected either a number or a register, found a name reference
-                   ╭─[test.sal:7:16]
+                Error: Unresolved register alias: `$KEKAS`
+                   ╭─[test.sal:7:11]
                    │
-                 7 │     not16 $v1, z
-                   │                ─  
+                 7 │     not16 $KEKAS, z
+                   │           ──────  
                    │                    
+                ───╯
+
+
+                Error: Expected either a number or a register, found a name reference
+                   ╭─[test.sal:7:19]
+                   │
+                 7 │     not16 $KEKAS, z
+                   │                   ─  
+                   │                       
                 ───╯
 
 

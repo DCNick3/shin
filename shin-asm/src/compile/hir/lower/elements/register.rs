@@ -40,14 +40,21 @@ impl FromHirExpr for Register {
 mod tests {
     use super::super::check_from_hir_ok;
     use super::Register;
+    use indoc::indoc;
 
     #[test]
     fn from_hir() {
-        // TODO: test register aliases
-
         check_from_hir_ok(
             "HELLO $v0, $v1, $a0",
             &["$v0", "$v1", "$a0"].map(|s| s.parse::<Register>().unwrap()),
+        );
+        check_from_hir_ok(
+            indoc! {r"
+                def $BIBA = $v0
+                
+                HELLO $v0, $BIBA, $a0
+            "},
+            &["$v0", "$v0", "$a0"].map(|s| s.parse::<Register>().unwrap()),
         );
     }
 }

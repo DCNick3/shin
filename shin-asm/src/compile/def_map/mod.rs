@@ -6,9 +6,12 @@ pub use items::ResolvedItems;
 pub use registers::{LocalRegisters, ResolvedGlobalRegisters};
 use std::borrow::Cow;
 
-use crate::compile::Program;
-use crate::compile::{BlockIdWithFile, Db};
+use crate::{
+    compile::{BlockIdRepr, BlockIdWithFile, Db, MakeWithFile, Program, WithFile},
+    syntax::ast::visit::ItemIndex,
+};
 use rustc_hash::FxHashMap;
+use shin_core::format::scenario::instruction_elements::Register;
 use smol_str::SmolStr;
 use std::fmt::Display;
 
@@ -36,11 +39,21 @@ pub enum BlockName {
     LocalBlock(Option<Name>),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone)]
+pub enum ResolveKind {
+    GlobalOnly,
+    LocalAndGlobal(BlockIdWithFile),
+}
+
+#[salsa::tracked]
 pub struct DefMap {
+    #[return_ref]
     items: ResolvedItems,
+    #[return_ref]
     global_registers: ResolvedGlobalRegisters,
+    #[return_ref]
     local_registers: LocalRegisters,
+    #[return_ref]
     block_names: FxHashMap<BlockIdWithFile, BlockName>,
 }
 
@@ -50,13 +63,60 @@ impl DefMap {
     // }
 }
 
+#[salsa::tracked]
 impl DefMap {
-    pub fn debug_dump(&self, db: &dyn Db) -> String {
+    #[salsa::tracked]
+    pub fn local_register(
+        self,
+        db: &dyn Db,
+        item: WithFile<ItemIndex>,
+        name: RegisterName,
+    ) -> Option<Register> {
+        self.local_registers(db)
+            .get(&item)
+            .and_then(|v| v.get(&name))
+            .copied()
+    }
+
+    #[salsa::tracked]
+    pub fn global_register(self, db: &dyn Db, name: RegisterName) -> Option<Register> {
+        // TODO: is this flatten correct?
+        self.global_registers(db).get(&name).copied().flatten()
+    }
+
+    pub fn resolve_register(
+        self,
+        db: &dyn Db,
+        name: RegisterName,
+        kind: ResolveKind,
+    ) -> Option<Register> {
+        if let ResolveKind::LocalAndGlobal(WithFile {
+            file,
+            value: block_id,
+        }) = kind
+        {
+            let item_index = match block_id.repr() {
+                BlockIdRepr::Dummy => panic!("Cannot resolve register in a dummy block"),
+                BlockIdRepr::Block { item_index, .. } | BlockIdRepr::Function { item_index } => {
+                    item_index
+                }
+            };
+
+            if let Some(register) = self.local_register(db, item_index.in_file(file), name.clone())
+            {
+                return Some(register);
+            }
+        }
+
+        self.global_register(db, name)
+    }
+
+    pub fn debug_dump(self, db: &dyn Db) -> String {
         use std::fmt::Write as _;
 
         let mut output = String::new();
 
-        let mut items = self.items.iter().collect::<Vec<_>>();
+        let mut items = self.items(db).iter().collect::<Vec<_>>();
         items.sort_by_key(|&(name, _)| name);
 
         writeln!(output, "items:").unwrap();
@@ -64,9 +124,9 @@ impl DefMap {
             writeln!(output, "  {}: {:?}", name, value).unwrap();
         }
 
-        let mut global_registers = self.global_registers.iter().collect::<Vec<_>>();
+        let mut global_registers = self.global_registers(db).iter().collect::<Vec<_>>();
         global_registers.sort_by_key(|(name, _)| *name);
-        let mut local_registers = self.local_registers.iter().collect::<Vec<_>>();
+        let mut local_registers = self.local_registers(db).iter().collect::<Vec<_>>();
         local_registers.sort_by_key(|(&index, _)| index);
 
         writeln!(output, "registers:").unwrap();
@@ -82,13 +142,19 @@ impl DefMap {
         }
         writeln!(output, "  local:").unwrap();
         for (item_index, registers) in local_registers {
-            writeln!(output, "    item {}: ", item_index).unwrap();
+            writeln!(
+                output,
+                "    item {}@{}: ",
+                item_index.value,
+                item_index.file.path(db)
+            )
+            .unwrap();
             for (name, value) in registers {
                 writeln!(output, "      {}: {:?}", name, value).unwrap();
             }
         }
 
-        let mut block_names = self.block_names.iter().collect::<Vec<_>>();
+        let mut block_names = self.block_names(db).iter().collect::<Vec<_>>();
         block_names.sort();
 
         writeln!(output, "block names:").unwrap();
@@ -113,12 +179,7 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
     let global_registers = registers::resolve_global_registers(db, &global_registers);
     let block_names = collect::collect_block_names(db, program);
 
-    DefMap {
-        items,
-        local_registers,
-        global_registers,
-        block_names,
-    }
+    DefMap::new(db, items, global_registers, local_registers, block_names)
 }
 
 #[cfg(test)]
@@ -185,7 +246,7 @@ LABEL2:
                 _aboba: $v17
                 keka: $v17
               local:
-                item #4: 
+                item #4@test.sal: 
                   hello: $a1
                   keka: $a2
             block names:

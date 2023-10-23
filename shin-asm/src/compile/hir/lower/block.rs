@@ -1,8 +1,9 @@
+use crate::compile::def_map::ResolveKind;
 use crate::compile::diagnostics::HirDiagnosticAccumulator;
 use crate::compile::from_hir::HirBlockId;
 use crate::compile::types::SalsaBlockIdWithFile;
 use crate::compile::{
-    hir, resolve, BlockIdWithFile, Db, HirBlockBody, HirDiagnosticCollector,
+    hir, BlockIdWithFile, Db, DefMap, HirBlockBody, HirDiagnosticCollector,
     HirDiagnosticCollectorWithBlock, ResolveContext, WithFile,
 };
 use binrw::io::NoSeek;
@@ -53,7 +54,7 @@ pub struct LoweredBlock {
 impl LoweredBlock {
     pub fn from_hir(
         diagnostics: &mut HirDiagnosticCollectorWithBlock,
-        resolve_ctx: &resolve::ResolveContext,
+        resolve_ctx: &ResolveContext,
         block: &HirBlockBody,
     ) -> Self {
         let mut instructions = Vec::with_capacity(block.instructions.len());
@@ -120,7 +121,9 @@ impl LoweredBlock {
 }
 
 #[salsa::tracked]
-pub fn lower_block(db: &dyn Db, block: SalsaBlockIdWithFile) -> LoweredBlock {
+pub fn lower_block(db: &dyn Db, def_map: DefMap, block: SalsaBlockIdWithFile) -> LoweredBlock {
+    use crate::compile::MakeWithFile;
+
     let WithFile {
         file,
         value: block_id,
@@ -129,7 +132,11 @@ pub fn lower_block(db: &dyn Db, block: SalsaBlockIdWithFile) -> LoweredBlock {
     let block_hir = block_bodies.get_block(db, block_id).unwrap();
 
     let mut diagnostics = HirDiagnosticCollector::new();
-    let resolve_ctx = ResolveContext::new(db);
+    let resolve_ctx = ResolveContext::new(
+        db,
+        def_map,
+        ResolveKind::LocalAndGlobal(block_id.in_file(file)),
+    );
 
     let result = LoweredBlock::from_hir(
         &mut diagnostics
@@ -148,10 +155,11 @@ pub fn lower_block(db: &dyn Db, block: SalsaBlockIdWithFile) -> LoweredBlock {
 
 #[cfg(test)]
 mod tests {
+    use crate::compile::def_map::build_def_map;
     use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
     use crate::compile::hir::lower::test_utils;
     use crate::compile::types::SalsaBlockIdWithFile;
-    use crate::compile::{hir, File, MakeWithFile};
+    use crate::compile::{hir, File, MakeWithFile, Program};
     use expect_test::{expect, Expect};
     use indoc::indoc;
 
@@ -163,6 +171,9 @@ mod tests {
         let db = &db;
 
         let file = File::new(db, "test.sal".to_string(), source.to_string());
+        let program = Program::new(db, vec![file]);
+        let def_map = build_def_map(db, program);
+
         let bodies = hir::collect_file_bodies(db, file);
 
         let block_ids = bodies.get_block_ids(db);
@@ -171,11 +182,12 @@ mod tests {
 
         // put it into a salsa interner
         let block = SalsaBlockIdWithFile::new(db, block_id.in_file(file));
-        let lowered = super::lower_block(db, block);
+        let lowered = super::lower_block(db, def_map, block);
 
-        let hir_errors = super::lower_block::accumulated::<HirDiagnosticAccumulator>(db, block);
+        let hir_errors =
+            super::lower_block::accumulated::<HirDiagnosticAccumulator>(db, def_map, block);
         let source_errors =
-            super::lower_block::accumulated::<SourceDiagnosticAccumulator>(db, block);
+            super::lower_block::accumulated::<SourceDiagnosticAccumulator>(db, def_map, block);
         let diags = test_utils::diagnostics_to_str(db, hir_errors, source_errors);
 
         let mut result = String::new();

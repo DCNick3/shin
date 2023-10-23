@@ -117,7 +117,7 @@ mod tests {
         let (file, block_id, block) = test_utils::lower_hir_block_ok(db, source);
 
         let mut diagnostics = HirDiagnosticCollector::new();
-        let resolve_ctx = ResolveContext::new(db);
+        let resolve_ctx = ResolveContext::new_empty(db);
 
         let mut code_addresses = Vec::new();
         let (instr, _) = block.instructions.iter().next().unwrap();
