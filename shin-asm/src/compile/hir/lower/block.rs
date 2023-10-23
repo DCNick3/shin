@@ -285,7 +285,7 @@ mod tests {
                 ───╯
 
 
-                Error: Expected either a number or a register, found a name reference
+                Error: Could not find the definition of `aslk`
                    ╭─[test.sal:1:10]
                    │
                  1 │ zero $v0 aslk as

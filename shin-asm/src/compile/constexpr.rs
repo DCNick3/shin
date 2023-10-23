@@ -3,6 +3,7 @@ use crate::compile::diagnostics::{Diagnostic, Span};
 use crate::compile::hir::Expr;
 use crate::compile::{hir, make_diagnostic};
 use crate::syntax::ast;
+use crate::syntax::ast::UnaryOp;
 use either::Either;
 use rustc_hash::FxHashMap;
 
@@ -18,7 +19,7 @@ impl ConstexprValue {
         Self(None)
     }
 
-    fn unwrap(self) -> Option<i32> {
+    pub fn unwrap(self) -> Option<i32> {
         self.0
     }
 }
@@ -98,8 +99,24 @@ fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> ConstexprValue {
         )),
         Expr::Array(_) => ctx.error(type_mismatch(Either::Left(expr), "int or float", "array")),
         Expr::Mapping(_) => ctx.error(type_mismatch(Either::Left(expr), "int or float", "mapping")),
-        Expr::UnaryOp { .. } => {
-            todo!()
+        Expr::UnaryOp { expr: val, op } => {
+            let Some(val) = evaluate(ctx, val).unwrap() else {
+                return ConstexprValue::dummy();
+            };
+
+            let result = match op {
+                UnaryOp::Negate => val.checked_neg(),
+                UnaryOp::LogigalNot => Some(if val == 0 { 1 } else { 0 }),
+                UnaryOp::BitwiseNot => Some(!val),
+            };
+
+            match result {
+                Some(result) => ConstexprValue::constant(result),
+                None => ctx.error(make_diagnostic!(
+                    Either::Left(expr),
+                    "Overflow in constant expression"
+                )),
+            }
         }
         Expr::BinaryOp { lhs, rhs, op } => {
             let lhs = evaluate(ctx, lhs);

@@ -13,6 +13,7 @@ pub struct Jar(
     def_map::DefMap,
     def_map::DefMap_global_register,
     def_map::DefMap_local_register,
+    def_map::DefMap_resolve_item,
     def_map::build_def_map,
     hir::HirBlockBodies,
     hir::HirBlockBodies_get_block,

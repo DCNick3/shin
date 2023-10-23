@@ -87,25 +87,26 @@ mod tests {
         check_from_hir(
             indoc! {"
                 def $BIBA = $a0
+                def FORTY_TWO = 42
 
                 BLOCK1:
                     abs $v0, 42
                     zero $BIBA
                 
                 BLOCK2:
-                    not16 $v1, $v0
+                    not16 $v1, FORTY_TWO
                     abs $a1, $BIBA
             "},
             expect![[r#"
-                block Block { item_index: ItemIndex(1), block_index: BlockIndex(0) }:
+                block Block { item_index: ItemIndex(2), block_index: BlockIndex(0) }:
                 instructions:
                   uo(UnaryOperation { ty: Abs, destination: $v0, source: 42 })
                   uo(UnaryOperation { ty: Zero, destination: $a0, source: 0 })
                 code addresses:
 
-                block Block { item_index: ItemIndex(1), block_index: BlockIndex(1) }:
+                block Block { item_index: ItemIndex(2), block_index: BlockIndex(1) }:
                 instructions:
-                  uo(UnaryOperation { ty: Not16, destination: $v1, source: $v0 })
+                  uo(UnaryOperation { ty: Not16, destination: $v1, source: 42 })
                   uo(UnaryOperation { ty: Abs, destination: $a1, source: $a0 })
                 code addresses:
 
@@ -163,7 +164,7 @@ mod tests {
                 ───╯
 
 
-                Error: Expected either a number or a register, found a name reference
+                Error: Could not find the definition of `z`
                    ╭─[test.sal:7:19]
                    │
                  7 │     not16 $KEKAS, z

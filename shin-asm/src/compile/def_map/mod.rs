@@ -2,7 +2,7 @@ mod collect;
 mod items;
 mod registers;
 
-pub use items::ResolvedItems;
+pub use items::{DefValue, ResolvedItems};
 pub use registers::{LocalRegisters, ResolvedGlobalRegisters};
 use std::borrow::Cow;
 
@@ -109,6 +109,11 @@ impl DefMap {
         }
 
         self.global_register(db, name)
+    }
+
+    #[salsa::tracked]
+    pub fn resolve_item(self, db: &dyn Db, name: Name) -> Option<DefValue> {
+        self.items(db).get(&name).cloned()
     }
 
     pub fn debug_dump(self, db: &dyn Db) -> String {

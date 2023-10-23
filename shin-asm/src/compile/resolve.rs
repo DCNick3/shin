@@ -1,4 +1,4 @@
-use crate::compile::def_map::{RegisterName, ResolveKind};
+use crate::compile::def_map::{DefValue, Name, RegisterName, ResolveKind};
 use crate::{
     compile::{Db, DefMap},
     syntax::ast::{self},
@@ -50,7 +50,13 @@ impl<'a> ResolveContext<'a> {
         }
     }
 
-    // pub fn resolve_definition(&self, _name: &Name) -> Option<DefRef> {
-    //     todo!()
-    // }
+    pub fn resolve_item(&self, name: &Name) -> Option<DefValue> {
+        match self.inner {
+            ResolveContextInner::Empty => None,
+            ResolveContextInner::Real {
+                def_map,
+                resolve_kind: _,
+            } => def_map.resolve_item(self.db, name.clone()),
+        }
+    }
 }
