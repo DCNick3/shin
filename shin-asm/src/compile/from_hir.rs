@@ -1,9 +1,10 @@
 use crate::compile::diagnostics::{Diagnostic, HirLocation};
 use crate::compile::{
     hir::{self, HirBlockBody},
-    resolve, BlockId, File, MakeWithFile, WithFile,
+    resolve, BlockId, BlockIdWithFile, File, MakeWithFile, WithFile,
 };
 use crate::syntax::ast::visit::ItemIndex;
+use shin_core::format::scenario::instruction_elements::CodeAddress;
 
 #[derive(Debug, Copy, Clone)]
 pub enum HirId {
@@ -129,9 +130,32 @@ impl<'a> HirDiagnosticCollectorWithBlock<'a> {
     }
 }
 
+pub struct CodeAddressCollector {
+    block_ids: Vec<BlockIdWithFile>,
+}
+
+impl CodeAddressCollector {
+    pub fn new() -> Self {
+        Self {
+            block_ids: Vec::new(),
+        }
+    }
+
+    pub fn allocate(&mut self, block: BlockIdWithFile) -> CodeAddress {
+        let index = self.block_ids.len() as u32;
+        self.block_ids.push(block);
+        CodeAddress(index)
+    }
+
+    pub fn into_block_ids(self) -> Vec<BlockIdWithFile> {
+        self.block_ids
+    }
+}
+
 pub trait FromHirExpr: Sized {
     fn from_hir_expr(
         diagnostics: &mut HirDiagnosticCollectorWithBlock<'_>,
+        code_address_collector: &mut CodeAddressCollector,
         resolve_ctx: &resolve::ResolveContext,
         block: &HirBlockBody,
         expr: hir::ExprId,

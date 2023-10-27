@@ -1,5 +1,6 @@
 use crate::compile::{
-    hir, resolve, BlockIdWithFile, FromHirExpr, HirBlockBody, HirDiagnosticCollectorWithBlock,
+    from_hir::CodeAddressCollector, hir, resolve, FromHirExpr, HirBlockBody,
+    HirDiagnosticCollectorWithBlock,
 };
 use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
 use shin_core::format::scenario::instructions::{Instruction, UnaryOperation, UnaryOperationType};
@@ -25,10 +26,35 @@ fn expect_no_more_args<const N: usize>(
     args
 }
 
+fn expect_exactly_args<const N: usize>(
+    diagnostics: &mut HirDiagnosticCollectorWithBlock,
+    block: &HirBlockBody,
+    instr: hir::InstructionId,
+) -> [Option<hir::ExprId>; N] {
+    let instr = &block.instructions[instr];
+    if instr.args.len() != N {
+        diagnostics.emit(
+            instr.args[N].into(),
+            format!(
+                "Expected exactly {} arguments, but got {}",
+                N,
+                instr.args.len()
+            ),
+        );
+    }
+
+    let mut args = [None; N];
+    for (i, arg) in args.iter_mut().enumerate() {
+        *arg = instr.args.get(i).copied();
+    }
+
+    args
+}
+
 pub fn instruction_from_hir(
     diagnostics: &mut HirDiagnosticCollectorWithBlock,
+    code_address_collector: &mut CodeAddressCollector,
     resolve_ctx: &resolve::ResolveContext,
-    _code_addresses: &mut Vec<BlockIdWithFile>,
     block: &HirBlockBody,
     instr: hir::InstructionId,
 ) -> Option<Instruction> {
@@ -40,10 +66,24 @@ pub fn instruction_from_hir(
         "zero" => {
             let [destination, source] = expect_no_more_args(diagnostics, block, instr);
 
-            let destination = destination
-                .map(|id| FromHirExpr::from_hir_expr(diagnostics, resolve_ctx, block, id));
-            let source =
-                source.map(|id| FromHirExpr::from_hir_expr(diagnostics, resolve_ctx, block, id));
+            let destination = destination.map(|id| {
+                FromHirExpr::from_hir_expr(
+                    diagnostics,
+                    code_address_collector,
+                    resolve_ctx,
+                    block,
+                    id,
+                )
+            });
+            let source = source.map(|id| {
+                FromHirExpr::from_hir_expr(
+                    diagnostics,
+                    code_address_collector,
+                    resolve_ctx,
+                    block,
+                    id,
+                )
+            });
 
             if destination.is_none() {
                 diagnostics.emit(instr.into(), "Missing a `destination` argument".into());
@@ -61,19 +101,26 @@ pub fn instruction_from_hir(
             }))
         }
         "not16" | "neg" | "abs" => {
-            let [destination, source] = expect_no_more_args(diagnostics, block, instr);
+            let [destination, source] = expect_exactly_args(diagnostics, block, instr);
 
-            let destination = destination
-                .map(|id| FromHirExpr::from_hir_expr(diagnostics, resolve_ctx, block, id));
-            let source =
-                source.map(|id| FromHirExpr::from_hir_expr(diagnostics, resolve_ctx, block, id));
-
-            if destination.is_none() {
-                diagnostics.emit(instr.into(), "Missing a `destination` argument".into());
-            }
-            if source.is_none() {
-                diagnostics.emit(instr.into(), "Missing a `source` argument".into());
-            }
+            let destination = destination.map(|id| {
+                FromHirExpr::from_hir_expr(
+                    diagnostics,
+                    code_address_collector,
+                    resolve_ctx,
+                    block,
+                    id,
+                )
+            });
+            let source = source.map(|id| {
+                FromHirExpr::from_hir_expr(
+                    diagnostics,
+                    code_address_collector,
+                    resolve_ctx,
+                    block,
+                    id,
+                )
+            });
 
             let destination = destination??;
             let source = source??;
@@ -91,6 +138,22 @@ pub fn instruction_from_hir(
                 source,
             }))
         }
+        "j" => {
+            let [target] = expect_exactly_args(diagnostics, block, instr);
+            let target = target.map(|id| {
+                FromHirExpr::from_hir_expr(
+                    diagnostics,
+                    code_address_collector,
+                    resolve_ctx,
+                    block,
+                    id,
+                )
+            });
+
+            let target = target??;
+
+            Some(Instruction::j { target })
+        }
         _ => {
             diagnostics.emit(instr.into(), format!("Unknown instruction: `{}`", name));
             None
@@ -100,6 +163,7 @@ pub fn instruction_from_hir(
 
 #[cfg(test)]
 mod tests {
+    use crate::compile::from_hir::CodeAddressCollector;
     use crate::compile::hir::lower::test_utils;
     use expect_test::{expect, Expect};
     use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
@@ -117,17 +181,19 @@ mod tests {
         let (file, block_id, block) = test_utils::lower_hir_block_ok(db, source);
 
         let mut diagnostics = HirDiagnosticCollector::new();
+        let mut code_address_collector = CodeAddressCollector::new();
         let resolve_ctx = ResolveContext::new_empty(db);
 
-        let mut code_addresses = Vec::new();
         let (instr, _) = block.instructions.iter().next().unwrap();
         let instr = hir::lower::instruction::instruction_from_hir(
             &mut diagnostics.with_file(file).with_block(block_id.into()),
+            &mut code_address_collector,
             &resolve_ctx,
-            &mut code_addresses,
             &block,
             instr,
         );
+
+        let code_addresses = code_address_collector.into_block_ids();
 
         if !code_addresses.is_empty() {
             todo!("code addresses are not supported yet")

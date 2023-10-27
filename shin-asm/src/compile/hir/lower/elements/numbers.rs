@@ -1,4 +1,5 @@
 use super::prelude::*;
+use crate::compile::from_hir::CodeAddressCollector;
 use crate::compile::{constexpr::ConstexprValue, def_map::DefValue};
 use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
 
@@ -49,6 +50,7 @@ fn try_lit_i32(
 impl FromHirExpr for i32 {
     fn from_hir_expr(
         diagnostics: &mut HirDiagnosticCollectorWithBlock,
+        _code_address_collector: &mut CodeAddressCollector,
         resolve_ctx: &ResolveContext,
         block: &HirBlockBody,
         expr: ExprId,
@@ -69,6 +71,7 @@ impl FromHirExpr for i32 {
 impl FromHirExpr for NumberSpec {
     fn from_hir_expr(
         diagnostics: &mut HirDiagnosticCollectorWithBlock,
+        _code_address_collector: &mut CodeAddressCollector,
         resolve_ctx: &ResolveContext,
         block: &HirBlockBody,
         expr: ExprId,

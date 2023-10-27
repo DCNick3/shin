@@ -1,9 +1,11 @@
 use super::prelude::*;
+use crate::compile::from_hir::CodeAddressCollector;
 use shin_core::format::scenario::instruction_elements::Register;
 
 impl FromHirExpr for Register {
     fn from_hir_expr(
         diagnostics: &mut HirDiagnosticCollectorWithBlock,
+        _code_address_collector: &mut CodeAddressCollector,
         resolve_ctx: &ResolveContext,
         block: &HirBlockBody,
         expr: ExprId,

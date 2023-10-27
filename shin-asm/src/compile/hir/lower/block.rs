@@ -1,6 +1,6 @@
 use crate::compile::def_map::ResolveKind;
 use crate::compile::diagnostics::HirDiagnosticAccumulator;
-use crate::compile::from_hir::HirBlockId;
+use crate::compile::from_hir::{CodeAddressCollector, HirBlockId};
 use crate::compile::types::SalsaBlockIdWithFile;
 use crate::compile::{
     hir, BlockIdWithFile, Db, DefMap, HirBlockBody, HirDiagnosticCollector,
@@ -58,13 +58,13 @@ impl LoweredBlock {
         block: &HirBlockBody,
     ) -> Self {
         let mut instructions = Vec::with_capacity(block.instructions.len());
-        let mut code_addresses = Vec::new();
+        let mut collector = CodeAddressCollector::new();
 
         for (instr, _) in block.instructions.iter() {
             instructions.push(super::instruction::instruction_from_hir(
                 diagnostics,
+                &mut collector,
                 resolve_ctx,
-                &mut code_addresses,
                 block,
                 instr,
             ));
@@ -72,7 +72,7 @@ impl LoweredBlock {
 
         Self {
             instructions,
-            code_addresses,
+            code_addresses: collector.into_block_ids(),
         }
     }
 

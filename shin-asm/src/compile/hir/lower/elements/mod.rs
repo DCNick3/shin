@@ -6,20 +6,20 @@ mod prelude {
     pub use crate::syntax::ast;
 }
 
+mod code_address;
 mod numbers;
 mod register;
-
-#[cfg(test)]
-use crate::compile::{
-    def_map::build_def_map, def_map::ResolveKind, hir::lower::test_utils, MakeWithFile, Program,
-};
 
 #[cfg(test)]
 fn check_from_hir_ok<T: crate::compile::FromHirExpr + Eq + std::fmt::Debug>(
     source: &str,
     expected: &[T],
 ) {
-    use crate::compile::{db::Database, from_hir::HirDiagnosticCollector, resolve::ResolveContext};
+    use crate::compile::{
+        db::Database, def_map::build_def_map, def_map::ResolveKind, from_hir::CodeAddressCollector,
+        from_hir::HirDiagnosticCollector, hir::lower::test_utils, resolve::ResolveContext,
+        MakeWithFile, Program,
+    };
 
     let db = Database::default();
     let db = &db;
@@ -39,11 +39,14 @@ fn check_from_hir_ok<T: crate::compile::FromHirExpr + Eq + std::fmt::Debug>(
 
     assert_eq!(args.len(), expected.len());
 
+    let mut code_address_collector = CodeAddressCollector::new();
+
     let lowered_elements = args
         .iter()
         .map(|&expr_id| {
             T::from_hir_expr(
                 &mut diagnostics.with_file(file).with_block(block_id.into()),
+                &mut code_address_collector,
                 &resolve_ctx,
                 &block,
                 expr_id,

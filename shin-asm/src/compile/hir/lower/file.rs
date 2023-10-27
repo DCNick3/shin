@@ -115,6 +115,33 @@ mod tests {
     }
 
     #[test]
+    fn check_code_addresses() {
+        check_from_hir(
+            indoc! {"
+                BLOCK1:
+                    j BLOCK2
+                
+                BLOCK2:
+                    j BLOCK1
+            "},
+            expect![[r#"
+                block Block { item_index: ItemIndex(0), block_index: BlockIndex(0) }:
+                instructions:
+                  j { target: 0x0j }
+                code addresses:
+                  WithFile { value: BlockId { item_index: 0, block_index: Some(1) }, file: File(Id { value: 1 }) }
+
+                block Block { item_index: ItemIndex(0), block_index: BlockIndex(1) }:
+                instructions:
+                  j { target: 0x0j }
+                code addresses:
+                  WithFile { value: BlockId { item_index: 0, block_index: Some(0) }, file: File(Id { value: 1 }) }
+
+            "#]],
+        );
+    }
+
+    #[test]
     fn check_err() {
         check_from_hir(
             indoc! {"
