@@ -11,15 +11,18 @@
 //!
 //! The mouth is also separate because it is usually animated, storing multiple versions with varying openness.
 
-use crate::format::picture::{read_picture_chunk, PictureChunk};
+use std::collections::HashMap;
+
 use anyhow::{bail, Result};
 use binrw::{BinRead, BinWrite};
 use bitvec::bitbox;
 use image::RgbaImage;
 use shin_tasks::ParallelSlice;
-use std::collections::HashMap;
 
-use crate::format::text::ZeroString;
+use crate::format::{
+    picture::{read_picture_chunk, PictureChunk},
+    text::ZeroString,
+};
 
 #[derive(BinRead, BinWrite, Debug)]
 #[br(little, magic = b"BUP4")]

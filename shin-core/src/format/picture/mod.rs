@@ -4,17 +4,15 @@
 //!
 //! It also stores vertices for each chunk specifying which regions of the image have transparency and which don't. This potentially allows for a more efficient GPU rendering (this implementation doesn't do this yet).
 
+use std::{borrow::Cow, io, sync::Mutex};
+
 use anyhow::{bail, Context, Result};
-use binrw::prelude::*;
-use binrw::Endian;
+use binrw::{prelude::*, Endian};
 use bitflags::bitflags;
 use bytemuck::{Pod, Zeroable};
 use image::{ImageBuffer, RgbaImage};
 use itertools::Itertools;
 use shin_tasks::ParallelSlice;
-use std::borrow::Cow;
-use std::io;
-use std::sync::Mutex;
 
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little, magic = b"PIC4")]

@@ -1,10 +1,11 @@
 //! Support for MSK format, storing 8-bit grayscale mask textures
 
+use std::borrow::Cow;
+
 use anyhow::Result;
 use binrw::{BinRead, BinWrite};
 use image::{GrayImage, Luma};
 use itertools::Itertools;
-use std::borrow::Cow;
 
 #[derive(BinRead, BinWrite)]
 #[brw(little, magic = b"MSK4")]

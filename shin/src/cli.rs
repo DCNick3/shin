@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 use clap_num::maybe_hex;
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

@@ -1,11 +1,12 @@
-use crate::layer::LayerPropertiesSnapshot;
-use bevy_utils::hashbrown::hash_map::Entry;
-use bevy_utils::StableHashMap;
-use shin_core::format::scenario::instruction_elements::UntypedNumberArray;
-use shin_core::vm::command::types::LayerType;
-use shin_core::vm::command::types::{LayerId, LayerIdOpt, VLayerId, VLayerIdRepr, PLANES_COUNT};
+use bevy_utils::{hashbrown::hash_map::Entry, StableHashMap};
+use shin_core::{
+    format::scenario::instruction_elements::UntypedNumberArray,
+    vm::command::types::{LayerId, LayerIdOpt, LayerType, VLayerId, VLayerIdRepr, PLANES_COUNT},
+};
 use smallvec::{smallvec, SmallVec};
 use tracing::warn;
+
+use crate::layer::LayerPropertiesSnapshot;
 
 #[derive(Debug, Copy, Clone)]
 pub struct LayerSelection {

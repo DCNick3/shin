@@ -1,5 +1,6 @@
-use super::prelude::*;
 use shin_core::time::{Easing, Tween};
+
+use super::prelude::*;
 
 impl StartableCommand for command::runtime::LAYERCTRL {
     fn apply_state(&self, state: &mut VmState) {

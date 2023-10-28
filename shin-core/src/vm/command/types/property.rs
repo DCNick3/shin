@@ -1,7 +1,8 @@
-use crate::format::scenario::instruction_elements::FromNumber;
 use enum_map::Enum;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
+
+use crate::format::scenario::instruction_elements::FromNumber;
 
 #[derive(FromPrimitive, Enum, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LayerProperty {

@@ -1,7 +1,7 @@
-use super::prelude::*;
-use crate::compile::def_map::DefValue;
-use crate::compile::hir::lower::CodeAddressCollector;
 use shin_core::format::scenario::instruction_elements::CodeAddress;
+
+use super::prelude::*;
+use crate::compile::{def_map::DefValue, hir::lower::CodeAddressCollector};
 
 impl FromHirExpr for CodeAddress {
     fn from_hir_expr(
@@ -38,13 +38,19 @@ impl FromHirExpr for CodeAddress {
 
 #[cfg(test)]
 mod tests {
-    use super::CodeAddress;
-    use crate::compile::hir::lower::{CodeAddressCollector, FromHirExpr, HirDiagnosticCollector};
-    use crate::compile::{
-        db::Database, def_map::build_def_map, def_map::ResolveKind, hir::lower::test_utils,
-        hir::lower::test_utils::lower_hir_ok, resolve::ResolveContext, MakeWithFile, Program,
-    };
     use indoc::indoc;
+
+    use super::CodeAddress;
+    use crate::compile::{
+        db::Database,
+        def_map::{build_def_map, ResolveKind},
+        hir::lower::{
+            test_utils, test_utils::lower_hir_ok, CodeAddressCollector, FromHirExpr,
+            HirDiagnosticCollector,
+        },
+        resolve::ResolveContext,
+        MakeWithFile, Program,
+    };
 
     #[test]
     fn from_hir() {

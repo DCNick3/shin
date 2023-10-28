@@ -1,7 +1,10 @@
-use crate::vertices::{PosVertex, VertexSource};
-use crate::{GpuCommonResources, Renderable, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
 use glam::{vec3, vec4, Mat4};
 use wgpu::util::DeviceExt;
+
+use crate::{
+    vertices::{PosVertex, VertexSource},
+    GpuCommonResources, Renderable, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
+};
 
 pub struct Pillarbox {
     vertex_buffer: wgpu::Buffer,

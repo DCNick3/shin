@@ -1,5 +1,6 @@
-use crate::h264_decoder::{BitsPerSample, Colorspace, Frame, FrameSize, PlaneSize};
 use shin_render::{GpuCommonResources, YuvTextureBindGroup};
+
+use crate::h264_decoder::{BitsPerSample, Colorspace, Frame, FrameSize, PlaneSize};
 
 pub struct YuvTexture {
     tex_y: wgpu::Texture,

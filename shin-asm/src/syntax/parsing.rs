@@ -1,9 +1,12 @@
 //! Lexing, bridging to parser (which does the actual parsing) and
 //! incremental reparsing.
 
-use crate::parser;
-use crate::syntax::{syntax_node::GreenNode, SyntaxError, SyntaxTreeBuilder};
 use text_size::TextRange;
+
+use crate::{
+    parser,
+    syntax::{syntax_node::GreenNode, SyntaxError, SyntaxTreeBuilder},
+};
 
 pub(crate) fn parse_text(text: &str) -> (GreenNode, Vec<SyntaxError>) {
     let lexed = parser::LexedStr::new(text);

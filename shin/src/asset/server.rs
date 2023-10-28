@@ -1,3 +1,13 @@
+use std::{
+    fmt::Debug,
+    fs::File,
+    io,
+    io::BufReader,
+    ops::{Deref, DerefMut},
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex, RwLock, Weak},
+};
+
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use bevy_utils::HashMap;
@@ -5,13 +15,6 @@ use derive_more::From;
 use pollster::FutureExt;
 use shin_core::format::rom::RomReader;
 use shin_tasks::{AsyncComputeTaskPool, IoTaskPool};
-use std::fmt::Debug;
-use std::fs::File;
-use std::io;
-use std::io::BufReader;
-use std::ops::{Deref, DerefMut};
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, RwLock, Weak};
 use tracing::debug;
 
 pub trait Asset: Send + Sync + Sized + 'static {

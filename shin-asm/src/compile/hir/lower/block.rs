@@ -1,15 +1,19 @@
-use crate::compile::def_map::ResolveKind;
-use crate::compile::diagnostics::HirDiagnosticAccumulator;
-use crate::compile::hir::{
-    lower::{CodeAddressCollector, HirDiagnosticCollector, HirDiagnosticCollectorWithBlock},
-    HirBlockId,
-};
-use crate::compile::types::SalsaBlockIdWithFile;
-use crate::compile::{hir, BlockIdWithFile, Db, DefMap, HirBlockBody, ResolveContext, WithFile};
-use binrw::io::NoSeek;
-use binrw::BinWrite;
-use shin_core::format::scenario::instructions::Instruction;
 use std::io;
+
+use binrw::{io::NoSeek, BinWrite};
+use shin_core::format::scenario::instructions::Instruction;
+
+use crate::compile::{
+    def_map::ResolveKind,
+    diagnostics::HirDiagnosticAccumulator,
+    hir,
+    hir::{
+        lower::{CodeAddressCollector, HirDiagnosticCollector, HirDiagnosticCollectorWithBlock},
+        HirBlockId,
+    },
+    types::SalsaBlockIdWithFile,
+    BlockIdWithFile, Db, DefMap, HirBlockBody, ResolveContext, WithFile,
+};
 
 struct CountWrite {
     count: u64,
@@ -155,17 +159,22 @@ pub fn lower_block(db: &dyn Db, def_map: DefMap, block: SalsaBlockIdWithFile) ->
 
 #[cfg(test)]
 mod tests {
-    use crate::compile::def_map::build_def_map;
-    use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
-    use crate::compile::hir::lower::test_utils;
-    use crate::compile::types::SalsaBlockIdWithFile;
-    use crate::compile::{hir, File, MakeWithFile, Program};
     use expect_test::{expect, Expect};
     use indoc::indoc;
 
+    use crate::compile::{
+        def_map::build_def_map,
+        diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator},
+        hir,
+        hir::lower::test_utils,
+        types::SalsaBlockIdWithFile,
+        File, MakeWithFile, Program,
+    };
+
     fn check_from_hir(source: &str, expected: Expect) {
-        use crate::compile::db::Database;
         use std::fmt::Write;
+
+        use crate::compile::db::Database;
 
         let db = Database::default();
         let db = &db;

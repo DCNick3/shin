@@ -1,10 +1,9 @@
-use anyhow::Context;
-use anyhow::Result;
+use std::io::Cursor;
+
+use anyhow::{Context, Result};
 use shin_audio::AudioManager;
 use shin_render::GpuCommonResources;
-use shin_video::mp4::Mp4;
-use shin_video::VideoPlayer;
-use std::io::Cursor;
+use shin_video::{mp4::Mp4, VideoPlayer};
 
 use crate::asset::Asset;
 

@@ -1,9 +1,12 @@
-use crate::layer::{Layer, LayerProperties};
-use crate::update::{Updatable, UpdateContext};
-use glam::Mat4;
-use shin_render::GpuCommonResources;
-use shin_render::Renderable;
 use std::fmt::Debug;
+
+use glam::Mat4;
+use shin_render::{GpuCommonResources, Renderable};
+
+use crate::{
+    layer::{Layer, LayerProperties},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct NullLayer {
     props: LayerProperties,

@@ -6,12 +6,14 @@
 //! The *real* implementation is in the (language-agnostic) `rowan` crate, this
 //! module just wraps its API.
 
-use rowan::{GreenNodeBuilder, Language};
-
-use crate::parser::SyntaxKind;
-use crate::syntax::{Parse, SyntaxError};
 pub(crate) use rowan::GreenNode;
+use rowan::{GreenNodeBuilder, Language};
 use text_size::TextSize;
+
+use crate::{
+    parser::SyntaxKind,
+    syntax::{Parse, SyntaxError},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SalLanguage {}

@@ -2,35 +2,40 @@ pub mod assets;
 mod command;
 mod vm_state;
 
-pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
-pub use vm_state::VmState;
+use std::{borrow::Cow, sync::Arc};
 
-use crate::adv::assets::AdvAssets;
-use crate::audio::{BgmPlayer, SePlayer};
-use crate::input::actions::AdvMessageAction;
-use crate::input::ActionState;
-use crate::layer::{
-    AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup, ScreenLayer, UserLayer,
-};
-use crate::render::overlay::{OverlayCollector, OverlayVisitable};
-use crate::update::{Updatable, UpdateContext};
+pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
 use egui::Window;
 use glam::Mat4;
 use itertools::Itertools;
 use shin_audio::AudioManager;
-use shin_core::format::scenario::instruction_elements::CodeAddress;
-use shin_core::format::scenario::Scenario;
-use shin_core::vm::breakpoint::BreakpointObserver;
-use shin_core::vm::command::types::{LayerId, VLayerId, VLayerIdRepr, PLANES_COUNT};
-use shin_core::vm::command::CommandResult;
-use shin_core::vm::Scripter;
+use shin_core::{
+    format::scenario::{instruction_elements::CodeAddress, Scenario},
+    vm::{
+        breakpoint::BreakpointObserver,
+        command::{
+            types::{LayerId, VLayerId, VLayerIdRepr, PLANES_COUNT},
+            CommandResult,
+        },
+        Scripter,
+    },
+};
 use shin_render::{GpuCommonResources, Renderable};
 use smallvec::{smallvec, SmallVec};
-use std::borrow::Cow;
-use std::sync::Arc;
 use tracing::{debug, warn};
-pub use vm_state::layers::LayerSelection;
 use vm_state::layers::ITER_VLAYER_SMALL_VECTOR_SIZE;
+pub use vm_state::{layers::LayerSelection, VmState};
+
+use crate::{
+    adv::assets::AdvAssets,
+    audio::{BgmPlayer, SePlayer},
+    input::{actions::AdvMessageAction, ActionState},
+    layer::{
+        AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup, ScreenLayer, UserLayer,
+    },
+    render::overlay::{OverlayCollector, OverlayVisitable},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct Adv {
     scenario: Arc<Scenario>,

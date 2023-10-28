@@ -1,10 +1,13 @@
-use crate::asset::{asset_paths, AnyAssetServer};
-use crate::layer::MessageboxTextures;
+use std::sync::Arc;
+
 use anyhow::Result;
 use futures::try_join;
-use shin_core::format::font::LazyFont;
-use shin_core::format::scenario::Scenario;
-use std::sync::Arc;
+use shin_core::format::{font::LazyFont, scenario::Scenario};
+
+use crate::{
+    asset::{asset_paths, AnyAssetServer},
+    layer::MessageboxTextures,
+};
 
 // TODO: this can be done with a macro
 #[derive(Clone)]

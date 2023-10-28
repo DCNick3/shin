@@ -2,13 +2,14 @@
 
 mod input;
 
+use std::str::FromStr;
+
+pub use input::{SyntaxKindInput, SyntaxList};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
-use std::str::FromStr;
 use syn::LitChar;
 
 use crate::syntax_kind::input::{MappingItem, SyntaxMapping};
-pub use input::{SyntaxKindInput, SyntaxList};
 
 fn validate_input(input: &SyntaxKindInput) -> TokenStream {
     let token_count = input.technical.ident_list.len()

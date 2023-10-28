@@ -1,6 +1,7 @@
+use std::ops::Range;
+
 use glam::{Vec2, Vec3, Vec4};
 use shin_core::time::Ticks;
-use std::ops::Range;
 
 #[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]

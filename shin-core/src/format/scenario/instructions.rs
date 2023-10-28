@@ -1,17 +1,19 @@
 //! Defines the [`Instruction`] type, along with some helper types used for their encoding.
 
-use crate::format::scenario::instruction_elements::{
-    CodeAddress, NumberSpec, Register, UntypedNumberSpec,
-};
-use crate::format::scenario::types::{Pad4, U16SmallList, U8SmallList, U8SmallNumberList};
-use crate::vm::command::CompiletimeCommand;
+use std::{fmt::Debug, io, io::SeekFrom};
+
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use smallvec::SmallVec;
-use std::fmt::Debug;
-use std::io;
-use std::io::SeekFrom;
+
+use crate::{
+    format::scenario::{
+        instruction_elements::{CodeAddress, NumberSpec, Register, UntypedNumberSpec},
+        types::{Pad4, U16SmallList, U8SmallList, U8SmallNumberList},
+    },
+    vm::command::CompiletimeCommand,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, FromPrimitive)]
 pub enum UnaryOperationType {

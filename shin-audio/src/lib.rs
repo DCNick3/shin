@@ -6,14 +6,15 @@ mod manager;
 mod resampler;
 mod sound;
 
-use kira::track::TrackId;
-use shin_core::time::Tween;
-use shin_core::vm::command::types::{Pan, Volume};
-
 pub use data::AudioData;
 pub use handle::AudioHandle;
+use kira::track::TrackId;
 pub use manager::AudioManager;
 pub use shin_core::format::audio::AudioFile;
+use shin_core::{
+    time::Tween,
+    vm::command::types::{Pan, Volume},
+};
 
 pub struct AudioSettings {
     pub track: TrackId,

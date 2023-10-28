@@ -1,7 +1,8 @@
-use crate::vm::{IntoRuntimeForm, VmCtx};
+use std::{fmt::Debug, io};
+
 use binrw::{BinRead, BinResult, BinWrite, Endian};
-use std::fmt::Debug;
-use std::io;
+
+use crate::vm::{IntoRuntimeForm, VmCtx};
 
 /// Message ID - a 24-bit integer
 ///

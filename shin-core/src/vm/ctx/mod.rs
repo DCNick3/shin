@@ -1,15 +1,15 @@
 mod into_runtime_form;
 
 pub use into_runtime_form::*;
-
-use crate::format::scenario::instruction_elements::{
-    CodeAddress, FromNumber, NumberSpec, Register, RegisterRepr, UntypedNumberSpec,
-};
-use crate::format::scenario::instructions::{
-    BinaryOperationType, Expression, ExpressionTerm, JumpCond, JumpCondType,
-};
 use smallvec::SmallVec;
 use tracing::warn;
+
+use crate::format::scenario::{
+    instruction_elements::{
+        CodeAddress, FromNumber, NumberSpec, Register, RegisterRepr, UntypedNumberSpec,
+    },
+    instructions::{BinaryOperationType, Expression, ExpressionTerm, JumpCond, JumpCondType},
+};
 
 /// Contains the full VM state
 ///

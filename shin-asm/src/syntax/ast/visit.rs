@@ -2,10 +2,14 @@
 //!
 //! The API is copied from `syn`
 
-use crate::compile::{Db, File, Program};
-use crate::syntax::ast;
-use shin_asm::compile::MakeWithFile;
 use std::fmt::Display;
+
+use shin_asm::compile::MakeWithFile;
+
+use crate::{
+    compile::{Db, File, Program},
+    syntax::ast,
+};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ItemIndex(u32);

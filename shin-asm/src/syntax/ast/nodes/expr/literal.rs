@@ -1,10 +1,10 @@
-use super::*;
-use crate::compile::diagnostics::Diagnostic;
-use crate::compile::make_diagnostic;
+use std::{borrow::Cow, num::IntErrorKind};
+
 use shin_core::rational::Rational;
-use std::borrow::Cow;
-use std::num::IntErrorKind;
 use text_size::TextRange;
+
+use super::*;
+use crate::compile::{diagnostics::Diagnostic, make_diagnostic};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 #[ast(kind = LITERAL)]

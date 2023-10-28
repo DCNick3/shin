@@ -1,5 +1,6 @@
-use crate::time::Ticks;
 use glam::Vec3;
+
+use crate::time::Ticks;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParsedCommand {
@@ -150,8 +151,9 @@ impl Iterator for LayouterParser<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use glam::vec3;
+
+    use super::*;
 
     fn parse(message: &str) -> Vec<ParsedCommand> {
         LayouterParser::new(message).collect()

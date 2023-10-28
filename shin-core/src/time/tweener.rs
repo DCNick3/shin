@@ -1,5 +1,6 @@
-use crate::time::{Ticks, Tween};
 use std::collections::VecDeque;
+
+use crate::time::{Ticks, Tween};
 
 type Value = f32;
 

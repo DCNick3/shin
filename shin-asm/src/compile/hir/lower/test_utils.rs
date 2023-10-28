@@ -1,11 +1,16 @@
-use crate::compile::diagnostics::{
-    AriadneDbCache, Diagnostic, HirDiagnosticAccumulator, HirLocation, SourceDiagnosticAccumulator,
-    Span,
-};
-use crate::compile::hir::HirBlockBodies;
-use crate::compile::{hir, hir::lower::HirDiagnosticCollector, BlockId, Db, File, HirBlockBody};
-use itertools::Itertools;
 use std::rc::Rc;
+
+use itertools::Itertools;
+
+use crate::compile::{
+    diagnostics::{
+        AriadneDbCache, Diagnostic, HirDiagnosticAccumulator, HirLocation,
+        SourceDiagnosticAccumulator, Span,
+    },
+    hir,
+    hir::{lower::HirDiagnosticCollector, HirBlockBodies},
+    BlockId, Db, File, HirBlockBody,
+};
 
 pub fn diagnostics_to_str(
     db: &dyn Db,

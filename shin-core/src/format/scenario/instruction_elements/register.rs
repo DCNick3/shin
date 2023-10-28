@@ -1,7 +1,10 @@
+use std::{
+    fmt::{Debug, Display},
+    num::ParseIntError,
+    str::FromStr,
+};
+
 use binrw::{BinRead, BinWrite};
-use std::fmt::{Debug, Display};
-use std::num::ParseIntError;
-use std::str::FromStr;
 
 /// Register address in the vm
 ///

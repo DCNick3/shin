@@ -4,17 +4,16 @@ pub mod visit;
 
 use std::marker::PhantomData;
 
+use either::Either;
+pub use nodes::*;
+pub use shin_derive::{AstNode, AstToken};
+pub use tokens::*;
+
 use super::{
     syntax_node::{SyntaxNode, SyntaxNodeChildren, SyntaxToken},
     SyntaxKind,
 };
-use either::Either;
-
-pub use shin_derive::{AstNode, AstToken};
-
 use crate::syntax::ptr::AstPtr;
-pub use nodes::*;
-pub use tokens::*;
 
 pub trait AstSpanned {
     fn text_range(&self) -> crate::syntax::TextRange;

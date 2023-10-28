@@ -1,10 +1,17 @@
-use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
-use crate::compile::{db::Database, hir, File};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
+
 use expect_test::expect_file;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
 use test_generator::test_resources;
+
+use crate::compile::{
+    db::Database,
+    diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator},
+    hir, File,
+};
 
 fn lower_block(code: &str) -> Rc<hir::HirBlockBody> {
     let db = Database::default();

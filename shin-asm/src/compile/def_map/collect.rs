@@ -1,3 +1,5 @@
+use rustc_hash::FxHashMap;
+
 use crate::{
     compile::{
         def_map::{BlockName, Name},
@@ -5,12 +7,13 @@ use crate::{
     },
     syntax::{
         ast,
-        ast::visit,
-        ast::visit::{BlockIndex, ItemIndex},
+        ast::{
+            visit,
+            visit::{BlockIndex, ItemIndex},
+        },
         AstToken,
     },
 };
-use rustc_hash::FxHashMap;
 
 pub fn collect_block_names(
     db: &dyn Db,

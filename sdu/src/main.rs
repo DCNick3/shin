@@ -5,21 +5,22 @@ mod rom;
 mod savedata;
 mod scenario;
 
-use assembler::{assembler_command, AssemblerCommand};
-use rom::{rom_command, RomCommand};
-use savedata::{savedata_command, SavedataCommand};
-use scenario::{scenario_command, ScenarioCommand};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter},
+    path::PathBuf,
+};
 
 use anyhow::{Context, Result};
+use assembler::{assembler_command, AssemblerCommand};
 use clap::{CommandFactory, Parser};
 use clap_complete::{generate, Shell};
 use image::{GenericImageView, Rgba, RgbaImage};
 use itertools::Itertools;
-use shin_core::format::audio::AudioSource;
-use shin_core::format::picture::SimpleMergedPicture;
-use std::fs::File;
-use std::io::{BufReader, BufWriter};
-use std::path::PathBuf;
+use rom::{rom_command, RomCommand};
+use savedata::{savedata_command, SavedataCommand};
+use scenario::{scenario_command, ScenarioCommand};
+use shin_core::format::{audio::AudioSource, picture::SimpleMergedPicture};
 use tracing_subscriber::EnvFilter;
 
 #[derive(clap::Parser, Debug)]
@@ -191,8 +192,9 @@ fn font_command(command: FontCommand) -> Result<()> {
             font_path: path,
             output_path,
         } => {
-            use shin_core::format::font::{read_lazy_font, GlyphMipLevel, GlyphTrait};
             use std::fmt::Write;
+
+            use shin_core::format::font::{read_lazy_font, GlyphMipLevel, GlyphTrait};
 
             let font = File::open(path)?;
             let mut font = BufReader::new(font);

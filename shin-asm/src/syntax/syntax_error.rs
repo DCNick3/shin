@@ -1,7 +1,8 @@
 //! See docs for `SyntaxError`.
 
-use crate::compile::diagnostics::Diagnostic;
 use text_size::{TextRange, TextSize};
+
+use crate::compile::diagnostics::Diagnostic;
 
 /// Represents the result of unsuccessful tokenization, parsing
 /// or tree validation.

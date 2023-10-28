@@ -1,5 +1,6 @@
-use super::prelude::*;
 use shin_core::time::Tween;
+
+use super::prelude::*;
 
 impl StartableCommand for command::runtime::SESTOP {
     fn apply_state(&self, state: &mut VmState) {

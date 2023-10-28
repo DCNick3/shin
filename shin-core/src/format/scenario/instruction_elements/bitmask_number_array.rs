@@ -1,8 +1,12 @@
-use super::UntypedNumberSpec;
-use crate::format::scenario::instruction_elements::{FromNumber, NumberSpec};
-use crate::vm::{IntoRuntimeForm, VmCtx};
-use binrw::{BinRead, BinResult, BinWrite, Endian};
 use std::io;
+
+use binrw::{BinRead, BinResult, BinWrite, Endian};
+
+use super::UntypedNumberSpec;
+use crate::{
+    format::scenario::instruction_elements::{FromNumber, NumberSpec},
+    vm::{IntoRuntimeForm, VmCtx},
+};
 
 /// An 8-typle of i32
 pub type UntypedNumberArray = (i32, i32, i32, i32, i32, i32, i32, i32);

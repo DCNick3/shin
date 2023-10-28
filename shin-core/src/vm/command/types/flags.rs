@@ -1,6 +1,7 @@
-use crate::format::scenario::instruction_elements::FromNumber;
 use bitflags::bitflags;
 use proc_bitfield::bitfield;
+
+use crate::format::scenario::instruction_elements::FromNumber;
 
 bitfield! {
     /// Flags that can be used in [LAYERCTRL](super::super::runtime::LAYERCTRL) command

@@ -1,7 +1,6 @@
 use darling::FromMeta;
 use itertools::Itertools;
-use syn::spanned::Spanned;
-use syn::Attribute;
+use syn::{spanned::Spanned, Attribute};
 
 pub fn parse_opt_attribute<Data: FromMeta>(
     span: &impl Spanned,

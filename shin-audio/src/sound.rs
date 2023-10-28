@@ -1,19 +1,25 @@
-use crate::resampler::Resampler;
-use crate::AudioData;
-use kira::clock::clock_info::ClockInfoProvider;
-use kira::dsp::Frame;
-use kira::modulator::value_provider::ModulatorValueProvider;
-use kira::sound::Sound;
-use kira::track::TrackId;
-use kira::OutputDestination;
+use std::{
+    f32::consts::SQRT_2,
+    sync::{
+        atomic::{AtomicI32, AtomicU32},
+        Arc,
+    },
+};
+
+use kira::{
+    clock::clock_info::ClockInfoProvider, dsp::Frame,
+    modulator::value_provider::ModulatorValueProvider, sound::Sound, track::TrackId,
+    OutputDestination,
+};
 use ringbuf::HeapConsumer;
-use shin_core::format::audio::{AudioFrameSource, AudioSource};
-use shin_core::time::{Ticks, Tween, Tweener};
-use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
-use std::f32::consts::SQRT_2;
-use std::sync::atomic::{AtomicI32, AtomicU32};
-use std::sync::Arc;
+use shin_core::{
+    format::audio::{AudioFrameSource, AudioSource},
+    time::{Ticks, Tween, Tweener},
+    vm::command::types::{AudioWaitStatus, Pan, Volume},
+};
 use tracing::debug;
+
+use crate::{resampler::Resampler, AudioData};
 
 pub const COMMAND_BUFFER_CAPACITY: usize = 8;
 

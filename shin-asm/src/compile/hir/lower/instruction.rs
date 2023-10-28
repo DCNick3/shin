@@ -1,9 +1,13 @@
-use crate::compile::hir::lower::{
-    CodeAddressCollector, FromHirExpr, HirDiagnosticCollectorWithBlock,
+use shin_core::format::scenario::{
+    instruction_elements::{NumberSpec, UntypedNumberSpec},
+    instructions::{Instruction, UnaryOperation, UnaryOperationType},
 };
-use crate::compile::{hir, resolve, HirBlockBody};
-use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
-use shin_core::format::scenario::instructions::{Instruction, UnaryOperation, UnaryOperationType};
+
+use crate::compile::{
+    hir,
+    hir::lower::{CodeAddressCollector, FromHirExpr, HirDiagnosticCollectorWithBlock},
+    resolve, HirBlockBody,
+};
 
 fn expect_no_more_args<const N: usize>(
     diagnostics: &mut HirDiagnosticCollectorWithBlock,
@@ -163,12 +167,17 @@ pub fn instruction_from_hir(
 
 #[cfg(test)]
 mod tests {
-    use crate::compile::hir::lower::{test_utils, CodeAddressCollector, HirDiagnosticCollector};
-    use crate::compile::{db::Database, hir, resolve::ResolveContext};
     use expect_test::{expect, Expect};
-    use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
-    use shin_core::format::scenario::instructions::{
-        Instruction, UnaryOperation, UnaryOperationType,
+    use shin_core::format::scenario::{
+        instruction_elements::{NumberSpec, UntypedNumberSpec},
+        instructions::{Instruction, UnaryOperation, UnaryOperationType},
+    };
+
+    use crate::compile::{
+        db::Database,
+        hir,
+        hir::lower::{test_utils, CodeAddressCollector, HirDiagnosticCollector},
+        resolve::ResolveContext,
     };
 
     fn from_hir(source: &str) -> Result<Instruction, String> {

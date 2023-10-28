@@ -6,12 +6,12 @@
 
 mod audio_source;
 
-pub use audio_source::{AudioBuffer, AudioFrameSource, AudioSource};
+use std::io::Read;
 
 use anyhow::{bail, Result};
+pub use audio_source::{AudioBuffer, AudioFrameSource, AudioSource};
 use binrw::{BinRead, BinWrite};
 use opus::Channels;
-use std::io::Read;
 
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little, magic = b"NXA1")]

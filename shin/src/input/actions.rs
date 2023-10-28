@@ -1,6 +1,9 @@
-use crate::input::inputs::{KeyCode, MouseButton};
-use crate::input::{Action, ActionMap, InputSet};
 use enum_map::{enum_map, Enum};
+
+use crate::input::{
+    inputs::{KeyCode, MouseButton},
+    Action, ActionMap, InputSet,
+};
 
 // TODO: move actions from here when an adequate derive macro will be available
 

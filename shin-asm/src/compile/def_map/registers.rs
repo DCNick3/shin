@@ -1,3 +1,10 @@
+use std::collections::hash_map::Entry;
+
+use bind_match::bind_match;
+use either::Either;
+use rustc_hash::FxHashMap;
+use shin_core::format::scenario::instruction_elements::{Register, RegisterRepr};
+
 use crate::{
     compile::{
         def_map::RegisterName, diagnostics::Span, make_diagnostic, Db, File, MakeWithFile, Program,
@@ -8,11 +15,6 @@ use crate::{
         AstSpanned,
     },
 };
-use bind_match::bind_match;
-use either::Either;
-use rustc_hash::FxHashMap;
-use shin_core::format::scenario::instruction_elements::{Register, RegisterRepr};
-use std::collections::hash_map::Entry;
 
 pub struct UnresolvedGlobalRegister {
     register_kind: ast::RegisterIdentKind,

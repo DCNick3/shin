@@ -1,10 +1,12 @@
-use crate::layer::{Layer, LayerProperties};
-use crate::update::{Updatable, UpdateContext};
+use std::{fmt::Debug, sync::Arc};
+
 use glam::{vec4, Mat4, Vec4};
-use shin_render::Renderable;
-use shin_render::{GpuCommonResources, PosVertexBuffer};
-use std::fmt::Debug;
-use std::sync::Arc;
+use shin_render::{GpuCommonResources, PosVertexBuffer, Renderable};
+
+use crate::{
+    layer::{Layer, LayerProperties},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct TileLayer {
     vertex_color: Vec4,

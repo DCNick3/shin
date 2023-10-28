@@ -1,8 +1,7 @@
+use std::{fs::File, io::BufReader, path::PathBuf};
+
 use anyhow::{Context, Result};
 use shin_core::format::rom::{IndexEntry, IndexFile};
-use std::fs::File;
-use std::io::BufReader;
-use std::path::PathBuf;
 
 #[derive(clap::Subcommand, Debug)]
 pub enum RomCommand {

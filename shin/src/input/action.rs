@@ -1,8 +1,11 @@
-use crate::input::buttonlike::ButtonState;
-use crate::input::inputs::{GamepadButtonType, KeyCode, MouseButton};
-use crate::input::raw_input_state::RawInputState;
 use enum_map::{enum_map, Enum, EnumMap};
 use petitset::PetitSet;
+
+use crate::input::{
+    buttonlike::ButtonState,
+    inputs::{GamepadButtonType, KeyCode, MouseButton},
+    raw_input_state::RawInputState,
+};
 
 // pub enum Action {
 //     Confirm,    // A / Enter / Space

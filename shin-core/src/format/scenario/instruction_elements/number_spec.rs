@@ -1,9 +1,9 @@
+use std::{fmt::Debug, io, marker::PhantomData};
+
+use binrw::{BinRead, BinResult, BinWrite, Endian};
+
 use super::Register;
 use crate::vm::{IntoRuntimeForm, VmCtx};
-use binrw::{BinRead, BinResult, BinWrite, Endian};
-use std::fmt::Debug;
-use std::io;
-use std::marker::PhantomData;
 
 /// Specifies how to get a 32-bit signed number at runtime
 ///

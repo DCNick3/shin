@@ -1,11 +1,12 @@
 mod y4m;
 
 use std::io::{Read, Seek};
+
+use anyhow::Result;
+use cfg_if::cfg_if;
 pub use y4m::{BitsPerSample, Colorspace, Frame, FrameSize, PlaneSize};
 
 use crate::mp4::Mp4TrackReader;
-use anyhow::Result;
-use cfg_if::cfg_if;
 
 pub trait H264DecoderTrait: Sized {
     fn new<S: Read + Seek + Send + 'static>(track: Mp4TrackReader<S>) -> Result<Self>;

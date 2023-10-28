@@ -1,9 +1,13 @@
-use crate::pipelines::Pipelines;
-use crate::vertices::{PosColTexVertex, PosVertex, TextVertex, VertexSource};
-use crate::{BindGroupLayouts, SubmittingEncoder, TextureBindGroup, YuvTextureBindGroup};
+use std::sync::RwLock;
+
 use glam::{Mat4, Vec2, Vec4};
 use shin_core::time::Ticks;
-use std::sync::RwLock;
+
+use crate::{
+    pipelines::Pipelines,
+    vertices::{PosColTexVertex, PosVertex, TextVertex, VertexSource},
+    BindGroupLayouts, SubmittingEncoder, TextureBindGroup, YuvTextureBindGroup,
+};
 
 pub struct GpuCommonResources {
     pub device: wgpu::Device,

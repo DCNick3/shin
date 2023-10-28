@@ -1,12 +1,13 @@
-use crate::sanitization::{
-    BIN_READ, BIN_WRITE, COMMAND_RESULT, INTO_RUNTIME_FORM, REGISTER, VM_CTX,
-};
-use crate::util::{parse_attribute, parse_opt_attribute};
 use darling::FromMeta;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::quote;
 use synstructure::{Structure, VariantInfo};
+
+use crate::{
+    sanitization::{BIN_READ, BIN_WRITE, COMMAND_RESULT, INTO_RUNTIME_FORM, REGISTER, VM_CTX},
+    util::{parse_attribute, parse_opt_attribute},
+};
 
 #[derive(FromMeta, Default)]
 struct CommandFieldMeta {

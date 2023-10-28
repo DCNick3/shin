@@ -41,8 +41,9 @@
 //! Theoretically the efficiency can be improved by using a bit of backtracking,
 //!     but it seems this improves compression ratio only by several percent (not worth the time).
 
-use bytes::Buf;
 use std::io;
+
+use bytes::Buf;
 
 pub fn decompress<const OFFSET_BITS: u32>(input: &[u8], output: &mut Vec<u8>) {
     let mut input = io::Cursor::new(input);

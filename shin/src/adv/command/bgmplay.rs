@@ -1,8 +1,9 @@
+use std::ops::Not;
+
+use shin_core::{format::scenario::info::BgmInfoItem, time::Tween};
+
 use super::prelude::*;
 use crate::adv::vm_state::audio::BgmState;
-use shin_core::format::scenario::info::BgmInfoItem;
-use shin_core::time::Tween;
-use std::ops::Not;
 
 impl StartableCommand for command::runtime::BGMPLAY {
     fn apply_state(&self, state: &mut VmState) {

@@ -1,10 +1,10 @@
 pub mod audio;
 pub mod layers;
 
-use crate::adv::vm_state::audio::AudioState;
 use layers::LayersState;
-use shin_core::format::save::PersistData;
-use shin_core::vm::command::types::MessageboxStyle;
+use shin_core::{format::save::PersistData, vm::command::types::MessageboxStyle};
+
+use crate::adv::vm_state::audio::AudioState;
 
 pub struct SaveInfo {
     pub info: [String; 4],

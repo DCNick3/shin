@@ -1,9 +1,12 @@
-use crate::compile::def_map::{DefValue, Name, RegisterName, ResolveKind};
+use shin_core::format::scenario::instruction_elements::Register;
+
 use crate::{
-    compile::{Db, DefMap},
+    compile::{
+        def_map::{DefValue, Name, RegisterName, ResolveKind},
+        Db, DefMap,
+    },
     syntax::ast::{self},
 };
-use shin_core::format::scenario::instruction_elements::Register;
 
 #[derive(Debug, Copy, Clone)]
 enum ResolveContextInner {

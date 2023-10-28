@@ -1,5 +1,6 @@
-use super::prelude::*;
 use std::fmt::{Debug, Formatter};
+
+use super::prelude::*;
 
 pub struct MSGSET {
     #[allow(unused)]

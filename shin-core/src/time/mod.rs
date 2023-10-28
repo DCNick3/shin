@@ -1,16 +1,19 @@
 mod tween;
 mod tweener;
 
+use std::{
+    fmt::{Debug, Display},
+    ops::Div,
+    time::Duration,
+};
+
 use derive_more::{Add, AddAssign, Sub, SubAssign};
 use float_ord::FloatOrd;
-use std::fmt::{Debug, Display};
-use std::ops::Div;
-use std::time::Duration;
 use tracing::warn;
-
-use crate::format::scenario::instruction_elements::FromNumber;
 pub use tween::{Easing, Tween};
 pub use tweener::Tweener;
+
+use crate::format::scenario::instruction_elements::FromNumber;
 
 /// A time value that can be used to store either a duration.
 ///

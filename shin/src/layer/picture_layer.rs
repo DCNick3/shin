@@ -1,11 +1,13 @@
-use crate::asset::picture::Picture;
-use crate::layer::{Layer, LayerProperties};
-use crate::update::{Updatable, UpdateContext};
+use std::{fmt::Debug, sync::Arc};
+
 use glam::Mat4;
-use shin_render::GpuCommonResources;
-use shin_render::Renderable;
-use std::fmt::Debug;
-use std::sync::Arc;
+use shin_render::{GpuCommonResources, Renderable};
+
+use crate::{
+    asset::picture::Picture,
+    layer::{Layer, LayerProperties},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct PictureLayer {
     picture: Arc<Picture>,

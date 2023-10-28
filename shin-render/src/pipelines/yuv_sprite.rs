@@ -1,9 +1,14 @@
-use crate::vertices::{PosColTexVertex, VertexSource};
-use crate::{pipelines, BindGroupLayouts, YuvTextureBindGroup};
+use std::mem;
+
 use bytemuck::{Pod, Zeroable};
 use glam::Mat4;
-use std::mem;
 use wgpu::include_wgsl;
+
+use crate::{
+    pipelines,
+    vertices::{PosColTexVertex, VertexSource},
+    BindGroupLayouts, YuvTextureBindGroup,
+};
 
 #[derive(Pod, Zeroable, Copy, Clone, Debug)]
 #[repr(C)]

@@ -1,5 +1,6 @@
-use super::prelude::*;
 use shin_core::format::scenario::Scenario;
+
+use super::prelude::*;
 
 impl StartableCommand for command::runtime::SGET {
     fn apply_state(&self, _state: &mut VmState) {

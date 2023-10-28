@@ -1,10 +1,14 @@
 //! Contains breakpoint functionality for the VM
 
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc, Weak,
+    },
+};
+
 use crate::format::scenario::instruction_elements::CodeAddress;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, Weak};
 
 pub(crate) struct Breakpoint {
     hit_count: AtomicU32,

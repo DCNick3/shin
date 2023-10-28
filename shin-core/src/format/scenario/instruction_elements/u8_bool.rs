@@ -1,7 +1,8 @@
-use crate::vm::{IntoRuntimeForm, VmCtx};
+use std::{fmt::Debug, io};
+
 use binrw::{BinRead, BinResult, BinWrite, Endian};
-use std::fmt::Debug;
-use std::io;
+
+use crate::vm::{IntoRuntimeForm, VmCtx};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct U8Bool(pub bool);

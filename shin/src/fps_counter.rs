@@ -1,7 +1,9 @@
-use crate::render::overlay::{OverlayCollector, OverlayVisitable};
-use crate::update::{Updatable, UpdateContext};
-use std::collections::VecDeque;
-use std::time::Duration;
+use std::{collections::VecDeque, time::Duration};
+
+use crate::{
+    render::overlay::{OverlayCollector, OverlayVisitable},
+    update::{Updatable, UpdateContext},
+};
 
 const WINDOW_SIZE: usize = 60;
 

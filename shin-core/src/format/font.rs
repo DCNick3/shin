@@ -1,16 +1,19 @@
 //! Support for FNT format, storing bitmap fonts with 4 mip-map levels.
 
-use crate::format::lz77;
+use std::{
+    borrow::Cow,
+    collections::{hash_map::Entry, HashMap},
+    io,
+    io::{Read, Seek, SeekFrom},
+};
+
 use anyhow::anyhow;
 use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
 use glam::{vec2, Vec2};
 use image::GrayImage;
-use std::borrow::Cow;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::io;
-use std::io::{Read, Seek, SeekFrom};
 use strum::EnumIter;
+
+use crate::format::lz77;
 
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little, magic = b"FNT4")]

@@ -4,14 +4,13 @@ mod text;
 mod text_outline;
 mod yuv_sprite;
 
-use crate::bind_groups::BindGroupLayouts;
-use crate::{RAW_TEXTURE_FORMAT, SRGB_TEXTURE_FORMAT};
-
 use fill::FillPipeline;
 use sprite::SpritePipeline;
 use text::TextPipeline;
 use text_outline::TextOutlinePipeline;
 use yuv_sprite::YuvSpritePipeline;
+
+use crate::{bind_groups::BindGroupLayouts, RAW_TEXTURE_FORMAT, SRGB_TEXTURE_FORMAT};
 
 // TODO: make a builder?
 fn make_pipeline(

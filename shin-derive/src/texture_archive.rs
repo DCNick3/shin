@@ -1,9 +1,12 @@
-use crate::sanitization::{LAZY_GPU_TEXTURE, TEXTURE_ARCHIVE, TEXTURE_ARCHIVE_BUILDER};
-use crate::util::parse_attribute;
 use darling::FromMeta;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use synstructure::Structure;
+
+use crate::{
+    sanitization::{LAZY_GPU_TEXTURE, TEXTURE_ARCHIVE, TEXTURE_ARCHIVE_BUILDER},
+    util::parse_attribute,
+};
 
 #[derive(FromMeta)]
 struct TxaFieldMeta {

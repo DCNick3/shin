@@ -1,6 +1,9 @@
-use crate::compile::{MakeWithFile, WithFile};
-use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
 use nonmax::NonMaxU32;
+
+use crate::{
+    compile::{MakeWithFile, WithFile},
+    syntax::ast::visit::{BlockIndex, ItemIndex},
+};
 
 /// BlockId identifies a code block in a file.
 ///

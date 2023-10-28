@@ -1,14 +1,17 @@
 //! Implements the SoundData trait for the Kira audio library.
 
-use crate::handle::AudioHandle;
-use crate::sound::{AudioSound, COMMAND_BUFFER_CAPACITY};
+use std::sync::Arc;
+
 use anyhow::Result;
 use kira::sound::{Sound, SoundData};
 use ringbuf::HeapRb;
 use shin_core::format::audio::{AudioDecoder, AudioFile, AudioFrameSource};
-use std::sync::Arc;
 
 use super::AudioSettings;
+use crate::{
+    handle::AudioHandle,
+    sound::{AudioSound, COMMAND_BUFFER_CAPACITY},
+};
 
 pub struct AudioData<S: AudioFrameSource> {
     pub source: S,

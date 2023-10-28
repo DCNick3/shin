@@ -1,11 +1,17 @@
-use crate::format::scenario::instruction_elements::NumberSpec;
-use crate::vm::{IntoRuntimeForm, VmCtx};
+use std::{
+    fmt,
+    io::{Read, Seek, Write},
+    marker::PhantomData,
+};
+
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use derivative::Derivative;
 use smallvec::SmallVec;
-use std::fmt;
-use std::io::{Read, Seek, Write};
-use std::marker::PhantomData;
+
+use crate::{
+    format::scenario::instruction_elements::NumberSpec,
+    vm::{IntoRuntimeForm, VmCtx},
+};
 
 /// A list of `T` with a length of `L`, stored in a `SmallVec` with size `N`
 #[derive(Clone, PartialEq, Eq)]

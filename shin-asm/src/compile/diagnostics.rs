@@ -1,12 +1,16 @@
-use crate::compile::hir::{HirBlockId, HirId, HirIdWithBlock};
-use crate::compile::{Db, File, MakeWithFile, WithFile};
-use std::collections::hash_map::Entry;
-
-use std::fmt::{Debug, Display};
+use std::{
+    collections::hash_map::Entry,
+    fmt::{Debug, Display},
+};
 
 use ariadne::{Source, Span as _};
 use rustc_hash::FxHashMap;
 use text_size::TextRange;
+
+use crate::compile::{
+    hir::{HirBlockId, HirId, HirIdWithBlock},
+    Db, File, MakeWithFile, WithFile,
+};
 
 /// A text range associated with a file. Fully identifies a span of text in the program. Final form of the diagnostic location
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -139,8 +143,9 @@ macro_rules! make_diagnostic {
         $crate::compile::diagnostics::Diagnostic::new(format!($($fmt),+), $span)
     };
 }
-use crate::compile::hir::collect_file_bodies_with_source_maps;
 pub(crate) use make_diagnostic;
+
+use crate::compile::hir::collect_file_bodies_with_source_maps;
 
 impl Diagnostic<TextRange> {
     pub fn in_file(self, file: File) -> Diagnostic<Span> {

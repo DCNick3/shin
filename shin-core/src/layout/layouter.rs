@@ -1,11 +1,15 @@
-use crate::format::font::{GlyphTrait, LazyFont};
-use crate::layout::parser::{LayouterParser, ParsedCommand};
-use crate::time::Ticks;
-use crate::vm::command::types::MessageTextLayout;
+use std::iter::Peekable;
+
 use float_ord::FloatOrd;
 use glam::{vec2, Vec2, Vec3};
-use std::iter::Peekable;
 use tracing::warn;
+
+use crate::{
+    format::font::{GlyphTrait, LazyFont},
+    layout::parser::{LayouterParser, ParsedCommand},
+    time::Ticks,
+    vm::command::types::MessageTextLayout,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct LayoutedChar {
@@ -564,9 +568,9 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
 
 #[cfg(test)]
 mod tests {
+    use std::{fs::File, io::BufReader};
+
     use super::*;
-    use std::fs::File;
-    use std::io::BufReader;
 
     fn is_sorted<T, F, K>(data: &[T], mut map: F) -> bool
     where

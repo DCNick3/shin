@@ -1,8 +1,12 @@
-use crate::sanitization::RATIONAL;
+use std::{
+    iter::Peekable,
+    str::{Chars, FromStr},
+};
+
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use std::iter::Peekable;
-use std::str::{Chars, FromStr};
+
+use crate::sanitization::RATIONAL;
 
 // this basically copies the impl of FromStr for Rational from shin-core
 // shin-code depends on shin-derive, so we can't use it here

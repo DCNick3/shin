@@ -1,6 +1,6 @@
-use crate::parser::output::Step;
-use crate::parser::{Input, LexedStr, Output, SyntaxKind};
 use std::mem;
+
+use crate::parser::{output::Step, Input, LexedStr, Output, SyntaxKind};
 
 #[derive(Debug)]
 pub enum StrStep<'a> {

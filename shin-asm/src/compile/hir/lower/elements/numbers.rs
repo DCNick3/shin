@@ -1,7 +1,9 @@
-use super::prelude::*;
-use crate::compile::hir::lower::CodeAddressCollector;
-use crate::compile::{constexpr::ConstexprValue, def_map::DefValue};
 use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
+
+use super::prelude::*;
+use crate::compile::{
+    constexpr::ConstexprValue, def_map::DefValue, hir::lower::CodeAddressCollector,
+};
 
 fn try_lit_i32(
     diagnostics: &mut HirDiagnosticCollectorWithBlock,
@@ -101,9 +103,10 @@ impl FromHirExpr for NumberSpec {
 
 #[cfg(test)]
 mod tests {
-    use super::super::check_from_hir_ok;
     use indoc::indoc;
     use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
+
+    use super::super::check_from_hir_ok;
 
     // TODO: test diagnostics
 

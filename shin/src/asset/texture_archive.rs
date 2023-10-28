@@ -1,8 +1,8 @@
-use crate::asset::Asset;
 use anyhow::Result;
+pub use shin_derive::TextureArchive;
 use shin_render::LazyGpuTexture;
 
-pub use shin_derive::TextureArchive;
+use crate::asset::Asset;
 
 // TODO: add strong typing with derive or smth
 

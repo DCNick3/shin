@@ -1,13 +1,17 @@
-use crate::asset::texture_archive::TextureArchive;
-use crate::update::{Updatable, UpdateContext};
-use glam::{vec2, vec3, vec4, Mat4, Vec2};
-use shin_core::vm::command::types::MessageboxType;
-use shin_render::vertices::PosColTexVertex;
-use shin_render::LazyGpuTexture;
-use shin_render::{GpuCommonResources, PosVertexBuffer, Renderable, VertexBuffer};
 use std::sync::Arc;
 
-use crate::layer::message_layer::message::MessageMetrics;
+use glam::{vec2, vec3, vec4, Mat4, Vec2};
+use shin_core::vm::command::types::MessageboxType;
+use shin_render::{
+    vertices::PosColTexVertex, GpuCommonResources, LazyGpuTexture, PosVertexBuffer, Renderable,
+    VertexBuffer,
+};
+
+use crate::{
+    asset::texture_archive::TextureArchive,
+    layer::message_layer::message::MessageMetrics,
+    update::{Updatable, UpdateContext},
+};
 
 #[derive(TextureArchive)]
 pub struct MessageboxTextures {

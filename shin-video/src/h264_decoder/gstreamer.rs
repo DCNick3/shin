@@ -1,11 +1,15 @@
-use crate::h264_decoder::{BitsPerSample, Colorspace, Frame, FrameSize, FrameTiming, PlaneSize};
-use crate::mp4::Mp4TrackReader;
-use crate::mp4_bitstream_converter::Mp4BitstreamConverter;
+use std::io::{Read, Seek};
+
 use anyhow::{bail, Context, Result};
 use gst::prelude::*;
 use once_cell::sync::Lazy;
-use std::io::{Read, Seek};
 use tracing::{debug, error, trace, warn};
+
+use crate::{
+    h264_decoder::{BitsPerSample, Colorspace, Frame, FrameSize, FrameTiming, PlaneSize},
+    mp4::Mp4TrackReader,
+    mp4_bitstream_converter::Mp4BitstreamConverter,
+};
 
 // NOTE: doing this one-time init in a library is bad practice
 // but we want to abstract away the gstreamer dependency, so we do it in hopes no other dep uses GStreamer

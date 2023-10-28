@@ -1,8 +1,11 @@
 use proc_macro2::{Ident, Span};
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::spanned::Spanned;
-use syn::{braced, bracketed, token, LitStr, Token};
+use syn::{
+    braced, bracketed,
+    parse::{Parse, ParseStream},
+    punctuated::Punctuated,
+    spanned::Spanned,
+    token, LitStr, Token,
+};
 
 #[derive(Debug)]
 pub struct SyntaxList {

@@ -1,6 +1,7 @@
+use shin_core::format::scenario::instruction_elements::Register;
+
 use super::prelude::*;
 use crate::compile::hir::lower::CodeAddressCollector;
-use shin_core::format::scenario::instruction_elements::Register;
 
 impl FromHirExpr for Register {
     fn from_hir_expr(
@@ -40,9 +41,9 @@ impl FromHirExpr for Register {
 
 #[cfg(test)]
 mod tests {
-    use super::super::check_from_hir_ok;
-    use super::Register;
     use indoc::indoc;
+
+    use super::{super::check_from_hir_ok, Register};
 
     #[test]
     fn from_hir() {

@@ -1,5 +1,6 @@
-use super::Rational;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+
+use super::Rational;
 
 impl Add for Rational {
     type Output = Rational;

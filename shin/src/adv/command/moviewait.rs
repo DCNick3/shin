@@ -1,7 +1,9 @@
+use std::fmt::Debug;
+
+use shin_core::vm::command::types::LayerId;
+
 use super::prelude::*;
 use crate::layer::UserLayer;
-use shin_core::vm::command::types::LayerId;
-use std::fmt::Debug;
 
 pub struct MOVIEWAIT {
     token: Option<command::token::MOVIEWAIT>,
@@ -47,7 +49,8 @@ impl UpdatableCommand for MOVIEWAIT {
         adv_state: &mut AdvState,
         _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        let UserLayer::MovieLayer(layer) = adv_state.get_layer(vm_state, self.layer_id).unwrap() else {
+        let UserLayer::MovieLayer(layer) = adv_state.get_layer(vm_state, self.layer_id).unwrap()
+        else {
             unreachable!()
         };
         let finished = layer.is_finished();

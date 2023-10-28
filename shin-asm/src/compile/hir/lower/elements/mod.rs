@@ -1,11 +1,15 @@
 mod prelude {
-    pub use crate::compile::{
-        hir,
-        hir::lower::{FromHirExpr, HirDiagnosticCollectorWithBlock},
-        hir::ExprId,
-        HirBlockBody, ResolveContext,
+    pub use crate::{
+        compile::{
+            hir,
+            hir::{
+                lower::{FromHirExpr, HirDiagnosticCollectorWithBlock},
+                ExprId,
+            },
+            HirBlockBody, ResolveContext,
+        },
+        syntax::ast,
     };
-    pub use crate::syntax::ast;
 }
 
 mod code_address;
@@ -19,10 +23,8 @@ fn check_from_hir_ok<T: crate::compile::hir::lower::FromHirExpr + Eq + std::fmt:
 ) {
     use crate::compile::{
         db::Database,
-        def_map::build_def_map,
-        def_map::ResolveKind,
-        hir::lower::test_utils,
-        hir::lower::{CodeAddressCollector, HirDiagnosticCollector},
+        def_map::{build_def_map, ResolveKind},
+        hir::lower::{test_utils, CodeAddressCollector, HirDiagnosticCollector},
         resolve::ResolveContext,
         MakeWithFile, Program,
     };

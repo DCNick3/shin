@@ -1,7 +1,9 @@
-use crate::asset::LayeredAssetIo;
-use anyhow::bail;
 use std::path::{Path, PathBuf};
+
+use anyhow::bail;
 use tracing::{debug, instrument, trace};
+
+use crate::asset::LayeredAssetIo;
 
 #[instrument]
 fn try_assets_directory(path: &Path) -> anyhow::Result<Option<LayeredAssetIo>> {

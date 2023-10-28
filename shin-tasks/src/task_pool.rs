@@ -622,11 +622,12 @@ where
 #[cfg(test)]
 #[allow(clippy::disallowed_types)]
 mod tests {
-    use super::*;
     use std::sync::{
         atomic::{AtomicBool, AtomicI32, Ordering},
         Barrier,
     };
+
+    use super::*;
 
     #[test]
     fn test_spawn() {

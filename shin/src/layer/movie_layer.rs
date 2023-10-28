@@ -1,12 +1,15 @@
-use crate::asset::movie::Movie;
-use crate::layer::{Layer, LayerProperties};
-use crate::update::{Updatable, UpdateContext};
+use std::{fmt::Debug, sync::Arc};
+
 use glam::Mat4;
 use shin_audio::AudioManager;
 use shin_render::{GpuCommonResources, RenderTarget, Renderable};
 use shin_video::VideoPlayer;
-use std::fmt::Debug;
-use std::sync::Arc;
+
+use crate::{
+    asset::movie::Movie,
+    layer::{Layer, LayerProperties},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct MovieLayer {
     props: LayerProperties,

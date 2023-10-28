@@ -1,9 +1,13 @@
-use crate::sound::{Command, Shared};
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use ringbuf::HeapProducer;
-use shin_core::time::{Ticks, Tween};
-use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
-use std::sync::Arc;
+use shin_core::{
+    time::{Ticks, Tween},
+    vm::command::types::{AudioWaitStatus, Pan, Volume},
+};
+
+use crate::sound::{Command, Shared};
 
 pub struct AudioHandle {
     pub(super) command_producer: HeapProducer<Command>,

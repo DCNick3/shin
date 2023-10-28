@@ -1,13 +1,17 @@
+use proc_macro2::{Span, TokenStream, TokenTree};
+use quote::{quote, quote_spanned};
+use syn::{
+    parse::{Parse, ParseStream},
+    parse_quote,
+    punctuated::Punctuated,
+    spanned::Spanned,
+    Meta, Token,
+};
+use synstructure::{BindingInfo, Structure, VariantInfo};
+
 use crate::sanitization::{
     AST_NODE, AST_SPANNED, AST_TOKEN, SYNTAX_KIND, SYNTAX_NODE, SYNTAX_TOKEN, TEXT_RANGE,
 };
-use proc_macro2::{Span, TokenStream, TokenTree};
-use quote::{quote, quote_spanned};
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::spanned::Spanned;
-use syn::{parse_quote, Meta, Token};
-use synstructure::{BindingInfo, Structure, VariantInfo};
 
 #[derive(Debug, Copy, Clone)]
 pub enum AstKind {

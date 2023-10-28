@@ -3,20 +3,31 @@ pub mod lower;
 #[cfg(test)]
 mod tests;
 
-use crate::compile::{BlockId, Db, File, MakeWithFile, WithFile};
-use crate::syntax::{ast, ptr::AstPtr, AstSpanned};
-use from_ast::HirBlockCollector;
 use std::rc::Rc;
 
-use crate::compile::def_map::Name;
-use crate::compile::diagnostics::{Diagnostic, HirLocation};
-use crate::syntax::ast::visit;
-use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
+use from_ast::HirBlockCollector;
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
 use shin_core::rational::Rational;
 use smol_str::SmolStr;
 use text_size::TextRange;
+
+use crate::{
+    compile::{
+        def_map::Name,
+        diagnostics::{Diagnostic, HirLocation},
+        BlockId, Db, File, MakeWithFile, WithFile,
+    },
+    syntax::{
+        ast,
+        ast::{
+            visit,
+            visit::{BlockIndex, ItemIndex},
+        },
+        ptr::AstPtr,
+        AstSpanned,
+    },
+};
 
 pub type ExprId = Idx<Expr>;
 pub type ExprIdInFile = WithFile<ExprId>;

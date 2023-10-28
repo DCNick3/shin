@@ -3,15 +3,15 @@
 mod expr;
 mod items;
 
+pub use expr::*;
+pub use items::*;
+
 use super::tokens::*;
 use crate::syntax::{
     ast::{support, AstChildren, AstNode, AstSpanned, AstToken},
     SyntaxKind::*,
     SyntaxNode, SyntaxToken, T,
 };
-
-pub use expr::*;
-pub use items::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 #[ast(kind = SOURCE_FILE)]

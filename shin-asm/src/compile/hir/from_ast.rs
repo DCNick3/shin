@@ -1,16 +1,16 @@
-use super::{
-    BlockSourceMap, Expr, ExprId, ExprPtr, HirBlockBody, Instruction, InstructionId,
-    InstructionPtr, Literal,
-};
-use crate::syntax::{ast, AstToken};
-
-use crate::compile::def_map::Name;
-use crate::compile::diagnostics::Diagnostic;
-use crate::syntax::ast::AstNodeExt;
 use la_arena::Arena;
 use rustc_hash::FxHashMap;
 use shin_core::rational::Rational;
 use text_size::TextRange;
+
+use super::{
+    BlockSourceMap, Expr, ExprId, ExprPtr, HirBlockBody, Instruction, InstructionId,
+    InstructionPtr, Literal,
+};
+use crate::{
+    compile::{def_map::Name, diagnostics::Diagnostic},
+    syntax::{ast, ast::AstNodeExt, AstToken},
+};
 
 pub struct HirBlockCollector {
     diagnostics: Vec<Diagnostic<TextRange>>,

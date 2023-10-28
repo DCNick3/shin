@@ -1,10 +1,14 @@
-use crate::mp4::Mp4TrackReader;
+use std::io::{Read, Seek};
+
 use anyhow::Context;
 use shin_core::format::audio::{AudioBuffer, AudioFrameSource};
-use std::io::{Read, Seek};
-use symphonia::core::audio::{AudioBufferRef, Signal};
-use symphonia::core::codecs::{CodecParameters, Decoder, DecoderOptions, CODEC_TYPE_AAC};
-use symphonia::core::formats::Packet;
+use symphonia::core::{
+    audio::{AudioBufferRef, Signal},
+    codecs::{CodecParameters, Decoder, DecoderOptions, CODEC_TYPE_AAC},
+    formats::Packet,
+};
+
+use crate::mp4::Mp4TrackReader;
 
 pub struct AacFrameSource<S: Read + Seek> {
     track: Mp4TrackReader<S>,

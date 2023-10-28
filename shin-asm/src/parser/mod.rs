@@ -12,16 +12,14 @@ mod token_set;
 #[cfg(test)]
 mod tests;
 
+pub use input::Input;
 pub use lex::LexedStr;
+pub use output::Output;
+use output::Step;
+pub use shortcuts::StrStep;
 pub use syntax_kind::SyntaxKind;
 pub(crate) use syntax_kind::T;
 pub(crate) use token_set::TokenSet;
-
-pub use input::Input;
-pub use output::Output;
-pub use shortcuts::StrStep;
-
-use output::Step;
 
 pub fn parse(input: &Input) -> Output {
     let mut p = parser::Parser::new(input);

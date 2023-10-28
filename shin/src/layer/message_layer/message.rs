@@ -1,17 +1,22 @@
-use crate::layer::message_layer::font_atlas::FontAtlas;
-use crate::render::dynamic_atlas::AtlasImage;
-use crate::update::{Updatable, UpdateContext};
-use glam::{vec2, Mat4, Vec2};
-use shin_core::format::font::GlyphTrait;
-use shin_core::layout::{
-    Action, ActionType, Block, BlockExitCondition, LayoutedChar, LayoutedMessage, LayoutingMode,
-};
-use shin_core::time::Ticks;
-use shin_core::vm::command::types::MessageTextLayout;
-use shin_render::vertices::TextVertex;
-use shin_render::{GpuCommonResources, Renderable, VertexBuffer};
 use std::sync::Arc;
+
+use glam::{vec2, Mat4, Vec2};
+use shin_core::{
+    format::font::GlyphTrait,
+    layout::{
+        Action, ActionType, Block, BlockExitCondition, LayoutedChar, LayoutedMessage, LayoutingMode,
+    },
+    time::Ticks,
+    vm::command::types::MessageTextLayout,
+};
+use shin_render::{vertices::TextVertex, GpuCommonResources, Renderable, VertexBuffer};
 use tracing::warn;
+
+use crate::{
+    layer::message_layer::font_atlas::FontAtlas,
+    render::dynamic_atlas::AtlasImage,
+    update::{Updatable, UpdateContext},
+};
 
 /// Calculated global metrics for a message. Used to adjust the sizes of individual parts of
 /// the message box, such that it fits the character name and the entire height of the message

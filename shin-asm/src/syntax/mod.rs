@@ -6,8 +6,12 @@ pub mod ast;
 pub mod parsing;
 pub mod ptr;
 
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
+
+pub use rowan::{
+    api::Preorder, Direction, GreenNode, NodeOrToken, SyntaxText, TextRange, TextSize,
+    TokenAtOffset, WalkEvent,
+};
 
 pub use self::{
     ast::{AstNode, AstSpanned, AstToken, SourceFile},
@@ -20,10 +24,6 @@ pub use self::{
     // token_text::TokenText,
 };
 use crate::parser::{SyntaxKind, T};
-pub use rowan::{
-    api::Preorder, Direction, GreenNode, NodeOrToken, SyntaxText, TextRange, TextSize,
-    TokenAtOffset, WalkEvent,
-};
 // pub use smol_str::SmolStr;
 
 /// `Parse` is the result of the parsing: a syntax tree and a collection of

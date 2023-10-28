@@ -1,9 +1,10 @@
 mod prng;
 
+use std::f32::consts::PI;
+
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use shin_core::time::Ticks;
-use std::f32::consts::PI;
 use tracing::warn;
 
 #[derive(FromPrimitive, Debug, Copy, Clone, PartialEq, Eq, Hash)]

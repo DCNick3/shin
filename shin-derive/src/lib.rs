@@ -10,14 +10,16 @@ mod texture_archive;
 mod util;
 mod vertex;
 
-use crate::ast::{impl_ast, AstKind};
-use crate::command::impl_command;
-use crate::syntax_kind::impl_syntax_kind;
-use crate::syntax_kind::SyntaxKindInput;
-use crate::texture_archive::impl_texture_archive;
-use crate::vertex::impl_vertex;
 use proc_macro::TokenStream;
 use synstructure::macros::DeriveInput;
+
+use crate::{
+    ast::{impl_ast, AstKind},
+    command::impl_command,
+    syntax_kind::{impl_syntax_kind, SyntaxKindInput},
+    texture_archive::impl_texture_archive,
+    vertex::impl_vertex,
+};
 
 /// This is a very cursed macro used to generate types for runtime and compile-time representations of VM commands.
 ///

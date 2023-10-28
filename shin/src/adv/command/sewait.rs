@@ -1,6 +1,8 @@
-use super::prelude::*;
-use shin_core::vm::command::types::AudioWaitStatus;
 use std::fmt::{Debug, Formatter};
+
+use shin_core::vm::command::types::AudioWaitStatus;
+
+use super::prelude::*;
 
 pub struct SEWAIT {
     token: Option<command::token::SEWAIT>,

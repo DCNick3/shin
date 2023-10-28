@@ -1,10 +1,16 @@
-use crate::format::text;
-use crate::vm::{IntoRuntimeForm, VmCtx};
+use std::{
+    fmt::Debug,
+    io::{Read, Seek, SeekFrom, Write},
+    marker::PhantomData,
+};
+
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use smallvec::SmallVec;
-use std::fmt::Debug;
-use std::io::{Read, Seek, SeekFrom, Write};
-use std::marker::PhantomData;
+
+use crate::{
+    format::text,
+    vm::{IntoRuntimeForm, VmCtx},
+};
 
 pub trait StringFixup {
     fn encode(string: String) -> String;

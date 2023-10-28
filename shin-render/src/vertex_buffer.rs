@@ -1,8 +1,12 @@
-use crate::vertices::{PosColTexVertex, PosVertex, TextVertex, VertexSource};
-use crate::{GpuCommonResources, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
-use glam::{vec2, vec3, vec4, Vec4};
 use std::sync::atomic::{AtomicU32, Ordering};
+
+use glam::{vec2, vec3, vec4, Vec4};
 use wgpu::util::DeviceExt;
+
+use crate::{
+    vertices::{PosColTexVertex, PosVertex, TextVertex, VertexSource},
+    GpuCommonResources, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
+};
 
 pub trait Vertex: bytemuck::Pod + bytemuck::Zeroable {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;

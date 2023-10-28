@@ -1,6 +1,9 @@
+use std::{
+    iter::Peekable,
+    str::{Chars, FromStr},
+};
+
 use super::{Rational, Sign};
-use std::iter::Peekable;
-use std::str::{Chars, FromStr};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DecimalParseError {

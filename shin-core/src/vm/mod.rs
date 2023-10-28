@@ -23,18 +23,22 @@ pub mod breakpoint;
 pub mod command;
 mod ctx;
 
-pub use ctx::*;
-
-use crate::format::scenario::instruction_elements::CodeAddress;
-use crate::format::scenario::instructions::{
-    BinaryOperation, Instruction, UnaryOperation, UnaryOperationType,
-};
-use crate::format::scenario::{InstructionReader, Scenario};
-use crate::vm::breakpoint::{BreakpointHandle, CodeBreakpointSet};
-use crate::vm::command::{CommandResult, RuntimeCommand};
 use anyhow::Result;
+pub use ctx::*;
 use smallvec::SmallVec;
 use tracing::{instrument, trace};
+
+use crate::{
+    format::scenario::{
+        instruction_elements::CodeAddress,
+        instructions::{BinaryOperation, Instruction, UnaryOperation, UnaryOperationType},
+        InstructionReader, Scenario,
+    },
+    vm::{
+        breakpoint::{BreakpointHandle, CodeBreakpointSet},
+        command::{CommandResult, RuntimeCommand},
+    },
+};
 
 // TODO: add a listener trait that can be used to get notified of commands
 /// The scripter reads scenarios and issues commands.

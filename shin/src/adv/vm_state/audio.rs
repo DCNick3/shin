@@ -1,5 +1,6 @@
-use crate::audio::SE_SLOT_COUNT;
 use shin_core::vm::command::types::{Pan, Volume};
+
+use crate::audio::SE_SLOT_COUNT;
 
 #[derive(Debug, Copy, Clone)]
 pub struct BgmState {

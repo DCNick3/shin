@@ -1,8 +1,9 @@
+use std::borrow::Cow;
+
 use binrw::BinRead;
 use derive_more::Add;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::borrow::Cow;
 
 static BUFFER_FLOAT_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"[a-zA-Z_]\[(\d+)]\s*=\s*([0-9.\-]+);").unwrap());

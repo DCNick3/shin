@@ -1,13 +1,10 @@
-use crate::asset::AnyAssetServer;
-use crate::input::RawInputState;
+use std::{sync::Arc, time::Duration};
+
 use enum_dispatch::enum_dispatch;
 use shin_core::time::Ticks;
-use std::sync::Arc;
-use std::time::Duration;
-
-use crate::layer::UserLayer;
-use crate::time::Time;
 use shin_render::GpuCommonResources;
+
+use crate::{asset::AnyAssetServer, input::RawInputState, layer::UserLayer, time::Time};
 
 pub struct UpdateContext<'a> {
     pub time: &'a Time,

@@ -1,9 +1,9 @@
-use crate::asset::Asset;
 use anyhow::Result;
 use glam::vec2;
 use shin_core::format::picture::SimpleMergedPicture;
-use shin_render::GpuCommonResources;
-use shin_render::{GpuImage, LazyGpuImage};
+use shin_render::{GpuCommonResources, GpuImage, LazyGpuImage};
+
+use crate::asset::Asset;
 
 /// A Picture, uploaded to GPU on demand (because doing it in the asset loading context is awkward)
 pub struct Picture {

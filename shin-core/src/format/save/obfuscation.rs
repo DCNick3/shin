@@ -1,8 +1,9 @@
 //! Implements "crypto" used by savefiles
 //! (it's just a bunch of XORs, actually)
 
-use super::crc32::crc32;
 use anyhow::{bail, Result};
+
+use super::crc32::crc32;
 
 fn chunks_transform(data: &mut [u8], key: u32, transform: impl Fn(&mut [u8; 4], &mut u32)) {
     let mut current_key = key;

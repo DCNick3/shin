@@ -1,10 +1,11 @@
 //! Support for decoding TXA texture archives.
 
+use std::collections::HashMap;
+
 use anyhow::Result;
 use binrw::{BinRead, BinWrite};
 use image::RgbaImage;
 use shin_tasks::ParallelSlice;
-use std::collections::HashMap;
 
 use crate::format::text::ZeroString;
 

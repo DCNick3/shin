@@ -1,8 +1,8 @@
 //! Encoding and decoding of Shift-JIS variant used by the shin engine.
 
+use std::{collections::HashMap, io};
+
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
-use std::io;
 
 mod string;
 

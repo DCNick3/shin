@@ -1,7 +1,9 @@
-use crate::asset::Asset;
+use std::io::Cursor;
+
 use anyhow::Context;
 use shin_core::format::font::{read_lazy_font, LazyFont};
-use std::io::Cursor;
+
+use crate::asset::Asset;
 
 impl Asset for LazyFont {
     fn load_from_bytes(data: Vec<u8>) -> anyhow::Result<Self> {

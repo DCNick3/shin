@@ -1,10 +1,7 @@
-use futures_lite::io::BufReader;
-use futures_lite::{AsyncBufReadExt, AsyncRead, AsyncReadExt};
+use std::{fmt, io, num, str};
+
+use futures_lite::{io::BufReader, AsyncBufReadExt, AsyncRead, AsyncReadExt};
 use num_integer::Integer;
-use std::fmt;
-use std::io;
-use std::num;
-use std::str;
 
 const FILE_MAGICK: &[u8] = b"YUV4MPEG2 ";
 const FRAME_MAGICK: &[u8] = b"FRAME";

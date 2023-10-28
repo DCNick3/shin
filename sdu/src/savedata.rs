@@ -1,7 +1,7 @@
+use std::{fs::File, path::PathBuf};
+
 use anyhow::{Context, Result};
 use shin_core::format::save::Savedata;
-use std::fs::File;
-use std::path::PathBuf;
 
 #[derive(clap::Subcommand, Debug)]
 pub enum SavedataCommand {

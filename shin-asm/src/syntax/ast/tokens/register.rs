@@ -1,10 +1,9 @@
-use crate::compile::diagnostics::make_diagnostic;
-use crate::compile::diagnostics::Diagnostic;
 use shin_core::format::scenario::instruction_elements::Register;
 use smol_str::SmolStr;
 use text_size::TextRange;
 
 use super::*;
+use crate::compile::diagnostics::{make_diagnostic, Diagnostic};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum RegisterIdentKind {
@@ -31,9 +30,11 @@ impl RegisterIdent {
 }
 
 mod parse {
-    use crate::syntax::ast::RegisterIdentKind;
-    use shin_core::format::scenario::instruction_elements::Register;
     use std::num::IntErrorKind;
+
+    use shin_core::format::scenario::instruction_elements::Register;
+
+    use crate::syntax::ast::RegisterIdentKind;
 
     fn try_parse_predefined_register(reg_str: &str) -> Result<Option<RegisterIdentKind>, String> {
         let mut chars = reg_str.chars();

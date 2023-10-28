@@ -1,6 +1,6 @@
-use kira::manager::AudioManagerSettings;
-use kira::sound::SoundData;
 use std::sync::Mutex;
+
+use kira::{manager::AudioManagerSettings, sound::SoundData};
 
 type Backend = kira::manager::backend::cpal::CpalBackend;
 

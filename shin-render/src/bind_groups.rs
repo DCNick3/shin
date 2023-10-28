@@ -1,5 +1,6 @@
-use crate::common_resources::GpuCommonResources;
 use std::ops::Deref;
+
+use crate::common_resources::GpuCommonResources;
 
 pub struct BindGroupLayouts {
     pub texture: wgpu::BindGroupLayout,

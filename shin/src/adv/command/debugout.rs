@@ -1,7 +1,9 @@
-use super::prelude::*;
-use itertools::Itertools;
 use std::fmt::Write;
+
+use itertools::Itertools;
 use tracing::debug;
+
+use super::prelude::*;
 
 fn format(format: &str, arguments: &[i32]) -> String {
     let mut result = String::new();

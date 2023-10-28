@@ -1,7 +1,9 @@
+use std::fmt::{Debug, Formatter};
+
+use tracing::debug;
+
 use super::prelude::*;
 use crate::update::UpdateContext;
-use std::fmt::{Debug, Formatter};
-use tracing::debug;
 
 pub struct WAIT {
     token: Option<command::token::WAIT>,

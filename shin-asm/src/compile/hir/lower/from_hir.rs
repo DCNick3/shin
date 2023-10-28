@@ -1,10 +1,10 @@
-use crate::compile::diagnostics::HirLocation;
-use crate::compile::hir::{HirBlockId, HirDiagnostic, HirId, HirIdWithBlock};
+use shin_core::format::scenario::instruction_elements::CodeAddress;
+
 use crate::compile::{
-    hir::{self, HirBlockBody},
+    diagnostics::HirLocation,
+    hir::{self, HirBlockBody, HirBlockId, HirDiagnostic, HirId, HirIdWithBlock},
     resolve, BlockIdWithFile, File, MakeWithFile,
 };
-use shin_core::format::scenario::instruction_elements::CodeAddress;
 
 #[derive(Default, Debug)]
 pub struct HirDiagnosticCollector {

@@ -1,10 +1,15 @@
-use crate::vertices::{TextVertex, VertexSource};
-use crate::{pipelines, BindGroupLayouts, TextureBindGroup};
+use std::mem;
+
 use bytemuck::{Pod, Zeroable};
 use glam::Mat4;
 use shin_core::time::Ticks;
-use std::mem;
 use wgpu::include_wgsl;
+
+use crate::{
+    pipelines,
+    vertices::{TextVertex, VertexSource},
+    BindGroupLayouts, TextureBindGroup,
+};
 
 #[derive(Pod, Zeroable, Copy, Clone, Debug)]
 #[repr(C)]

@@ -46,8 +46,9 @@ const CRC32_TABLE: [u32; 256] = [
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rand::{Rng, RngCore, SeedableRng};
+
+    use super::*;
 
     fn test_crc32(data: &[u8], expected_value: u32) {
         let result = crc32(data, 0);

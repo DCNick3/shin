@@ -1,5 +1,6 @@
-use crate::time::Ticks;
 use std::f32::consts::PI;
+
+use crate::time::Ticks;
 
 /// Curves the motion of a [`Tween`].
 #[derive(Debug, Clone, Copy, PartialEq)]

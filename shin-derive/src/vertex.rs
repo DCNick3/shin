@@ -1,7 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::spanned::Spanned;
-use syn::Data;
+use syn::{spanned::Spanned, Data};
 use synstructure::Structure;
 
 // TODO: implement vertex macro

@@ -8,11 +8,14 @@
 //!
 //! Apart from the asset tables, there are also a few other data blocks for various game-specific features, such as the Picture Box (`cgmode`) and Music Box (`bgmmode`), or Umineko's character relationship grid (`chars`). These may be somewhat more freeform in structure than the simple tables listed above, and their corresponding entry structs often also contain IDs linking to other data tables, as explained above.
 
-use crate::format::scenario::types::{U16SmallList, U8SmallList};
-use crate::format::text::U16String;
-use binrw::file_ptr::FilePtrArgs;
-use binrw::{BinRead, BinResult, BinWrite, Endian, FilePtr32};
 use std::io::{Read, Seek};
+
+use binrw::{file_ptr::FilePtrArgs, BinRead, BinResult, BinWrite, Endian, FilePtr32};
+
+use crate::format::{
+    scenario::types::{U16SmallList, U8SmallList},
+    text::U16String,
+};
 
 /// References a mask, a black and white image specifying a transition between two screens.
 ///

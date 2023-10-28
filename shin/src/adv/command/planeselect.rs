@@ -1,5 +1,6 @@
-use super::prelude::*;
 use shin_core::vm::command::types::PLANES_COUNT;
+
+use super::prelude::*;
 
 impl StartableCommand for command::runtime::PLANESELECT {
     fn apply_state(&self, state: &mut VmState) {

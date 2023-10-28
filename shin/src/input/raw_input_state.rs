@@ -1,12 +1,18 @@
-use crate::input::action::UserInput;
-use crate::input::inputs::{KeyCode, MouseButton};
-use crate::render::overlay::OverlayVisitable;
+use std::fmt::Display;
+
 use enum_map::{enum_map, EnumMap};
 use glam::{vec2, Vec2};
 use itertools::Itertools;
 use petitset::PetitSet;
-use std::fmt::Display;
 use winit::event::{ElementState, WindowEvent};
+
+use crate::{
+    input::{
+        action::UserInput,
+        inputs::{KeyCode, MouseButton},
+    },
+    render::overlay::OverlayVisitable,
+};
 
 #[derive(Clone)]
 pub struct RawInputState {

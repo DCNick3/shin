@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
 use shin_audio::{AudioData, AudioFile, AudioHandle, AudioManager, AudioSettings};
-use shin_core::time::Tween;
-use shin_core::vm::command::types::{AudioWaitStatus, Pan, Volume};
-use std::sync::Arc;
+use shin_core::{
+    time::Tween,
+    vm::command::types::{AudioWaitStatus, Pan, Volume},
+};
 use tracing::warn;
 
 pub const SE_SLOT_COUNT: usize = 32;

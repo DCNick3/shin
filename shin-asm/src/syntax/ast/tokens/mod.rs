@@ -1,11 +1,11 @@
 mod register;
 
+pub use register::*;
+
 use crate::syntax::{
     ast::{AstSpanned, AstToken, SyntaxToken},
     SyntaxKind::*,
 };
-
-pub use register::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstToken)]
 #[ast(kind = IDENT)]

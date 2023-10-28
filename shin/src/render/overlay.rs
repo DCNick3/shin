@@ -1,18 +1,18 @@
-use crate::input::actions::OverlayManagerAction;
-use crate::input::inputs::MouseButton;
-use crate::input::{ActionState, RawInputState};
-use crate::time::Time;
+use std::cell::RefCell;
+
 use bevy_utils::HashMap;
-use egui::style::WidgetVisuals;
 use egui::{
-    ClippedPrimitive, CollapsingHeader, Color32, Context, FontFamily, FontId, InnerResponse, Pos2,
-    Rect, Rounding, Stroke, TextureId, Ui,
+    style::WidgetVisuals, ClippedPrimitive, CollapsingHeader, Color32, Context, FontFamily, FontId,
+    InnerResponse, Pos2, Rect, Rounding, Stroke, TextureId, Ui,
 };
-use egui_wgpu::renderer::ScreenDescriptor;
-use egui_wgpu::Renderer;
+use egui_wgpu::{renderer::ScreenDescriptor, Renderer};
 use glam::vec2;
 use shin_render::GpuCommonResources;
-use std::cell::RefCell;
+
+use crate::{
+    input::{actions::OverlayManagerAction, inputs::MouseButton, ActionState, RawInputState},
+    time::Time,
+};
 
 pub struct OverlayManager {
     show_overlays_window: bool,

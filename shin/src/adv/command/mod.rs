@@ -1,18 +1,27 @@
 #![allow(clippy::upper_case_acronyms)]
 
 mod prelude {
-    pub use crate::adv::{AdvState, CommandStartResult, VmState};
-    pub use crate::adv::{StartableCommand, UpdatableCommand};
-    pub use crate::layer::Layer;
-    pub use crate::update::UpdateContext;
-    pub use shin_core::format::scenario::Scenario;
-    pub use shin_core::time::Ticks;
-    pub use shin_core::vm::command;
-    pub use shin_core::vm::command::types::{VLayerId, VLayerIdRepr};
-    pub use shin_core::vm::command::CommandResult;
     pub use std::sync::Arc;
+
+    pub use shin_core::{
+        format::scenario::Scenario,
+        time::Ticks,
+        vm::{
+            command,
+            command::{
+                types::{VLayerId, VLayerIdRepr},
+                CommandResult,
+            },
+        },
+    };
     pub use tracing::warn;
     pub use CommandStartResult::Yield;
+
+    pub use crate::{
+        adv::{AdvState, CommandStartResult, StartableCommand, UpdatableCommand, VmState},
+        layer::Layer,
+        update::UpdateContext,
+    };
 }
 
 mod autosave;
@@ -56,23 +65,26 @@ mod voiceplay;
 mod wait;
 mod wipe;
 
+use std::sync::Arc;
+
+use derivative::Derivative;
+use enum_dispatch::enum_dispatch;
 use layerload::LAYERLOAD;
 use layerwait::LAYERWAIT;
 use moviewait::MOVIEWAIT;
 use msgset::MSGSET;
 use msgwait::MSGWAIT;
 use sewait::SEWAIT;
+use shin_core::{
+    format::scenario::Scenario,
+    vm::command::{CommandResult, RuntimeCommand},
+};
 use wait::WAIT;
 
-use derivative::Derivative;
-use enum_dispatch::enum_dispatch;
-use shin_core::format::scenario::Scenario;
-use std::sync::Arc;
-
-use shin_core::vm::command::{CommandResult, RuntimeCommand};
-
-use crate::adv::{AdvState, VmState};
-use crate::update::UpdateContext;
+use crate::{
+    adv::{AdvState, VmState},
+    update::UpdateContext,
+};
 
 #[enum_dispatch]
 pub trait UpdatableCommand {

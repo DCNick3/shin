@@ -1,11 +1,13 @@
+use std::cell::Cell;
+
+use drop_bomb::DropBomb;
+
 use crate::parser::{
     event::Event,
     input::Input,
     token_set::TokenSet,
     SyntaxKind::{self, *},
 };
-use drop_bomb::DropBomb;
-use std::cell::Cell;
 
 /// `Parser` struct provides the low-level API for
 /// navigating through the stream of tokens and

@@ -2,16 +2,21 @@
 
 pub mod types;
 
-use crate::format::scenario::instruction_elements::{
-    BitmaskNumberArray, MessageId, NumberSpec, Register, U8Bool,
-};
-use crate::format::scenario::types::U8SmallNumberList;
-use crate::format::text::{StringArray, U16FixupString, U16String};
-use crate::time::Ticks;
 use shin_derive::Command;
 use types::{
     AudioWaitStatus, LayerCtrlFlags, LayerId, LayerProperty, LayerType, MaskFlags, MessageboxStyle,
     Pan, VLayerId, Volume,
+};
+
+use crate::{
+    format::{
+        scenario::{
+            instruction_elements::{BitmaskNumberArray, MessageId, NumberSpec, Register, U8Bool},
+            types::U8SmallNumberList,
+        },
+        text::{StringArray, U16FixupString, U16String},
+    },
+    time::Ticks,
 };
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]

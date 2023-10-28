@@ -1,10 +1,12 @@
-use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
-use shin_core::time::Tween;
-use shin_core::vm::command::types::{Pan, Volume};
 use std::sync::Arc;
-use tracing::warn;
 
+use kira::track::{TrackBuilder, TrackHandle, TrackId, TrackRoutes};
 use shin_audio::{AudioData, AudioFile, AudioHandle, AudioManager, AudioSettings};
+use shin_core::{
+    time::Tween,
+    vm::command::types::{Pan, Volume},
+};
+use tracing::warn;
 
 pub struct BgmPlayer {
     audio_manager: Arc<AudioManager>,

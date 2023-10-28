@@ -1,8 +1,10 @@
-use super::prelude::*;
-use crate::layer::UserLayer;
+use std::fmt::{Debug, Formatter};
+
 use pollster::FutureExt;
 use shin_tasks::{AsyncComputeTaskPool, Task};
-use std::fmt::{Debug, Formatter};
+
+use super::prelude::*;
+use crate::layer::UserLayer;
 
 pub struct LAYERLOAD {
     token: Option<command::token::LAYERLOAD>,

@@ -1,5 +1,6 @@
-use crate::compile::file::File;
 use either::Either;
+
+use crate::compile::file::File;
 
 /// `WithFile<T>` stores a value of `T` associated with a particular [`File`].
 ///

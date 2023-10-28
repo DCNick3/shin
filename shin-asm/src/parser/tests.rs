@@ -1,7 +1,10 @@
+use std::{
+    fmt::Write,
+    fs,
+    path::{Path, PathBuf},
+};
+
 use expect_test::expect_file;
-use std::fmt::Write;
-use std::fs;
-use std::path::{Path, PathBuf};
 use test_generator::test_resources;
 
 use crate::parser::{shortcuts::StrStep, LexedStr};

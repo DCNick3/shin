@@ -1,13 +1,14 @@
-use crate::adv::LayerSelection;
 use bevy_utils::hashbrown::HashMap;
 use glam::Mat4;
 use itertools::Itertools;
 use shin_core::vm::command::types::LayerId;
+use shin_render::{GpuCommonResources, RenderTarget, Renderable};
 
-use crate::layer::{Layer, LayerProperties, UserLayer};
-use crate::update::{Updatable, UpdateContext};
-use shin_render::GpuCommonResources;
-use shin_render::{RenderTarget, Renderable};
+use crate::{
+    adv::LayerSelection,
+    layer::{Layer, LayerProperties, UserLayer},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct LayerGroup {
     layers: HashMap<LayerId, UserLayer>,

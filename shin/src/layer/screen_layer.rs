@@ -1,8 +1,10 @@
-use crate::layer::page_layer::PageLayer;
-use crate::layer::{Layer, LayerProperties};
-use crate::update::{Updatable, UpdateContext};
 use glam::Mat4;
 use shin_render::{GpuCommonResources, RenderTarget, Renderable};
+
+use crate::{
+    layer::{page_layer::PageLayer, Layer, LayerProperties},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct ScreenLayer {
     page_layer: PageLayer,

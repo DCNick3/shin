@@ -2,18 +2,18 @@ mod collect;
 mod items;
 mod registers;
 
+use std::{borrow::Cow, fmt::Display};
+
 pub use items::{DefValue, ResolvedItems};
 pub use registers::{LocalRegisters, ResolvedGlobalRegisters};
-use std::borrow::Cow;
+use rustc_hash::FxHashMap;
+use shin_core::format::scenario::instruction_elements::Register;
+use smol_str::SmolStr;
 
 use crate::{
     compile::{BlockIdRepr, BlockIdWithFile, Db, MakeWithFile, Program, WithFile},
     syntax::ast::visit::ItemIndex,
 };
-use rustc_hash::FxHashMap;
-use shin_core::format::scenario::instruction_elements::Register;
-use smol_str::SmolStr;
-use std::fmt::Display;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Ord, PartialOrd)]
 pub struct Name(pub SmolStr);
@@ -189,10 +189,14 @@ pub fn build_def_map(db: &dyn Db, program: Program) -> DefMap {
 
 #[cfg(test)]
 mod tests {
-    use super::build_def_map;
-    use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
-    use crate::compile::{db::Database, DefMap, File, Program};
     use expect_test::expect;
+
+    use super::build_def_map;
+    use crate::compile::{
+        db::Database,
+        diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator},
+        DefMap, File, Program,
+    };
 
     fn parse_def_map(code: &str) -> (Database, DefMap, Option<String>) {
         let db = Database::default();

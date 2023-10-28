@@ -1,8 +1,9 @@
-use crate::asset::Asset;
 use anyhow::{Context, Result};
 use bevy_utils::HashMap;
 use glam::{vec2, Vec2};
 use shin_render::{GpuCommonResources, GpuImage, LazyGpuImage};
+
+use crate::asset::Asset;
 
 struct BustupExpression {
     face_picture: Option<LazyGpuImage>,

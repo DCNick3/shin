@@ -1,9 +1,12 @@
-use crate::compile::hir::lower::LoweredBlock;
-use crate::compile::types::SalsaBlockIdWithFile;
-use crate::compile::{hir, BlockId, Db, DefMap, File, MakeWithFile};
+use std::rc::Rc;
+
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
-use std::rc::Rc;
+
+use crate::compile::{
+    hir, hir::lower::LoweredBlock, types::SalsaBlockIdWithFile, BlockId, Db, DefMap, File,
+    MakeWithFile,
+};
 
 #[salsa::tracked]
 pub struct LoweredFile {
@@ -46,16 +49,20 @@ pub fn lower_file(db: &dyn Db, def_map: DefMap, file: File) -> LoweredFile {
 
 #[cfg(test)]
 mod tests {
-    use crate::compile::def_map::build_def_map;
-    use crate::compile::diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator};
-    use crate::compile::hir::lower::test_utils;
-    use crate::compile::{File, Program};
     use expect_test::{expect, Expect};
     use indoc::indoc;
 
+    use crate::compile::{
+        def_map::build_def_map,
+        diagnostics::{HirDiagnosticAccumulator, SourceDiagnosticAccumulator},
+        hir::lower::test_utils,
+        File, Program,
+    };
+
     fn check_from_hir(source: &str, expected: Expect) {
-        use crate::compile::db::Database;
         use std::fmt::Write;
+
+        use crate::compile::db::Database;
 
         let db = Database::default();
         let db = &db;

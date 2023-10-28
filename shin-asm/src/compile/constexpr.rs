@@ -1,11 +1,16 @@
-use crate::compile::def_map::Name;
-use crate::compile::diagnostics::{Diagnostic, Span};
-use crate::compile::hir::Expr;
-use crate::compile::{hir, make_diagnostic};
-use crate::syntax::ast;
-use crate::syntax::ast::UnaryOp;
 use either::Either;
 use rustc_hash::FxHashMap;
+
+use crate::{
+    compile::{
+        def_map::Name,
+        diagnostics::{Diagnostic, Span},
+        hir,
+        hir::Expr,
+        make_diagnostic,
+    },
+    syntax::{ast, ast::UnaryOp},
+};
 
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct ConstexprValue(Option<i32>);

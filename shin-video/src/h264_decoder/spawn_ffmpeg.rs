@@ -2,18 +2,22 @@
 //!
 //! It pipes the H264 Annex B bitstream to ffmpeg, and reads the YUV420P frames wrapped in y4m format from ffmpeg's stdout.
 
-use crate::h264_decoder::{y4m, Frame, FrameSize, FrameTiming};
-use crate::mp4::Mp4TrackReader;
-use crate::mp4_bitstream_converter::Mp4BitstreamConverter;
-use anyhow::Result;
-use anyhow::{bail, Context};
-use futures_lite::io::BufReader;
-use futures_lite::{AsyncBufReadExt, AsyncWriteExt};
+use std::{
+    io::{Read, Seek},
+    iter::Peekable,
+    process::Stdio,
+};
+
+use anyhow::{bail, Context, Result};
+use futures_lite::{io::BufReader, AsyncBufReadExt, AsyncWriteExt};
 use shin_tasks::{IoTaskPool, Task};
-use std::io::{Read, Seek};
-use std::iter::Peekable;
-use std::process::Stdio;
 use tracing::{debug, error, trace, warn};
+
+use crate::{
+    h264_decoder::{y4m, Frame, FrameSize, FrameTiming},
+    mp4::Mp4TrackReader,
+    mp4_bitstream_converter::Mp4BitstreamConverter,
+};
 
 /// Decodes h264 Annex B format to YUV420P (or, possibly, some other frame format).
 ///

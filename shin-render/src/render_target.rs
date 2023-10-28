@@ -1,9 +1,13 @@
-use super::TextureBindGroup;
-use crate::common_resources::GpuCommonResources;
-use crate::vertices::{PosColTexVertex, VertexSource};
-use crate::{SpriteVertexBuffer, VIRTUAL_HEIGHT, VIRTUAL_WIDTH};
-use glam::Mat4;
 use std::borrow::Cow;
+
+use glam::Mat4;
+
+use super::TextureBindGroup;
+use crate::{
+    common_resources::GpuCommonResources,
+    vertices::{PosColTexVertex, VertexSource},
+    SpriteVertexBuffer, VIRTUAL_HEIGHT, VIRTUAL_WIDTH,
+};
 
 /// Describes a fullscreen intermediate render target.
 pub struct RenderTarget {

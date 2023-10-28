@@ -1,21 +1,24 @@
-use crate::compile::constexpr::{constexpr_evaluate, ConstexprContextValue};
-use crate::compile::{hir, make_diagnostic, MakeWithFile};
-use crate::{
-    compile::{
-        constexpr::ConstexprValue, def_map::Name, diagnostics::Span, BlockId, BlockIdWithFile, Db,
-        File, Program,
-    },
-    syntax::{
-        ast::visit,
-        ast::visit::BlockIndex,
-        ast::{self, visit::ItemIndex},
-        AstSpanned, AstToken,
-    },
-};
+use std::collections::hash_map::Entry;
+
 use bind_match::bind_match;
 use either::Either;
 use rustc_hash::FxHashMap;
-use std::collections::hash_map::Entry;
+
+use crate::{
+    compile::{
+        constexpr::{constexpr_evaluate, ConstexprContextValue, ConstexprValue},
+        def_map::Name,
+        diagnostics::Span,
+        hir, make_diagnostic, BlockId, BlockIdWithFile, Db, File, MakeWithFile, Program,
+    },
+    syntax::{
+        ast::{
+            self, visit,
+            visit::{BlockIndex, ItemIndex},
+        },
+        AstSpanned, AstToken,
+    },
+};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum DefRef {

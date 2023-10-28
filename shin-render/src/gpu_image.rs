@@ -1,9 +1,13 @@
-use crate::vertices::{PosColTexVertex, VertexSource};
-use crate::{GpuCommonResources, SpriteVertexBuffer, TextureBindGroup, SRGB_TEXTURE_FORMAT};
+use std::borrow::Cow;
+
 use glam::{vec4, Vec2};
 use image::RgbaImage;
 use once_cell::sync::OnceCell;
-use std::borrow::Cow;
+
+use crate::{
+    vertices::{PosColTexVertex, VertexSource},
+    GpuCommonResources, SpriteVertexBuffer, TextureBindGroup, SRGB_TEXTURE_FORMAT,
+};
 
 pub struct LazyGpuImage {
     image: RgbaImage,

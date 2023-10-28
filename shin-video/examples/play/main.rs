@@ -1,19 +1,23 @@
+use std::{
+    fs::File,
+    path::Path,
+    sync::{Arc, RwLock},
+    time::Instant,
+};
+
 use glam::Mat4;
 use shin_audio::AudioManager;
 use shin_core::time::Ticks;
 use shin_render::{
     BindGroupLayouts, Camera, GpuCommonResources, Pipelines, RenderTarget, Renderable,
 };
-use shin_video::mp4::Mp4;
-use shin_video::VideoPlayer;
-use std::fs::File;
-use std::path::Path;
-use std::sync::{Arc, RwLock};
-use std::time::Instant;
-use winit::dpi::LogicalSize;
-use winit::event::{Event, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{Window, WindowBuilder};
+use shin_video::{mp4::Mp4, VideoPlayer};
+use winit::{
+    dpi::LogicalSize,
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::{Window, WindowBuilder},
+};
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let size = window.inner_size();

@@ -6,13 +6,12 @@
 //!
 //! When using BufReader, the startup time with Umineko's rom is about 300 ms on my machine, so it's not a big deal.
 
+use std::{collections::BTreeMap, io, io::SeekFrom};
+
 use anyhow::{anyhow, bail, Context, Result};
 use binrw::{BinRead, BinResult, BinWrite, Endian, NullString};
 use itertools::Itertools;
 use smartstring::alias::CompactString;
-use std::collections::BTreeMap;
-use std::io;
-use std::io::SeekFrom;
 
 const VERSION: u32 = 0x10001;
 const DIRECTORY_OFFSET_MULTIPLIER: u64 = 16;

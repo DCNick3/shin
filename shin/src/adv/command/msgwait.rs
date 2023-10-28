@@ -1,5 +1,6 @@
-use super::prelude::*;
 use std::fmt::{Debug, Formatter};
+
+use super::prelude::*;
 
 pub struct MSGWAIT {
     token: Option<command::token::MSGWAIT>,

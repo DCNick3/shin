@@ -1,7 +1,10 @@
+use std::{
+    io::{Read, Seek, SeekFrom},
+    sync::{Arc, Mutex},
+};
+
 use anyhow::{anyhow, Context, Result};
 use mp4::{Mp4Sample, Mp4Track};
-use std::io::{Read, Seek, SeekFrom};
-use std::sync::{Arc, Mutex};
 
 pub type Mp4ReadStream = std::fs::File;
 pub type Mp4Reader<S> = Arc<Mutex<mp4::Mp4Reader<S>>>;

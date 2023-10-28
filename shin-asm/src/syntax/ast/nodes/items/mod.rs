@@ -1,10 +1,10 @@
 mod functions;
 
-use super::*;
 use either::Either;
+pub use functions::*;
 use smol_str::SmolStr;
 
-pub use functions::*;
+use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 pub enum Item {

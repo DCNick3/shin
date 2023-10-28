@@ -1,12 +1,13 @@
-use crate::asset::bustup::Bustup;
-use crate::layer::{Layer, LayerProperties};
-use crate::update::{Updatable, UpdateContext};
+use std::{fmt::Debug, sync::Arc};
+
 use glam::Mat4;
-use shin_render::GpuCommonResources;
-use shin_render::GpuImage;
-use shin_render::Renderable;
-use std::fmt::Debug;
-use std::sync::Arc;
+use shin_render::{GpuCommonResources, GpuImage, Renderable};
+
+use crate::{
+    asset::bustup::Bustup,
+    layer::{Layer, LayerProperties},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct BustupLayer {
     bustup: Arc<Bustup>,

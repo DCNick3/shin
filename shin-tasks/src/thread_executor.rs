@@ -109,8 +109,9 @@ impl<'task, 'ticker> ThreadExecutorTicker<'task, 'ticker> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::sync::Arc;
+
+    use super::*;
 
     #[test]
     fn test_ticker() {

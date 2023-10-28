@@ -1,3 +1,16 @@
+use std::io::{Read, Seek};
+
+use anyhow::{Context, Result};
+use glam::Mat4;
+use kira::track::TrackId;
+use shin_audio::{AudioData, AudioManager, AudioSettings};
+use shin_core::{
+    time::{Ticks, Tween},
+    vm::command::types::{Pan, Volume},
+};
+use shin_render::{GpuCommonResources, Renderable, SpriteVertexBuffer};
+use tracing::{error, info, trace, warn};
+
 use crate::{
     audio::AacFrameSource,
     h264_decoder::{Frame, FrameTiming, H264Decoder, H264DecoderTrait},
@@ -5,15 +18,6 @@ use crate::{
     timer::Timer,
     YuvTexture,
 };
-use anyhow::{Context, Result};
-use glam::Mat4;
-use kira::track::TrackId;
-use shin_audio::{AudioData, AudioManager, AudioSettings};
-use shin_core::time::{Ticks, Tween};
-use shin_core::vm::command::types::{Pan, Volume};
-use shin_render::{GpuCommonResources, Renderable, SpriteVertexBuffer};
-use std::io::{Read, Seek};
-use tracing::{error, info, trace, warn};
 
 pub struct VideoPlayer {
     timer: Timer,

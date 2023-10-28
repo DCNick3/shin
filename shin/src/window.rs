@@ -2,39 +2,31 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::{Context, Result};
 use glam::Mat4;
+use shin_audio::AudioManager;
 use shin_core::format::scenario::instruction_elements::CodeAddress;
+use shin_render::{
+    BindGroupLayouts, Camera, GpuCommonResources, Pillarbox, Pipelines, RenderTarget, Renderable,
+};
 use tracing::{debug, info, warn};
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
-use winit::window::Fullscreen;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
 use winit::{
+    dpi::{LogicalPosition, LogicalSize, PhysicalSize},
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    window::{Window, WindowBuilder},
+    window::{Fullscreen, Window, WindowBuilder},
 };
 
-use crate::asset::locate_assets;
-use crate::cli::Cli;
-use crate::time::Time;
 use crate::{
-    adv::assets::AdvAssets,
-    adv::Adv,
-    asset::AnyAssetServer,
+    adv::{assets::AdvAssets, Adv},
+    asset::{locate_assets, AnyAssetServer},
+    cli::Cli,
     fps_counter::FpsCounter,
     input::RawInputState,
     render::overlay::{OverlayManager, OverlayVisitable},
+    time::Time,
     update::{Updatable, UpdateContext},
 };
-
-use shin_audio::AudioManager;
-use shin_render::BindGroupLayouts;
-use shin_render::Camera;
-use shin_render::GpuCommonResources;
-use shin_render::Pillarbox;
-use shin_render::Pipelines;
-use shin_render::{RenderTarget, Renderable};
-
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
 
 struct State {
     surface: wgpu::Surface,

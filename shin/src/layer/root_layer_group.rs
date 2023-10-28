@@ -1,8 +1,10 @@
-use crate::layer::screen_layer::ScreenLayer;
-use crate::layer::{Layer, LayerProperties, MessageLayer};
-use crate::update::{Updatable, UpdateContext};
 use glam::Mat4;
 use shin_render::{GpuCommonResources, RenderTarget, Renderable};
+
+use crate::{
+    layer::{screen_layer::ScreenLayer, Layer, LayerProperties, MessageLayer},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct RootLayerGroup {
     screen_layer: ScreenLayer,

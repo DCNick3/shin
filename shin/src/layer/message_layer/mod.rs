@@ -2,20 +2,26 @@ mod font_atlas;
 mod message;
 mod messagebox;
 
-use glam::{vec2, Mat4};
-pub use messagebox::MessageboxTextures;
 use std::sync::Arc;
 
-use crate::adv::assets::AdvFonts;
-use crate::layer::message_layer::font_atlas::FontAtlas;
-use crate::layer::message_layer::messagebox::Messagebox;
-use crate::layer::{Layer, LayerProperties};
-use crate::render::overlay::{OverlayCollector, OverlayVisitable};
-use crate::update::{Updatable, UpdateContext};
+use glam::{vec2, Mat4};
 use message::{Message, MessageStatus};
-use shin_core::time::Ticks;
-use shin_core::vm::command::types::{MessageboxStyle, MessageboxType};
+pub use messagebox::MessageboxTextures;
+use shin_core::{
+    time::Ticks,
+    vm::command::types::{MessageboxStyle, MessageboxType},
+};
 use shin_render::{GpuCommonResources, Renderable};
+
+use crate::{
+    adv::assets::AdvFonts,
+    layer::{
+        message_layer::{font_atlas::FontAtlas, messagebox::Messagebox},
+        Layer, LayerProperties,
+    },
+    render::overlay::{OverlayCollector, OverlayVisitable},
+    update::{Updatable, UpdateContext},
+};
 
 pub struct MessageLayer {
     props: LayerProperties,
