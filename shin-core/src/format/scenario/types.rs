@@ -32,7 +32,7 @@ pub type U16SmallNumberList<T = i32, const N: usize = SMALL_LIST_SIZE> =
 
 /// Pad the contents to 4 bytes
 ///
-/// (Used in [super::Instruction::jt])
+/// (Used in [super::Instruction::gt])
 #[derive(Derivative, PartialEq, Eq, Copy, Clone)]
 #[derivative(Debug = "transparent")]
 pub struct Pad4<T>(pub T);

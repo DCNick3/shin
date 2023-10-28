@@ -107,11 +107,11 @@ mod parse {
                 Ok(RegisterIdentKind::Register("$a1".parse().unwrap()))
             );
             assert_eq!(
-                parse_register_kind("a4095"),
-                Ok(RegisterIdentKind::Register("$a4095".parse().unwrap()))
+                parse_register_kind("a15"),
+                Ok(RegisterIdentKind::Register("$a15".parse().unwrap()))
             );
             assert_eq!(
-                parse_register_kind("a4096"),
+                parse_register_kind("a16"),
                 Err("Register index is too big".to_string())
             );
             assert_eq!(

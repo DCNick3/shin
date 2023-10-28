@@ -46,3 +46,20 @@ impl IntoRuntimeForm for U8Bool {
         self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::U8Bool;
+    use crate::format::scenario::test_util::{assert_dec, assert_enc_dec_pair};
+
+    #[test]
+    fn enc_dec() {
+        assert_enc_dec_pair(&U8Bool(true), "01");
+        assert_enc_dec_pair(&U8Bool(false), "00");
+
+        // these are weird, but we do handle them the same way the game does
+        // maybe we should be more strict and error out on these?
+        assert_dec(&U8Bool(true), "02");
+        assert_dec(&U8Bool(true), "ff");
+    }
+}

@@ -75,11 +75,37 @@ impl<T1, T2, T3, T4, T5, T6, T7, T8> BinWrite
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
-        _: &mut W,
-        _: Endian,
+        writer: &mut W,
+        endian: Endian,
         _: Self::Args<'_>,
     ) -> BinResult<()> {
-        todo!()
+        let untyped = [
+            self.0.into_untyped(),
+            self.1.into_untyped(),
+            self.2.into_untyped(),
+            self.3.into_untyped(),
+            self.4.into_untyped(),
+            self.5.into_untyped(),
+            self.6.into_untyped(),
+            self.7.into_untyped(),
+        ];
+        let mut mask = 0;
+        for (i, spec) in untyped.iter().enumerate() {
+            if let UntypedNumberSpec::Constant(0) = spec {
+                continue;
+            }
+            mask |= 1 << i;
+        }
+
+        u8::write_options(&mask, writer, endian, ())?;
+        for spec in untyped.iter() {
+            if let UntypedNumberSpec::Constant(0) = spec {
+                continue;
+            }
+            spec.write_options(writer, endian, ())?;
+        }
+
+        Ok(())
     }
 }
 
@@ -107,5 +133,37 @@ impl<
             self.6.into_runtime_form(ctx),
             self.7.into_runtime_form(ctx),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BitmaskNumberArray;
+    use crate::format::scenario::{
+        instruction_elements::{NumberSpec, UntypedNumberSpec},
+        test_util::assert_enc_dec_pair,
+    };
+
+    #[test]
+    fn enc_dec() {
+        const ZERO: NumberSpec = NumberSpec::new(UntypedNumberSpec::Constant(0));
+        const ONE: NumberSpec = NumberSpec::new(UntypedNumberSpec::Constant(1));
+
+        assert_enc_dec_pair(
+            &BitmaskNumberArray(ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO),
+            "00",
+        );
+        assert_enc_dec_pair(
+            &BitmaskNumberArray(ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO),
+            "0101",
+        );
+        assert_enc_dec_pair(
+            &BitmaskNumberArray(ZERO, ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO),
+            "0201",
+        );
+        assert_enc_dec_pair(
+            &BitmaskNumberArray(ONE, ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO),
+            "030101",
+        );
     }
 }

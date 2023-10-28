@@ -39,7 +39,15 @@ impl BinWrite for MessageId {
         _endian: Endian,
         _: (),
     ) -> BinResult<()> {
-        todo!()
+        let b0 = (self.0 & 0xFF) as u8;
+        let b1 = ((self.0 >> 8) & 0xFF) as u8;
+        let b2 = ((self.0 >> 16) & 0xFF) as u8;
+
+        b0.write(_writer)?;
+        b1.write(_writer)?;
+        b2.write(_writer)?;
+
+        Ok(())
     }
 }
 
@@ -53,5 +61,18 @@ impl IntoRuntimeForm for MessageId {
     type Output = MessageId;
     fn into_runtime_form(self, _: &VmCtx) -> Self::Output {
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MessageId;
+    use crate::format::scenario::test_util::assert_enc_dec_pair;
+
+    #[test]
+    fn enc_dec() {
+        assert_enc_dec_pair(&MessageId(0x123456), "563412");
+        assert_enc_dec_pair(&MessageId(0x000000), "000000");
+        assert_enc_dec_pair(&MessageId(0xffffff), "ffffff");
     }
 }

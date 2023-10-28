@@ -18,7 +18,9 @@ impl Register {
     const REGULAR_REGISTERS_START: u16 = 0;
     const REGULAR_REGISTERS_END: u16 = Self::ARGUMENTS_START - 1;
     const ARGUMENTS_START: u16 = 0x1000;
-    const ARGUMENTS_END: u16 = 0x1fff;
+    // The NumberSpec binary encoding allows only up to 16 arguments, so we equalize this limitation
+    // the u16 encoding also has this limit for consistency
+    const ARGUMENTS_END: u16 = 0x100f;
 
     pub fn try_from_regular_register(index: u16) -> Option<Self> {
         if index <= Self::REGULAR_REGISTERS_END - Self::REGULAR_REGISTERS_START {
@@ -142,6 +144,7 @@ impl FromStr for RegisterRepr {
 #[cfg(test)]
 mod tests {
     use super::Register;
+    use crate::format::scenario::test_util::assert_enc_dec_pair;
 
     fn assert_register_roundtrip(s: &str) {
         let register: Register = s.parse().unwrap();
@@ -159,7 +162,7 @@ mod tests {
         assert_register_roundtrip("$a1");
         assert_register_roundtrip("$a2");
         assert_register_roundtrip("$a3");
-        assert_register_roundtrip("$a4095");
+        assert_register_roundtrip("$a15");
     }
 
     fn assert_register_value(s: &str, value: u16) {
@@ -194,6 +197,16 @@ mod tests {
         assert_constructor(Register::from_argument(1), "$a1");
         assert_constructor(Register::from_argument(2), "$a2");
         assert_constructor(Register::from_argument(3), "$a3");
-        assert_constructor(Register::from_argument(4095), "$a4095");
+        assert_constructor(Register::from_argument(15), "$a15");
+    }
+
+    #[test]
+    fn enc_dec() {
+        assert_enc_dec_pair(&Register::from_regular_register(0), "0000");
+        assert_enc_dec_pair(&Register::from_regular_register(1), "0100");
+        assert_enc_dec_pair(&Register::from_regular_register(4095), "ff0f");
+        assert_enc_dec_pair(&Register::from_argument(0), "0010");
+        assert_enc_dec_pair(&Register::from_argument(1), "0110");
+        assert_enc_dec_pair(&Register::from_argument(15), "0f10");
     }
 }
