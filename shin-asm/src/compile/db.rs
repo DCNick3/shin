@@ -25,6 +25,8 @@ pub struct Jar(
     hir::lower::lower_block,
     hir::lower::lower_file,
     hir::lower::LoweredFile,
+    hir::lower::lower_program,
+    hir::lower::LoweredProgram,
 );
 
 pub trait Db: salsa::DbWithJar<Jar> {}

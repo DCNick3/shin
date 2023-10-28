@@ -4,6 +4,7 @@ mod block;
 mod elements;
 mod file;
 mod instruction;
+mod program;
 
 mod from_hir;
 
@@ -16,3 +17,4 @@ pub use from_hir::{
     CodeAddressCollector, FromHirExpr, HirDiagnosticCollector, HirDiagnosticCollectorWithBlock,
     HirDiagnosticCollectorWithFile,
 };
+pub use program::{lower_program, LoweredProgram};
