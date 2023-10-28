@@ -1,7 +1,8 @@
-use std::{io, io::SeekFrom};
+use std::io;
 
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use smallvec::SmallVec;
+use snafu::Snafu;
 
 use crate::format::scenario::instruction_elements::NumberSpec;
 
@@ -125,31 +126,129 @@ pub enum ExpressionTerm {
     Max,
 }
 
+impl ExpressionTerm {
+    pub fn argument_count(&self) -> usize {
+        match self {
+            ExpressionTerm::Push(_) => 0,
+            ExpressionTerm::Add => 2,
+            ExpressionTerm::Subtract => 2,
+            ExpressionTerm::Multiply => 2,
+            ExpressionTerm::Divide => 2,
+            ExpressionTerm::Modulo => 2,
+            ExpressionTerm::ShiftLeft => 2,
+            ExpressionTerm::ShiftRight => 2,
+            ExpressionTerm::BitwiseAnd => 2,
+            ExpressionTerm::BitwiseOr => 2,
+            ExpressionTerm::BitwiseXor => 2,
+            ExpressionTerm::Negate => 1,
+            ExpressionTerm::BitwiseNot => 1,
+            ExpressionTerm::Abs => 1,
+            ExpressionTerm::CmpEqual => 2,
+            ExpressionTerm::CmpNotEqual => 2,
+            ExpressionTerm::CmpGreaterOrEqual => 2,
+            ExpressionTerm::CmpGreater => 2,
+            ExpressionTerm::CmpLessOrEqual => 2,
+            ExpressionTerm::CmpLess => 2,
+            ExpressionTerm::CmpZero => 1,
+            ExpressionTerm::CmpNotZero => 1,
+            ExpressionTerm::LogicalAnd => 2,
+            ExpressionTerm::LogicalOr => 2,
+            ExpressionTerm::Select => 3,
+            ExpressionTerm::MultiplyReal => 2,
+            ExpressionTerm::DivideReal => 2,
+            ExpressionTerm::Sin => 1,
+            ExpressionTerm::Cos => 1,
+            ExpressionTerm::Tan => 1,
+            ExpressionTerm::Min => 2,
+            ExpressionTerm::Max => 2,
+        }
+    }
+}
+
+#[derive(BinRead, BinWrite, Copy, Clone, Debug, PartialEq, Eq)]
+enum ExpressionTermOpt {
+    #[brw(magic(0xffu8))]
+    None,
+    Some(ExpressionTerm),
+}
+
+#[derive(Debug, Snafu)]
+pub enum ExpressionValidationError {
+    /// The expression underflows the stack at term `{pos}`
+    StackUnderflow { pos: usize },
+    /// The expression doesn't leave a single value on the stack after evaluation (it leaves `{actual}`)
+    NotSingleValue { actual: usize },
+}
+
 /// An expression is a sequence of terms that are evaluated in order.
 /// This is basically a reverse polish notation expression, which can be evaluated with a stack machine.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Expression(pub SmallVec<ExpressionTerm, 6>);
+pub struct Expression(SmallVec<ExpressionTerm, 6>);
+
+impl Expression {
+    pub fn new_unchecked<I: IntoIterator<Item = ExpressionTerm>>(iter: I) -> Self {
+        Self(iter.into_iter().collect())
+    }
+
+    pub fn new<I: IntoIterator<Item = ExpressionTerm>>(
+        iter: I,
+    ) -> Result<Self, ExpressionValidationError> {
+        let res = Self::new_unchecked(iter);
+        res.validate()?;
+        Ok(res)
+    }
+
+    pub fn validate(&self) -> Result<(), ExpressionValidationError> {
+        // TODO: we can also probably do some type-checking for the expression?
+        // though, it's probably better to do it in the `shin-asm`
+        let mut stack = 0;
+        for (pos, term) in self.0.iter().enumerate() {
+            stack -= term.argument_count() as isize;
+            stack += 1;
+            if stack < 0 {
+                return Err(ExpressionValidationError::StackUnderflow { pos });
+            }
+        }
+
+        if stack != 1 {
+            return Err(ExpressionValidationError::NotSingleValue {
+                actual: stack as usize,
+            });
+        }
+
+        Ok(())
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, ExpressionTerm> {
+        self.0.iter()
+    }
+}
 
 impl BinRead for Expression {
     type Args<'a> = ();
 
     fn read_options<R: io::Read + io::Seek>(
         reader: &mut R,
-
         endian: Endian,
         _: (),
     ) -> BinResult<Self> {
+        let pos = reader.stream_position()?;
+
         let mut res = SmallVec::new();
         loop {
-            let v = u8::read_options(reader, endian, ())?;
-            if v == 0xff {
-                break;
-            } else {
-                reader.seek(SeekFrom::Current(-1))?;
-                res.push(ExpressionTerm::read_options(reader, endian, ())?);
+            match ExpressionTermOpt::read_options(reader, endian, ())? {
+                ExpressionTermOpt::None => break,
+                ExpressionTermOpt::Some(expr) => res.push(expr),
             }
         }
-        Ok(Self(res))
+        let res = Self(res);
+
+        res.validate().map_err(|e| binrw::Error::Custom {
+            pos,
+            err: Box::new(e),
+        })?;
+
+        Ok(res)
     }
 }
 
@@ -158,10 +257,74 @@ impl BinWrite for Expression {
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
-        _writer: &mut W,
-        _endian: Endian,
+        writer: &mut W,
+        endian: Endian,
         _: (),
     ) -> BinResult<()> {
-        todo!()
+        let pos = writer.stream_position()?;
+        self.validate().map_err(|e| binrw::Error::Custom {
+            pos,
+            err: Box::new(e),
+        })?;
+
+        for term in &self.0 {
+            term.write_options(writer, endian, ())?;
+        }
+        0xffu8.write_options(writer, endian, ())?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use binrw::{io::NoSeek, BinWrite};
+
+    use super::{Expression, ExpressionTerm, NumberSpec};
+    use crate::format::{
+        scenario::instructions::expression::ExpressionValidationError,
+        test_util::assert_enc_dec_pair,
+    };
+
+    #[test]
+    fn enc_dec() {
+        assert_enc_dec_pair(
+            &Expression::new_unchecked([ExpressionTerm::Push(NumberSpec::constant(42))]),
+            "002aff",
+        );
+        assert_enc_dec_pair(
+            &Expression::new_unchecked([
+                ExpressionTerm::Push(NumberSpec::constant(1)),
+                ExpressionTerm::Push(NumberSpec::constant(2)),
+                ExpressionTerm::Add,
+            ]),
+            "0001000201ff",
+        );
+        assert_enc_dec_pair(
+            &Expression::new_unchecked([
+                ExpressionTerm::Push(NumberSpec::constant(1)),
+                ExpressionTerm::Push(NumberSpec::constant(2)),
+                ExpressionTerm::Push(NumberSpec::constant(3)),
+                ExpressionTerm::Select,
+            ]),
+            "00010002000318ff",
+        );
+    }
+
+    #[test]
+    fn enc_invalid() {
+        match Expression::new_unchecked([])
+            .write_le(&mut NoSeek::new(Vec::new()))
+            .unwrap_err()
+        {
+            binrw::Error::Custom { err, .. } => match err.downcast::<ExpressionValidationError>() {
+                Ok(e) => match e.as_ref() {
+                    ExpressionValidationError::NotSingleValue { actual: 0 } => {}
+                    e => panic!("unexpected error: {:?}", e),
+                },
+                Err(e) => panic!("unexpected error: {:?}", e),
+            },
+            e => panic!("unexpected error: {:?}", e),
+        }
     }
 }

@@ -169,7 +169,7 @@ impl VmCtx {
     /// Evaluate a RPN expression in this context
     pub fn evaluate_expression(&self, expr: &Expression) -> i32 {
         let mut stack = SmallVec::<i32, 16>::new();
-        for term in expr.0.iter() {
+        for term in expr.iter() {
             match term {
                 &ExpressionTerm::Push(v) => stack.push(self.get_number(v)),
                 ExpressionTerm::Add => {

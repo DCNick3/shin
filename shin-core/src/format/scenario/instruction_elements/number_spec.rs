@@ -188,6 +188,15 @@ impl<T> NumberSpec<T> {
     }
 }
 
+impl NumberSpec {
+    pub const fn constant(value: i32) -> Self {
+        Self::new(UntypedNumberSpec::Constant(value))
+    }
+    pub const fn register(register: Register) -> Self {
+        Self::new(UntypedNumberSpec::Register(register))
+    }
+}
+
 // See https://github.com/jam1garner/binrw/pull/230
 impl<T> BinWrite for NumberSpec<T> {
     type Args<'a> = ();
