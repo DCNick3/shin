@@ -3,14 +3,13 @@ pub mod lower;
 #[cfg(test)]
 mod tests;
 
-use crate::compile::{BlockId, Db, File, WithFile};
+use crate::compile::{BlockId, Db, File, MakeWithFile, WithFile};
 use crate::syntax::{ast, ptr::AstPtr, AstSpanned};
 use from_ast::HirBlockCollector;
 use std::rc::Rc;
 
 use crate::compile::def_map::Name;
-use crate::compile::diagnostics::Diagnostic;
-use crate::compile::from_hir::HirId;
+use crate::compile::diagnostics::{Diagnostic, HirLocation};
 use crate::syntax::ast::visit;
 use crate::syntax::ast::visit::{BlockIndex, ItemIndex};
 use la_arena::{Arena, Idx};
@@ -30,6 +29,60 @@ pub type InstructionIdInFile = WithFile<InstructionId>;
 pub type InstructionPtr = AstPtr<ast::Instruction>;
 #[allow(unused)] // Will be used when full hir source maps will be implemented
 pub type InstructionPtrInFile = WithFile<InstructionPtr>;
+
+#[derive(Debug, Copy, Clone)]
+pub enum HirId {
+    Expr(ExprId),
+    Instruction(InstructionId),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum HirBlockId {
+    Block(BlockId),
+    Alias(ItemIndex),
+}
+
+impl From<BlockId> for HirBlockId {
+    fn from(value: BlockId) -> Self {
+        Self::Block(value)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct HirIdWithBlock {
+    // TODO: naming is unclear...
+    // InBlock -> identifies inside a block or HirId wrapped with a block id (like InFile)
+    // Probably should rename the InFile to WithFile
+    pub id: HirId,
+    pub block_id: HirBlockId,
+}
+
+impl HirIdWithBlock {
+    pub fn new(id: impl Into<HirId>, block_id: impl Into<HirBlockId>) -> Self {
+        Self {
+            block_id: block_id.into(),
+            id: id.into(),
+        }
+    }
+}
+
+impl From<ExprId> for HirId {
+    fn from(id: ExprId) -> Self {
+        Self::Expr(id)
+    }
+}
+
+impl From<InstructionId> for HirId {
+    fn from(id: InstructionId) -> Self {
+        Self::Instruction(id)
+    }
+}
+
+impl MakeWithFile for HirIdWithBlock {}
+
+pub type HirIdWithFile = WithFile<HirIdWithBlock>;
+
+type HirDiagnostic = Diagnostic<HirLocation>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Literal {

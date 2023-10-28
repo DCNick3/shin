@@ -1,4 +1,4 @@
-use crate::compile::from_hir::{HirBlockId, HirId, HirIdWithBlock};
+use crate::compile::hir::{HirBlockId, HirId, HirIdWithBlock};
 use crate::compile::{Db, File, MakeWithFile, WithFile};
 use std::collections::hash_map::Entry;
 

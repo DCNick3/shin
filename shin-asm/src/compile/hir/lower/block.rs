@@ -1,11 +1,11 @@
 use crate::compile::def_map::ResolveKind;
 use crate::compile::diagnostics::HirDiagnosticAccumulator;
-use crate::compile::from_hir::{CodeAddressCollector, HirBlockId};
-use crate::compile::types::SalsaBlockIdWithFile;
-use crate::compile::{
-    hir, BlockIdWithFile, Db, DefMap, HirBlockBody, HirDiagnosticCollector,
-    HirDiagnosticCollectorWithBlock, ResolveContext, WithFile,
+use crate::compile::hir::{
+    lower::{CodeAddressCollector, HirDiagnosticCollector, HirDiagnosticCollectorWithBlock},
+    HirBlockId,
 };
+use crate::compile::types::SalsaBlockIdWithFile;
+use crate::compile::{hir, BlockIdWithFile, Db, DefMap, HirBlockBody, ResolveContext, WithFile};
 use binrw::io::NoSeek;
 use binrw::BinWrite;
 use shin_core::format::scenario::instructions::Instruction;

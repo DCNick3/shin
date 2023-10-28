@@ -1,7 +1,7 @@
-use crate::compile::{
-    from_hir::CodeAddressCollector, hir, resolve, FromHirExpr, HirBlockBody,
-    HirDiagnosticCollectorWithBlock,
+use crate::compile::hir::lower::{
+    CodeAddressCollector, FromHirExpr, HirDiagnosticCollectorWithBlock,
 };
+use crate::compile::{hir, resolve, HirBlockBody};
 use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
 use shin_core::format::scenario::instructions::{Instruction, UnaryOperation, UnaryOperationType};
 
@@ -163,8 +163,8 @@ pub fn instruction_from_hir(
 
 #[cfg(test)]
 mod tests {
-    use crate::compile::from_hir::CodeAddressCollector;
-    use crate::compile::hir::lower::test_utils;
+    use crate::compile::hir::lower::{test_utils, CodeAddressCollector, HirDiagnosticCollector};
+    use crate::compile::{db::Database, hir, resolve::ResolveContext};
     use expect_test::{expect, Expect};
     use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
     use shin_core::format::scenario::instructions::{
@@ -172,10 +172,6 @@ mod tests {
     };
 
     fn from_hir(source: &str) -> Result<Instruction, String> {
-        use crate::compile::{
-            db::Database, from_hir::HirDiagnosticCollector, hir, resolve::ResolveContext,
-        };
-
         let db = Database::default();
         let db = &db;
         let (file, block_id, block) = test_utils::lower_hir_block_ok(db, source);

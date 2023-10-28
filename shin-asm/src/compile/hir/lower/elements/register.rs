@@ -1,5 +1,5 @@
 use super::prelude::*;
-use crate::compile::from_hir::CodeAddressCollector;
+use crate::compile::hir::lower::CodeAddressCollector;
 use shin_core::format::scenario::instruction_elements::Register;
 
 impl FromHirExpr for Register {

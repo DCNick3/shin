@@ -1,5 +1,5 @@
 use super::prelude::*;
-use crate::compile::from_hir::CodeAddressCollector;
+use crate::compile::hir::lower::CodeAddressCollector;
 use crate::compile::{constexpr::ConstexprValue, def_map::DefValue};
 use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
 

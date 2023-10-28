@@ -1,7 +1,9 @@
 mod prelude {
     pub use crate::compile::{
-        hir, hir::ExprId, FromHirExpr, HirBlockBody, HirDiagnosticCollectorWithBlock,
-        ResolveContext,
+        hir,
+        hir::lower::{FromHirExpr, HirDiagnosticCollectorWithBlock},
+        hir::ExprId,
+        HirBlockBody, ResolveContext,
     };
     pub use crate::syntax::ast;
 }
@@ -11,13 +13,17 @@ mod numbers;
 mod register;
 
 #[cfg(test)]
-fn check_from_hir_ok<T: crate::compile::FromHirExpr + Eq + std::fmt::Debug>(
+fn check_from_hir_ok<T: crate::compile::hir::lower::FromHirExpr + Eq + std::fmt::Debug>(
     source: &str,
     expected: &[T],
 ) {
     use crate::compile::{
-        db::Database, def_map::build_def_map, def_map::ResolveKind, from_hir::CodeAddressCollector,
-        from_hir::HirDiagnosticCollector, hir::lower::test_utils, resolve::ResolveContext,
+        db::Database,
+        def_map::build_def_map,
+        def_map::ResolveKind,
+        hir::lower::test_utils,
+        hir::lower::{CodeAddressCollector, HirDiagnosticCollector},
+        resolve::ResolveContext,
         MakeWithFile, Program,
     };
 

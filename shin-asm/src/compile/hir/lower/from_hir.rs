@@ -1,64 +1,10 @@
-use crate::compile::diagnostics::{Diagnostic, HirLocation};
+use crate::compile::diagnostics::HirLocation;
+use crate::compile::hir::{HirBlockId, HirDiagnostic, HirId, HirIdWithBlock};
 use crate::compile::{
     hir::{self, HirBlockBody},
-    resolve, BlockId, BlockIdWithFile, File, MakeWithFile, WithFile,
+    resolve, BlockIdWithFile, File, MakeWithFile,
 };
-use crate::syntax::ast::visit::ItemIndex;
 use shin_core::format::scenario::instruction_elements::CodeAddress;
-
-#[derive(Debug, Copy, Clone)]
-pub enum HirId {
-    Expr(hir::ExprId),
-    Instruction(hir::InstructionId),
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum HirBlockId {
-    Block(BlockId),
-    Alias(ItemIndex),
-}
-
-impl From<BlockId> for HirBlockId {
-    fn from(value: BlockId) -> Self {
-        Self::Block(value)
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct HirIdWithBlock {
-    // TODO: naming is unclear...
-    // InBlock -> identifies inside a block or HirId wrapped with a block id (like InFile)
-    // Probably should rename the InFile to WithFile
-    pub id: HirId,
-    pub block_id: HirBlockId,
-}
-
-impl HirIdWithBlock {
-    pub fn new(id: impl Into<HirId>, block_id: impl Into<HirBlockId>) -> Self {
-        Self {
-            block_id: block_id.into(),
-            id: id.into(),
-        }
-    }
-}
-
-impl From<hir::ExprId> for HirId {
-    fn from(id: hir::ExprId) -> Self {
-        Self::Expr(id)
-    }
-}
-
-impl From<hir::InstructionId> for HirId {
-    fn from(id: hir::InstructionId) -> Self {
-        Self::Instruction(id)
-    }
-}
-
-impl MakeWithFile for HirIdWithBlock {}
-
-pub type HirIdWithFile = WithFile<HirIdWithBlock>;
-
-type HirDiagnostic = Diagnostic<HirLocation>;
 
 #[derive(Default, Debug)]
 pub struct HirDiagnosticCollector {

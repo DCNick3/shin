@@ -3,7 +3,7 @@ use crate::compile::diagnostics::{
     Span,
 };
 use crate::compile::hir::HirBlockBodies;
-use crate::compile::{hir, BlockId, Db, File, HirBlockBody, HirDiagnosticCollector};
+use crate::compile::{hir, hir::lower::HirDiagnosticCollector, BlockId, Db, File, HirBlockBody};
 use itertools::Itertools;
 use std::rc::Rc;
 
