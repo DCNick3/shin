@@ -71,7 +71,6 @@ pub struct VLayerId(i32);
 
 #[derive(Debug)]
 pub enum VLayerIdRepr {
-    // TODO: give these meaningful names
     RootLayerGroup,
     ScreenLayer,
     PageLayer,
