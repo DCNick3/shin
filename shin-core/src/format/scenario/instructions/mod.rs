@@ -124,13 +124,17 @@ pub enum Instruction {
     pop { dest: U8SmallList<Register> },
     /// Call Subroutine with Parameters
     ///
-    /// The return must be done with [return](`Instruction::return`).
+    /// The return must be done with [return](`Instruction::return`)
+    ///
+    /// NOTE: this is not the same as `call` in ShinDataUtil, see [gosub](Instruction::gosub) for that.
     #[brw(magic(0x4fu8))]
     call {
         target: CodeAddress,
         args: U8SmallNumberList,
     },
     /// Return from Subroutine called with [call](Instruction::call)
+    ///
+    /// NOTE: this is not the same as `return` in ShinDataUtil, see [retsub](Instruction::retsub) for that.
     #[brw(magic(0x50u8))]
     r#return {},
 

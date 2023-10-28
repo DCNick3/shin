@@ -1,15 +1,15 @@
 use std::io;
 
 use binrw::{BinRead, BinResult, BinWrite, Endian};
-use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
+use num_derive::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive};
 
 use crate::format::scenario::instruction_elements::{NumberSpec, Register, UntypedNumberSpec};
 
 /// An operation on two numbers
 ///
 /// See [super::ExpressionTerm] for details on how the numbers are interpreted and functions used to describe operations
-#[derive(Debug, Copy, Clone, PartialEq, Eq, FromPrimitive)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum BinaryOperationType {
     /// `R`: Ignore the left operand and return the right operand
     MovRight = 0x00,
@@ -103,10 +103,65 @@ impl BinWrite for BinaryOperation {
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
-        _writer: &mut W,
-        _endian: Endian,
+        writer: &mut W,
+        endian: Endian,
         _: (),
     ) -> BinResult<()> {
-        todo!()
+        let separate_lhs =
+            self.left.into_untyped() != UntypedNumberSpec::Register(self.destination);
+
+        let t = self.ty.to_u8().unwrap();
+        assert_eq!(t & 0x7f, t);
+
+        let t = t | if separate_lhs { 0x80 } else { 0 };
+        t.write_options(writer, endian, ())?;
+
+        self.destination.write_options(writer, endian, ())?;
+        if separate_lhs {
+            self.left.write_options(writer, endian, ())?;
+        }
+        self.right.write_options(writer, endian, ())?;
+
+        Ok(())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use shin_core::format::scenario::instruction_elements::UntypedNumberSpec;
+
+    use super::{BinaryOperation, BinaryOperationType};
+    use crate::format::{
+        scenario::instruction_elements::NumberSpec, test_util::assert_enc_dec_pair,
+    };
+
+    #[test]
+    fn enc_dec() {
+        assert_enc_dec_pair(
+            &BinaryOperation {
+                ty: BinaryOperationType::MovRight,
+                destination: "$v0".parse().unwrap(),
+                left: NumberSpec::new(UntypedNumberSpec::Register("$v0".parse().unwrap())),
+                right: NumberSpec::new(UntypedNumberSpec::Constant(0)),
+            },
+            "00000000",
+        );
+        assert_enc_dec_pair(
+            &BinaryOperation {
+                ty: BinaryOperationType::Zero,
+                destination: "$v1".parse().unwrap(),
+                left: NumberSpec::new(UntypedNumberSpec::Register("$v1".parse().unwrap())),
+                right: NumberSpec::new(UntypedNumberSpec::Constant(42)),
+            },
+            "0101002a",
+        );
+        assert_enc_dec_pair(
+            &BinaryOperation {
+                ty: BinaryOperationType::Multiply,
+                destination: "$v1".parse().unwrap(),
+                left: NumberSpec::new(UntypedNumberSpec::Constant(2)),
+                right: NumberSpec::new(UntypedNumberSpec::Constant(42)),
+            },
+            "840100022a",
+        );
     }
 }

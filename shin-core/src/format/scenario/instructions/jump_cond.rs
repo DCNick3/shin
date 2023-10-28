@@ -1,10 +1,10 @@
 use std::io;
 
 use binrw::{BinRead, BinResult, BinWrite, Endian};
-use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
+use num_derive::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive};
 
-#[derive(FromPrimitive, Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum JumpCondType {
     /// `L == R`
     Equal = 0x0,
@@ -65,10 +65,52 @@ impl BinWrite for JumpCond {
 
     fn write_options<W: io::Write + io::Seek>(
         &self,
-        _writer: &mut W,
-        _endian: Endian,
+        writer: &mut W,
+        endian: Endian,
         _: (),
     ) -> BinResult<()> {
-        todo!()
+        let t = self.condition.to_u8().unwrap();
+        assert_eq!(t & 0x7f, t);
+        let t = t | if self.is_negated { 0x80 } else { 0 };
+
+        t.write_options(writer, endian, ())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{JumpCond, JumpCondType};
+    use crate::format::test_util::assert_enc_dec_pair;
+
+    #[test]
+    fn enc_dec() {
+        assert_enc_dec_pair(
+            &JumpCond {
+                condition: JumpCondType::Equal,
+                is_negated: false,
+            },
+            "00",
+        );
+        assert_enc_dec_pair(
+            &JumpCond {
+                condition: JumpCondType::Equal,
+                is_negated: true,
+            },
+            "80",
+        );
+        assert_enc_dec_pair(
+            &JumpCond {
+                condition: JumpCondType::BitSet,
+                is_negated: false,
+            },
+            "07",
+        );
+        assert_enc_dec_pair(
+            &JumpCond {
+                condition: JumpCondType::BitSet,
+                is_negated: true,
+            },
+            "87",
+        );
     }
 }
