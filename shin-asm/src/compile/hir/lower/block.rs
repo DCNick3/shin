@@ -1,7 +1,10 @@
 use std::io;
 
-use binrw::{io::NoSeek, BinWrite};
-use shin_core::format::scenario::instructions::Instruction;
+use binrw::{io::NoSeek, BinResult, BinWrite};
+use rustc_hash::FxHashMap;
+use shin_core::format::scenario::{
+    instruction_elements::CodeAddress, instructions::Instruction, types::SmallList,
+};
 
 use crate::compile::{
     def_map::ResolveKind,
@@ -86,7 +89,7 @@ impl LoweredBlock {
     }
 
     /// Computes the size of the serialized block in bytes
-    pub fn size(&self) -> Option<u32> {
+    pub fn code_size(&self) -> Option<u32> {
         let mut size = 0;
         for instr in &self.instructions {
             let instr = instr.as_ref()?;
@@ -100,6 +103,69 @@ impl LoweredBlock {
         }
 
         Some(size.try_into().expect("BUG: block size overflow"))
+    }
+
+    pub fn resolve_code_addresses(
+        &self,
+        map: &FxHashMap<BlockIdWithFile, CodeAddress>,
+    ) -> Vec<Instruction> {
+        let resolve_address = |address: CodeAddress| -> CodeAddress {
+            let block_id = self.code_addresses[address.0 as usize];
+            map[&block_id]
+        };
+
+        self.instructions
+            .iter()
+            .map(|instr| {
+                let instr = instr
+                    .as_ref()
+                    .expect("BUG: attempt to resolve an instruction that was not lowered");
+                match *instr {
+                    Instruction::jc {
+                        cond,
+                        left,
+                        right,
+                        target,
+                    } => Instruction::jc {
+                        cond,
+                        left,
+                        right,
+                        target: resolve_address(target),
+                    },
+                    Instruction::jt { index, ref table } => Instruction::jt {
+                        index,
+                        table: SmallList::from_contents(
+                            table.0.iter().copied().map(resolve_address),
+                        ),
+                    },
+                    Instruction::j { target } => Instruction::j {
+                        target: resolve_address(target),
+                    },
+                    Instruction::gosub { target } => Instruction::gosub {
+                        target: resolve_address(target),
+                    },
+                    Instruction::call { target, ref args } => Instruction::call {
+                        target: resolve_address(target),
+                        args: args.clone(),
+                    },
+                    ref instr => instr.clone(),
+                }
+            })
+            .collect()
+    }
+
+    pub fn write_to<W: io::Write>(&self, writer: &mut W) -> BinResult<()> {
+        let mut writer = NoSeek::new(writer);
+
+        for instr in &self.instructions {
+            let instr = instr
+                .as_ref()
+                .expect("BUG: attempt to write an instruction that was not lowered");
+
+            instr.write(&mut writer)?;
+        }
+
+        Ok(())
     }
 
     pub fn debug_dump(&self) -> String {

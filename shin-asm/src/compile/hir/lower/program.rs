@@ -1,10 +1,12 @@
+use std::rc::Rc;
+
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
 
 use crate::compile::{
     def_map,
-    hir::lower::{lower_file, LoweredFile},
-    Db, File, Program,
+    hir::lower::{lower_file, LoweredBlock, LoweredFile},
+    BlockIdWithFile, Db, File, Program,
 };
 
 #[salsa::tracked]
@@ -14,6 +16,16 @@ pub struct LoweredProgram {
 }
 
 impl LoweredProgram {
+    pub fn block(&self, db: &dyn Db, block_id: BlockIdWithFile) -> Rc<LoweredBlock> {
+        self.files(db)
+            .get(&block_id.file)
+            .unwrap()
+            .bodies(db)
+            .get(&block_id.value)
+            .unwrap()
+            .clone()
+    }
+
     pub fn debug_dump(&self, db: &dyn Db) -> String {
         use std::fmt::Write;
         let mut result = String::new();

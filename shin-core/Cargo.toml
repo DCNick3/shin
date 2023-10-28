@@ -27,7 +27,7 @@ snafu = "0.7.5"
 anyhow = { workspace = true }
 bitflags = "2.0.1"
 bytemuck = { version = "1.12.1", features = ["derive"] }
-bytes = "1.2.1"
+bytes = { workspace = true }
 glam = { workspace = true }
 float-ord = "0.3.2"
 image = { workspace = true, default-features = false }

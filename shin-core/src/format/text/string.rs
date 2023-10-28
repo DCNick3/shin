@@ -1,4 +1,4 @@
-use std::{fmt::Debug, io, marker::PhantomData};
+use std::{fmt::Debug, hash::Hash, io, marker::PhantomData};
 
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use shin_core::format::text::{measure_sjis_string, write_sjis_string};
@@ -112,6 +112,12 @@ impl<L: StringLengthDesc, F: StringFixup + 'static> Eq for SJisString<L, F> {}
 impl<L: StringLengthDesc, F: StringFixup + 'static> Clone for SJisString<L, F> {
     fn clone(&self) -> Self {
         Self(self.0.clone(), PhantomData)
+    }
+}
+
+impl<L: StringLengthDesc, F: StringFixup + 'static> Hash for SJisString<L, F> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
     }
 }
 

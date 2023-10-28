@@ -2230,11 +2230,15 @@ name = "junk"
 version = "0.1.0"
 dependencies = [
  "binrw",
+ "bytes",
  "clap",
  "derive_more",
  "image",
+ "itertools",
  "once_cell",
+ "owo-colors",
  "regex",
+ "shin-core",
 ]
 
 [[package]]
@@ -3601,6 +3605,7 @@ dependencies = [
  "itertools",
  "la-arena",
  "nonmax",
+ "pretty-hex",
  "rowan",
  "rustc-hash",
  "salsa-2022",

@@ -23,7 +23,7 @@ smallvec = { workspace = true }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 arrayvec = "0.7.2"
-bytes = "1.2.1"
+bytes = { workspace = true }
 cfg-if = "1.0.0"
 clap = { version = "4.1.4", features = ["derive"] }
 clap-num = "1.0.2"

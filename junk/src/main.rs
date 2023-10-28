@@ -3,6 +3,7 @@
 use clap::Parser;
 
 mod buffer_parser;
+mod check_info_uniqueness;
 mod debug_tex_parser;
 
 // use clap to select what to do
@@ -16,6 +17,7 @@ struct Opts {
 enum JunkAction {
     BufferParser,
     DebugTexParser,
+    CheckInfoUniqueness { snr_path: String },
 }
 
 fn main() {
@@ -23,5 +25,6 @@ fn main() {
     match opts.action {
         JunkAction::BufferParser => buffer_parser::main(),
         JunkAction::DebugTexParser => debug_tex_parser::main(),
+        JunkAction::CheckInfoUniqueness { snr_path } => check_info_uniqueness::main(snr_path),
     }
 }

@@ -20,7 +20,7 @@ use crate::format::{
 /// References a mask, a black and white image specifying a transition between two screens.
 ///
 /// See [`shin_core::format::mask`] for functionality to read the `.msk` file this struct references.
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct MaskInfoItem {
     /// The internal name of the mask. Corresponds to the base filename of the `.msk` file the engine will load from the `mask/` directory when a transition with this mask is to be performed.
     pub name: U16String,
@@ -30,7 +30,7 @@ pub type MaskInfo = Vec<MaskInfoItem>;
 /// References a static picture (`.pic` file).
 ///
 /// See [`shin_core::format::picture`] for functionality to read the `.pic` file this struct references.
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct PictureInfoItem {
     /// The internal name of the picture. Corresponds to the base filename of the `.pic` file the engine will load from the `picture/` directory when the picture is to be displayed.
     pub name: U16String,
@@ -57,7 +57,7 @@ impl PictureInfoItem {
 /// This struct specifically references a combination of (base + emotion); the lip state is determined and stored separately, by the lipsync system.
 ///
 /// See [`shin_core::format::bustup`] for functionality to read the `.bup` file this struct references.
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct BustupInfoItem {
     /// The base filename of the bustup. When the bustup is shown, the engine will load the `.bup` file with this basename from the `bustup` directory, regardless of the referenced emotion.
     pub name: U16String,
@@ -79,7 +79,7 @@ impl BustupInfoItem {
 /// References a background music (BGM) track.
 ///
 /// See [`shin_core::format::audio`] for functionality to read the `.nxa` file this struct references.
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct BgmInfoItem {
     /// The internal name of the BGM track. Corresponds to the base filename of the `.nxa` file the engine will load from the `bgm/` directory when the BGM is to be played.
     pub name: U16String,
@@ -101,7 +101,7 @@ impl BgmInfoItem {
 /// References a sound effect (SE).
 ///
 /// See [`shin_core::format::audio`] for functionality to read the `.nxa` file this struct references.
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct SeInfoItem {
     /// The internal name of this sound effect. Corresponds to the base filename of the `.nxa` file the engine will load from the `se/` directory when the sound effect is to be played.
     pub name: U16String,
@@ -115,7 +115,7 @@ impl SeInfoItem {
 }
 
 /// References a movie, i.e. a video that can be played back by the engine. The engine makes no fundamental distinction between movies used for cutscenes (e.g. openings) and movies used for animation purposes.
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct MovieInfoItem {
     /// The name of this movie. Corresponds to the base filename of the `.mp4` file the engine will load from the `movie/` directory when the movie is to be played.
     pub name: U16String,
@@ -138,7 +138,7 @@ impl MovieInfoItem {
 }
 
 /// Matches a voice file to the lipsync character IDs for the characters speaking in the voice file, for lipsync purposes.
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct VoiceMappingInfoItem {
     /// A pattern of voice file paths to be matched to the list of character IDs; either an individual path or a wildcard pattern specified using `*`. Does not include the `voice/` prefix or the file extension.
     pub name_pattern: U16String,
@@ -149,7 +149,7 @@ pub struct VoiceMappingInfoItem {
 pub type VoiceMappingInfo = Vec<VoiceMappingInfoItem>;
 
 /// An entry in the Picture Box (`cgmode`).
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct PictureBoxInfoItem {
     /// Internal name of the entry; defines the name of the texture to be loaded from `cgmode.txa` as the thumbnail for this entry.
     pub name: U16String,
@@ -160,7 +160,7 @@ pub struct PictureBoxInfoItem {
 pub type PictureBoxInfo = Vec<PictureBoxInfoItem>;
 
 /// An entry in the Music Box (`bgmmode`).
-#[derive(Debug, BinRead, BinWrite)]
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct MusicBoxInfoItem {
     /// The ID of the BGM track (indexing into [`BgmInfo`]) to be played if this entry is selected.
     pub bgm_id: u16,
@@ -505,6 +505,7 @@ fn parse_sized_segment_list_ptr<R: Read + Seek, T: for<'a> BinRead<Args<'a> = ()
 
 // parses the sections from offsets
 #[derive(Debug, BinRead)]
+#[br(little)]
 pub struct ScenarioInfoTables {
     #[br(parse_with = parse_sized_section_ptr)]
     pub mask_info: MaskInfo,

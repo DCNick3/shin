@@ -3,6 +3,7 @@ pub mod db;
 pub mod def_map;
 pub mod diagnostics;
 pub mod file;
+pub mod generate_snr;
 pub mod hir;
 pub mod resolve;
 pub mod types;

@@ -12,6 +12,12 @@ binrw = { workspace = true }
 derive_more = "0.99.17"
 clap = { version = "4.0.32", features = ["derive"] }
 image = { workspace = true }
+bytes = { workspace = true }
+itertools = { workspace = true }
+
+owo-colors = "3.5.0"
+
+shin-core = { path = "../shin-core" }
 
 [package.metadata.release]
 release = false

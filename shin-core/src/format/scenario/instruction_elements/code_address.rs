@@ -9,7 +9,7 @@ pub struct CodeAddress(pub u32);
 
 impl Debug for CodeAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "0x{:x}j", self.0)
+        write!(f, "{:08x}", self.0)
     }
 }
 

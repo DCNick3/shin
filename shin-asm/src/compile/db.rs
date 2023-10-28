@@ -1,4 +1,5 @@
 use super::{def_map, diagnostics, file, hir, types};
+use crate::compile::generate_snr;
 
 // TODO: maybe increase jar granularity to per-file?
 #[salsa::jar(db = Db)]
@@ -27,6 +28,9 @@ pub struct Jar(
     hir::lower::LoweredFile,
     hir::lower::lower_program,
     hir::lower::LoweredProgram,
+    generate_snr::DonorHeaders,
+    generate_snr::layout_blocks,
+    generate_snr::generate_snr,
 );
 
 pub trait Db: salsa::DbWithJar<Jar> {}

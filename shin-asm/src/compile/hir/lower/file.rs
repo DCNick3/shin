@@ -134,13 +134,13 @@ mod tests {
             expect![[r#"
                 block Block { item_index: ItemIndex(0), block_index: BlockIndex(0) }:
                 instructions:
-                  j { target: 0x0j }
+                  j { target: 00000000 }
                 code addresses:
                   WithFile { value: BlockId { item_index: 0, block_index: Some(1) }, file: File(Id { value: 1 }) }
 
                 block Block { item_index: ItemIndex(0), block_index: BlockIndex(1) }:
                 instructions:
-                  j { target: 0x0j }
+                  j { target: 00000000 }
                 code addresses:
                   WithFile { value: BlockId { item_index: 0, block_index: Some(0) }, file: File(Id { value: 1 }) }
 

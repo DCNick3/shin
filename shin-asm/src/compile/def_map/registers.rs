@@ -18,6 +18,7 @@ use crate::{
 
 pub struct UnresolvedGlobalRegister {
     register_kind: ast::RegisterIdentKind,
+    #[allow(unused)] // will be needed when we start reporting duplicate definitions
     definition_span: Span,
     body_span: Span,
 }

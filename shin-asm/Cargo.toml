@@ -20,7 +20,7 @@ smol_str = "0.2.0"
 la-arena = "0.3.1"
 
 strip-ansi-escapes = "0.2.0"
-itertools = "0.11.0"
+itertools = { workspace = true }
 
 binrw = { workspace = true }
 
@@ -41,6 +41,7 @@ ariadne = "0.3.0"
 test-generator = { git = "https://github.com/JamesGuthrie/test-generator.git", rev = "82e799979980962aec1aa324ec6e0e4cad781f41" }
 expect-test = "1.4.1"
 indoc = "2.0.4"
+pretty-hex = "0.3.0"
 
 [build-dependencies]
 build-deps = "0.1.4"

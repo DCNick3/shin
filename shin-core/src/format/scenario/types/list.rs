@@ -1,4 +1,4 @@
-use std::{fmt, fmt::Debug, io, marker::PhantomData};
+use std::{fmt, fmt::Debug, hash::Hash, io, marker::PhantomData};
 
 use binrw::{BinRead, BinResult, BinWrite, Endian};
 use smallvec::SmallVec;
@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// A list of `T` with a length of `L`, stored in a `SmallVec` with size `N`
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct SmallList<L, T, const N: usize>(pub SmallVec<T, N>, pub PhantomData<L>)
 where
     L: Into<usize> + TryFrom<usize> + 'static;
@@ -32,6 +32,33 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("U8SmallList").field(&self.0).finish()
     }
+}
+
+impl<L, T, const N: usize> Hash for SmallList<L, T, N>
+where
+    L: Into<usize> + TryFrom<usize>,
+    T: Hash,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<L, T, const N: usize> PartialEq for SmallList<L, T, N>
+where
+    L: Into<usize> + TryFrom<usize>,
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl<L, T, const N: usize> Eq for SmallList<L, T, N>
+where
+    L: Into<usize> + TryFrom<usize>,
+    T: Eq,
+{
 }
 
 impl<L, T, const N: usize> SmallList<L, T, N>
