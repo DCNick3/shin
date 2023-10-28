@@ -179,19 +179,23 @@ impl<T> PartialEq for NumberSpec<T> {
 impl<T> Eq for NumberSpec<T> {}
 
 impl<T> NumberSpec<T> {
+    #[inline]
     pub const fn new(spec: UntypedNumberSpec) -> Self {
         Self(spec, PhantomData)
     }
 
+    #[inline]
     pub fn into_untyped(self) -> UntypedNumberSpec {
         self.0
     }
 }
 
 impl NumberSpec {
+    #[inline]
     pub const fn constant(value: i32) -> Self {
         Self::new(UntypedNumberSpec::Constant(value))
     }
+    #[inline]
     pub const fn register(register: Register) -> Self {
         Self::new(UntypedNumberSpec::Register(register))
     }
@@ -201,6 +205,7 @@ impl NumberSpec {
 impl<T> BinWrite for NumberSpec<T> {
     type Args<'a> = ();
 
+    #[inline]
     fn write_options<W: io::Write + Seek>(
         &self,
         writer: &mut W,
@@ -219,6 +224,7 @@ impl<T> Debug for NumberSpec<T> {
 
 impl<T: FromNumber> IntoRuntimeForm for NumberSpec<T> {
     type Output = T;
+    #[inline]
     fn into_runtime_form(self, ctx: &VmCtx) -> Self::Output {
         ctx.get_number(self)
     }
@@ -229,12 +235,14 @@ pub trait FromNumber {
 }
 
 impl FromNumber for bool {
+    #[inline]
     fn from_number(number: i32) -> Self {
         number != 0
     }
 }
 
 impl FromNumber for i32 {
+    #[inline]
     fn from_number(number: i32) -> Self {
         number
     }

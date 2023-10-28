@@ -104,7 +104,7 @@ impl FromHirExpr for NumberSpec {
 #[cfg(test)]
 mod tests {
     use indoc::indoc;
-    use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
+    use shin_core::format::scenario::instruction_elements::NumberSpec;
 
     use super::super::check_from_hir_ok;
 
@@ -129,11 +129,11 @@ mod tests {
         check_from_hir_ok::<NumberSpec>(
             "HELLO 1, -2, 10.0, $a1, $v0",
             &[
-                NumberSpec::new(UntypedNumberSpec::Constant(1)),
-                NumberSpec::new(UntypedNumberSpec::Constant(-2)),
-                NumberSpec::new(UntypedNumberSpec::Constant(10_000)),
-                NumberSpec::new(UntypedNumberSpec::Register("$a1".parse().unwrap())),
-                NumberSpec::new(UntypedNumberSpec::Register("$v0".parse().unwrap())),
+                NumberSpec::constant(1),
+                NumberSpec::constant(-2),
+                NumberSpec::constant(10_000),
+                NumberSpec::register("$a1".parse().unwrap()),
+                NumberSpec::register("$v0".parse().unwrap()),
             ],
         );
     }

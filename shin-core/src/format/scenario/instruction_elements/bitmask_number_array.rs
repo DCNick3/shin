@@ -140,14 +140,13 @@ impl<
 mod tests {
     use super::BitmaskNumberArray;
     use crate::format::{
-        scenario::instruction_elements::{NumberSpec, UntypedNumberSpec},
-        test_util::assert_enc_dec_pair,
+        scenario::instruction_elements::NumberSpec, test_util::assert_enc_dec_pair,
     };
 
     #[test]
     fn enc_dec() {
-        const ZERO: NumberSpec = NumberSpec::new(UntypedNumberSpec::Constant(0));
-        const ONE: NumberSpec = NumberSpec::new(UntypedNumberSpec::Constant(1));
+        const ZERO: NumberSpec = NumberSpec::constant(0);
+        const ONE: NumberSpec = NumberSpec::constant(1);
 
         assert_enc_dec_pair(
             &BitmaskNumberArray(ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO),

@@ -47,7 +47,7 @@ impl BinRead for UnaryOperation {
         let source = if temp & 0x80 != 0 {
             NumberSpec::read_options(reader, endian, ())?
         } else {
-            NumberSpec::new(UntypedNumberSpec::Register(destination))
+            NumberSpec::register(destination)
         };
         Ok(Self {
             ty,
@@ -86,8 +86,6 @@ impl BinWrite for UnaryOperation {
 
 #[cfg(test)]
 mod tests {
-    use shin_core::format::scenario::instruction_elements::UntypedNumberSpec;
-
     use super::{UnaryOperation, UnaryOperationType};
     use crate::format::{
         scenario::instruction_elements::NumberSpec, test_util::assert_enc_dec_pair,
@@ -99,7 +97,7 @@ mod tests {
             &UnaryOperation {
                 ty: UnaryOperationType::Zero,
                 destination: "$v0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Register("$v0".parse().unwrap())),
+                source: NumberSpec::register("$v0".parse().unwrap()),
             },
             "000000",
         );
@@ -107,7 +105,7 @@ mod tests {
             &UnaryOperation {
                 ty: UnaryOperationType::Not16,
                 destination: "$v1".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Register("$v1".parse().unwrap())),
+                source: NumberSpec::register("$v1".parse().unwrap()),
             },
             "010100",
         );
@@ -115,7 +113,7 @@ mod tests {
             &UnaryOperation {
                 ty: UnaryOperationType::Not16,
                 destination: "$v0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Constant(0)),
+                source: NumberSpec::constant(0),
             },
             "81000000",
         );
@@ -123,7 +121,7 @@ mod tests {
             &UnaryOperation {
                 ty: UnaryOperationType::Abs,
                 destination: "$a0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Constant(42)),
+                source: NumberSpec::constant(42),
             },
             "8300102a",
         );

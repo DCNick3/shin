@@ -1,5 +1,5 @@
 use shin_core::format::scenario::{
-    instruction_elements::{NumberSpec, UntypedNumberSpec},
+    instruction_elements::NumberSpec,
     instructions::{Instruction, UnaryOperation, UnaryOperationType},
 };
 
@@ -94,9 +94,7 @@ pub fn instruction_from_hir(
             }
 
             let destination = destination??;
-            let source = source
-                .flatten()
-                .unwrap_or(NumberSpec::new(UntypedNumberSpec::Constant(0)));
+            let source = source.flatten().unwrap_or(NumberSpec::constant(0));
 
             Some(Instruction::uo(UnaryOperation {
                 ty: UnaryOperationType::Zero,
@@ -169,7 +167,7 @@ pub fn instruction_from_hir(
 mod tests {
     use expect_test::{expect, Expect};
     use shin_core::format::scenario::{
-        instruction_elements::{NumberSpec, UntypedNumberSpec},
+        instruction_elements::NumberSpec,
         instructions::{Instruction, UnaryOperation, UnaryOperationType},
     };
 
@@ -230,7 +228,7 @@ mod tests {
             Instruction::uo(UnaryOperation {
                 ty: UnaryOperationType::Zero,
                 destination: "$v0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Constant(0)),
+                source: NumberSpec::constant(0),
             }),
         );
         check_from_hir_ok(
@@ -238,7 +236,7 @@ mod tests {
             Instruction::uo(UnaryOperation {
                 ty: UnaryOperationType::Zero,
                 destination: "$v0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Constant(42)),
+                source: NumberSpec::constant(42),
             }),
         );
         check_from_hir_ok(
@@ -246,7 +244,7 @@ mod tests {
             Instruction::uo(UnaryOperation {
                 ty: UnaryOperationType::Zero,
                 destination: "$v0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Register("$v0".parse().unwrap())),
+                source: NumberSpec::register("$v0".parse().unwrap()),
             }),
         );
     }
@@ -258,7 +256,7 @@ mod tests {
             Instruction::uo(UnaryOperation {
                 ty: UnaryOperationType::Not16,
                 destination: "$v0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Register("$v1".parse().unwrap())),
+                source: NumberSpec::register("$v1".parse().unwrap()),
             }),
         );
         check_from_hir_ok(
@@ -266,7 +264,7 @@ mod tests {
             Instruction::uo(UnaryOperation {
                 ty: UnaryOperationType::Not16,
                 destination: "$v0".parse().unwrap(),
-                source: NumberSpec::new(UntypedNumberSpec::Constant(42)),
+                source: NumberSpec::constant(42),
             }),
         );
     }

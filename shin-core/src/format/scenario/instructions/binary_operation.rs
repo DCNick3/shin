@@ -85,7 +85,7 @@ impl BinRead for BinaryOperation {
         let left = if temp & 0x80 != 0 {
             NumberSpec::read_options(reader, endian, ())?
         } else {
-            NumberSpec::new(UntypedNumberSpec::Register(destination))
+            NumberSpec::register(destination)
         };
         let right = NumberSpec::read_options(reader, endian, ())?;
 
@@ -127,8 +127,6 @@ impl BinWrite for BinaryOperation {
 }
 #[cfg(test)]
 mod tests {
-    use shin_core::format::scenario::instruction_elements::UntypedNumberSpec;
-
     use super::{BinaryOperation, BinaryOperationType};
     use crate::format::{
         scenario::instruction_elements::NumberSpec, test_util::assert_enc_dec_pair,
@@ -140,8 +138,8 @@ mod tests {
             &BinaryOperation {
                 ty: BinaryOperationType::MovRight,
                 destination: "$v0".parse().unwrap(),
-                left: NumberSpec::new(UntypedNumberSpec::Register("$v0".parse().unwrap())),
-                right: NumberSpec::new(UntypedNumberSpec::Constant(0)),
+                left: NumberSpec::register("$v0".parse().unwrap()),
+                right: NumberSpec::constant(0),
             },
             "00000000",
         );
@@ -149,8 +147,8 @@ mod tests {
             &BinaryOperation {
                 ty: BinaryOperationType::Zero,
                 destination: "$v1".parse().unwrap(),
-                left: NumberSpec::new(UntypedNumberSpec::Register("$v1".parse().unwrap())),
-                right: NumberSpec::new(UntypedNumberSpec::Constant(42)),
+                left: NumberSpec::register("$v1".parse().unwrap()),
+                right: NumberSpec::constant(42),
             },
             "0101002a",
         );
@@ -158,8 +156,8 @@ mod tests {
             &BinaryOperation {
                 ty: BinaryOperationType::Multiply,
                 destination: "$v1".parse().unwrap(),
-                left: NumberSpec::new(UntypedNumberSpec::Constant(2)),
-                right: NumberSpec::new(UntypedNumberSpec::Constant(42)),
+                left: NumberSpec::constant(2),
+                right: NumberSpec::constant(42),
             },
             "840100022a",
         );
