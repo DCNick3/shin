@@ -138,7 +138,7 @@ mod tests {
     use binrw::{io::NoSeek, BinWrite};
 
     use super::{SmallList, U16SmallList, U8SmallList};
-    use crate::format::scenario::test_util::assert_enc_dec_pair;
+    use crate::format::test_util::assert_enc_dec_pair;
 
     #[test]
     fn enc_dec_u8() {

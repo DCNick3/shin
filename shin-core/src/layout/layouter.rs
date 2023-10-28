@@ -619,7 +619,8 @@ mod tests {
         println!("{:#?}", result);
     }
 
-    // #[test]
+    #[test]
+    #[ignore]
     fn test_tsu() {
         let result = test_layout(
             "@r埃と甘ったるい異臭の入り混じった薄暗い書斎に、年輩の男たちの姿はあった。",

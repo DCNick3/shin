@@ -1,11 +1,7 @@
-use std::{
-    fmt::Debug,
-    io::{Read, Seek, SeekFrom, Write},
-    marker::PhantomData,
-};
+use std::{fmt::Debug, io, marker::PhantomData};
 
 use binrw::{BinRead, BinResult, BinWrite, Endian};
-use smallvec::SmallVec;
+use shin_core::format::text::{measure_sjis_string, write_sjis_string};
 
 use crate::{
     format::text,
@@ -45,11 +41,17 @@ pub trait StringLengthDesc:
 {
     /// Should return the length of the string, in bytes, including the null terminator.
     fn get_length(&self) -> Option<usize>;
+
+    fn from_length(length: usize) -> Option<Self>;
 }
 
 impl StringLengthDesc for u8 {
     fn get_length(&self) -> Option<usize> {
         Some(*self as usize)
+    }
+
+    fn from_length(length: usize) -> Option<Self> {
+        length.try_into().ok()
     }
 }
 
@@ -57,11 +59,19 @@ impl StringLengthDesc for u16 {
     fn get_length(&self) -> Option<usize> {
         Some(*self as usize)
     }
+
+    fn from_length(length: usize) -> Option<Self> {
+        length.try_into().ok()
+    }
 }
 
 impl StringLengthDesc for () {
     fn get_length(&self) -> Option<usize> {
         None
+    }
+
+    fn from_length(_: usize) -> Option<Self> {
+        Some(())
     }
 }
 
@@ -74,6 +84,23 @@ pub struct SJisString<L: StringLengthDesc, F: StringFixup + 'static = NoFixup>(
     pub String,
     pub PhantomData<(L, F)>,
 );
+
+/// A zero-terminated Shift-JIS string.
+pub type ZeroString = SJisString<()>;
+/// A Shift-JIS string with a u8 length descriptor.
+pub type U8String = SJisString<u8>;
+/// A Shift-JIS string with a u16 length descriptor.
+pub type U16String = SJisString<u16>;
+/// A Shift-JIS string with a u8 length descriptor and fixup applied.
+pub type U8FixupString = SJisString<u8, WithFixup>;
+/// A Shift-JIS string with a u16 length descriptor and fixup applied.
+pub type U16FixupString = SJisString<u16, WithFixup>;
+
+impl<L: StringLengthDesc, F: StringFixup + 'static> SJisString<L, F> {
+    pub fn new(string: impl Into<String>) -> Self {
+        Self(string.into(), PhantomData)
+    }
+}
 
 impl<L: StringLengthDesc, F: StringFixup + 'static> PartialEq for SJisString<L, F> {
     fn eq(&self, other: &Self) -> bool {
@@ -88,13 +115,14 @@ impl<L: StringLengthDesc, F: StringFixup + 'static> Clone for SJisString<L, F> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StringArray(pub SmallVec<String, 4>);
-
 impl<L: StringLengthDesc, F: StringFixup> BinRead for SJisString<L, F> {
     type Args<'a> = ();
 
-    fn read_options<R: Read + Seek>(reader: &mut R, endian: Endian, _: ()) -> BinResult<Self> {
+    fn read_options<R: io::Read + io::Seek>(
+        reader: &mut R,
+        endian: Endian,
+        _: (),
+    ) -> BinResult<Self> {
         let len = L::read_options(reader, endian, ())?;
         // "- 1" to strip the null terminator
 
@@ -114,13 +142,34 @@ impl<L: StringLengthDesc, F: StringFixup> BinRead for SJisString<L, F> {
 impl<L: StringLengthDesc, F: StringFixup> BinWrite for SJisString<L, F> {
     type Args<'a> = ();
 
-    fn write_options<W: Write + Seek>(
+    fn write_options<W: io::Write + io::Seek>(
         &self,
-        _writer: &mut W,
-        _endian: Endian,
+        writer: &mut W,
+        endian: Endian,
         _: (),
     ) -> BinResult<()> {
-        todo!()
+        let pos = writer.stream_position()?;
+
+        // TODO: extra allocation ALWAYS
+        let fixed_up = F::encode(self.0.clone());
+
+        let len = measure_sjis_string(&fixed_up)?;
+
+        // we ALWAYS add a null terminator, even with length-prefixed strings
+        let len = L::from_length(len + 1)
+            .ok_or_else(|| binrw::Error::AssertFail {
+                pos,
+                message: "Failed to convert string length to the encoded representation. This is probably due to the string being too long.".to_string(),
+            })?;
+
+        len.write_options(writer, endian, ())?;
+
+        write_sjis_string(&fixed_up, writer)?;
+
+        // write the null terminator
+        let _ = 0u8.write_options(writer, endian, ())?;
+
+        Ok(())
     }
 }
 impl<L: StringLengthDesc, F: StringFixup> AsRef<str> for SJisString<L, F> {
@@ -151,48 +200,57 @@ impl<L: StringLengthDesc, F: StringFixup> IntoRuntimeForm for SJisString<L, F> {
     }
 }
 
-impl BinRead for StringArray {
-    type Args<'a> = ();
+#[cfg(test)]
+mod tests {
+    use binrw::{io::NoSeek, BinWrite};
 
-    fn read_options<R: Read + Seek>(reader: &mut R, endian: Endian, _: ()) -> BinResult<Self> {
-        let size = u16::read_options(reader, endian, ())?;
-        let pos = reader.stream_position()?;
-        let mut res = SmallVec::new();
-        loop {
-            let s = text::read_sjis_string(reader, None)?;
+    use super::{U16FixupString, U16String, U8FixupString, U8String, ZeroString};
+    use crate::format::test_util::assert_enc_dec_pair;
 
-            res.push(s);
-
-            let v = u8::read_options(reader, endian, ())?;
-            if v == 0x00 {
-                break;
-            } else {
-                reader.seek(SeekFrom::Current(-1))?;
-            }
-        }
-        let end = reader.stream_position()?;
-        let diff = end - pos;
-        assert_eq!(diff, size as u64);
-        Ok(Self(res))
+    #[test]
+    fn enc_dec_zero_string() {
+        assert_enc_dec_pair(&ZeroString::new(""), "00");
+        assert_enc_dec_pair(&ZeroString::new("HELLO"), "48454c4c4f00");
+        assert_enc_dec_pair(&ZeroString::new("ミク"), "837e834e00");
+        assert_enc_dec_pair(&ZeroString::new("かわいい"), "82a982ed82a282a200");
+        assert_enc_dec_pair(&ZeroString::new("日本"), "93fa967b00");
     }
-}
 
-impl BinWrite for StringArray {
-    type Args<'a> = ();
-
-    fn write_options<W: Write + Seek>(
-        &self,
-        _writer: &mut W,
-        _endian: Endian,
-        _: (),
-    ) -> BinResult<()> {
-        todo!()
+    #[test]
+    fn enc_dec_u8() {
+        assert_enc_dec_pair(&U8String::new(""), "0100");
+        assert_enc_dec_pair(&U8String::new("HELLO"), "0648454c4c4f00");
+        assert_enc_dec_pair(
+            &U8String::new("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+            "ff414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414100",
+        );
+        assert_enc_dec_pair(&U8String::new("ミク"), "05837e834e00");
+        assert_enc_dec_pair(&U8FixupString::new("ミク"), "05837e834e00");
+        assert_enc_dec_pair(&U8String::new("かわいい"), "0982a982ed82a282a200");
+        assert_enc_dec_pair(&U8FixupString::new("かわいい"), "05b6dcb2b200");
+        assert_enc_dec_pair(&U8FixupString::new("日本"), "0593fa967b00");
     }
-}
 
-impl IntoRuntimeForm for StringArray {
-    type Output = SmallVec<String, 4>;
-    fn into_runtime_form(self, _: &VmCtx) -> Self::Output {
-        self.0
+    #[test]
+    fn enc_u8_overflow() {
+        let err = U8String::new("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            .write_le(&mut NoSeek::new(Vec::new()))
+            .unwrap_err();
+        assert_eq!(format!("{:?}", err), "Failed to convert string length to the encoded representation. This is probably due to the string being too long. at 0x0");
+    }
+
+    #[test]
+    fn enc_dec_u16() {
+        assert_enc_dec_pair(&U16String::new(""), "010000");
+        assert_enc_dec_pair(&U16String::new("HELLO"), "060048454c4c4f00");
+        assert_enc_dec_pair(
+            &U16String::new("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+            "000141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414100",
+        );
+        assert_enc_dec_pair(&U16String::new("ミク"), "0500837e834e00");
+        assert_enc_dec_pair(&U16FixupString::new("ミク"), "0500837e834e00");
+        assert_enc_dec_pair(&U16String::new("かわいい"), "090082a982ed82a282a200");
+        assert_enc_dec_pair(&U16FixupString::new("かわいい"), "0500b6dcb2b200");
+        assert_enc_dec_pair(&U16FixupString::new("日本"), "050093fa967b00");
     }
 }

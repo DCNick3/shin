@@ -139,8 +139,8 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::BitmaskNumberArray;
-    use crate::format::scenario::{
-        instruction_elements::{NumberSpec, UntypedNumberSpec},
+    use crate::format::{
+        scenario::instruction_elements::{NumberSpec, UntypedNumberSpec},
         test_util::assert_enc_dec_pair,
     };
 

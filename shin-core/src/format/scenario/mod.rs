@@ -7,9 +7,6 @@ pub mod instruction_elements;
 pub mod instructions;
 pub mod types;
 
-#[cfg(test)]
-mod test_util;
-
 use std::io::Cursor;
 
 use anyhow::{bail, Result};

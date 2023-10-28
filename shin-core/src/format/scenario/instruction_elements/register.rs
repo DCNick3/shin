@@ -144,7 +144,7 @@ impl FromStr for RegisterRepr {
 #[cfg(test)]
 mod tests {
     use super::Register;
-    use crate::format::scenario::test_util::assert_enc_dec_pair;
+    use crate::format::test_util::assert_enc_dec_pair;
 
     fn assert_register_roundtrip(s: &str) {
         let register: Register = s.parse().unwrap();

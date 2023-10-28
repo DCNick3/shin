@@ -13,3 +13,6 @@ pub mod picture;
 pub mod save;
 pub mod scenario;
 pub mod texture_archive;
+
+#[cfg(test)]
+mod test_util;

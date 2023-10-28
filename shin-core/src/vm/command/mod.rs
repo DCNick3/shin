@@ -109,6 +109,8 @@ pub enum Command {
         dest: Register,
         choice_visibility_mask: NumberSpec,
         choice_title: U16String,
+        // TODO: StringArray does not do any fixups
+        // Are we sure the SELECT doesn't need any?
         variants: StringArray,
     },
     #[cmd(opcode = 0x8eu8)]

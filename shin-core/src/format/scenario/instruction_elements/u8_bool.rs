@@ -50,7 +50,7 @@ impl IntoRuntimeForm for U8Bool {
 #[cfg(test)]
 mod tests {
     use super::U8Bool;
-    use crate::format::scenario::test_util::{assert_dec, assert_enc_dec_pair};
+    use crate::format::test_util::{assert_dec, assert_enc_dec_pair};
 
     #[test]
     fn enc_dec() {

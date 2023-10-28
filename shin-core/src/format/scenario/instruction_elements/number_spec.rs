@@ -238,8 +238,8 @@ mod tests {
     use binrw::{io::NoSeek, BinRead, BinWrite};
 
     use super::UntypedNumberSpec::*;
-    use crate::format::scenario::{
-        instruction_elements::UntypedNumberSpec, test_util::assert_enc_dec_pair,
+    use crate::format::{
+        scenario::instruction_elements::UntypedNumberSpec, test_util::assert_enc_dec_pair,
     };
 
     #[test]
