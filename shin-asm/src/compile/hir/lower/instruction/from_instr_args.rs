@@ -6,65 +6,60 @@ use crate::compile::{
     },
 };
 
-pub fn expect_no_more_args<const N: usize>(
+// the non-generic part of the implementation
+fn expect_opt_args_inner(
     collectors: &mut FromHirCollectors,
-    ctx: &FromHirBlockCtx,
     instr: hir::InstructionId,
-) -> [Option<hir::ExprId>; N] {
-    let instr = ctx.instr(instr);
-    if instr.args.len() > N {
-        collectors.emit_diagnostic(
-            instr.args[N].into(),
-            format!("Expected no more than {} arguments", N),
-        );
-    }
-
-    let mut args = [None; N];
-    for (i, arg) in args.iter_mut().enumerate() {
-        *arg = instr.args.get(i).copied();
-    }
-
-    args
-}
-
-pub fn expect_exactly_args<const N: usize>(
-    collectors: &mut FromHirCollectors,
-    ctx: &FromHirBlockCtx,
-    instr: hir::InstructionId,
-) -> [Option<hir::ExprId>; N] {
-    let instr_args = &ctx.instr(instr).args;
-    if instr_args.len() > N {
-        let msg = if N > 0 {
+    instr_args: &[hir::ExprId],
+    n_m: usize,
+    n_o: usize,
+) {
+    if instr_args.len() > n_m + n_o {
+        let msg = if n_m + n_o > 0 {
             format!(
-                "Extra argument: expected exactly {} arguments, but got {}",
-                N,
-                instr_args.len()
+                "Extra argument: expected no more than {} arguments",
+                n_m + n_o
             )
         } else {
-            format!(
-                "Extra argument: expected no arguments, but got {}",
-                instr_args.len()
-            )
+            format!("Extra argument: expected no arguments")
         };
 
-        collectors.emit_diagnostic(instr_args[N].into(), msg);
-    } else if instr_args.len() < N {
+        collectors.emit_diagnostic(instr_args[n_m + n_o].into(), msg);
+    }
+    if instr_args.len() < n_m {
         collectors.emit_diagnostic(
             instr.into(),
             format!(
-                "Missing argument: expected exactly {} arguments, but got {}",
-                N,
+                "Missing argument: expected at least {} arguments, but got {}",
+                n_m,
                 instr_args.len()
             ),
         );
     }
+}
 
-    let mut args = [None; N];
-    for (i, arg) in args.iter_mut().enumerate() {
+#[inline]
+fn expect_opt_args<const N_M: usize, const N_O: usize>(
+    collectors: &mut FromHirCollectors,
+    ctx: &FromHirBlockCtx,
+    instr: hir::InstructionId,
+) -> ([Option<hir::ExprId>; N_M], [Option<hir::ExprId>; N_O]) {
+    let instr_args = &ctx.instr(instr).args;
+    // N_M is the number of mandatory arguments
+    // N_O is the number of optional arguments
+
+    expect_opt_args_inner(collectors, instr, instr_args, N_M, N_O);
+
+    let mut args_m = [None; N_M];
+    for (i, arg) in args_m.iter_mut().enumerate() {
         *arg = instr_args.get(i).copied();
     }
+    let mut args_o = [None; N_O];
+    for (i, arg) in args_o.iter_mut().enumerate() {
+        *arg = instr_args.get(i + N_M).copied();
+    }
 
-    args
+    (args_m, args_o)
 }
 
 pub trait FromInstrArgs: Sized {
@@ -116,10 +111,7 @@ macro_rules! impl_from_instr_args_opt_tuple {
                 ctx: &FromHirBlockCtx,
                 instr: hir::InstructionId,
             ) -> Option<Self> {
-                let [
-                    $($mty,)*
-                    $($oty,)*
-                ] = expect_no_more_args(collectors, ctx, instr);
+                let ([$($mty,)*], [$($oty,)*]) = expect_opt_args(collectors, ctx, instr);
                 $(
                     let $mty = $mty.and_then(|arg| {
                         FromHirExpr::from_hir_expr(collectors, ctx, arg)

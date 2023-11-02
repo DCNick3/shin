@@ -207,7 +207,7 @@ mod tests {
                 ───╯
 
 
-                Error: Unknown instruction: `ABOBA`
+                Error: Unrecognized instruction: `ABOBA`
                    ╭─[test.sal:3:5]
                    │
                  3 │     ABOBA 42 42 42

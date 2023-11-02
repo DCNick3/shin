@@ -1,19 +1,47 @@
 mod from_instr_args;
+mod instr_lowerer;
+mod router;
 
 use shin_core::format::scenario::{
-    instruction_elements::NumberSpec,
+    instruction_elements::{CodeAddress, NumberSpec, Register},
     instructions::{Instruction, UnaryOperation, UnaryOperationType},
 };
 
+use self::router::{Router, RouterBuilder};
 use crate::compile::{
     hir,
-    hir::lower::{
-        from_hir::{FromHirBlockCtx, FromHirCollectors},
-        FromHirExpr,
-    },
+    hir::lower::from_hir::{FromHirBlockCtx, FromHirCollectors},
 };
 
-// fn zero()
+fn zero((destination, source): (Register, Option<NumberSpec>)) -> Option<Instruction> {
+    Some(Instruction::uo(UnaryOperation {
+        ty: UnaryOperationType::Zero,
+        destination,
+        source: source.unwrap_or(NumberSpec::constant(0)),
+    }))
+}
+
+fn unary_op(
+    instr_name: &str,
+    (destination, source): (Register, NumberSpec),
+) -> Option<Instruction> {
+    let ty = match instr_name {
+        "not16" => UnaryOperationType::Not16,
+        "neg" => UnaryOperationType::Negate,
+        "abs" => UnaryOperationType::Abs,
+        _ => unreachable!(),
+    };
+
+    Some(Instruction::uo(UnaryOperation {
+        ty,
+        destination,
+        source,
+    }))
+}
+
+fn jump((target,): (CodeAddress,)) -> Option<Instruction> {
+    Some(Instruction::j { target })
+}
 
 pub fn instruction_from_hir(
     collectors: &mut FromHirCollectors,
@@ -24,63 +52,15 @@ pub fn instruction_from_hir(
         return None;
     };
 
-    match name.as_str() {
-        "zero" => {
-            let [destination, source] =
-                from_instr_args::expect_no_more_args(collectors, ctx, instr);
+    let router = RouterBuilder::new()
+        .add("zero", zero)
+        .add("not16", unary_op)
+        .add("neg", unary_op)
+        .add("abs", unary_op)
+        .add("j", jump)
+        .build();
 
-            let destination = destination.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
-            let source = source.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
-
-            if destination.is_none() {
-                collectors.emit_diagnostic(instr.into(), "Missing a `destination` argument".into());
-            }
-
-            let destination = destination??;
-            let source = source.flatten().unwrap_or(NumberSpec::constant(0));
-
-            Some(Instruction::uo(UnaryOperation {
-                ty: UnaryOperationType::Zero,
-                destination,
-                source,
-            }))
-        }
-        "not16" | "neg" | "abs" => {
-            let [destination, source] =
-                from_instr_args::expect_exactly_args(collectors, ctx, instr);
-
-            let destination = destination.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
-            let source = source.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
-
-            let destination = destination??;
-            let source = source??;
-
-            let ty = match name.as_str() {
-                "not16" => UnaryOperationType::Not16,
-                "neg" => UnaryOperationType::Negate,
-                "abs" => UnaryOperationType::Abs,
-                _ => unreachable!(),
-            };
-
-            Some(Instruction::uo(UnaryOperation {
-                ty,
-                destination,
-                source,
-            }))
-        }
-        "j" => {
-            let [target] = from_instr_args::expect_exactly_args(collectors, ctx, instr);
-            let target = target.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
-
-            let target = target??;
-
-            Some(Instruction::j { target })
-        }
-        _ => {
-            collectors.emit_diagnostic(instr.into(), format!("Unknown instruction: `{}`", name));
-            None
-        }
-    }
+    return router.handle_instr(collectors, ctx, name, instr);
 }
 
 #[cfg(test)]

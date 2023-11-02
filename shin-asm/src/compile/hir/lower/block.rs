@@ -319,7 +319,7 @@ mod tests {
                 ───╯
 
 
-                Error: Unknown instruction: `x`
+                Error: Unrecognized instruction: `x`
                    ╭─[test.sal:1:1]
                    │
                  1 │ x 96
@@ -359,7 +359,7 @@ mod tests {
                 ───╯
 
 
-                Error: Expected no more than 2 arguments
+                Error: Extra argument: expected no more than 2 arguments
                    ╭─[test.sal:1:15]
                    │
                  1 │ zero $v0 aslk as
@@ -386,7 +386,7 @@ mod tests {
                 ───╯
 
                 instructions:
-                  uo(UnaryOperation { ty: Zero, destination: $v0, source: 0 })
+                  <error>
                   <error>
                   uo(UnaryOperation { ty: Not16, destination: $v2, source: $v1 })
                 code addresses:
