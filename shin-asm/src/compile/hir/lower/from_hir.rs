@@ -1,9 +1,13 @@
-use shin_core::format::scenario::instruction_elements::CodeAddress;
+use shin_core::format::scenario::instruction_elements::{CodeAddress, Register};
 
-use crate::compile::{
-    diagnostics::HirLocation,
-    hir::{self, HirBlockBody, HirBlockId, HirDiagnostic, HirId, HirIdWithBlock},
-    resolve, BlockIdWithFile, File, MakeWithFile,
+use crate::{
+    compile::{
+        def_map::{DefValue, Name},
+        diagnostics::HirLocation,
+        hir::{self, HirBlockBody, HirBlockId, HirDiagnostic, HirId, HirIdWithBlock},
+        resolve, BlockIdWithFile, File, MakeWithFile,
+    },
+    syntax::ast,
 };
 
 #[derive(Default, Debug)]
@@ -98,12 +102,60 @@ impl CodeAddressCollector {
     }
 }
 
+/// Represents the mutable state used during hir lowering.
+///
+/// This is used to pass out-of-band data related to the results of lowering like emitted diagnostics and allocated code addresses.
+pub struct FromHirCollectors<'d, 'di, 'cac> {
+    pub diagnostics: &'d mut HirDiagnosticCollectorWithBlock<'di>,
+    pub code_address_collector: &'cac mut CodeAddressCollector,
+}
+
+impl<'d, 'di, 'cac> FromHirCollectors<'d, 'di, 'cac> {
+    #[inline]
+    pub fn emit_diagnostic(&mut self, location: HirId, message: String) {
+        self.diagnostics.emit(location, message);
+    }
+
+    #[inline]
+    pub fn allocate_code_address(&mut self, block: BlockIdWithFile) -> CodeAddress {
+        self.code_address_collector.allocate(block)
+    }
+}
+
+/// Represents the immutable state used during hir lowering.
+///
+/// This includes context information like the block being lowered and the resolve context.
+pub struct FromHirBlockCtx<'r, 'db, 'b> {
+    pub resolve_ctx: &'r resolve::ResolveContext<'db>,
+    pub block: &'b HirBlockBody,
+}
+
+impl<'r, 'db, 'b> FromHirBlockCtx<'r, 'db, 'b> {
+    #[inline]
+    pub fn resolve_register(&self, register: &ast::RegisterIdentKind) -> Option<Register> {
+        self.resolve_ctx.resolve_register(register)
+    }
+
+    #[inline]
+    pub fn resolve_item(&self, name: &Name) -> Option<DefValue> {
+        self.resolve_ctx.resolve_item(name)
+    }
+
+    #[inline]
+    pub fn instr(&self, id: hir::InstructionId) -> &hir::Instruction {
+        &self.block.instructions[id]
+    }
+
+    #[inline]
+    pub fn expr(&self, id: hir::ExprId) -> &hir::Expr {
+        &self.block.exprs[id]
+    }
+}
+
 pub trait FromHirExpr: Sized {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollectorWithBlock<'_>,
-        code_address_collector: &mut CodeAddressCollector,
-        resolve_ctx: &resolve::ResolveContext,
-        block: &HirBlockBody,
+        collectors: &mut FromHirCollectors,
+        ctx: &FromHirBlockCtx,
         expr: hir::ExprId,
     ) -> Option<Self>;
 }

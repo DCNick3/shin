@@ -1,37 +1,39 @@
 use shin_core::format::scenario::instruction_elements::CodeAddress;
 
 use super::prelude::*;
-use crate::compile::{def_map::DefValue, hir::lower::CodeAddressCollector};
+use crate::compile::{
+    def_map::DefValue,
+    hir::lower::from_hir::{FromHirBlockCtx, FromHirCollectors},
+};
 
 impl FromHirExpr for CodeAddress {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollectorWithBlock,
-        code_address_collector: &mut CodeAddressCollector,
-        resolve_ctx: &ResolveContext,
-        block: &HirBlockBody,
+        collectors: &mut FromHirCollectors,
+        ctx: &FromHirBlockCtx,
         expr: ExprId,
     ) -> Option<Self> {
-        let hir::Expr::NameRef(ref name) = &block.exprs[expr] else {
-            diagnostics.emit(
+        let hir::Expr::NameRef(ref name) = ctx.expr(expr) else {
+            collectors.emit_diagnostic(
                 expr.into(),
-                format!("Expected a label, got {}", block.exprs[expr].describe_ty()),
+                format!("Expected a label, got {}", ctx.expr(expr).describe_ty()),
             );
             return None;
         };
 
-        match resolve_ctx.resolve_item(name) {
+        match ctx.resolve_item(name) {
             None => {
-                diagnostics.emit(
+                collectors.emit_diagnostic(
                     expr.into(),
                     format!("Could not find the definition of `{}`", name),
                 );
                 None
             }
             Some(DefValue::Value(_)) => {
-                diagnostics.emit(expr.into(), format!("Expected a label, found an alias"));
+                collectors
+                    .emit_diagnostic(expr.into(), format!("Expected a label, found an alias"));
                 None
             }
-            Some(DefValue::Block(block)) => Some(code_address_collector.allocate(block)),
+            Some(DefValue::Block(block)) => Some(collectors.allocate_code_address(block)),
         }
     }
 }
@@ -45,8 +47,10 @@ mod tests {
         db::Database,
         def_map::{build_def_map, ResolveKind},
         hir::lower::{
-            test_utils, test_utils::lower_hir_ok, CodeAddressCollector, FromHirExpr,
-            HirDiagnosticCollector,
+            from_hir::{FromHirBlockCtx, FromHirCollectors},
+            test_utils,
+            test_utils::lower_hir_ok,
+            CodeAddressCollector, FromHirExpr, HirDiagnosticCollector,
         },
         resolve::ResolveContext,
         MakeWithFile, Program,
@@ -90,17 +94,20 @@ mod tests {
 
         let mut code_address_collector = CodeAddressCollector::new();
 
+        let mut file_diagnostics = diagnostics.with_file(file);
+        let mut block_diagnostics = file_diagnostics.with_block(block_id.into());
+        let mut collectors = FromHirCollectors {
+            diagnostics: &mut block_diagnostics,
+            code_address_collector: &mut code_address_collector,
+        };
+        let ctx = FromHirBlockCtx {
+            resolve_ctx: &resolve_ctx,
+            block: &block,
+        };
+
         let lowered_elements = args
             .iter()
-            .map(|&expr_id| {
-                CodeAddress::from_hir_expr(
-                    &mut diagnostics.with_file(file).with_block(block_id.into()),
-                    &mut code_address_collector,
-                    &resolve_ctx,
-                    &block,
-                    expr_id,
-                )
-            })
+            .map(|&expr_id| CodeAddress::from_hir_expr(&mut collectors, &ctx, expr_id))
             .collect::<Vec<_>>();
 
         if !diagnostics.is_empty() {

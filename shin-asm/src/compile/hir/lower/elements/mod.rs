@@ -24,7 +24,10 @@ fn check_from_hir_ok<T: crate::compile::hir::lower::FromHirExpr + Eq + std::fmt:
     use crate::compile::{
         db::Database,
         def_map::{build_def_map, ResolveKind},
-        hir::lower::{test_utils, CodeAddressCollector, HirDiagnosticCollector},
+        hir::lower::{
+            from_hir::{FromHirBlockCtx, FromHirCollectors},
+            test_utils, CodeAddressCollector, HirDiagnosticCollector,
+        },
         resolve::ResolveContext,
         MakeWithFile, Program,
     };
@@ -49,17 +52,20 @@ fn check_from_hir_ok<T: crate::compile::hir::lower::FromHirExpr + Eq + std::fmt:
 
     let mut code_address_collector = CodeAddressCollector::new();
 
+    let mut file_diagnostics = diagnostics.with_file(file);
+    let mut block_diagnostics = file_diagnostics.with_block(block_id.into());
+    let mut collectors = FromHirCollectors {
+        diagnostics: &mut block_diagnostics,
+        code_address_collector: &mut code_address_collector,
+    };
+    let ctx = FromHirBlockCtx {
+        resolve_ctx: &resolve_ctx,
+        block: &block,
+    };
+
     let lowered_elements = args
         .iter()
-        .map(|&expr_id| {
-            T::from_hir_expr(
-                &mut diagnostics.with_file(file).with_block(block_id.into()),
-                &mut code_address_collector,
-                &resolve_ctx,
-                &block,
-                expr_id,
-            )
-        })
+        .map(|&expr_id| T::from_hir_expr(&mut collectors, &ctx, expr_id))
         .collect::<Vec<_>>();
 
     if !diagnostics.is_empty() {

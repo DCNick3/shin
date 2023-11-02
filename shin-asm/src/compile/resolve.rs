@@ -17,8 +17,8 @@ enum ResolveContextInner {
     },
 }
 
-pub struct ResolveContext<'a> {
-    db: &'a dyn Db,
+pub struct ResolveContext<'db> {
+    db: &'db dyn Db,
     inner: ResolveContextInner,
 }
 

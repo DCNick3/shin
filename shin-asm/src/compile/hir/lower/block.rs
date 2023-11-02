@@ -2,6 +2,7 @@ use std::io;
 
 use binrw::{io::NoSeek, BinResult, BinWrite};
 use rustc_hash::FxHashMap;
+use shin_asm::compile::hir::lower::from_hir::{FromHirBlockCtx, FromHirCollectors};
 use shin_core::format::scenario::{
     instruction_elements::CodeAddress, instructions::Instruction, types::SmallList,
 };
@@ -65,21 +66,28 @@ impl LoweredBlock {
         block: &HirBlockBody,
     ) -> Self {
         let mut instructions = Vec::with_capacity(block.instructions.len());
-        let mut collector = CodeAddressCollector::new();
+        let mut code_address_collector = CodeAddressCollector::new();
+
+        let mut collectors = FromHirCollectors {
+            diagnostics,
+            code_address_collector: &mut code_address_collector,
+        };
+        let ctx = FromHirBlockCtx {
+            resolve_ctx: &resolve_ctx,
+            block: &block,
+        };
 
         for (instr, _) in block.instructions.iter() {
             instructions.push(super::instruction::instruction_from_hir(
-                diagnostics,
-                &mut collector,
-                resolve_ctx,
-                block,
+                &mut collectors,
+                &ctx,
                 instr,
             ));
         }
 
         Self {
             instructions,
-            code_addresses: collector.into_block_ids(),
+            code_addresses: code_address_collector.into_block_ids(),
         }
     }
 

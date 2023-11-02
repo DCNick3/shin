@@ -1,3 +1,5 @@
+mod from_instr_args;
+
 use shin_core::format::scenario::{
     instruction_elements::NumberSpec,
     instructions::{Instruction, UnaryOperation, UnaryOperationType},
@@ -5,92 +7,33 @@ use shin_core::format::scenario::{
 
 use crate::compile::{
     hir,
-    hir::lower::{CodeAddressCollector, FromHirExpr, HirDiagnosticCollectorWithBlock},
-    resolve, HirBlockBody,
+    hir::lower::{
+        from_hir::{FromHirBlockCtx, FromHirCollectors},
+        FromHirExpr,
+    },
 };
 
-fn expect_no_more_args<const N: usize>(
-    diagnostics: &mut HirDiagnosticCollectorWithBlock,
-    block: &HirBlockBody,
-    instr: hir::InstructionId,
-) -> [Option<hir::ExprId>; N] {
-    let instr = &block.instructions[instr];
-    if instr.args.len() > N {
-        diagnostics.emit(
-            instr.args[N].into(),
-            format!("Expected no more than {} arguments", N),
-        );
-    }
-
-    let mut args = [None; N];
-    for (i, arg) in args.iter_mut().enumerate() {
-        *arg = instr.args.get(i).copied();
-    }
-
-    args
-}
-
-fn expect_exactly_args<const N: usize>(
-    diagnostics: &mut HirDiagnosticCollectorWithBlock,
-    block: &HirBlockBody,
-    instr: hir::InstructionId,
-) -> [Option<hir::ExprId>; N] {
-    let instr = &block.instructions[instr];
-    if instr.args.len() != N {
-        diagnostics.emit(
-            instr.args[N].into(),
-            format!(
-                "Expected exactly {} arguments, but got {}",
-                N,
-                instr.args.len()
-            ),
-        );
-    }
-
-    let mut args = [None; N];
-    for (i, arg) in args.iter_mut().enumerate() {
-        *arg = instr.args.get(i).copied();
-    }
-
-    args
-}
+// fn zero()
 
 pub fn instruction_from_hir(
-    diagnostics: &mut HirDiagnosticCollectorWithBlock,
-    code_address_collector: &mut CodeAddressCollector,
-    resolve_ctx: &resolve::ResolveContext,
-    block: &HirBlockBody,
+    collectors: &mut FromHirCollectors,
+    ctx: &FromHirBlockCtx,
     instr: hir::InstructionId,
 ) -> Option<Instruction> {
-    let Some(name) = block.instructions[instr].name.as_ref() else {
+    let Some(name) = ctx.instr(instr).name.as_ref() else {
         return None;
     };
 
     match name.as_str() {
         "zero" => {
-            let [destination, source] = expect_no_more_args(diagnostics, block, instr);
+            let [destination, source] =
+                from_instr_args::expect_no_more_args(collectors, ctx, instr);
 
-            let destination = destination.map(|id| {
-                FromHirExpr::from_hir_expr(
-                    diagnostics,
-                    code_address_collector,
-                    resolve_ctx,
-                    block,
-                    id,
-                )
-            });
-            let source = source.map(|id| {
-                FromHirExpr::from_hir_expr(
-                    diagnostics,
-                    code_address_collector,
-                    resolve_ctx,
-                    block,
-                    id,
-                )
-            });
+            let destination = destination.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
+            let source = source.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
 
             if destination.is_none() {
-                diagnostics.emit(instr.into(), "Missing a `destination` argument".into());
+                collectors.emit_diagnostic(instr.into(), "Missing a `destination` argument".into());
             }
 
             let destination = destination??;
@@ -103,26 +46,11 @@ pub fn instruction_from_hir(
             }))
         }
         "not16" | "neg" | "abs" => {
-            let [destination, source] = expect_exactly_args(diagnostics, block, instr);
+            let [destination, source] =
+                from_instr_args::expect_exactly_args(collectors, ctx, instr);
 
-            let destination = destination.map(|id| {
-                FromHirExpr::from_hir_expr(
-                    diagnostics,
-                    code_address_collector,
-                    resolve_ctx,
-                    block,
-                    id,
-                )
-            });
-            let source = source.map(|id| {
-                FromHirExpr::from_hir_expr(
-                    diagnostics,
-                    code_address_collector,
-                    resolve_ctx,
-                    block,
-                    id,
-                )
-            });
+            let destination = destination.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
+            let source = source.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
 
             let destination = destination??;
             let source = source??;
@@ -141,23 +69,15 @@ pub fn instruction_from_hir(
             }))
         }
         "j" => {
-            let [target] = expect_exactly_args(diagnostics, block, instr);
-            let target = target.map(|id| {
-                FromHirExpr::from_hir_expr(
-                    diagnostics,
-                    code_address_collector,
-                    resolve_ctx,
-                    block,
-                    id,
-                )
-            });
+            let [target] = from_instr_args::expect_exactly_args(collectors, ctx, instr);
+            let target = target.map(|id| FromHirExpr::from_hir_expr(collectors, ctx, id));
 
             let target = target??;
 
             Some(Instruction::j { target })
         }
         _ => {
-            diagnostics.emit(instr.into(), format!("Unknown instruction: `{}`", name));
+            collectors.emit_diagnostic(instr.into(), format!("Unknown instruction: `{}`", name));
             None
         }
     }
@@ -174,7 +94,10 @@ mod tests {
     use crate::compile::{
         db::Database,
         hir,
-        hir::lower::{test_utils, CodeAddressCollector, HirDiagnosticCollector},
+        hir::lower::{
+            from_hir::{FromHirBlockCtx, FromHirCollectors},
+            test_utils, CodeAddressCollector, HirDiagnosticCollector,
+        },
         resolve::ResolveContext,
     };
 
@@ -188,13 +111,19 @@ mod tests {
         let resolve_ctx = ResolveContext::new_empty(db);
 
         let (instr, _) = block.instructions.iter().next().unwrap();
-        let instr = hir::lower::instruction::instruction_from_hir(
-            &mut diagnostics.with_file(file).with_block(block_id.into()),
-            &mut code_address_collector,
-            &resolve_ctx,
-            &block,
-            instr,
-        );
+
+        let mut file_diagnostics = diagnostics.with_file(file);
+        let mut block_diagnostics = file_diagnostics.with_block(block_id.into());
+        let mut collectors = FromHirCollectors {
+            diagnostics: &mut block_diagnostics,
+            code_address_collector: &mut code_address_collector,
+        };
+        let ctx = FromHirBlockCtx {
+            resolve_ctx: &resolve_ctx,
+            block: &block,
+        };
+
+        let instr = hir::lower::instruction::instruction_from_hir(&mut collectors, &ctx, instr);
 
         let code_addresses = code_address_collector.into_block_ids();
 

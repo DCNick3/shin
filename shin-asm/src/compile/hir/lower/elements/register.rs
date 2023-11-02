@@ -1,35 +1,33 @@
 use shin_core::format::scenario::instruction_elements::Register;
 
 use super::prelude::*;
-use crate::compile::hir::lower::CodeAddressCollector;
+use crate::compile::hir::lower::from_hir::{FromHirBlockCtx, FromHirCollectors};
 
 impl FromHirExpr for Register {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollectorWithBlock,
-        _code_address_collector: &mut CodeAddressCollector,
-        resolve_ctx: &ResolveContext,
-        block: &HirBlockBody,
+        collectors: &mut FromHirCollectors,
+        ctx: &FromHirBlockCtx,
         expr: ExprId,
     ) -> Option<Self> {
-        let hir::Expr::RegisterRef(register) = &block.exprs[expr] else {
-            diagnostics.emit(
+        let hir::Expr::RegisterRef(register) = ctx.expr(expr) else {
+            collectors.emit_diagnostic(
                 expr.into(),
                 format!(
                     "Expected a register, but got {}",
-                    block.exprs[expr].describe_ty()
+                    ctx.expr(expr).describe_ty()
                 ),
             );
             return None;
         };
 
         let register = register.as_ref()?;
-        match resolve_ctx.resolve_register(register) {
+        match ctx.resolve_register(register) {
             Some(register) => Some(register),
             None => {
                 let ast::RegisterIdentKind::Alias(alias) = register else {
                     unreachable!("BUG: a regular register should always resolve");
                 };
-                diagnostics.emit(
+                collectors.emit_diagnostic(
                     expr.into(),
                     format!("Unresolved register alias: `${}`", alias),
                 );

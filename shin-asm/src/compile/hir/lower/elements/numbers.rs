@@ -2,16 +2,17 @@ use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumbe
 
 use super::prelude::*;
 use crate::compile::{
-    constexpr::ConstexprValue, def_map::DefValue, hir::lower::CodeAddressCollector,
+    constexpr::ConstexprValue,
+    def_map::DefValue,
+    hir::lower::from_hir::{FromHirBlockCtx, FromHirCollectors},
 };
 
 fn try_lit_i32(
-    diagnostics: &mut HirDiagnosticCollectorWithBlock,
-    resolve_ctx: &ResolveContext,
-    block: &HirBlockBody,
+    collectors: &mut FromHirCollectors,
+    ctx: &FromHirBlockCtx,
     expr: ExprId,
 ) -> Option<ConstexprValue> {
-    match block.exprs[expr] {
+    match *ctx.expr(expr) {
         hir::Expr::Literal(hir::Literal::IntNumber(lit)) => Some(ConstexprValue::constant(lit)),
         hir::Expr::Literal(hir::Literal::RationalNumber(lit)) => {
             Some(ConstexprValue::constant(lit.into_raw()))
@@ -19,7 +20,7 @@ fn try_lit_i32(
         hir::Expr::UnaryOp {
             op: ast::UnaryOp::Negate,
             expr,
-        } => match block.exprs[expr] {
+        } => match *ctx.expr(expr) {
             hir::Expr::Literal(hir::Literal::IntNumber(lit)) => {
                 Some(ConstexprValue::constant(-lit))
             }
@@ -28,16 +29,16 @@ fn try_lit_i32(
             }
             _ => None,
         },
-        hir::Expr::NameRef(ref name) => match resolve_ctx.resolve_item(name) {
+        hir::Expr::NameRef(ref name) => match ctx.resolve_item(name) {
             None => {
-                diagnostics.emit(
+                collectors.emit_diagnostic(
                     expr.into(),
                     format!("Could not find the definition of `{}`", name),
                 );
                 Some(ConstexprValue::dummy())
             }
             Some(DefValue::Block(_)) => {
-                diagnostics.emit(
+                collectors.emit_diagnostic(
                     expr.into(),
                     format!("Expected a number, found a code reference"),
                 );
@@ -51,16 +52,14 @@ fn try_lit_i32(
 
 impl FromHirExpr for i32 {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollectorWithBlock,
-        _code_address_collector: &mut CodeAddressCollector,
-        resolve_ctx: &ResolveContext,
-        block: &HirBlockBody,
+        collectors: &mut FromHirCollectors,
+        ctx: &FromHirBlockCtx,
         expr: ExprId,
     ) -> Option<Self> {
-        let lit = try_lit_i32(diagnostics, resolve_ctx, block, expr);
+        let lit = try_lit_i32(collectors, ctx, expr);
 
         let Some(lit) = lit else {
-            diagnostics.emit(expr.into(), "Expected a number".into());
+            collectors.emit_diagnostic(expr.into(), "Expected a number".into());
             return None;
         };
 
@@ -72,25 +71,23 @@ impl FromHirExpr for i32 {
 // we probably want to allow symbolic names for constants if the type is an enum
 impl FromHirExpr for NumberSpec {
     fn from_hir_expr(
-        diagnostics: &mut HirDiagnosticCollectorWithBlock,
-        _code_address_collector: &mut CodeAddressCollector,
-        resolve_ctx: &ResolveContext,
-        block: &HirBlockBody,
+        collectors: &mut FromHirCollectors,
+        ctx: &FromHirBlockCtx,
         expr: ExprId,
     ) -> Option<Self> {
         let untyped = (|| {
-            if let Some(lit) = try_lit_i32(diagnostics, resolve_ctx, block, expr) {
+            if let Some(lit) = try_lit_i32(collectors, ctx, expr) {
                 Some(UntypedNumberSpec::Constant(lit.unwrap()?))
-            } else if let hir::Expr::RegisterRef(register) = &block.exprs[expr] {
-                let register = resolve_ctx.resolve_register(register.as_ref()?)?;
+            } else if let hir::Expr::RegisterRef(register) = &ctx.expr(expr) {
+                let register = ctx.resolve_register(register.as_ref()?)?;
 
                 Some(UntypedNumberSpec::Register(register))
             } else {
-                diagnostics.emit(
+                collectors.emit_diagnostic(
                     expr.into(),
                     format!(
                         "Expected either a number or a register, found {}",
-                        block.exprs[expr].describe_ty()
+                        ctx.expr(expr).describe_ty()
                     ),
                 );
                 None
