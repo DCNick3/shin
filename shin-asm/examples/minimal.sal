@@ -1,0 +1,7 @@
+ENTRY:
+    MSGINIT 0
+    MSGSET "Fuck you!"
+    // MSGSET "Fuck you!", nowait // nowait is a kind of keyword argument, Not sure about the design yet
+
+    WAIT 60
+    EXIT

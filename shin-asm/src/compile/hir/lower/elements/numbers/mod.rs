@@ -1,4 +1,5 @@
 mod messagebox_style;
+mod ticks;
 
 use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
 

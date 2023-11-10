@@ -13,6 +13,8 @@ shin-core = { path = "../shin-core" }
 shin-asm = { path = "../shin-asm" }
 
 anyhow = { workspace = true }
+binrw = { workspace = true }
+camino = "1.1.6"
 clap = { version = "4.0.15", features = ["derive"] }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 image = { workspace = true, features = ["png"] }
