@@ -1,7 +1,7 @@
 exprs:
   0: Literal(IntNumber(1))
   1: Literal(IntNumber(2))
-  2: RegisterRef(Some(Alias("choice")))
+  2: RegisterRef(Ok(Alias("choice")))
   3: Literal(IntNumber(14))
   4: Literal(String("NCSELECT"))
   5: Literal(String("To Be"))

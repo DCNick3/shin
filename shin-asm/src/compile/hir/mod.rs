@@ -16,6 +16,7 @@ use crate::{
     compile::{
         def_map::Name,
         diagnostics::{Diagnostic, HirLocation},
+        hir::lower::LowerResult,
         BlockId, Db, File, MakeWithFile, WithFile,
     },
     syntax::{
@@ -107,7 +108,7 @@ pub enum Expr {
     Missing,
     Literal(Literal),
     NameRef(Name),
-    RegisterRef(Option<ast::RegisterIdentKind>),
+    RegisterRef(LowerResult<ast::RegisterIdentKind>),
     Array(Box<[ExprId]>),
     Mapping(Box<[(Option<i32>, ExprId)]>),
     UnaryOp {

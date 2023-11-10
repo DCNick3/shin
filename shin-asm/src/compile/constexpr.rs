@@ -6,40 +6,36 @@ use crate::{
         def_map::Name,
         diagnostics::{Diagnostic, Span},
         hir,
-        hir::Expr,
+        hir::{
+            lower::{LowerError, LowerResult},
+            Expr,
+        },
         make_diagnostic,
     },
     syntax::{ast, ast::UnaryOp},
 };
 
-#[derive(Clone, Eq, PartialEq, Hash)]
-pub struct ConstexprValue(Option<i32>);
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+pub struct ConstexprValue(i32);
 
 impl ConstexprValue {
     pub fn constant(value: i32) -> Self {
-        Self(Some(value))
+        Self(value)
     }
 
-    pub fn dummy() -> Self {
-        Self(None)
-    }
-
-    pub fn unwrap(self) -> Option<i32> {
+    pub fn value(self) -> i32 {
         self.0
     }
 }
 
 impl std::fmt::Debug for ConstexprValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            Some(value) => write!(f, "{}", value),
-            None => write!(f, "<dummy>"),
-        }
+        write!(f, "{}", self.value())
     }
 }
 
 pub enum ConstexprContextValue {
-    Value(ConstexprValue, Option<Span>),
+    Value(LowerResult<ConstexprValue>, Option<Span>),
     // This only exists to make the constexpr evaluator know that the value exists, but is of wrong type
     // we can't really meaningfully use a block reference in a constexpr expression, so there's no value associated with it
     Block(Span),
@@ -72,18 +68,21 @@ struct EvaluateContext<'a> {
 }
 
 impl EvaluateContext<'_> {
-    fn error(&mut self, diagnostic: Diagnostic<Either<hir::ExprId, Span>>) -> ConstexprValue {
+    fn error(
+        &mut self,
+        diagnostic: Diagnostic<Either<hir::ExprId, Span>>,
+    ) -> LowerResult<ConstexprValue> {
         self.diagnostics.push(diagnostic);
-        ConstexprValue::dummy()
+        Err(LowerError)
     }
 }
 
-fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> ConstexprValue {
+fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> LowerResult<ConstexprValue> {
     match ctx.block.exprs[expr] {
-        Expr::Missing => ConstexprValue::dummy(),
-        Expr::Literal(hir::Literal::IntNumber(value)) => ConstexprValue::constant(value),
+        Expr::Missing => Err(LowerError),
+        Expr::Literal(hir::Literal::IntNumber(value)) => Ok(ConstexprValue::constant(value)),
         Expr::Literal(hir::Literal::RationalNumber(value)) => {
-            ConstexprValue::constant(value.into_raw())
+            Ok(ConstexprValue::constant(value.into_raw()))
         }
         Expr::Literal(hir::Literal::String(_)) => {
             ctx.error(type_mismatch(Either::Left(expr), "int or float", "string"))
@@ -105,9 +104,7 @@ fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> ConstexprValue {
         Expr::Array(_) => ctx.error(type_mismatch(Either::Left(expr), "int or float", "array")),
         Expr::Mapping(_) => ctx.error(type_mismatch(Either::Left(expr), "int or float", "mapping")),
         Expr::UnaryOp { expr: val, op } => {
-            let Some(val) = evaluate(ctx, val).unwrap() else {
-                return ConstexprValue::dummy();
-            };
+            let ConstexprValue(val) = evaluate(ctx, val)?;
 
             let result = match op {
                 UnaryOp::Negate => val.checked_neg(),
@@ -115,19 +112,22 @@ fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> ConstexprValue {
                 UnaryOp::BitwiseNot => Some(!val),
             };
 
-            match result {
-                Some(result) => ConstexprValue::constant(result),
-                None => ctx.error(make_diagnostic!(
-                    Either::Left(expr),
-                    "Overflow in constant expression"
-                )),
-            }
+            result
+                .map(ConstexprValue::constant)
+                .ok_or(())
+                .or_else(|()| {
+                    ctx.error(make_diagnostic!(
+                        Either::Left(expr),
+                        "Overflow in constant expression"
+                    ))
+                })
         }
         Expr::BinaryOp { lhs, rhs, op } => {
             let lhs = evaluate(ctx, lhs);
             let rhs = evaluate(ctx, rhs);
-            let (Some(lhs), Some(rhs), Some(op)) = (lhs.unwrap(), rhs.unwrap(), op) else {
-                return ConstexprValue::dummy();
+            let (Ok(ConstexprValue(lhs)), Ok(ConstexprValue(rhs)), Some(op)) = (lhs, rhs, op)
+            else {
+                return Err(LowerError);
             };
 
             let result = match op {
@@ -144,7 +144,7 @@ fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> ConstexprValue {
             };
 
             match result {
-                Some(result) => ConstexprValue::constant(result),
+                Some(result) => Ok(ConstexprValue::constant(result)),
                 None => ctx.error(make_diagnostic!(
                     Either::Left(expr),
                     "Overflow in constant expression"
@@ -161,7 +161,10 @@ pub fn constexpr_evaluate(
     context: &ConstexprContext,
     block: &hir::HirBlockBody,
     expr: hir::ExprId,
-) -> (ConstexprValue, Vec<Diagnostic<Either<hir::ExprId, Span>>>) {
+) -> (
+    LowerResult<ConstexprValue>,
+    Vec<Diagnostic<Either<hir::ExprId, Span>>>,
+) {
     let mut diagnostics = Vec::new();
 
     let mut ctx = EvaluateContext {

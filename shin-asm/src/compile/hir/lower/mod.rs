@@ -18,3 +18,7 @@ pub use from_hir::{
     HirDiagnosticCollectorWithFile,
 };
 pub use program::{lower_program, LoweredProgram};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LowerError;
+pub type LowerResult<T> = Result<T, LowerError>;

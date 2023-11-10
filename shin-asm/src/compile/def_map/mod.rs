@@ -311,7 +311,7 @@ def A = 65536 * 65536
 
         expect![[r#"
             items:
-              A: Value(<dummy>)
+              A: Value(<error>)
             registers:
               global:
               local:

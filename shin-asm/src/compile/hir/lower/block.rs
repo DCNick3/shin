@@ -12,7 +12,10 @@ use crate::compile::{
     diagnostics::HirDiagnosticAccumulator,
     hir,
     hir::{
-        lower::{CodeAddressCollector, HirDiagnosticCollector, HirDiagnosticCollectorWithBlock},
+        lower::{
+            CodeAddressCollector, HirDiagnosticCollector, HirDiagnosticCollectorWithBlock,
+            LowerError, LowerResult,
+        },
         HirBlockId,
     },
     types::SalsaBlockIdWithFile,
@@ -54,7 +57,7 @@ pub struct LoweredBlock {
     /// They are stored as `BlockIdWithFile` in the `code_addresses` field instead.
     // NOTE: this __can__ be replaced by another type of lowered, but not yet placed instruction, but we opt not to do so
     // it's easier or smth
-    pub instructions: Vec<Option<Instruction>>,
+    pub instructions: Vec<LowerResult<Instruction>>,
     /// Stores the actual values that `CodeAddress` elements in `instructions` refer to.
     pub code_addresses: Vec<BlockIdWithFile>,
 }
@@ -93,14 +96,16 @@ impl LoweredBlock {
 
     /// Checks whether all the instructions in the block are lowered.
     pub fn complete(&self) -> bool {
-        self.instructions.iter().all(|instr| instr.is_some())
+        self.instructions.iter().all(|instr| instr.is_ok())
     }
 
     /// Computes the size of the serialized block in bytes
-    pub fn code_size(&self) -> Option<u32> {
+    pub fn code_size(&self) -> LowerResult<u32> {
         let mut size = 0;
         for instr in &self.instructions {
-            let instr = instr.as_ref()?;
+            let Ok(instr) = instr else {
+                return Err(LowerError);
+            };
 
             let mut count_write = NoSeek::new(CountWrite::new());
             instr
@@ -110,7 +115,7 @@ impl LoweredBlock {
             size += count_write.into_inner().count();
         }
 
-        Some(size.try_into().expect("BUG: block size overflow"))
+        Ok(size.try_into().expect("BUG: block size overflow"))
     }
 
     pub fn resolve_code_addresses(
@@ -183,9 +188,9 @@ impl LoweredBlock {
 
         for instr in &self.instructions {
             match instr {
-                None => writeln!(buf, "  <error>").unwrap(),
+                Err(_) => writeln!(buf, "  <error>").unwrap(),
                 // TODO: make a reasonable `Display` impl?
-                Some(instr) => writeln!(buf, "  {:?}", instr).unwrap(),
+                Ok(instr) => writeln!(buf, "  {:?}", instr).unwrap(),
             }
         }
 

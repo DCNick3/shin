@@ -8,7 +8,7 @@ use super::{
     InstructionPtr, Literal,
 };
 use crate::{
-    compile::{def_map::Name, diagnostics::Diagnostic},
+    compile::{def_map::Name, diagnostics::Diagnostic, hir::lower::LowerError},
     syntax::{ast, ast::AstNodeExt, AstToken},
 };
 
@@ -95,10 +95,10 @@ impl HirBlockCollector {
             }
             ast::Expr::RegisterRefExpr(e) => {
                 let register = match e.value().kind() {
-                    Ok(v) => Some(v),
+                    Ok(v) => Ok(v),
                     Err(e) => {
                         self.diagnostics.push(e);
-                        None
+                        Err(LowerError)
                     }
                 };
                 self.alloc_expr(Expr::RegisterRef(register), ptr)

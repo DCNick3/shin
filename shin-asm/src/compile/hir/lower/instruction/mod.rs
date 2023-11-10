@@ -1,64 +1,34 @@
+mod commands;
 mod from_instr_args;
 mod instr_lowerer;
+mod instructions;
+mod into_instruction;
 mod router;
 
-use shin_core::format::scenario::{
-    instruction_elements::{CodeAddress, NumberSpec, Register},
-    instructions::{Instruction, UnaryOperation, UnaryOperationType},
-};
+use shin_core::format::scenario::instructions::Instruction;
 
 use self::router::{Router, RouterBuilder};
 use crate::compile::{
     hir,
-    hir::lower::from_hir::{FromHirBlockCtx, FromHirCollectors},
+    hir::lower::{
+        from_hir::{FromHirBlockCtx, FromHirCollectors},
+        LowerError, LowerResult,
+    },
 };
-
-fn zero((destination, source): (Register, Option<NumberSpec>)) -> Option<Instruction> {
-    Some(Instruction::uo(UnaryOperation {
-        ty: UnaryOperationType::Zero,
-        destination,
-        source: source.unwrap_or(NumberSpec::constant(0)),
-    }))
-}
-
-fn unary_op(
-    instr_name: &str,
-    (destination, source): (Register, NumberSpec),
-) -> Option<Instruction> {
-    let ty = match instr_name {
-        "not16" => UnaryOperationType::Not16,
-        "neg" => UnaryOperationType::Negate,
-        "abs" => UnaryOperationType::Abs,
-        _ => unreachable!(),
-    };
-
-    Some(Instruction::uo(UnaryOperation {
-        ty,
-        destination,
-        source,
-    }))
-}
-
-fn jump((target,): (CodeAddress,)) -> Option<Instruction> {
-    Some(Instruction::j { target })
-}
 
 pub fn instruction_from_hir(
     collectors: &mut FromHirCollectors,
     ctx: &FromHirBlockCtx,
     instr: hir::InstructionId,
-) -> Option<Instruction> {
+) -> LowerResult<Instruction> {
     let Some(name) = ctx.instr(instr).name.as_ref() else {
-        return None;
+        return Err(LowerError);
     };
 
-    let router = RouterBuilder::new()
-        .add("zero", zero)
-        .add("not16", unary_op)
-        .add("neg", unary_op)
-        .add("abs", unary_op)
-        .add("j", jump)
-        .build();
+    let builder = RouterBuilder::new();
+    let builder = instructions::instructions(builder);
+    let builder = commands::commands(builder);
+    let router = builder.build();
 
     return router.handle_instr(collectors, ctx, name, instr);
 }
@@ -66,9 +36,15 @@ pub fn instruction_from_hir(
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, Expect};
-    use shin_core::format::scenario::{
-        instruction_elements::NumberSpec,
-        instructions::{Instruction, UnaryOperation, UnaryOperationType},
+    use shin_core::{
+        format::{
+            scenario::{
+                instruction_elements::{MessageId, NumberSpec, U8Bool},
+                instructions::{Instruction, UnaryOperation, UnaryOperationType},
+            },
+            text::U16FixupString,
+        },
+        vm::command::{compiletime::MSGSET, CompiletimeCommand},
     };
 
     use crate::compile::{
@@ -176,6 +152,18 @@ mod tests {
                 source: NumberSpec::constant(42),
             }),
         );
+    }
+
+    #[test]
+    fn test_msgset() {
+        check_from_hir_ok(
+            r#"MSGSET "Heeey!!""#,
+            Instruction::Command(CompiletimeCommand::MSGSET(MSGSET {
+                msg_id: MessageId(0),
+                auto_wait: U8Bool(true),
+                text: U16FixupString::new("Heeey!!".to_string()),
+            })),
+        )
     }
 
     #[test]

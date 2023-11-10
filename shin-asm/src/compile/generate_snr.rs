@@ -5,7 +5,10 @@ use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use shin_core::format::scenario::{instruction_elements::CodeAddress, ScenarioHeader};
 
-use crate::compile::{hir::lower::LoweredProgram, BlockIdWithFile, Db, MakeWithFile};
+use crate::compile::{
+    hir::lower::{LowerResult, LoweredProgram},
+    BlockIdWithFile, Db, MakeWithFile,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockLayout {
@@ -49,7 +52,7 @@ pub fn layout_blocks(
     db: &dyn Db,
     headers: DonorHeaders,
     program: LoweredProgram,
-) -> Option<BlockLayout> {
+) -> LowerResult<BlockLayout> {
     let mut block_offsets = FxHashMap::default();
     let mut block_order = Vec::new();
 
@@ -66,7 +69,7 @@ pub fn layout_blocks(
         }
     }
 
-    Some(BlockLayout {
+    Ok(BlockLayout {
         block_offsets,
         block_order,
         snr_file_size: position,

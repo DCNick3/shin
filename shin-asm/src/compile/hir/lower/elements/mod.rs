@@ -1,9 +1,13 @@
 mod prelude {
     pub use crate::{
         compile::{
+            def_map::DefValue,
             hir,
             hir::{
-                lower::{FromHirExpr, HirDiagnosticCollectorWithBlock},
+                lower::{
+                    from_hir::{FromHirBlockCtx, FromHirCollectors},
+                    FromHirExpr, HirDiagnosticCollectorWithBlock,
+                },
                 ExprId,
             },
             HirBlockBody, ResolveContext,
@@ -15,6 +19,7 @@ mod prelude {
 mod code_address;
 mod numbers;
 mod register;
+mod string;
 
 #[cfg(test)]
 fn check_from_hir_ok<T: crate::compile::hir::lower::FromHirExpr + Eq + std::fmt::Debug>(
@@ -76,6 +81,6 @@ fn check_from_hir_ok<T: crate::compile::hir::lower::FromHirExpr + Eq + std::fmt:
     }
 
     for (lowered, expected) in lowered_elements.iter().zip(expected) {
-        assert_eq!(lowered.as_ref(), Some(expected));
+        assert_eq!(lowered.as_ref(), Ok(expected));
     }
 }

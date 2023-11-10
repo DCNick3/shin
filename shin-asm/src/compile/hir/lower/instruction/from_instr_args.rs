@@ -1,8 +1,10 @@
+use shin_asm::compile::hir::lower::LowerResult;
+
 use crate::compile::{
     hir,
     hir::lower::{
         from_hir::{FromHirBlockCtx, FromHirCollectors},
-        FromHirExpr,
+        FromHirExpr, LowerError,
     },
 };
 
@@ -24,10 +26,10 @@ fn expect_opt_args_inner(
             format!("Extra argument: expected no arguments")
         };
 
-        collectors.emit_diagnostic(instr_args[n_m + n_o].into(), msg);
+        let _ = collectors.emit_diagnostic::<()>(instr_args[n_m + n_o].into(), msg);
     }
     if instr_args.len() < n_m {
-        collectors.emit_diagnostic(
+        let _ = collectors.emit_diagnostic::<()>(
             instr.into(),
             format!(
                 "Missing argument: expected at least {} arguments, but got {}",
@@ -43,16 +45,16 @@ fn expect_opt_args<const N_M: usize, const N_O: usize>(
     collectors: &mut FromHirCollectors,
     ctx: &FromHirBlockCtx,
     instr: hir::InstructionId,
-) -> ([Option<hir::ExprId>; N_M], [Option<hir::ExprId>; N_O]) {
+) -> ([LowerResult<hir::ExprId>; N_M], [Option<hir::ExprId>; N_O]) {
     let instr_args = &ctx.instr(instr).args;
     // N_M is the number of mandatory arguments
     // N_O is the number of optional arguments
 
     expect_opt_args_inner(collectors, instr, instr_args, N_M, N_O);
 
-    let mut args_m = [None; N_M];
+    let mut args_m = [Err(LowerError); N_M];
     for (i, arg) in args_m.iter_mut().enumerate() {
-        *arg = instr_args.get(i).copied();
+        *arg = instr_args.get(i).copied().ok_or(LowerError);
     }
     let mut args_o = [None; N_O];
     for (i, arg) in args_o.iter_mut().enumerate() {
@@ -67,7 +69,7 @@ pub trait FromInstrArgs: Sized {
         collectors: &mut FromHirCollectors,
         ctx: &FromHirBlockCtx,
         instr: hir::InstructionId,
-    ) -> Option<Self>;
+    ) -> LowerResult<Self>;
 }
 
 impl FromInstrArgs for () {
@@ -75,25 +77,15 @@ impl FromInstrArgs for () {
         collectors: &mut FromHirCollectors,
         ctx: &FromHirBlockCtx,
         instr: hir::InstructionId,
-    ) -> Option<Self> {
+    ) -> LowerResult<Self> {
         if !ctx.instr(instr).args.is_empty() {
             collectors.emit_diagnostic(
                 instr.into(),
                 format!("This instruction does not take any arguments"),
-            );
-
-            None
+            )
         } else {
-            Some(())
+            Ok(())
         }
-    }
-}
-
-fn transpose<T>(v: Option<Option<T>>) -> Option<Option<T>> {
-    match v {
-        None => Some(None),
-        Some(None) => None,
-        Some(Some(v)) => Some(Some(v)),
     }
 }
 
@@ -110,7 +102,7 @@ macro_rules! impl_from_instr_args_opt_tuple {
                 collectors: &mut FromHirCollectors,
                 ctx: &FromHirBlockCtx,
                 instr: hir::InstructionId,
-            ) -> Option<Self> {
+            ) -> LowerResult<Self> {
                 let ([$($mty,)*], [$($oty,)*]) = expect_opt_args(collectors, ctx, instr);
                 $(
                     let $mty = $mty.and_then(|arg| {
@@ -123,7 +115,7 @@ macro_rules! impl_from_instr_args_opt_tuple {
                     });
                 )*
 
-                Some(($($mty?,)* $(transpose($oty)?,)*))
+                Ok(($($mty?,)* $($oty.transpose()?,)*))
             }
         }
     };

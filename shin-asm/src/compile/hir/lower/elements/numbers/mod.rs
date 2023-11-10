@@ -1,52 +1,82 @@
+mod messagebox_style;
+
 use shin_core::format::scenario::instruction_elements::{NumberSpec, UntypedNumberSpec};
 
 use super::prelude::*;
 use crate::compile::{
     constexpr::ConstexprValue,
-    def_map::DefValue,
-    hir::lower::from_hir::{FromHirBlockCtx, FromHirCollectors},
+    hir::lower::{LowerError, LowerResult},
 };
 
 fn try_lit_i32(
     collectors: &mut FromHirCollectors,
     ctx: &FromHirBlockCtx,
     expr: ExprId,
-) -> Option<ConstexprValue> {
+) -> Option<LowerResult<ConstexprValue>> {
     match *ctx.expr(expr) {
-        hir::Expr::Literal(hir::Literal::IntNumber(lit)) => Some(ConstexprValue::constant(lit)),
+        hir::Expr::Literal(hir::Literal::IntNumber(lit)) => Some(Ok(ConstexprValue::constant(lit))),
         hir::Expr::Literal(hir::Literal::RationalNumber(lit)) => {
-            Some(ConstexprValue::constant(lit.into_raw()))
+            Some(Ok(ConstexprValue::constant(lit.into_raw())))
         }
         hir::Expr::UnaryOp {
             op: ast::UnaryOp::Negate,
             expr,
         } => match *ctx.expr(expr) {
             hir::Expr::Literal(hir::Literal::IntNumber(lit)) => {
-                Some(ConstexprValue::constant(-lit))
+                Some(Ok(ConstexprValue::constant(-lit)))
             }
             hir::Expr::Literal(hir::Literal::RationalNumber(lit)) => {
-                Some(ConstexprValue::constant(-lit.into_raw()))
+                Some(Ok(ConstexprValue::constant(-lit.into_raw())))
             }
             _ => None,
         },
         hir::Expr::NameRef(ref name) => match ctx.resolve_item(name) {
-            None => {
-                collectors.emit_diagnostic(
-                    expr.into(),
-                    format!("Could not find the definition of `{}`", name),
-                );
-                Some(ConstexprValue::dummy())
-            }
-            Some(DefValue::Block(_)) => {
-                collectors.emit_diagnostic(
-                    expr.into(),
-                    format!("Expected a number, found a code reference"),
-                );
-                Some(ConstexprValue::dummy())
-            }
+            None => Some(collectors.emit_diagnostic(
+                expr.into(),
+                format!("Could not find the definition of `{}`", name),
+            )),
+            Some(DefValue::Block(_)) => Some(collectors.emit_diagnostic(
+                expr.into(),
+                format!("Expected a number, found a code reference"),
+            )),
             Some(DefValue::Value(value)) => Some(value),
         },
         _ => None,
+    }
+}
+
+fn try_number_spec<T>(
+    collectors: &mut FromHirCollectors,
+    ctx: &FromHirBlockCtx,
+    expr: ExprId,
+) -> LowerResult<Option<NumberSpec<T>>> {
+    if let Some(lit) = try_lit_i32(collectors, ctx, expr) {
+        let Ok(lit) = lit else {
+            return Err(LowerError);
+        };
+
+        Ok(Some(NumberSpec::new(UntypedNumberSpec::Constant(
+            lit.value(),
+        ))))
+    } else if let hir::Expr::RegisterRef(register) = &ctx.expr(expr) {
+        let Ok(register) = register else {
+            return Err(LowerError);
+        };
+
+        let register = ctx.resolve_register(register).ok_or(()).or_else(|()| {
+            let ast::RegisterIdentKind::Alias(register) = register else {
+                unreachable!()
+            };
+
+            collectors.emit_diagnostic(
+                expr.into(),
+                format!("Could not find the definition of `${}`", register),
+            )
+        })?;
+
+        Ok(Some(NumberSpec::new(UntypedNumberSpec::Register(register))))
+    } else {
+        Ok(None)
     }
 }
 
@@ -55,15 +85,14 @@ impl FromHirExpr for i32 {
         collectors: &mut FromHirCollectors,
         ctx: &FromHirBlockCtx,
         expr: ExprId,
-    ) -> Option<Self> {
+    ) -> LowerResult<Self> {
         let lit = try_lit_i32(collectors, ctx, expr);
 
         let Some(lit) = lit else {
-            collectors.emit_diagnostic(expr.into(), "Expected a number".into());
-            return None;
+            return collectors.emit_diagnostic(expr.into(), "Expected a number".into());
         };
 
-        lit.unwrap()
+        lit.map(ConstexprValue::value)
     }
 }
 
@@ -74,27 +103,18 @@ impl FromHirExpr for NumberSpec {
         collectors: &mut FromHirCollectors,
         ctx: &FromHirBlockCtx,
         expr: ExprId,
-    ) -> Option<Self> {
-        let untyped = (|| {
-            if let Some(lit) = try_lit_i32(collectors, ctx, expr) {
-                Some(UntypedNumberSpec::Constant(lit.unwrap()?))
-            } else if let hir::Expr::RegisterRef(register) = &ctx.expr(expr) {
-                let register = ctx.resolve_register(register.as_ref()?)?;
-
-                Some(UntypedNumberSpec::Register(register))
-            } else {
+    ) -> LowerResult<Self> {
+        try_number_spec(collectors, ctx, expr)?
+            .ok_or(())
+            .or_else(|()| {
                 collectors.emit_diagnostic(
                     expr.into(),
                     format!(
                         "Expected either a number or a register, found {}",
                         ctx.expr(expr).describe_ty()
                     ),
-                );
-                None
-            }
-        })();
-
-        untyped.map(NumberSpec::new)
+                )
+            })
     }
 }
 

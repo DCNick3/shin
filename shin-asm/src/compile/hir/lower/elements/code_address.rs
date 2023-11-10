@@ -3,7 +3,10 @@ use shin_core::format::scenario::instruction_elements::CodeAddress;
 use super::prelude::*;
 use crate::compile::{
     def_map::DefValue,
-    hir::lower::from_hir::{FromHirBlockCtx, FromHirCollectors},
+    hir::lower::{
+        from_hir::{FromHirBlockCtx, FromHirCollectors},
+        LowerResult,
+    },
 };
 
 impl FromHirExpr for CodeAddress {
@@ -11,29 +14,23 @@ impl FromHirExpr for CodeAddress {
         collectors: &mut FromHirCollectors,
         ctx: &FromHirBlockCtx,
         expr: ExprId,
-    ) -> Option<Self> {
+    ) -> LowerResult<Self> {
         let hir::Expr::NameRef(ref name) = ctx.expr(expr) else {
-            collectors.emit_diagnostic(
+            return collectors.emit_diagnostic(
                 expr.into(),
                 format!("Expected a label, got {}", ctx.expr(expr).describe_ty()),
             );
-            return None;
         };
 
         match ctx.resolve_item(name) {
-            None => {
-                collectors.emit_diagnostic(
-                    expr.into(),
-                    format!("Could not find the definition of `{}`", name),
-                );
-                None
-            }
+            None => collectors.emit_diagnostic(
+                expr.into(),
+                format!("Could not find the definition of `{}`", name),
+            ),
             Some(DefValue::Value(_)) => {
-                collectors
-                    .emit_diagnostic(expr.into(), format!("Expected a label, found an alias"));
-                None
+                collectors.emit_diagnostic(expr.into(), format!("Expected a label, found an alias"))
             }
-            Some(DefValue::Block(block)) => Some(collectors.allocate_code_address(block)),
+            Some(DefValue::Block(block)) => Ok(collectors.allocate_code_address(block)),
         }
     }
 }
@@ -118,7 +115,7 @@ mod tests {
         }
 
         for (lowered, expected) in lowered_elements.iter().zip(expected) {
-            assert_eq!(lowered.as_ref(), Some(expected));
+            assert_eq!(lowered.as_ref(), Ok(expected));
         }
 
         for block_id in code_address_collector.into_block_ids() {

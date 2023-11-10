@@ -4,7 +4,11 @@ use crate::{
     compile::{
         def_map::{DefValue, Name},
         diagnostics::HirLocation,
-        hir::{self, HirBlockBody, HirBlockId, HirDiagnostic, HirId, HirIdWithBlock},
+        hir::{
+            self,
+            lower::{LowerError, LowerResult},
+            HirBlockBody, HirBlockId, HirDiagnostic, HirId, HirIdWithBlock,
+        },
         resolve, BlockIdWithFile, File, MakeWithFile,
     },
     syntax::ast,
@@ -112,8 +116,26 @@ pub struct FromHirCollectors<'d, 'di, 'cac> {
 
 impl<'d, 'di, 'cac> FromHirCollectors<'d, 'di, 'cac> {
     #[inline]
-    pub fn emit_diagnostic(&mut self, location: HirId, message: String) {
+    pub fn emit_diagnostic<T>(&mut self, location: HirId, message: String) -> LowerResult<T> {
         self.diagnostics.emit(location, message);
+        Err(LowerError)
+    }
+
+    #[inline]
+    pub fn emit_unexpected_type<T>(
+        &mut self,
+        ctx: &FromHirBlockCtx,
+        expected: &str,
+        unexpected: hir::ExprId,
+    ) -> LowerResult<T> {
+        self.emit_diagnostic(
+            unexpected.into(),
+            format!(
+                "Expected {}, but got {}",
+                expected,
+                ctx.expr(unexpected).describe_ty()
+            ),
+        )
     }
 
     #[inline]
@@ -157,5 +179,5 @@ pub trait FromHirExpr: Sized {
         collectors: &mut FromHirCollectors,
         ctx: &FromHirBlockCtx,
         expr: hir::ExprId,
-    ) -> Option<Self>;
+    ) -> LowerResult<Self>;
 }

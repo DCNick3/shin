@@ -1,9 +1,9 @@
 exprs:
-  0: RegisterRef(Some(Alias("1")))
+  0: RegisterRef(Ok(Alias("1")))
   1: Literal(IntNumber(1))
   2: UnaryOp { expr: Idx::<Expr>(1), op: Negate }
   3: Literal(IntNumber(14))
-  4: RegisterRef(Some(Register($v0)))
+  4: RegisterRef(Ok(Register($v0)))
   5: NameRef(Name("SNR_0"))
   6: NameRef(Name("SNR_1"))
   7: Mapping([(Some(0), Idx::<Expr>(5)), (Some(1), Idx::<Expr>(6))])

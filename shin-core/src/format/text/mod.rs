@@ -4,7 +4,7 @@ use std::{collections::HashMap, io};
 
 use once_cell::sync::Lazy;
 
-mod string;
+pub mod string;
 mod string_array;
 
 pub use string::{SJisString, U16FixupString, U16String, U8FixupString, U8String, ZeroString};

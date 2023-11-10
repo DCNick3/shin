@@ -1,15 +1,21 @@
-use std::collections::hash_map::Entry;
+use std::{
+    collections::hash_map::Entry,
+    fmt::{Debug, Formatter},
+};
 
 use bind_match::bind_match;
 use either::Either;
 use rustc_hash::FxHashMap;
+use shin_asm::compile::hir::lower::LowerResult;
 
 use crate::{
     compile::{
         constexpr::{constexpr_evaluate, ConstexprContextValue, ConstexprValue},
         def_map::Name,
         diagnostics::Span,
-        hir, make_diagnostic, BlockId, BlockIdWithFile, Db, File, MakeWithFile, Program,
+        hir,
+        hir::lower::LowerError,
+        make_diagnostic, BlockId, BlockIdWithFile, Db, File, MakeWithFile, Program,
     },
     syntax::{
         ast::{
@@ -26,10 +32,27 @@ pub enum DefRef {
     Value(ast::Expr, ItemIndex, Span),
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum DefValue {
     Block(BlockIdWithFile),
-    Value(ConstexprValue),
+    Value(LowerResult<ConstexprValue>),
+}
+
+impl Debug for DefValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        struct Error;
+        impl Debug for Error {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                write!(f, "<error>")
+            }
+        }
+
+        match self {
+            DefValue::Block(b) => f.debug_tuple("Block").field(b).finish(),
+            DefValue::Value(Ok(v)) => f.debug_tuple("Value").field(v).finish(),
+            DefValue::Value(Err(_)) => f.debug_tuple("Value").field(&Error).finish(),
+        }
+    }
 }
 
 type UnresolvedItems = FxHashMap<Name, DefRef>;
@@ -149,7 +172,7 @@ pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedItems) -> ResolvedItem
                             )
                             .emit(self.db);
 
-                            (DefValue::Value(ConstexprValue::dummy()), None)
+                            (DefValue::Value(Err(LowerError)), None)
                         }
                         Some(&DefRef::Block(block_id, span)) => {
                             (DefValue::Block(block_id.in_file(span.file())), Some(span))
@@ -213,7 +236,7 @@ pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedItems) -> ResolvedItem
                     )
                     .emit(self.db);
 
-                    return (DefValue::Value(ConstexprValue::dummy()), None);
+                    return (DefValue::Value(Err(LowerError)), None);
                 }
                 NodeState::Visited(result) => result.clone(),
             }
