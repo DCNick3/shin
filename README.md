@@ -1,23 +1,7 @@
 
 This is an attempt at re-implementation of game engine used by some [visual novels](https://en.wikipedia.org/wiki/Visual_novel) released by [Entergram](http://www.entergram.co.jp/) on Nintendo Switch, PS4 and PS Vita.
 
-Known Switch games include:
-- Higurashi no Naku Koro ni Hou (title id `0100F6A00A684000`)
-- D.C.4 \~Da Capo 4\~ (title id `0100D8500EE14000`)
-- Gensou Rougoku no Kaleidoscope (title id `0100AC600EB4C000`)
-- Kono Subarashii Sekai ni Shukufuku wo! Kibou no Meikyuu to Tsudoishi Boukenshata Plus (title id `01004920105FC000`)
-- Umineko no Naku Koro ni Saku \~Nekobako to Musou no Koukyoukyoku\~ (title id `01006A300BA2C000`)
-- Sugar*Style (title id `0100325012B70000`)
-- Sakaagari Hurricane Portable (title id `0100A680151A0000`)
-
-Known PS Vita games include:
-- Higurashi no Naku Koro ni Sui (title id `PCSG00517`)
-- Shirogane x Spirits! (title id `PCSG00846`)
-- Rep Kiss (title id `PCSG00906`)
-- Sakaagari Hurricane Portable (title id `PCSG00990`)
-- Amaekata wa Kanojo Nari ni. (title id `PCSG01086`)
-- Kimi no Hitomi ni Hit Me (title id `PCSG01087`)
-- Soi Kano \~Gyutto Dakishimete\~ (title id `PCSG01254`)
+Currently known games using the engine on Switch and PS Vita are listed in [this spreadsheet](https://docs.google.com/spreadsheets/d/1wGX9FOQq_iXcWMnY9qITCAV7hq1R7_gpWwjkT4_tKDI/edit?usp=sharing). PS4 was not researched yet. 
 
 If you know more - let me know! (`dcnick3` on Discord)
 
