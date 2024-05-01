@@ -176,10 +176,46 @@ fn mask_command(command: MaskCommand) -> Result<()> {
             mask_path,
             output_path,
         } => {
+            use std::io::Write;
+
             let mask = std::fs::read(mask_path)?;
             let mask = shin_core::format::mask::read_mask(&mask)?;
 
-            mask.texels.save(output_path)?;
+            std::fs::create_dir_all(&output_path)?;
+
+            mask.texels
+                .save(output_path.join("mask.png"))
+                .context("Writing mask.png")?;
+
+            let v = &mask.vertices;
+            let mut v_out =
+                File::create(output_path.join("vertices.txt")).context("Creating vertices.txt")?;
+            writeln!(
+                v_out,
+                "({}, {}) ({}, {}) ({}, {})",
+                v.black_regions.vertex_count,
+                v.black_regions.region_area,
+                v.white_regions.vertex_count,
+                v.white_regions.region_area,
+                v.transparent_regions.vertex_count,
+                v.transparent_regions.region_area
+            )
+            .context("Writing vertices.txt")?;
+
+            for (i, vertex) in (0..).zip(&v.vertices) {
+                if i == v.black_regions.vertex_count
+                    || i == v.black_regions.vertex_count + v.white_regions.vertex_count
+                {
+                    writeln!(v_out).context("Writing vertices.txt")?;
+                }
+
+                writeln!(
+                    v_out,
+                    "{} {} {} {}",
+                    vertex.from_x, vertex.from_y, vertex.to_x, vertex.to_y
+                )
+                .context("Writing vertices.txt")?;
+            }
 
             Ok(())
         }

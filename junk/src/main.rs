@@ -5,6 +5,7 @@ use clap::Parser;
 mod buffer_parser;
 mod check_info_uniqueness;
 mod debug_tex_parser;
+mod mask_visualize_vertices;
 
 // use clap to select what to do
 #[derive(Parser)]
@@ -18,6 +19,7 @@ enum JunkAction {
     BufferParser,
     DebugTexParser,
     CheckInfoUniqueness { snr_path: String },
+    MaskVisualizeVertices { msk_path: String },
 }
 
 fn main() {
@@ -26,5 +28,6 @@ fn main() {
         JunkAction::BufferParser => buffer_parser::main(),
         JunkAction::DebugTexParser => debug_tex_parser::main(),
         JunkAction::CheckInfoUniqueness { snr_path } => check_info_uniqueness::main(snr_path),
+        JunkAction::MaskVisualizeVertices { msk_path } => mask_visualize_vertices::main(msk_path),
     }
 }
