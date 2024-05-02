@@ -140,7 +140,9 @@ impl super::H264DecoderTrait for GStreamerH264Decoder {
                                 gst::ClockTime::from_useconds(time * 1_000_000 / time_base as u64)
                             };
 
-                            let start_time = mp4_time_to_gst_time((sample.start_time as i64 + sample.rendering_offset as i64) as u64);
+                            let start_time = mp4_time_to_gst_time(
+                                (sample.start_time as i64 + sample.rendering_offset as i64) as u64,
+                            );
                             let duration = mp4_time_to_gst_time(sample.duration as u64);
 
                             bitstream_converter.convert_packet(&sample.bytes, &mut vec_buffer);
@@ -187,9 +189,10 @@ impl super::H264DecoderTrait for GStreamerH264Decoder {
                     video_info.interlace_mode()
                 )
             }
-            if video_info.chroma_site() != gst_video::VideoChromaSite::MPEG2 {
-                bail!("Unsupported chroma site: {:?}", video_info.chroma_site())
-            }
+            // when doing hardware decoding with nvidia this is set to unknown... whatever
+            // if video_info.chroma_site() != gst_video::VideoChromaSite::MPEG2 {
+            //     bail!("Unsupported chroma site: {:?}", video_info.chroma_site())
+            // }
             // ehh,, i dunno how to compare it
             // assert_eq!(video_info.colorimetry(), gst_video::VideoColorimetry::);
             // assert_eq!(video_info.pixel_aspect_ratio(), gst::Fraction::new(1, 1));
