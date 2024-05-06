@@ -5,6 +5,23 @@ use shin_core::time::Ticks;
 
 #[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
+pub struct PosVertex4 {
+    // only first three components are actually used, but we want to keep close to the original impl
+    #[f32x4(0)]
+    pub position: Vec4,
+}
+
+#[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C)]
+pub struct PosColVertex {
+    #[f32x4(0)]
+    pub position: Vec4,
+    #[f32x4(1)]
+    pub color: Vec4,
+}
+
+#[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C)]
 pub struct PosColTexVertex {
     #[f32x3(0)]
     pub position: Vec3,

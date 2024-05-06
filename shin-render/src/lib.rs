@@ -8,6 +8,7 @@ mod bind_groups;
 mod camera;
 mod common_resources;
 mod gpu_image;
+mod new_render;
 mod pillarbox;
 mod pipelines;
 mod render_target;

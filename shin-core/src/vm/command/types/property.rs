@@ -28,7 +28,7 @@ pub enum LayerProperty {
 
     RotationOriginX = 16,
     RotationOriginY = 17,
-    /// Rotation of the layer in 1000th of rotation
+    /// Rotation of the layer in milliturns (1000mt = 1 turn)
     Rotation = 18,
     Rotation2 = 19,
 
@@ -36,15 +36,15 @@ pub enum LayerProperty {
     Prop21 = 21,
 
     ShowLayer = 22,
-    Prop23 = 23,
-    Prop24 = 24,
-    Prop25 = 25,
-    Prop26 = 26,
+    BlendType = 23,
+    FragmentShader = 24,
+    ComposeFlags = 25,
+    Flip = 26,
     Prop27 = 27,
-    Prop28 = 28,
-    Prop29 = 29,
-    Prop30 = 30,
-    Prop31 = 31,
+    ShaderParamX = 28,
+    ShaderParamY = 29,
+    ShaderParamZ = 30,
+    ShaderParamW = 31,
 
     WobbleXMode = 32,
     WobbleXPeriod = 33,
@@ -77,49 +77,50 @@ pub enum LayerProperty {
     WobbleRotationBias = 55,
 
     // "Ghosting" effect
-    Prop56 = 56,
-    Prop57 = 57,
-    Prop58 = 58,
-    Prop59 = 59,
-    Prop60 = 60,
+    GhostingAlpha = 56,
+    GhostingZoom = 57,
+    GhostingRotation = 58,
+    GhostingRotationOriginDx = 59,
+    GhostingRotationOriginDy = 60,
 
+    // dunno
     Prop61 = 61,
     Prop62 = 62,
     Prop63 = 63,
     Prop64 = 64,
     Prop65 = 65,
-    Prop66 = 66,
-    Prop67 = 67,
-    Prop68 = 68,
 
-    // "Blur" effect
-    Prop69 = 69,
-    // "Pixelize" effect
-    PixelizeSize = 70,
+    // "Blur" effect?
+    Prop66 = 66,
+    // "pixelizes" the image
+    MosaicSize = 67,
 
     // "Dissolve" Effect, used by the witch
+    DissolveIntensity = 68,
+    DissolveMode = 69,
+
+    // zoomblur?
+    Prop70 = 70,
     Prop71 = 71,
     Prop72 = 72,
 
-    // "Rain" effect
-    Prop73 = 73,
-    Prop74 = 74,
+    // "Rain" effect, only applicable to the RainLayer (I think)
+    RainIntensity = 73,
+    RainDirection = 74,
     Prop75 = 75,
 
-    // "Waves" effect
-    Prop76 = 76,
-    Prop77 = 77,
-    Prop78 = 78,
-
-    // dunno
-    Prop79 = 79,
-    Prop80 = 80,
-    Prop81 = 81,
+    // "Raster" effect (wavey)
+    RasterHorizontalAmplitude = 76,
+    RasterHorizontalLPeriod = 77,
+    RasterHorizontalTPeriod = 78,
+    RasterVerticalAmplitude = 79,
+    RasterVerticalLPeriod = 80,
+    RasterVerticalTPeriod = 81,
 
     // "Ripple" effect
-    Prop82 = 82,
-    Prop83 = 83,
-    Prop84 = 84,
+    RippleAmplitude = 82,
+    RippleLPeriod = 83,
+    RippleTPeriod = 84,
 
     Prop85 = 85,
     Prop86 = 86,
@@ -147,15 +148,15 @@ impl LayerProperty {
             ScaleY2 => 1000,
             ShowLayer => 1,
             Prop27 => 1,
-            Prop28 => 1000,
-            Prop29 => 1000,
-            Prop30 => 1000,
-            Prop31 => 1000,
+            ShaderParamX => 1000,
+            ShaderParamY => 1000,
+            ShaderParamZ => 1000,
+            ShaderParamW => 1000,
             WobbleAlphaBias => 1000,
             WobbleScaleXBias => 1000,
             WobbleScaleYBias => 1000,
-            Prop57 => 1000,
-            Prop73 => 1000,
+            GhostingZoom => 1000,
+            RainIntensity => 1000,
             Prop75 => 1000,
             _ => 0,
         }
