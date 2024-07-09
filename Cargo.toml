@@ -10,6 +10,7 @@ members = [
     "sdu",
     "shin",
     "junk",
+    "junk/mesh-vis",
 ]
 resolver = "2"
 
