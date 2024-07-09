@@ -332,7 +332,7 @@ fn fill_path(path: &tiny_skia_path::Path, fill: egui::Color32) -> egui::Shape {
         points,
         closed: true,
         fill,
-        stroke: egui::Stroke::NONE,
+        stroke: egui::epaint::PathStroke::NONE,
     })
 }
 
@@ -373,7 +373,7 @@ fn stroke_path(path: &tiny_skia_path::Path, width: f32, color: egui::Color32) ->
         points,
         closed,
         fill: egui::Color32::TRANSPARENT,
-        stroke: egui::Stroke::new(width, color),
+        stroke: egui::epaint::PathStroke::new(width, color),
     })
 }
 

@@ -14,6 +14,7 @@ use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalSize},
     event::*,
     event_loop::{ControlFlow, EventLoop},
+    keyboard::{KeyCode, PhysicalKey},
     window::{Fullscreen, Window, WindowBuilder},
 };
 
@@ -28,8 +29,8 @@ use crate::{
     update::{Updatable, UpdateContext},
 };
 
-struct State {
-    surface: wgpu::Surface,
+struct State<'window> {
+    surface: wgpu::Surface<'window>,
     surface_config: wgpu::SurfaceConfiguration,
     window_size: (u32, u32),
     resources: Arc<GpuCommonResources>,
@@ -44,8 +45,8 @@ struct State {
     adv: Adv,
 }
 
-impl State {
-    async fn new(window: &Window, cli: &Cli) -> Result<Self> {
+impl<'state> State<'state> {
+    async fn new(window: &'state Window, cli: &Cli) -> Result<Self> {
         let window_size = window.inner_size();
         let window_size = (window_size.width, window_size.height);
 
@@ -56,7 +57,9 @@ impl State {
             backends,
             ..Default::default()
         });
-        let surface = unsafe { instance.create_surface(window) }.context("Creating surface")?;
+        let surface = instance
+            .create_surface(window)
+            .context("Creating surface")?;
         let adapter = wgpu::util::initialize_adapter_from_env_or_default(
             &instance,
             // NOTE: this select the low-power GPU by default
@@ -73,10 +76,10 @@ impl State {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    features: wgpu::Features::PUSH_CONSTANTS,
+                    required_features: wgpu::Features::PUSH_CONSTANTS,
                     // WebGL doesn't support all of wgpu's features, so if
                     // we're building for the web we'll have to disable some.
-                    limits: wgpu::Limits {
+                    required_limits: wgpu::Limits {
                         max_texture_dimension_2d: 4096,
                         max_push_constant_size: 128,
 
@@ -101,6 +104,7 @@ impl State {
             width: window_size.0,
             height: window_size.1,
             present_mode: wgpu::PresentMode::Fifo,
+            desired_maximum_frame_latency: 2,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
             view_formats: vec![],
         };
@@ -259,10 +263,12 @@ impl State {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLUE),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
 
             self.resources.pipelines.sprite_screen.draw(
@@ -301,7 +307,7 @@ pub async fn run(cli: Cli) {
 
     shin_tasks::create_task_pools();
 
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new()
         .with_inner_size(LogicalSize::new(1920, 1080))
         .with_maximized(false)
@@ -333,81 +339,88 @@ pub async fn run(cli: Cli) {
         .await
         .expect("Failed to initialize the game"); // TODO: report error in a better way
 
-    event_loop.run(move |event, _, control_flow| {
-        match event {
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == window.id() => {
-                if !state.input(event) {
-                    // UPDATED!
-                    match event {
-                        WindowEvent::CloseRequested
-                        | WindowEvent::KeyboardInput {
-                            input:
-                                KeyboardInput {
-                                    state: ElementState::Pressed,
-                                    virtual_keycode:
-                                        Some(VirtualKeyCode::Escape | VirtualKeyCode::Q),
-                                    ..
-                                },
-                            ..
-                        } => *control_flow = ControlFlow::Exit,
-                        WindowEvent::KeyboardInput {
-                            input:
-                                KeyboardInput {
-                                    state: ElementState::Pressed,
-                                    virtual_keycode: Some(VirtualKeyCode::F11),
-                                    ..
-                                },
-                            ..
-                        } => {
-                            window.set_fullscreen(
-                                window
-                                    .fullscreen()
-                                    .map_or_else(|| Some(Fullscreen::Borderless(None)), |_| None),
-                            );
-                        }
-                        WindowEvent::KeyboardInput {
-                            input:
-                                KeyboardInput {
-                                    state: ElementState::Pressed,
-                                    virtual_keycode: Some(VirtualKeyCode::F10),
-                                    ..
-                                },
-                            ..
-                        } => window.set_inner_size(PhysicalSize::new(1920, 1080)),
-                        WindowEvent::Resized(physical_size) => {
-                            state.resize((*physical_size).into());
-                        }
-                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                            // new_inner_size is &&mut so w have to dereference it twice
-                            state.resize((**new_inner_size).into());
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            Event::RedrawRequested(window_id) if window_id == window.id() => {
-                state.update();
-                match state.render() {
-                    Ok(_) => {}
-                    // Reconfigure the surface if it's lost or outdated
-                    Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                        state.reconfigure_surface();
-                    }
-                    // The system is out of memory, we should probably quit
-                    Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+    // don't move it pls
+    let window = &window;
 
-                    Err(wgpu::SurfaceError::Timeout) => warn!("Surface timeout"),
+    event_loop
+        .run(move |event, target| {
+            match event {
+                Event::WindowEvent {
+                    ref event,
+                    window_id,
+                } if window_id == window.id() => {
+                    if !state.input(event) {
+                        // UPDATED!
+                        match event {
+                            WindowEvent::CloseRequested
+                            | WindowEvent::KeyboardInput {
+                                event:
+                                    KeyEvent {
+                                        state: ElementState::Pressed,
+                                        physical_key:
+                                            PhysicalKey::Code(KeyCode::Escape | KeyCode::KeyQ),
+                                        ..
+                                    },
+                                ..
+                            } => target.exit(),
+                            WindowEvent::KeyboardInput {
+                                event:
+                                    KeyEvent {
+                                        state: ElementState::Pressed,
+                                        physical_key: PhysicalKey::Code(KeyCode::F11),
+                                        ..
+                                    },
+                                ..
+                            } => {
+                                window.set_fullscreen(
+                                    window.fullscreen().map_or_else(
+                                        || Some(Fullscreen::Borderless(None)),
+                                        |_| None,
+                                    ),
+                                );
+                            }
+                            WindowEvent::KeyboardInput {
+                                event:
+                                    KeyEvent {
+                                        state: ElementState::Pressed,
+                                        physical_key: PhysicalKey::Code(KeyCode::F10),
+                                        ..
+                                    },
+                                ..
+                            } => {
+                                if let Some(new_size) =
+                                    window.request_inner_size(PhysicalSize::new(1920, 1080))
+                                {
+                                    state.resize(new_size.into());
+                                }
+                            }
+                            WindowEvent::Resized(physical_size) => {
+                                state.resize((*physical_size).into());
+                            }
+                            WindowEvent::RedrawRequested => {
+                                state.update();
+                                match state.render() {
+                                    Ok(_) => {}
+                                    // Reconfigure the surface if it's lost or outdated
+                                    Err(
+                                        wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated,
+                                    ) => {
+                                        state.reconfigure_surface();
+                                    }
+                                    // The system is out of memory, we should probably quit
+                                    Err(wgpu::SurfaceError::OutOfMemory) => target.exit(),
+
+                                    Err(wgpu::SurfaceError::Timeout) => warn!("Surface timeout"),
+                                }
+
+                                window.request_redraw();
+                            }
+                            _ => {}
+                        }
+                    }
                 }
+                _ => {}
             }
-            Event::RedrawEventsCleared => {
-                // RedrawRequested will only trigger once, unless we manually
-                // request it.
-                window.request_redraw();
-            }
-            _ => {}
-        }
-    });
+        })
+        .unwrap();
 }

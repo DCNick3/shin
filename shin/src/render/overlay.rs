@@ -2,10 +2,11 @@ use std::cell::RefCell;
 
 use bevy_utils::HashMap;
 use egui::{
-    style::WidgetVisuals, ClippedPrimitive, CollapsingHeader, Color32, Context, FontFamily, FontId,
-    InnerResponse, Pos2, Rect, Rounding, Stroke, TextureId, Ui,
+    ahash::HashMapExt, style::WidgetVisuals, ClippedPrimitive, CollapsingHeader, Color32, Context,
+    FontFamily, FontId, InnerResponse, Pos2, Rect, Rounding, Stroke, TextureId, Ui, ViewportId,
+    ViewportIdMap,
 };
-use egui_wgpu::{renderer::ScreenDescriptor, Renderer};
+use egui_wgpu::{Renderer, ScreenDescriptor};
 use glam::vec2;
 use shin_render::GpuCommonResources;
 
@@ -177,12 +178,30 @@ impl OverlayManager {
                 }),
         );
 
+        let viewport = egui::ViewportInfo {
+            parent: None,
+            title: None,
+            events: vec![],
+            native_pixels_per_point: Some(pixels_per_point),
+            monitor_size: None,
+            inner_rect: None,
+            outer_rect: None,
+            minimized: None,
+            maximized: None,
+            fullscreen: None,
+            focused: None,
+        };
+
+        let mut viewports = ViewportIdMap::new();
+        viewports.insert(ViewportId::ROOT, viewport);
+
         let raw_input = egui::RawInput {
+            viewport_id: ViewportId::ROOT,
+            viewports,
             screen_rect: Some(Rect::from_min_max(
                 Pos2::default(),
                 Pos2::new(window_size.0 as f32, window_size.1 as f32),
             )),
-            pixels_per_point: Some(pixels_per_point),
             max_texture_side: None,
             time: Some(time.elapsed_seconds_f64()),
             predicted_dt: 0.0,
@@ -203,7 +222,7 @@ impl OverlayManager {
     pub fn visit_overlays(&mut self, visit_fn: impl FnOnce(&mut OverlayCollector)) {
         let ctx = &self.context;
 
-        egui::Area::new("top-left").show(ctx, |top_left| {
+        egui::Area::new(egui::Id::new("top-left")).show(ctx, |top_left| {
             let mut visit_fn = Some(visit_fn);
 
             let window_shown = if self.show_overlays_window {
@@ -258,7 +277,7 @@ impl OverlayManager {
 
         // TODO: handle platform outputs or smth
 
-        self.primitives = ctx.tessellate(full_output.shapes);
+        self.primitives = ctx.tessellate(full_output.shapes, 2.0);
 
         // update the textures as requested
         for (id, tex) in full_output.textures_delta.set {

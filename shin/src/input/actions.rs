@@ -28,7 +28,7 @@ impl Action for AdvMessageAction {
                 .into_iter()
                 .collect(),
                 AdvMessageAction::HoldFastForward => {
-                    [KeyCode::LControl.into()].into_iter().collect()
+                    [KeyCode::ControlLeft.into()].into_iter().collect()
                 }
                 AdvMessageAction::Backlog => [].into_iter().collect(),
                 AdvMessageAction::Rollback => [].into_iter().collect(),

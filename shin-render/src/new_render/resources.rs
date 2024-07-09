@@ -27,11 +27,11 @@ struct RenderableObject {
 
 impl RenderableObject {
     fn render<'pass>(&self, arena: &'pass mut Arena, encoder: &'pass mut wgpu::CommandEncoder) {
-        encoder.begin_render_pass(&RenderPassDescriptor {
-            label: None,
-            color_attachments: &[],
-            depth_stencil_attachment: None,
-        });
+        // encoder.begin_render_pass(&RenderPassDescriptor {
+        //     label: None,
+        //     color_attachments: &[],
+        //     depth_stencil_attachment: None,
+        // });
 
         // arena
         todo!()
