@@ -16,7 +16,7 @@ use shin_core::{
     time::{Ticks, Tween, Tweener},
     vm::command::types::{AudioWaitStatus, Pan, Volume},
 };
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{resampler::Resampler, AudioData};
 
@@ -223,7 +223,7 @@ impl<S: AudioFrameSource + Send> Sound for AudioSound<S> {
 
         let mut f = self.sample_provider.next(dt);
 
-        if self.sample_provider.reached_eof {
+        if self.sample_provider.reached_eof && self.sample_provider.resampler.outputting_silence() {
             self.state = PlaybackState::Stopped;
         }
 
@@ -239,6 +239,20 @@ impl<S: AudioFrameSource + Send> Sound for AudioSound<S> {
     }
 
     fn finished(&self) -> bool {
-        self.state == PlaybackState::Stopped && self.sample_provider.resampler.outputting_silence()
+        let result = self.state == PlaybackState::Stopped;
+        if result {
+            debug!(
+                "Track {:?} is finished, we are gonna get dropped soon",
+                &self.track_id
+            );
+            // make sure that before we get dropped, the wait status is updated
+            // otherwise SEWAIT can hand forever
+            self.shared.wait_status.store(
+                self.wait_status().bits(),
+                std::sync::atomic::Ordering::SeqCst,
+            );
+        }
+
+        result
     }
 }
