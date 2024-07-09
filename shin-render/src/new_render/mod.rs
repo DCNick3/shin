@@ -2,6 +2,7 @@
 // an important departure is not using global variables, but making all the arguments explicit (helped by a builder pattern with typestates (maybe))
 
 mod buffer;
+mod resources;
 
 use glam::{Mat4, Vec4};
 

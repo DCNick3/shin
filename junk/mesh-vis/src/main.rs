@@ -393,11 +393,15 @@ impl Vertex {
         // TODO: visualize color fields
         for &field_value in &self.field_values {
             for (i, v) in (0..).zip(field_value) {
+                if i == 0 {
+                    todo!()
+                }
+
                 let r = row([])
-                    .push_maybe((i == 0).then(|| {
-                        todo!();
-                        todo!()
-                    }))
+                    // .push_maybe((i == 0).then(|| {
+                    //     todo!();
+                    //     todo!()
+                    // }))
                     .push(
                         text(format!("{}", v))
                             .font(font::Font::MONOSPACE)

@@ -15,26 +15,29 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-glam = "0.24.0"
-# git version for GATs
-enum-map = "3.0.0-0.gat.0"
+glam = "0.28.0"
+# beta version for GATs
+enum-map = "3.0.0-beta.1"
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
 smallvec = { git = "https://github.com/servo/rust-smallvec.git", rev = "98b49e4d974c20f6d44a0804071074f267be0d88" }
 wgpu = "0.17.0"
-kira = { version = "0.8.5", default-features = false }
+kira = { version = "0.9.3", default-features = false }
 winit = "0.28.7"
 
 # egui used for debug overlays
 egui = "0.23.0"
 egui-wgpu = "0.23.0"
 
-image = { version = "0.24.5", default-features = false }
+image = { version = "0.25.1", default-features = false }
 anyhow = "1.0.69"
-bevy_utils = "0.11.2"
-itertools = "0.11.0"
-binrw = "0.12.0"
+bevy_utils = "0.14.0"
+itertools = "0.13.0"
+binrw = "0.14.0"
 
 bytes = "1.5.0"
+
+strum = "0.26.3"
+bytemuck = "1.16.1"
 
 [profile.release]
 debug = true

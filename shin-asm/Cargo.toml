@@ -15,8 +15,8 @@ shin-core = { path = "../shin-core" }
 
 assert_matches = "1.5.0"
 
-rustc-hash = "1.1.0"
-smol_str = "0.2.0"
+rustc-hash = "2.0.0"
+smol_str = "0.2.2"
 la-arena = "0.3.1"
 
 typenum = "1.17.0"
@@ -29,21 +29,21 @@ binrw = { workspace = true }
 unicode-xid = "0.2.4"
 unic-emoji-char = "0.9.0"
 
-either = "1.8.1"
-nonmax = "0.5.3"
+either = "1.13.0"
+nonmax = "0.5.5"
 bind_match = "0.1.2"
 
 drop_bomb = "0.1.5"
-rowan = "0.15.11"
-text-size = "1.1.0"
+rowan = "0.15.15"
+text-size = "1.1.1"
 salsa = { git = "https://github.com/salsa-rs/salsa.git", rev = "d4a94fbf07bb837f3d9d0a4caa5db4d5db29243f", package = "salsa-2022" }
 ariadne = "0.3.0"
 
 [dev-dependencies]
 test-generator = { git = "https://github.com/JamesGuthrie/test-generator.git", rev = "82e799979980962aec1aa324ec6e0e4cad781f41" }
-expect-test = "1.4.1"
-indoc = "2.0.4"
-pretty-hex = "0.3.0"
+expect-test = "1.5.0"
+indoc = "2.0.5"
+pretty-hex = "0.4.1"
 
 [build-dependencies]
 build-deps = "0.1.4"

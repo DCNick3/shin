@@ -16,27 +16,27 @@ shin-tasks = { path = "../shin-tasks" }
 shin-audio = { path = "../shin-audio" }
 
 mp4 = "0.14.0"
-symphonia = { version = "0.5.2", features = ["aac"], default-features = false }
+symphonia = { version = "0.5.4", features = ["aac"], default-features = false }
 
-gst = { package = "gstreamer", version = "0.21.1", optional = true }
-gst-app = { package = "gstreamer-app", version = "0.21.1", optional = true }
-gst-video = { package = "gstreamer-video", version = "0.21.1", optional = true }
+gst = { package = "gstreamer", version = "0.22.6", optional = true }
+gst-app = { package = "gstreamer-app", version = "0.22.6", optional = true }
+gst-video = { package = "gstreamer-video", version = "0.22.6", optional = true }
 
-tracing-gstreamer = { version = "0.6.0", optional = true }
+tracing-gstreamer = { version = "0.7.0", optional = true }
 
 wgpu = { workspace = true }
 kira = { workspace = true }
 glam = { workspace = true }
 
 anyhow = { workspace = true }
-once_cell = "1.18.0"
+once_cell = "1.19.0"
 cfg-if = "1.0.0"
 bytes = { workspace = true }
-tracing = "0.1.37"
-which = "5.0.0"
+tracing = "0.1.40"
+which = "6.0.1"
 
-async-process = "1.6.0"
-futures-lite = "1.12.0"
+async-process = "2.2.3"
+futures-lite = "2.3.0"
 num-integer = "0.1.45"
 
 [features]
@@ -51,6 +51,6 @@ gstreamer = [
 winit = { workspace = true }
 wgpu = { workspace = true, features = [] }
 kira = { workspace = true, features = ["cpal"] }
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 pollster = "0.3.0"
 image = { workspace = true, features = ["png"] }

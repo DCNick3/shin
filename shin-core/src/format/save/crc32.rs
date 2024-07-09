@@ -81,7 +81,7 @@ mod tests {
 
             let init = rng.next_u32();
             insta::assert_debug_snapshot!(
-                format!("crc_random_{}", hex::encode(data)),
+                format!("crc_random_{}", hex::encode(&data)),
                 crc32(&data, init)
             )
         }
