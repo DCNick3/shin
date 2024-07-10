@@ -53,6 +53,7 @@ fn make_pipeline(
             })],
         }),
         multiview: None,
+        cache: None,
     })
 }
 

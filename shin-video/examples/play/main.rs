@@ -50,6 +50,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                     max_push_constant_size: 256,
                     ..wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())
                 },
+                memory_hints: Default::default(),
             },
             Some(Path::new("wgpu_trace")),
         )
