@@ -20,13 +20,18 @@ glam = "0.28.0"
 enum-map = "3.0.0-beta.1"
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
 smallvec = { git = "https://github.com/servo/rust-smallvec.git", rev = "98b49e4d974c20f6d44a0804071074f267be0d88" }
-wgpu = "0.20.1"
+#wgpu = "0.20.1"
+# using git version for a fix for https://github.com/gfx-rs/wgpu/issues/1453
+wgpu = { git = "https://github.com/gfx-rs/wgpu.git", rev = "6f16ea460ab437173e14d2f5f3584ca7e1c9841d" }
 kira = { version = "0.9.3", default-features = false }
 winit = "0.29.15"
 
 # egui used for debug overlays
-egui = "0.28.1"
-egui-wgpu = "0.28.1"
+#egui = "0.28.1"
+#egui-wgpu = "0.28.1"
+# using git version for git wgpu compat
+egui = { git = "https://github.com/DCNick3/egui.git", rev = "cd4e907b3a0353b26ef8e9851fe069410ed9c5b4" }
+egui-wgpu = { git = "https://github.com/DCNick3/egui.git", rev = "cd4e907b3a0353b26ef8e9851fe069410ed9c5b4" }
 
 image = { version = "0.25.1", default-features = false }
 anyhow = "1.0.69"

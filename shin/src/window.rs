@@ -85,6 +85,7 @@ impl<'state> State<'state> {
 
                         ..wgpu::Limits::downlevel_webgl2_defaults()
                     },
+                    memory_hints: Default::default(),
                 },
                 // Some(&std::path::Path::new("trace")), // Trace path
                 None,
