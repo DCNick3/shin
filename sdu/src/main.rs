@@ -1,15 +1,12 @@
 //! A CLI tool to work with file formats of shin engine games
 
 mod assembler;
+mod audio;
 mod rom;
 mod savedata;
 mod scenario;
 
-use std::{
-    fs::File,
-    io::{BufReader, BufWriter},
-    path::PathBuf,
-};
+use std::{fs::File, io::BufReader, path::PathBuf};
 
 use anyhow::{Context, Result};
 use assembler::{assembler_command, AssemblerCommand};
@@ -20,7 +17,7 @@ use itertools::Itertools;
 use rom::{rom_command, RomCommand};
 use savedata::{savedata_command, SavedataCommand};
 use scenario::{scenario_command, ScenarioCommand};
-use shin_core::format::{audio::AudioSource, picture::SimpleMergedPicture};
+use shin_core::format::picture::SimpleMergedPicture;
 use tracing_subscriber::EnvFilter;
 
 #[derive(clap::Parser, Debug)]
@@ -136,6 +133,13 @@ enum AudioCommand {
         /// Path to the NXA file
         audio_path: PathBuf,
         /// Path to the output WAV file
+        output_path: PathBuf,
+    },
+    /// Convert an NXA file into an OPUS file losslessly (it simply remuxes the opus packets)
+    Remux {
+        /// Path to the NXA file
+        audio_path: PathBuf,
+        /// Path to the output OPUS file
         output_path: PathBuf,
     },
 }
@@ -372,46 +376,6 @@ fn texture_archive_command(command: TextureArchiveCommand) -> Result<()> {
     }
 }
 
-fn audio_command(command: AudioCommand) -> Result<()> {
-    match command {
-        AudioCommand::Decode {
-            audio_path,
-            output_path,
-        } => {
-            use hound::WavSpec;
-
-            let audio = std::fs::read(audio_path).context("Reading input file")?;
-            let audio = shin_core::format::audio::read_audio(&audio)?;
-
-            let info = audio.info().clone();
-
-            let writer = File::create(output_path).context("Creating output file")?;
-            let writer = BufWriter::new(writer);
-            let mut writer = hound::WavWriter::new(
-                writer,
-                WavSpec {
-                    channels: info.channel_count,
-                    sample_rate: info.sample_rate,
-                    bits_per_sample: 32,
-                    sample_format: hound::SampleFormat::Float,
-                },
-            )
-            .context("Creating WAV writer")?;
-
-            let mut audio_source = AudioSource::new(audio.decode().context("Creating decoder")?);
-
-            while let Some((left, right)) = audio_source.read_sample() {
-                writer.write_sample(left).context("Writing sample")?;
-                writer.write_sample(right).context("Writing sample")?;
-            }
-
-            writer.finalize().context("Finalizing the WAV file")?;
-
-            Ok(())
-        }
-    }
-}
-
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -429,7 +393,7 @@ fn main() -> Result<()> {
         SduAction::Font(cmd) => font_command(cmd),
         SduAction::Bustup(cmd) => bustup_command(cmd),
         SduAction::TextureArchive(cmd) => texture_archive_command(cmd),
-        SduAction::Audio(cmd) => audio_command(cmd),
+        SduAction::Audio(cmd) => audio::audio_command(cmd),
         SduAction::Savedata(cmd) => savedata_command(cmd),
         SduAction::Assembler(cmd) => assembler_command(cmd),
     }

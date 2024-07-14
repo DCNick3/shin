@@ -2820,6 +2820,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ogg"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5477016638150530ba21dec7caac835b29ef69b20865751d2973fce6be386cf1"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3477,6 +3486,7 @@ dependencies = [
  "hound",
  "image",
  "itertools 0.13.0",
+ "ogg",
  "ron",
  "shin-asm",
  "shin-core",
