@@ -13,3 +13,10 @@ iced_widget = "0.12.1"
 iced_aw = "0.9.3"
 
 hex = "0.4.3"
+
+[package.metadata.release]
+release = false
+publish = false
+
+[package.metadata.dist]
+dist = false

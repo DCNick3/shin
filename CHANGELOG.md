@@ -1,3 +1,10 @@
+# Version 0.6.1
+
+This release adds support for getting raw opus audio from nxa files to `sdu`. This allows preserving audio data without
+additional re-encoding losses.
+
+It also updates various dependencies of the engine, but this shouldn't change the visible functionality.
+
 # Version 0.6.0
 
 This is just an update of the changes accumulated over they year. This doesn't improve compat, mostly small internal
