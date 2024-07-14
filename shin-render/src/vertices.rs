@@ -2,8 +2,9 @@ use std::ops::Range;
 
 use glam::{Vec2, Vec3, Vec4};
 use shin_core::time::Ticks;
+use shin_derive::Vertex;
 
-#[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 pub struct PosVertex4 {
     // only first three components are actually used, but we want to keep close to the original impl
@@ -11,7 +12,7 @@ pub struct PosVertex4 {
     pub position: Vec4,
 }
 
-#[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 pub struct PosColVertex {
     #[f32x4(0)]
@@ -20,7 +21,7 @@ pub struct PosColVertex {
     pub color: Vec4,
 }
 
-#[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 pub struct PosColTexVertex {
     #[f32x3(0)]
@@ -32,14 +33,14 @@ pub struct PosColTexVertex {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PosVertex {
     #[f32x3(0)]
     pub position: Vec3,
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, wrld::Desc, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct TextVertex {
     #[f32x2(0)]
     pub position: Vec2,
