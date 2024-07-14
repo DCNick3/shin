@@ -9,14 +9,13 @@ authors = ["DCNick3"]
 
 [dependencies]
 shin-core = { path = "../shin-core" }
+shin-derive = { path = "../shin-derive" }
 
 anyhow = { workspace = true }
 tracing = "0.1.40"
 
 winit = { workspace = true }
 wgpu = { workspace = true }
-# TODO: this can be reimplemented in shin-derive (I want to have my own traits for this anyways)
-wrld = "1.0.0"
 
 glam = { workspace = true, features = [
     # "scalar-math" disables the 16-byte alignment requirement for some types
