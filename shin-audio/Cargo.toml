@@ -1,6 +1,6 @@
 [package]
 name = "shin-audio"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 description = "Kira audio sources for Shin Engine"
 repository = "https://github.com/DCNick3/shin"
