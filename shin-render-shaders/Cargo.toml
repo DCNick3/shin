@@ -1,0 +1,29 @@
+[package]
+name = "shin-render-shaders"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shin-render-shader-types = { path = "../shin-render-shader-types" }
+
+wgpu = { workspace = true }
+bytemuck = { workspace = true }
+#encase = { workspace = true, features = ["glam"] }
+enum-iterator = { workspace = true }
+
+[build-dependencies]
+shin-render-shader-types = { path = "../shin-render-shader-types" }
+
+enum-iterator = { workspace = true }
+wgpu = { workspace = true }
+bytemuck = { workspace = true }
+
+naga = { version = "22.1.0", features = ["wgsl-in", "wgsl-out", "spv-out"] }
+spirv = "0.3.0"
+naga_oil = "0.15.0"
+
+heck = "0.5.0"
+proc-macro2 = "1.0.2"
+quote = "1.0.37"
+syn = "2.0.77"
+prettyplease = "0.2.22"

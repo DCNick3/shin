@@ -52,5 +52,5 @@ winit = { workspace = true }
 wgpu = { workspace = true, features = [] }
 kira = { workspace = true, features = ["cpal"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-pollster = "0.3.0"
+pollster = { workspace = true }
 image = { workspace = true, features = ["png"] }

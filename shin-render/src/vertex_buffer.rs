@@ -12,7 +12,6 @@ pub trait Vertex: bytemuck::Pod + bytemuck::Zeroable {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;
 }
 
-// TODO: derive this
 impl Vertex for PosColTexVertex {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         PosColTexVertex::desc()

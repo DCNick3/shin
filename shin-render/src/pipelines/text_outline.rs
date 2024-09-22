@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[derive(Pod, Zeroable, Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 struct TextOutlineParams {
     pub transform: Mat4,
     pub time: Ticks,

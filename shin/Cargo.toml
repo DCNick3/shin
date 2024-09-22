@@ -36,7 +36,8 @@ etagere = "0.2.13"
 glam = { workspace = true, features = [
     # "scalar-math" disables the 16-byte alignment requirement for some types
     # this is required for bytemuck to work
-    "bytemuck", "scalar-math"
+    "bytemuck",
+    # "scalar-math"
 ] }
 bytemuck = { workspace = true, features = ["derive"] }
 image = { workspace = true, default-features = false }
@@ -44,7 +45,7 @@ image = { workspace = true, default-features = false }
 # Theese part of bevy does not depend on ECS or the reflection, so it's not a big problem to use them
 bevy_utils = { workspace = true }
 
-pollster = "0.3.0"
+pollster = { workspace = true }
 
 num-derive = "0.4.2"
 num-traits = "0.2.19"

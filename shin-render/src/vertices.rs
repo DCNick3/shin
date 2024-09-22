@@ -5,24 +5,7 @@ use shin_core::time::Ticks;
 use shin_derive::Vertex;
 
 #[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
-#[repr(C)]
-pub struct PosVertex4 {
-    // only first three components are actually used, but we want to keep close to the original impl
-    #[f32x4(0)]
-    pub position: Vec4,
-}
-
-#[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
-#[repr(C)]
-pub struct PosColVertex {
-    #[f32x4(0)]
-    pub position: Vec4,
-    #[f32x4(1)]
-    pub color: Vec4,
-}
-
-#[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct PosColTexVertex {
     #[f32x3(0)]
     pub position: Vec3,
@@ -32,15 +15,15 @@ pub struct PosColTexVertex {
     pub texture_coordinate: Vec2,
 }
 
-#[repr(C)]
 #[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C, packed)]
 pub struct PosVertex {
     #[f32x3(0)]
     pub position: Vec3,
 }
 
-#[repr(C)]
 #[derive(Copy, Clone, Debug, Vertex, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C, packed)]
 pub struct TextVertex {
     #[f32x2(0)]
     pub position: Vec2,
