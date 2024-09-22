@@ -28,7 +28,7 @@ pub struct OverlayManager {
 
 impl OverlayManager {
     pub fn new(resources: &GpuCommonResources, texture_format: wgpu::TextureFormat) -> Self {
-        let renderer = Renderer::new(&resources.device, texture_format, None, 1);
+        let renderer = Renderer::new(&resources.device, texture_format, None, 1, false);
         let context = Context::default();
 
         let alpha = 128;

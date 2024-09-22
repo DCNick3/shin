@@ -1,0 +1,22 @@
+[package]
+name = "shin-render-shader-types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shin-derive = { path = "../shin-derive" }
+
+# TODO: having to depend on wgpu is a bit suboptimal, because we use this crate in build.rs
+# We MAY circumvent it by redefining some of the types and providing optional conversions
+wgpu = { workspace = true }
+
+glam = { workspace = true, features = [
+    # "scalar-math" disables the 16-byte alignment requirement for some types
+    # this is required for bytemuck to work
+    "bytemuck",
+    #"scalar-math"
+] }
+bytemuck = { workspace = true, features = ["derive"] }
+encase = { workspace = true, features = ["glam"] }
+
+enum-iterator = { workspace = true }
