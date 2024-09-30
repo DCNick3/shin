@@ -8,6 +8,12 @@ pub struct SurfaceSize {
     pub height: u32,
 }
 
+impl SurfaceSize {
+    pub fn is_empty(&self) -> bool {
+        self.width == 0 || self.height == 0
+    }
+}
+
 impl From<PhysicalSize<u32>> for SurfaceSize {
     fn from(value: PhysicalSize<u32>) -> Self {
         let (width, height) = value.into();

@@ -345,7 +345,7 @@ struct ShaderWithDescriptor {
     snake_name: String,
     pascal_name: String,
     descriptor: ShaderDescriptor,
-    source: String,
+    wgsl: String,
     spirv: Vec<u32>,
 }
 
@@ -629,7 +629,7 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                 snake_name: name.clone(),
                 pascal_name: name.to_pascal_case(),
                 descriptor,
-                source: module_source,
+                wgsl: module_source,
                 spirv: module_spirv,
             });
             // eprintln!("module: {:?}", module);
@@ -650,6 +650,7 @@ fn codegen_shader_descriptor(shader: &ShaderWithDescriptor) -> proc_macro2::Toke
         );
         res
     };
+    let wgsl = &shader.wgsl;
 
     let ShaderDescriptor {
         vertex_type: _,
@@ -673,7 +674,10 @@ fn codegen_shader_descriptor(shader: &ShaderWithDescriptor) -> proc_macro2::Toke
     quote! {
         crate::ShaderDescriptor {
             name: #snake_name,
+            #[cfg(not(target_arch = "wasm32"))]
             spirv: &[#spirv],
+            #[cfg(target_arch = "wasm32")]
+            wgsl: #wgsl,
             vertex_entry: #vertex_entry_name,
             fragment_entry: #fragment_entry_name,
             bind_groups: &[

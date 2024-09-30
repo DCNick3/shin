@@ -5,6 +5,9 @@ use glam::{Vec2, Vec3, Vec4};
 
 pub use self::attributes::{FloatColor4, UnormColor, VertexAttribute};
 
+// TODO: replace vector types with custom types that do not require any alignment besides 4 bytes
+// Then we'll be able to build without enabling `glam`'s `scalar-math` feature
+
 pub trait VertexType: NoUninit {
     const NAME: &'static str;
     const ATTRIBUTE_NAMES: &'static [&'static str];
