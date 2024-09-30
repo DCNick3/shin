@@ -48,7 +48,7 @@ impl SurfaceResizeSource {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SurfaceResizeHandle {
     inner: Arc<RwLock<SurfaceSize>>,
     last_known_size: SurfaceSize,
