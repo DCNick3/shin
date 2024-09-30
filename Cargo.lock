@@ -4316,9 +4316,11 @@ dependencies = [
  "async-executor",
  "async-task",
  "concurrent-queue",
+ "futures-channel",
  "futures-lite",
  "instant",
  "once_cell",
+ "pin-project",
  "tracing",
  "wasm-bindgen-futures",
 ]

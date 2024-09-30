@@ -4,6 +4,7 @@
 mod slice;
 pub use slice::{ParallelSlice, ParallelSliceMut};
 
+#[cfg_attr(target_arch = "wasm32", path = "wasm_task.rs")]
 mod task;
 pub use task::Task;
 

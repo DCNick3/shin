@@ -5,6 +5,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::Task;
+
 /// Used to create a TaskPool
 #[derive(Debug, Default, Clone)]
 pub struct TaskPoolBuilder {}
@@ -127,40 +129,26 @@ impl TaskPool {
             .collect()
     }
 
-    /// Spawns a static future onto the JS event loop. For now it is returning FakeTask
-    /// instance with no-op detach method. Returning real Task is possible here, but tricky:
-    /// future is running on JS event loop, Task is running on async_executor::LocalExecutor
-    /// so some proxy future is needed. Moreover currently we don't have long-living
-    /// LocalExecutor here (above `spawn` implementation creates temporary one)
-    /// But for typical use cases it seems that current implementation should be sufficient:
-    /// caller can spawn long-running future writing results to some channel / event queue
-    /// and simply call detach on returned Task (like AssetServer does) - spawned future
-    /// can write results to some channel / event queue.
-    pub fn spawn<T>(&self, future: impl Future<Output = T> + 'static) -> FakeTask
+    /// Spawns a static future onto the thread pool. The returned Task is a future, which can be polled
+    /// to retrieve the output of the original future. Dropping the task will attempt to cancel it.
+    /// It can also be "detached", allowing it to continue running without having to be polled by the
+    /// end-user.
+    ///
+    /// If the provided future is non-`Send`, [`TaskPool::spawn_local`] should be used instead.
+    pub fn spawn<T>(&self, future: impl Future<Output = T> + 'static) -> Task<T>
     where
         T: 'static,
     {
-        wasm_bindgen_futures::spawn_local(async move {
-            future.await;
-        });
-        FakeTask
+        Task::wrap_future(future)
     }
 
     /// Spawns a static future on the JS event loop. This is exactly the same as [`TaskSpool::spawn`].
-    pub fn spawn_local<T>(&self, future: impl Future<Output = T> + 'static) -> FakeTask
+    pub fn spawn_local<T>(&self, future: impl Future<Output = T> + 'static) -> Task<T>
     where
         T: 'static,
     {
         self.spawn(future)
     }
-}
-
-#[derive(Debug)]
-pub struct FakeTask;
-
-impl FakeTask {
-    /// No op on the single threaded task pool
-    pub fn detach(self) {}
 }
 
 /// A `TaskPool` scope for running one or more non-`'static` futures.
