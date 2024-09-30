@@ -1,128 +1,265 @@
+use std::sync::Arc;
+
 use glam::{Mat4, Vec3};
 use shin_render::new_render::{
-    pipelines::{PipelineStorage, DEPTH_STENCIL_FORMAT},
+    init::{RenderResources, WgpuInitResult},
     render_pass::RenderPass,
     resize::SurfaceResizeSource,
-    resizeable_texture::ResizeableTexture,
     DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_render_shader_types::{
-    buffer::{BytesAddress, DynamicBuffer, VertexSource},
-    texture::TextureBindGroupLayout,
+    buffer::VertexSource,
     vertices::{PosColVertex, UnormColor},
 };
 use winit::{
+    application::ApplicationHandler,
     dpi::{LogicalPosition, LogicalSize},
-    event::{Event, WindowEvent},
-    event_loop::EventLoop,
-    window::WindowBuilder,
+    event::WindowEvent,
+    event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
+    window::{Window, WindowId},
 };
 
-pub async fn run() {
-    let event_loop = EventLoop::new().unwrap();
-    let window = WindowBuilder::new()
-        .with_inner_size(LogicalSize::new(1920, 1080))
-        .with_maximized(false)
-        .with_position(LogicalPosition::new(1080, 0))
-        .build(&event_loop)
-        .unwrap();
+#[derive(Debug)]
+enum MyUserEvent {
+    WgpuInitDone(anyhow::Result<WgpuInitResult<'static>>),
+}
 
-    let window_resize_source = SurfaceResizeSource::new(window.inner_size().into());
+#[derive(Default)]
+enum State {
+    WaitingForInitialResume {
+        // unfortunately we have to weave in the proxy from outside of the loop until winit 0.31: https://github.com/rust-windowing/winit/pull/3764
+        proxy: EventLoopProxy<MyUserEvent>,
+    },
+    WaitingForWgpuInit {
+        proxy: EventLoopProxy<MyUserEvent>,
+        winit: WindowState,
+        task: shin_tasks::Task<()>,
+    },
+    Operational {
+        proxy: EventLoopProxy<MyUserEvent>,
+        winit: WindowState,
+        render: RenderResources,
+    },
+    #[default]
+    Poison,
+}
 
-    let mut wgpu =
-        shin_render::new_render::init::init(&window, window_resize_source.handle(), None)
-            .await
-            .expect("wgpu init failed");
+impl State {
+    pub fn new(proxy: EventLoopProxy<MyUserEvent>) -> Self {
+        Self::WaitingForInitialResume { proxy }
+    }
 
-    let mut dynamic_buffer = DynamicBuffer::new(
-        &wgpu.device,
-        wgpu.queue.clone(),
-        BytesAddress::new(1024 * 1024),
-    );
-    let texture_bind_group_layout = TextureBindGroupLayout::new(&wgpu.device);
+    pub fn winit(&self) -> Option<&WindowState> {
+        match self {
+            State::WaitingForInitialResume { .. } => None,
+            State::WaitingForWgpuInit { winit, .. } => Some(winit),
+            State::Operational { winit, .. } => Some(winit),
+            State::Poison => {
+                unreachable!()
+            }
+        }
+    }
+}
 
-    let mut pipelines = PipelineStorage::new(
-        wgpu.device.clone(),
-        wgpu.surface_texture_format,
-        &texture_bind_group_layout,
-    );
+struct WindowState {
+    pub window: Arc<Window>,
+    pub resize_source: SurfaceResizeSource,
+}
 
-    // prevent a move
-    let window = &window;
+impl WindowState {
+    pub fn new(event_loop: &ActiveEventLoop) -> Self {
+        let attributes = Window::default_attributes()
+            .with_inner_size(LogicalSize::new(1920, 1080))
+            .with_maximized(false)
+            .with_position(LogicalPosition::new(1080, 0));
+        let window = Arc::new(event_loop.create_window(attributes).unwrap());
 
-    let mut depth_stencil = ResizeableTexture::new(
-        wgpu.device.clone(),
-        DEPTH_STENCIL_FORMAT,
-        window_resize_source.handle(),
-    );
+        let window_resize_source = SurfaceResizeSource::new(window.inner_size().into());
 
-    event_loop
-        .run(move |event, target| match event {
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == window.id() => match event {
-                WindowEvent::CloseRequested => target.exit(),
-                &WindowEvent::Resized(physical_size) => {
-                    window_resize_source.resize(physical_size.into());
-                }
-                WindowEvent::RedrawRequested => {
-                    let mut encoder = wgpu
-                        .device
-                        .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        Self {
+            window,
+            resize_source: window_resize_source,
+        }
+    }
+}
 
-                    let surface_texture = wgpu.surface.get_current_texture().unwrap();
+impl ApplicationHandler<MyUserEvent> for State {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        match std::mem::take(self) {
+            State::WaitingForInitialResume { proxy } => {
+                let winit = WindowState::new(event_loop);
 
-                    let vertices = [
-                        PosColVertex {
-                            position: Vec3::new(0.0, 0.5, 0.0),
-                            color: UnormColor::RED,
+                let (window_copy, resize_handle, proxy_copy) = (
+                    winit.window.clone(),
+                    winit.resize_source.handle(),
+                    proxy.clone(),
+                );
+
+                let task = shin_tasks::IoTaskPool::get().spawn(async move {
+                    let result =
+                        shin_render::new_render::init::init_wgpu(window_copy, resize_handle, None)
+                            .await;
+
+                    proxy_copy
+                        .send_event(MyUserEvent::WgpuInitDone(result))
+                        .unwrap();
+                });
+
+                *self = State::WaitingForWgpuInit { proxy, winit, task };
+            }
+            State::WaitingForWgpuInit { .. } => {
+                // this shouldn't happen.. I think
+                // TODO: figure out this out better when porting to Android or smth
+                todo!()
+            }
+            State::Operational {
+                proxy,
+                winit,
+                mut render,
+            } => {
+                render.surface = shin_render::new_render::init::surface_reinit(
+                    &render.instance,
+                    render.device.clone(),
+                    winit.window.clone(),
+                    winit.resize_source.handle(),
+                    render.surface_texture_format,
+                )
+                .expect("surface reinit failed");
+
+                *self = State::Operational {
+                    proxy,
+                    winit,
+                    render,
+                };
+            }
+            State::Poison => unreachable!(),
+        }
+    }
+
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: MyUserEvent) {
+        match event {
+            MyUserEvent::WgpuInitDone(result) => {
+                let wgpu = result.expect("wgpu init failed");
+
+                let State::WaitingForWgpuInit {
+                    proxy,
+                    winit,
+                    task: _,
+                } = std::mem::take(self)
+                else {
+                    unreachable!()
+                };
+
+                // finish render init
+                let render = RenderResources::new(wgpu, winit.resize_source.handle());
+
+                *self = State::Operational {
+                    proxy,
+                    winit,
+                    render,
+                };
+            }
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        let Some(winit) = self.winit() else {
+            return;
+        };
+
+        if window_id != winit.window.id() {
+            return;
+        }
+
+        match event {
+            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::Resized(physical_size) => {
+                winit.resize_source.resize(physical_size.into());
+                winit.window.request_redraw();
+            }
+            WindowEvent::RedrawRequested => {
+                let State::Operational {
+                    proxy: _,
+                    winit,
+                    render,
+                } = self
+                else {
+                    return;
+                };
+
+                let mut encoder = render
+                    .device
+                    .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+                let surface_texture = render.surface.get_current_texture().unwrap();
+
+                let vertices = [
+                    PosColVertex {
+                        position: Vec3::new(0.0, 0.5, 0.0),
+                        color: UnormColor::RED,
+                    },
+                    PosColVertex {
+                        position: Vec3::new(-0.5, -0.5, 0.0),
+                        color: UnormColor::GREEN,
+                    },
+                    PosColVertex {
+                        position: Vec3::new(0.5, -0.5, 0.0),
+                        color: UnormColor::BLUE,
+                    },
+                ];
+                let vertices = render.dynamic_buffer.get_vertex_with_data(&vertices);
+
+                let mut pass = RenderPass::new(
+                    &mut render.pipelines,
+                    &mut render.dynamic_buffer,
+                    &render.device,
+                    &mut encoder,
+                    &surface_texture.view,
+                    &render.depth_stencil_buffer.get_view(),
+                );
+                pass.run(RenderRequestBuilder::new().build(
+                    RenderProgramWithArguments::Fill {
+                        vertices: VertexSource::VertexBuffer {
+                            vertex_buffer: vertices.as_buffer_ref(),
                         },
-                        PosColVertex {
-                            position: Vec3::new(-0.5, -0.5, 0.0),
-                            color: UnormColor::GREEN,
-                        },
-                        PosColVertex {
-                            position: Vec3::new(0.5, -0.5, 0.0),
-                            color: UnormColor::BLUE,
-                        },
-                    ];
-                    let vertices = dynamic_buffer.get_vertex_with_data(&vertices);
+                        transform: Mat4::IDENTITY,
+                    },
+                    DrawPrimitive::Triangles,
+                ));
 
-                    let mut pass = RenderPass::new(
-                        &mut pipelines,
-                        &mut dynamic_buffer,
-                        &wgpu.device,
-                        &mut encoder,
-                        &surface_texture.view,
-                        &depth_stencil.get_view(),
-                    );
-                    pass.run(RenderRequestBuilder::new().build(
-                        RenderProgramWithArguments::Fill {
-                            vertices: VertexSource::VertexBuffer {
-                                vertex_buffer: vertices.as_buffer_ref(),
-                            },
-                            transform: Mat4::IDENTITY,
-                        },
-                        DrawPrimitive::Triangles,
-                    ));
+                drop(pass);
 
-                    drop(pass);
+                render.queue.submit(std::iter::once(encoder.finish()));
 
-                    wgpu.queue.submit(std::iter::once(encoder.finish()));
+                winit.window.pre_present_notify();
+                surface_texture.texture.present();
 
-                    surface_texture.texture.present();
-
-                    window.request_redraw();
-                }
-                _ => {}
-            },
+                winit.window.request_redraw();
+            }
             _ => {}
-        })
-        .unwrap();
+        }
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        let Some(winit) = self.winit() else {
+            return;
+        };
+
+        winit.window.request_redraw();
+    }
 }
 
 fn main() {
     tracing_subscriber::fmt::init();
-    pollster::block_on(run());
+    shin_tasks::create_task_pools();
+
+    let event_loop = EventLoop::with_user_event().build().unwrap();
+    let proxy = event_loop.create_proxy();
+
+    event_loop.run_app(&mut State::new(proxy)).unwrap();
 }
