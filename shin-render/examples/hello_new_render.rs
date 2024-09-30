@@ -4,13 +4,15 @@ use glam::{Mat4, Vec3};
 use shin_render::new_render::{
     init::{RenderResources, WgpuInitResult},
     render_pass::RenderPass,
-    resize::SurfaceResizeSource,
+    resize::{SurfaceResizeHandle, SurfaceResizeSource},
     DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_render_shader_types::{
     buffer::VertexSource,
     vertices::{PosColVertex, UnormColor},
 };
+use shin_tasks::Task;
+use tracing::info;
 use winit::{
     application::ApplicationHandler,
     dpi::{LogicalPosition, LogicalSize},
@@ -29,6 +31,12 @@ enum State {
     WaitingForInitialResume {
         // unfortunately we have to weave in the proxy from outside of the loop until winit 0.31: https://github.com/rust-windowing/winit/pull/3764
         proxy: EventLoopProxy<MyUserEvent>,
+    },
+    /// On web platform the initial winit canvas size is zero, so we have to wait for a non-zero size
+    WaitingForNonzeroSize {
+        proxy: EventLoopProxy<MyUserEvent>,
+        winit: WindowState,
+        resize_handle: SurfaceResizeHandle,
     },
     WaitingForWgpuInit {
         proxy: EventLoopProxy<MyUserEvent>,
@@ -52,6 +60,7 @@ impl State {
     pub fn winit(&self) -> Option<&WindowState> {
         match self {
             State::WaitingForInitialResume { .. } => None,
+            State::WaitingForNonzeroSize { winit, .. } => Some(winit),
             State::WaitingForWgpuInit { winit, .. } => Some(winit),
             State::Operational { winit, .. } => Some(winit),
             State::Poison => {
@@ -68,13 +77,49 @@ struct WindowState {
 
 impl WindowState {
     pub fn new(event_loop: &ActiveEventLoop) -> Self {
-        let attributes = Window::default_attributes()
-            .with_inner_size(LogicalSize::new(1920, 1080))
-            .with_maximized(false)
-            .with_position(LogicalPosition::new(1080, 0));
+        let mut attributes = Window::default_attributes();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            attributes = attributes
+                .with_inner_size(LogicalSize::new(1920, 1080))
+                .with_maximized(false)
+                .with_position(LogicalPosition::new(1080, 0));
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            use anyhow::Context;
+            use web_sys::wasm_bindgen::JsCast;
+            use winit::platform::web::{WindowAttributesExtWebSys, WindowExtWebSys};
+            attributes = web_sys::window()
+                .context("Couldn't get window")
+                .and_then(|win| win.document().context("Couldn't get document"))
+                .and_then(|doc| {
+                    let canvas = doc
+                        .get_element_by_id("canvas")
+                        .context("Couldn't find the canvas element element")?
+                        .dyn_into::<web_sys::HtmlCanvasElement>()
+                        .map_err(|e| {
+                            anyhow::anyhow!(
+                                "Couldn't cast the element to a canvas element: {:?}",
+                                e
+                            )
+                        })
+                        .context("Couldn't cast the element to a canvas element")?;
+
+                    Ok(attributes.with_canvas(Some(canvas)))
+                })
+                .expect("Couldn't attach canvas to winit window");
+        }
+
         let window = Arc::new(event_loop.create_window(attributes).unwrap());
 
-        let window_resize_source = SurfaceResizeSource::new(window.inner_size().into());
+        let size = window.inner_size().into();
+
+        info!("Created a window with size: {:?}", size);
+
+        let window_resize_source = SurfaceResizeSource::new(size);
 
         Self {
             window,
@@ -83,29 +128,42 @@ impl WindowState {
     }
 }
 
+fn start_wgpu_init(
+    window: Arc<Window>,
+    resize_handle: SurfaceResizeHandle,
+    proxy: EventLoopProxy<MyUserEvent>,
+) -> Task<()> {
+    shin_tasks::IoTaskPool::get().spawn(async move {
+        let result = shin_render::new_render::init::init_wgpu(window, resize_handle, None).await;
+
+        proxy.send_event(MyUserEvent::WgpuInitDone(result)).unwrap();
+    })
+}
+
 impl ApplicationHandler<MyUserEvent> for State {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         match std::mem::take(self) {
             State::WaitingForInitialResume { proxy } => {
                 let winit = WindowState::new(event_loop);
 
-                let (window_copy, resize_handle, proxy_copy) = (
-                    winit.window.clone(),
-                    winit.resize_source.handle(),
-                    proxy.clone(),
-                );
+                let mut resize_handle = winit.resize_source.handle();
+                let current_size = resize_handle.get();
 
-                let task = shin_tasks::IoTaskPool::get().spawn(async move {
-                    let result =
-                        shin_render::new_render::init::init_wgpu(window_copy, resize_handle, None)
-                            .await;
+                if !current_size.is_empty() {
+                    let task = start_wgpu_init(winit.window.clone(), resize_handle, proxy.clone());
 
-                    proxy_copy
-                        .send_event(MyUserEvent::WgpuInitDone(result))
-                        .unwrap();
-                });
-
-                *self = State::WaitingForWgpuInit { proxy, winit, task };
+                    *self = State::WaitingForWgpuInit { proxy, winit, task };
+                } else {
+                    *self = State::WaitingForNonzeroSize {
+                        proxy,
+                        winit,
+                        resize_handle,
+                    };
+                }
+            }
+            State::WaitingForNonzeroSize { .. } => {
+                // this probably shouldn't happen
+                todo!()
             }
             State::WaitingForWgpuInit { .. } => {
                 // this shouldn't happen.. I think
@@ -181,6 +239,23 @@ impl ApplicationHandler<MyUserEvent> for State {
             WindowEvent::Resized(physical_size) => {
                 winit.resize_source.resize(physical_size.into());
                 winit.window.request_redraw();
+
+                if let State::WaitingForNonzeroSize {
+                    proxy,
+                    mut resize_handle,
+                    winit,
+                } = std::mem::take(self)
+                {
+                    if !resize_handle.get().is_empty() {
+                        let task = start_wgpu_init(
+                            winit.window.clone(),
+                            resize_handle.clone(),
+                            proxy.clone(),
+                        );
+
+                        *self = State::WaitingForWgpuInit { proxy, winit, task };
+                    }
+                }
             }
             WindowEvent::RedrawRequested => {
                 let State::Operational {
@@ -255,7 +330,14 @@ impl ApplicationHandler<MyUserEvent> for State {
 }
 
 fn main() {
+    #[cfg(target_arch = "wasm32")]
+    console_error_panic_hook::set_once();
+    #[cfg(target_arch = "wasm32")]
+    tracing_wasm::set_as_global_default();
+
+    #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
+
     shin_tasks::create_task_pools();
 
     let event_loop = EventLoop::with_user_event().build().unwrap();

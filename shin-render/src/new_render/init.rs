@@ -114,7 +114,11 @@ pub async fn init_wgpu<'window>(
             &wgpu::DeviceDescriptor {
                 label: None,
                 // TODO: probably will need to make it configurable with a wgsl fallback at some point
-                required_features: wgpu::Features::SPIRV_SHADER_PASSTHROUGH,
+                required_features: if cfg!(not(target_arch = "wasm32")) {
+                    wgpu::Features::SPIRV_SHADER_PASSTHROUGH
+                } else {
+                    wgpu::Features::empty()
+                },
                 required_limits: wgpu::Limits {
                     // This is required in order to support higher resolutions
                     // TODO: make it configurable for lower-end devices

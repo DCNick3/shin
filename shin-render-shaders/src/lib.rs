@@ -17,7 +17,10 @@ pub enum ShaderBindingGroupDescriptor {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShaderDescriptor {
     pub name: &'static str,
+    #[cfg(not(target_arch = "wasm32"))]
     pub spirv: &'static [u32],
+    #[cfg(target_arch = "wasm32")]
+    pub wgsl: &'static str,
     pub vertex_entry: &'static str,
     pub fragment_entry: &'static str,
     pub bind_groups: &'static [ShaderBindingGroupDescriptor],
@@ -89,6 +92,7 @@ impl ShaderDescriptor {
             push_constant_ranges: &[],
         });
 
+        #[cfg(not(target_arch = "wasm32"))]
         // SAFETY: well, naga spit it out, so it should be good, right?
         let shader_module = unsafe {
             device.create_shader_module_spirv(&wgpu::ShaderModuleDescriptorSpirV {
@@ -96,6 +100,11 @@ impl ShaderDescriptor {
                 source: self.spirv.into(),
             })
         };
+        #[cfg(target_arch = "wasm32")]
+        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some(&format!("{} shader module", self.name)),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(self.wgsl)),
+        });
 
         ShaderContext {
             shader_descriptor: self.clone(),

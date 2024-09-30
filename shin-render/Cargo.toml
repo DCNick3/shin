@@ -47,6 +47,11 @@ miette = { version = "7.2.0", features = ["fancy", "syntect"] }
 [dev-dependencies]
 shin-tasks = { path = "../shin-tasks" }
 
-winit = { workspace = true }
+#winit = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+console_error_panic_hook = "0.1.6"
+tracing-wasm = { version = "0.2.1" }
+web-sys = { version = "0.3.70", features = ["Document"] }
 
