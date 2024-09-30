@@ -4,9 +4,9 @@ use shin_render_shader_types::{
 };
 use shin_render_shaders::{Clear, ClearBindings, Fill, FillBindings, Sprite, SpriteBindings};
 
-use crate::new_render::{
+use crate::{
     pipelines::{PipelineStorage, PipelineStorageKey},
-    RenderProgramWithArguments, RenderRequest, VertexSource,
+    RenderProgramWithArguments, RenderRequest,
 };
 
 pub struct RenderPass<'pipelines, 'dynbuffer, 'device, 'encoder> {

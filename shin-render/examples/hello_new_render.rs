@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use glam::{Mat4, Vec3};
-use shin_render::new_render::{
+use shin_render::{
     init::{RenderResources, WgpuInitResult},
     render_pass::RenderPass,
     resize::{SurfaceResizeHandle, SurfaceResizeSource},
@@ -41,7 +41,8 @@ enum State {
     WaitingForWgpuInit {
         proxy: EventLoopProxy<MyUserEvent>,
         winit: WindowState,
-        task: shin_tasks::Task<()>,
+        #[allow(unused)] // this is just to keep the task alive
+        task: Task<()>,
     },
     Operational {
         proxy: EventLoopProxy<MyUserEvent>,
@@ -134,7 +135,7 @@ fn start_wgpu_init(
     proxy: EventLoopProxy<MyUserEvent>,
 ) -> Task<()> {
     shin_tasks::IoTaskPool::get().spawn(async move {
-        let result = shin_render::new_render::init::init_wgpu(window, resize_handle, None).await;
+        let result = shin_render::init::init_wgpu(window, resize_handle, None).await;
 
         proxy.send_event(MyUserEvent::WgpuInitDone(result)).unwrap();
     })
@@ -175,7 +176,7 @@ impl ApplicationHandler<MyUserEvent> for State {
                 winit,
                 mut render,
             } => {
-                render.surface = shin_render::new_render::init::surface_reinit(
+                render.surface = shin_render::init::surface_reinit(
                     &render.instance,
                     render.device.clone(),
                     winit.window.clone(),

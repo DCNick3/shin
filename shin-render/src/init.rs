@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use anyhow::Context;
 use shin_render_shader_types::{
@@ -8,7 +8,7 @@ use shin_render_shader_types::{
 use tracing::{debug, info};
 use wgpu::SurfaceTarget;
 
-use crate::new_render::{
+use crate::{
     pipelines::{PipelineStorage, DEPTH_STENCIL_FORMAT},
     resize::{SurfaceResizeHandle, SurfaceSize},
     resizeable_texture::ResizeableTexture,

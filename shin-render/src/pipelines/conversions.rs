@@ -1,4 +1,4 @@
-use crate::new_render::{
+use crate::{
     ColorBlendType, CullFace, DepthFunction, DrawPrimitive, StencilFunction, StencilMask,
     StencilOperation, StencilPipelineState,
 };

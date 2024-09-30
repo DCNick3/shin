@@ -24,7 +24,7 @@ enum-map = "3.0.0-beta.1"
 smallvec = { git = "https://github.com/servo/rust-smallvec.git", rev = "98b49e4d974c20f6d44a0804071074f267be0d88" }
 wgpu = "22.1.0"
 kira = { version = "0.9.3", default-features = false }
-winit = "0.29.15"
+winit = "0.30.5"
 pollster = "0.3.0"
 
 # egui used for debug overlays
