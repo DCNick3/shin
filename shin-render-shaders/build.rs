@@ -2,7 +2,7 @@
 // generating type-safe bindings is quite hard =(
 
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashMap},
     path::Path,
 };
 
@@ -113,7 +113,7 @@ impl GenCtx {
             .map(|f| {
                 let ty = match f.ty {
                     TypeSchema::Primitive(prim) => self.primitives.get(&prim).unwrap().clone(),
-                    TypeSchema::Struct(schema) => {
+                    TypeSchema::Struct(_schema) => {
                         todo!("Structs in structs??? Who would need such complexity?????")
                         // self.gen_struct(schema)
                     }

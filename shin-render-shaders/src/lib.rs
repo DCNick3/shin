@@ -1,12 +1,10 @@
-use std::{borrow::Cow, marker::PhantomData};
+use std::marker::PhantomData;
 
 pub use shin_render_shader_types as types;
 use shin_render_shader_types::{
     buffer::{DynamicBuffer, VertexSource, VertexSourceInfo},
-    texture::TextureBindGroup,
     vertices::VertexType,
 };
-use wgpu::util::DeviceExt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ShaderBindingGroupDescriptor {

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::new_render::resize::{SurfaceResizeHandle, SurfaceSize};
+use crate::resize::{SurfaceResizeHandle, SurfaceSize};
 
 pub struct ResizeableTexture {
     device: Arc<wgpu::Device>,

@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use winit::dpi::PhysicalSize;
+use dpi::PhysicalSize;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct SurfaceSize {

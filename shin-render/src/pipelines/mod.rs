@@ -1,89 +1,160 @@
-mod fill;
-mod sprite;
-mod text;
-mod text_outline;
-mod yuv_sprite;
+mod conversions;
 
-use fill::FillPipeline;
-use sprite::SpritePipeline;
-use text::TextPipeline;
-use text_outline::TextOutlinePipeline;
-use yuv_sprite::YuvSpritePipeline;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::{bind_groups::BindGroupLayouts, RAW_TEXTURE_FORMAT, SRGB_TEXTURE_FORMAT};
+use enum_iterator::Sequence;
+use rustc_hash::FxHashMap;
+use shin_render_shader_types::texture::TextureBindGroupLayout;
+use shin_render_shaders::{Shader, ShaderContext, ShaderName, TypedRenderPipeline};
 
-// TODO: make a builder?
-fn make_pipeline(
-    device: &wgpu::Device,
-    texture_format: wgpu::TextureFormat,
-    shader_module: wgpu::ShaderModule,
-    layout: wgpu::PipelineLayout,
-    vertex_buffer_layout: wgpu::VertexBufferLayout,
-    blend: Option<wgpu::BlendState>,
-    label: &str,
-) -> wgpu::RenderPipeline {
-    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some(label),
-        layout: Some(&layout),
-        vertex: wgpu::VertexState {
-            module: &shader_module,
-            entry_point: "vertex_main",
-            compilation_options: Default::default(),
-            buffers: &[vertex_buffer_layout],
-        },
-        primitive: wgpu::PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleList,
-            strip_index_format: None,
-            front_face: wgpu::FrontFace::Cw,
-            cull_mode: None,
-            unclipped_depth: false,
-            polygon_mode: Default::default(),
-            conservative: false,
-        },
-        depth_stencil: None,
-        multisample: Default::default(),
-        fragment: Some(wgpu::FragmentState {
-            module: &shader_module,
-            entry_point: "fragment_main",
-            compilation_options: Default::default(),
-            targets: &[Some(wgpu::ColorTargetState {
-                format: texture_format,
-                blend,
-                write_mask: wgpu::ColorWrites::ALL,
-            })],
-        }),
-        multiview: None,
-        cache: None,
-    })
+use crate::{ColorBlendType, CullFace, DepthStencilPipelineState, DrawPrimitive};
+
+pub const DEPTH_STENCIL_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24PlusStencil8;
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
+pub struct PipelineStorageKey {
+    pub draw_primitive: DrawPrimitive,
+    pub cull_face: CullFace,
+    pub blend_type: ColorBlendType,
+    pub depth_stencil: DepthStencilPipelineState,
 }
 
-pub struct Pipelines {
-    pub sprite: SpritePipeline,
-    pub yuv_sprite: YuvSpritePipeline,
-    pub fill: FillPipeline,
-    pub text: TextPipeline,
-    pub text_outline: TextOutlinePipeline,
-    // those are pipelines using screen's texture format (not our preferred RGBA format)
-    // they are only used for the final render pass
-    pub sprite_screen: SpritePipeline,
-    pub fill_screen: FillPipeline,
-}
-
-impl Pipelines {
-    pub fn new(
+impl PipelineStorageKey {
+    fn create_pipeline(
+        &self,
         device: &wgpu::Device,
-        bind_group_layouts: &BindGroupLayouts,
-        surface_texture_format: wgpu::TextureFormat,
-    ) -> Pipelines {
-        Pipelines {
-            sprite: SpritePipeline::new(device, bind_group_layouts, SRGB_TEXTURE_FORMAT),
-            yuv_sprite: YuvSpritePipeline::new(device, bind_group_layouts, RAW_TEXTURE_FORMAT),
-            fill: FillPipeline::new(device, bind_group_layouts, SRGB_TEXTURE_FORMAT),
-            text: TextPipeline::new(device, bind_group_layouts, SRGB_TEXTURE_FORMAT),
-            text_outline: TextOutlinePipeline::new(device, bind_group_layouts, SRGB_TEXTURE_FORMAT),
+        the_texture_format: wgpu::TextureFormat,
+        context: &ShaderContext,
+    ) -> wgpu::RenderPipeline {
+        let &PipelineStorageKey {
+            draw_primitive,
+            cull_face,
+            blend_type,
+            depth_stencil: DepthStencilPipelineState { depth, stencil },
+        } = self;
 
-            sprite_screen: SpritePipeline::new(device, bind_group_layouts, surface_texture_format),
-            fill_screen: FillPipeline::new(device, bind_group_layouts, surface_texture_format),
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some(&format!("Pipeline for {:?}", self)),
+            layout: Some(&context.pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &context.shader_module,
+                entry_point: context.shader_descriptor.vertex_entry,
+                compilation_options: Default::default(),
+                buffers: &[context.shader_descriptor.vertex_buffer_layout.clone()],
+            },
+            primitive: wgpu::PrimitiveState {
+                topology: draw_primitive.into(),
+                strip_index_format: None,
+                // TODO: is this correct?
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: cull_face.into(),
+                unclipped_depth: false,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                conservative: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: DEPTH_STENCIL_FORMAT,
+                depth_write_enabled: depth.write_enable,
+                depth_compare: depth.function.into(),
+                stencil: wgpu::StencilState {
+                    front: stencil.into(),
+                    back: stencil.into(),
+                    read_mask: stencil.stencil_read_mask.into(),
+                    write_mask: stencil.stencil_write_mask.into(),
+                },
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &context.shader_module,
+                entry_point: context.shader_descriptor.fragment_entry,
+                compilation_options: Default::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: the_texture_format,
+                    blend: Some(blend_type.into()),
+                    write_mask: blend_type.into(),
+                })],
+            }),
+            multiview: None,
+            cache: None,
+        })
+    }
+}
+
+struct ShaderContextStorage {
+    shaders: FxHashMap<ShaderName, ShaderContext>,
+}
+
+impl ShaderContextStorage {
+    pub fn new(device: &wgpu::Device, texture_bind_group_layout: &TextureBindGroupLayout) -> Self {
+        let mut shaders = HashMap::default();
+        for shader in enum_iterator::all::<ShaderName>() {
+            let context = shader
+                .descriptor()
+                .create_shader_context(device, texture_bind_group_layout);
+            shaders.insert(shader, context);
         }
+        Self { shaders }
+    }
+
+    pub fn get(&self, shader: ShaderName) -> &ShaderContext {
+        self.shaders.get(&shader).unwrap()
+    }
+}
+
+pub struct PipelineStorage {
+    device: Arc<wgpu::Device>,
+    the_texture_format: wgpu::TextureFormat,
+    shader_context: ShaderContextStorage,
+    pipelines: FxHashMap<(ShaderName, PipelineStorageKey), wgpu::RenderPipeline>,
+}
+
+impl PipelineStorage {
+    pub fn new(
+        device: Arc<wgpu::Device>,
+        the_texture_format: wgpu::TextureFormat,
+        texture_bind_group_layout: &TextureBindGroupLayout,
+    ) -> Self {
+        // TODO: actually populate the map with pipelines
+        let shader_context = ShaderContextStorage::new(&device, texture_bind_group_layout);
+        Self {
+            device,
+            the_texture_format,
+            shader_context,
+            pipelines: FxHashMap::default(),
+        }
+    }
+
+    // it is unfortunate that we have to take a &mut self here
+    // this can lead to difficulties with borrowing
+    // can introduce interior mutability if we need to
+    pub fn get<S: Shader>(&mut self, key: PipelineStorageKey) -> TypedRenderPipeline<S> {
+        let context = self.shader_context.get(S::NAME);
+        let pipeline = self
+            .pipelines
+            .entry((S::NAME, key))
+            .or_insert_with(|| key.create_pipeline(&self.device, self.the_texture_format, context));
+
+        TypedRenderPipeline::new(context, pipeline)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use enum_iterator::cardinality;
+
+    use crate::pipelines::PipelineStorageKey;
+
+    #[test]
+    fn pipeline_storage_key_cardinality() {
+        // currently 166723584
+        // this is a big too much to create all of them ahead of time.
+        // I think we should create a list of ones that should be pre-created (as an optimization) and then create the rest on demand.
+        // This can lead to stuter, but what can you do?
+        dbg!(cardinality::<PipelineStorageKey>());
     }
 }

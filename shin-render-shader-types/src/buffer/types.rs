@@ -87,7 +87,7 @@ impl ArrayBufferType for IndexMarker {
 }
 
 impl<T: encase::ShaderType + encase::ShaderSize> BufferType for UniformMarker<T> {
-    const MIN_ALIGNMENT: BytesAddress = BytesAddress::new(256);
+    const MIN_ALIGNMENT: BytesAddress = MIN_UNIFORM_BUFFER_ALIGNMENT;
 
     fn is_valid_offset(offset: BytesAddress) -> bool {
         offset.is_aligned_to(Self::MIN_ALIGNMENT)

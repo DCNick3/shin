@@ -35,18 +35,18 @@ impl Parse for SyntaxList {
 #[derive(Debug)]
 pub struct MappingItem {
     pub ident: Ident,
-    pub fat_arrow_token: Token![=>],
+    pub _fat_arrow_token: Token![=>],
     pub content: LitStr,
 }
 
 impl Parse for MappingItem {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let ident = input.parse()?;
-        let fat_arrow_token = input.parse()?;
+        let _fat_arrow_token = input.parse()?;
         let content = input.parse()?;
         Ok(Self {
             ident,
-            fat_arrow_token,
+            _fat_arrow_token,
             content,
         })
     }
