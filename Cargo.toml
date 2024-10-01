@@ -9,6 +9,7 @@ members = [
     "shin-tasks",
     "shin-audio",
     "shin-asm",
+    "shin-window",
     "sdu",
     "shin",
     "junk",

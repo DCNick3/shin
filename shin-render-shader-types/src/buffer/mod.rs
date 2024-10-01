@@ -1,7 +1,7 @@
 mod bytes_address;
 mod dynamic_buffer;
-mod ownership;
-mod types;
+pub mod ownership;
+pub mod types;
 
 use std::marker::PhantomData;
 
@@ -9,7 +9,7 @@ use ownership::{AnyOwnership, BufferOwnership, Owned, Shared};
 use types::BufferType;
 use wgpu::util::DeviceExt as _;
 
-pub use self::{bytes_address::BytesAddress, dynamic_buffer::DynamicBuffer};
+pub use self::{bytes_address::BytesAddress, dynamic_buffer::DynamicBufferBackend};
 use crate::{
     buffer::types::{ArrayBufferType, IndexMarker, RawMarker, VertexMarker},
     vertices::VertexType,
@@ -117,6 +117,10 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
         }
     }
 
+    pub fn write(&self, queue: &wgpu::Queue, offset: BytesAddress, data: &[u8]) {
+        queue.write_buffer(self.ownership.get(), offset.get(), data);
+    }
+
     pub fn as_buffer_ref(&self) -> BufferRef<T> {
         let slice = self
             .ownership
@@ -154,9 +158,9 @@ impl<'a, T: ArrayBufferType> BufferRef<'a, T> {
     }
 }
 
-type OwnedBuffer<T> = Buffer<Owned, T>;
-type SharedBuffer<T> = Buffer<Shared, T>;
-type AnyBuffer<T> = Buffer<AnyOwnership, T>;
+pub type OwnedBuffer<T> = Buffer<Owned, T>;
+pub type SharedBuffer<T> = Buffer<Shared, T>;
+pub type AnyBuffer<T> = Buffer<AnyOwnership, T>;
 
 pub type AnyVertexBuffer<T> = AnyBuffer<VertexMarker<T>>;
 pub type AnyIndexBuffer = AnyBuffer<IndexMarker>;
@@ -230,6 +234,13 @@ pub enum VertexSource<'a, T: VertexType> {
         vertex_buffer: VertexBufferRef<'a, T>,
         index_buffer: IndexBufferRef<'a>,
     },
+    VertexData {
+        vertex_data: &'a [T],
+    },
+    VertexAndIndexData {
+        vertex_data: &'a [T],
+        index_data: &'a [u16],
+    },
 }
 
 /// Information necessary to make a right call to `draw` or `draw_indexed` after binding the vertex source.
@@ -251,10 +262,23 @@ impl<'a, T: VertexType> VertexSource<'a, T> {
             } => VertexSourceInfo::VertexAndIndexBuffer {
                 index_count: index_buffer.count(),
             },
+            VertexSource::VertexData { vertex_data } => VertexSourceInfo::VertexBuffer {
+                vertex_count: vertex_data.len() as u32,
+            },
+            VertexSource::VertexAndIndexData {
+                vertex_data: _,
+                index_data,
+            } => VertexSourceInfo::VertexAndIndexBuffer {
+                index_count: index_data.len() as u32,
+            },
         }
     }
 
-    pub fn bind(&self, pass: &mut wgpu::RenderPass) {
+    pub fn bind(
+        &self,
+        dynamic_buffer: &mut impl DynamicBufferBackend,
+        pass: &mut wgpu::RenderPass,
+    ) {
         match self {
             VertexSource::VertexBuffer { vertex_buffer } => {
                 pass.set_vertex_buffer(0, vertex_buffer.slice);
@@ -265,6 +289,22 @@ impl<'a, T: VertexType> VertexSource<'a, T> {
             } => {
                 pass.set_vertex_buffer(0, vertex_buffer.slice);
                 pass.set_index_buffer(index_buffer.slice, wgpu::IndexFormat::Uint16);
+            }
+            VertexSource::VertexData { vertex_data } => {
+                let vertex_buffer = dynamic_buffer.get_vertex_with_data(vertex_data);
+                pass.set_vertex_buffer(0, vertex_buffer.as_buffer_ref().slice);
+            }
+            VertexSource::VertexAndIndexData {
+                vertex_data,
+                index_data,
+            } => {
+                let vertex_buffer = dynamic_buffer.get_vertex_with_data(vertex_data);
+                let index_buffer = dynamic_buffer.get_index_with_data(index_data);
+                pass.set_vertex_buffer(0, vertex_buffer.as_buffer_ref().slice);
+                pass.set_index_buffer(
+                    index_buffer.as_buffer_ref().slice,
+                    wgpu::IndexFormat::Uint16,
+                );
             }
         }
     }

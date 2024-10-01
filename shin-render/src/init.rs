@@ -1,16 +1,14 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use shin_render_shader_types::{
-    buffer::{BytesAddress, DynamicBuffer},
-    texture::TextureBindGroupLayout,
-};
+use shin_render_shader_types::{buffer::BytesAddress, texture::TextureBindGroupLayout};
 use tracing::{debug, info};
 use wgpu::SurfaceTarget;
 
 use crate::{
+    dynamic_buffer::DynamicBuffer,
     pipelines::{PipelineStorage, DEPTH_STENCIL_FORMAT},
-    resize::{SurfaceResizeHandle, SurfaceSize},
+    resize::{CanvasSize, ResizeHandle, SurfaceSize},
     resizeable_texture::ResizeableTexture,
 };
 
@@ -19,23 +17,27 @@ pub struct ResizeableSurface<'window> {
     device: Arc<wgpu::Device>,
     surface: wgpu::Surface<'window>,
     surface_config: wgpu::SurfaceConfiguration,
-    resize_handle: SurfaceResizeHandle,
+    resize_handle: ResizeHandle<SurfaceSize>,
 }
 
 impl ResizeableSurface<'_> {
-    pub fn get_current_texture(&mut self) -> Result<SurfaceTextureWithView, wgpu::SurfaceError> {
+    pub fn get_current_texture(
+        &mut self,
+    ) -> Result<((f32, f32, f32, f32), SurfaceTextureWithView), wgpu::SurfaceError> {
         if let Some(new_size) = self.resize_handle.update() {
             self.surface_config.width = new_size.width;
             self.surface_config.height = new_size.height;
             self.surface.configure(&self.device, &self.surface_config);
         }
 
+        let viewport = self.resize_handle.get_viewport();
+
         let texture = self.surface.get_current_texture()?;
         let view = texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        Ok(SurfaceTextureWithView { texture, view })
+        Ok((viewport, SurfaceTextureWithView { texture, view }))
     }
 }
 
@@ -47,7 +49,7 @@ pub struct SurfaceTextureWithView {
 fn configure_surface(
     device: Arc<wgpu::Device>,
     surface: wgpu::Surface,
-    mut surface_resize_handle: SurfaceResizeHandle,
+    mut surface_resize_handle: ResizeHandle<SurfaceSize>,
     surface_texture_format: wgpu::TextureFormat,
 ) -> ResizeableSurface {
     let SurfaceSize { width, height } = surface_resize_handle.get();
@@ -84,7 +86,7 @@ pub struct WgpuInitResult<'window> {
 
 pub async fn init_wgpu<'window>(
     surface_target: impl Into<SurfaceTarget<'window>>,
-    surface_resize_handle: SurfaceResizeHandle,
+    surface_resize_handle: ResizeHandle<SurfaceSize>,
     trace_path: Option<&std::path::Path>,
 ) -> anyhow::Result<WgpuInitResult<'window>> {
     info!("Initializing wgpu...");
@@ -173,7 +175,7 @@ pub fn surface_reinit<'window>(
     instance: &wgpu::Instance,
     device: Arc<wgpu::Device>,
     surface_target: impl Into<SurfaceTarget<'window>>,
-    surface_resize_handle: SurfaceResizeHandle,
+    surface_resize_handle: ResizeHandle<SurfaceSize>,
     surface_texture_format: wgpu::TextureFormat,
 ) -> anyhow::Result<ResizeableSurface<'window>> {
     info!("Re-creating surface...");
@@ -198,8 +200,9 @@ pub struct RenderResources {
 
     // render-related resources
     pub surface: ResizeableSurface<'static>,
-    // TODO: do we want to re-use this texture? Or is it better to create one per render pass? What does the game do?
-    pub depth_stencil_buffer: ResizeableTexture,
+    // keeping two depth stencil buffers because surface and canvas can potentially be of different sizes
+    pub surface_depth_stencil_buffer: ResizeableTexture<SurfaceSize>,
+    pub canvas_depth_stencil_buffer: ResizeableTexture<CanvasSize>,
     pub dynamic_buffer: DynamicBuffer,
     pub pipelines: PipelineStorage,
     pub texture_bind_group_layout: TextureBindGroupLayout,
@@ -209,9 +212,13 @@ pub struct RenderResources {
 }
 
 impl RenderResources {
-    pub fn new(wgpu: WgpuInitResult<'static>, surface_resize_handle: SurfaceResizeHandle) -> Self {
+    pub fn new(
+        wgpu: WgpuInitResult<'static>,
+        surface_resize_handle: ResizeHandle<SurfaceSize>,
+        canvas_resize_handle: ResizeHandle<CanvasSize>,
+    ) -> Self {
         let dynamic_buffer = DynamicBuffer::new(
-            &wgpu.device,
+            wgpu.device.clone(),
             wgpu.queue.clone(),
             BytesAddress::new(1024 * 1024),
         );
@@ -223,10 +230,15 @@ impl RenderResources {
             &texture_bind_group_layout,
         );
 
-        let depth_stencil_buffer = ResizeableTexture::new(
+        let surface_depth_stencil_buffer = ResizeableTexture::new(
             wgpu.device.clone(),
             DEPTH_STENCIL_FORMAT,
             surface_resize_handle,
+        );
+        let canvas_depth_stencil_buffer = ResizeableTexture::new(
+            wgpu.device.clone(),
+            DEPTH_STENCIL_FORMAT,
+            canvas_resize_handle,
         );
 
         Self {
@@ -235,7 +247,8 @@ impl RenderResources {
             device: wgpu.device,
             queue: wgpu.queue,
             surface: wgpu.surface,
-            depth_stencil_buffer,
+            surface_depth_stencil_buffer,
+            canvas_depth_stencil_buffer,
             dynamic_buffer,
             pipelines,
             texture_bind_group_layout,

@@ -20,6 +20,7 @@ bytemuck = { workspace = true }
 
 naga = { version = "22.1.0", features = ["wgsl-in", "wgsl-out", "spv-out"] }
 spirv = "0.3.0"
+# Be careful when updating! We rely on mangling implementation details
 naga_oil = "0.15.0"
 
 heck = "0.5.0"
