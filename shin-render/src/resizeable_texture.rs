@@ -1,23 +1,29 @@
 use std::sync::Arc;
 
-use crate::resize::{SurfaceResizeHandle, SurfaceSize};
+use dpi::PhysicalSize;
 
-pub struct ResizeableTexture {
+use crate::resize::{ResizeHandle, SizeAspect};
+
+pub struct ResizeableTexture<Aspect: SizeAspect> {
     device: Arc<wgpu::Device>,
     texture: (wgpu::Texture, wgpu::TextureView),
     format: wgpu::TextureFormat,
-    resize_handle: SurfaceResizeHandle,
+    resize_handle: ResizeHandle<Aspect>,
 }
 
-impl ResizeableTexture {
+impl<Aspect: SizeAspect> ResizeableTexture<Aspect> {
     fn create_texture(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
-        size: SurfaceSize,
+        size: PhysicalSize<u32>,
     ) -> (wgpu::Texture, wgpu::TextureView) {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
-            size: size.into(),
+            size: wgpu::Extent3d {
+                width: size.width,
+                height: size.height,
+                depth_or_array_layers: 1,
+            },
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -34,9 +40,9 @@ impl ResizeableTexture {
     pub fn new(
         device: Arc<wgpu::Device>,
         format: wgpu::TextureFormat,
-        mut resize_handle: SurfaceResizeHandle,
+        mut resize_handle: ResizeHandle<Aspect>,
     ) -> Self {
-        let texture = Self::create_texture(&device, format, resize_handle.get());
+        let texture = Self::create_texture(&device, format, resize_handle.get().into());
 
         Self {
             device,
@@ -48,7 +54,7 @@ impl ResizeableTexture {
 
     pub fn get_view(&mut self) -> &wgpu::TextureView {
         if let Some(new_size) = self.resize_handle.update() {
-            self.texture = Self::create_texture(&self.device, self.format, new_size);
+            self.texture = Self::create_texture(&self.device, self.format, new_size.into());
         }
 
         &self.texture.1

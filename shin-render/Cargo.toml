@@ -18,27 +18,24 @@ tracing = "0.1.40"
 
 dpi = "0.1.1"
 wgpu = { workspace = true }
-# Be careful when updating! We rely on mangling implementation details
-naga_oil = "0.15.0"
 naga = { version = "22.1.0", features = ["wgsl-out"] }
 
 glam = { workspace = true, features = [
     # "scalar-math" disables the 16-byte alignment requirement for some types
     # this is required for bytemuck to work
     "bytemuck",
-    #"scalar-math"
+    "scalar-math"
 ] }
 bytemuck = { workspace = true, features = ["derive"] }
 encase = { workspace = true, features = ["glam"] }
 
 rustc-hash = "2.0.0"
-bevy_utils = { workspace = true }
 once_cell = "1.17.1"
 image = { workspace = true, default-features = false }
 
-slotmap = "1.0.7"
-
 enum-iterator = { workspace = true }
+
+sketches-ddsketch = "0.3.0"
 
 [build-dependencies]
 wgsl_bindgen = { path = "/home/dcnick3/git_cloned/wgsl-bindgen/wgsl_bindgen" }
@@ -46,8 +43,9 @@ miette = { version = "7.2.0", features = ["fancy", "syntect"] }
 
 [dev-dependencies]
 shin-tasks = { path = "../shin-tasks" }
+shin-window = { path = "../shin-window" }
 
-winit = { workspace = true }
+winit = { workspace = true, features = ["android-game-activity"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]

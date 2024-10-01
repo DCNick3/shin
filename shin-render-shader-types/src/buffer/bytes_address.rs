@@ -48,10 +48,22 @@ impl std::ops::Add for BytesAddress {
     }
 }
 
+impl std::ops::AddAssign for BytesAddress {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+    }
+}
+
 impl std::ops::Sub for BytesAddress {
     type Output = BytesAddress;
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self(self.0 - rhs.0)
+    }
+}
+
+impl std::ops::SubAssign for BytesAddress {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
     }
 }

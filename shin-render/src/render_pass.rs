@@ -1,10 +1,10 @@
-use shin_render_shader_types::{
-    buffer::DynamicBuffer,
-    uniforms::{ClearUniformParams, FillUniformParams, SpriteUniformParams},
+use shin_render_shader_types::uniforms::{
+    ClearUniformParams, FillUniformParams, SpriteUniformParams,
 };
 use shin_render_shaders::{Clear, ClearBindings, Fill, FillBindings, Sprite, SpriteBindings};
 
 use crate::{
+    dynamic_buffer::DynamicBuffer,
     pipelines::{PipelineStorage, PipelineStorageKey},
     RenderProgramWithArguments, RenderRequest,
 };
@@ -26,8 +26,9 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
         encoder: &'encoder mut wgpu::CommandEncoder,
         target_color: &wgpu::TextureView,
         target_depth_stencil: &wgpu::TextureView,
+        viewport: (f32, f32, f32, f32),
     ) -> Self {
-        let pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: target_color,
@@ -54,6 +55,9 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+
+        let (x, y, width, height) = viewport;
+        pass.set_viewport(x, y, width, height, 0.0, 1.0);
 
         Self {
             pipeline_storage,

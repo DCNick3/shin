@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 pub use shin_render_shader_types as types;
 use shin_render_shader_types::{
-    buffer::{DynamicBuffer, VertexSource, VertexSourceInfo},
+    buffer::{DynamicBufferBackend, VertexSource, VertexSourceInfo},
     vertices::VertexType,
 };
 
@@ -101,7 +101,7 @@ impl ShaderDescriptor {
         #[cfg(target_arch = "wasm32")]
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some(&format!("{} shader module", self.name)),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(self.wgsl)),
+            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(self.wgsl)),
         });
 
         ShaderContext {
@@ -122,7 +122,7 @@ pub trait Shader {
 
     fn set_bindings(
         device: &wgpu::Device,
-        dynamic_buffer: &mut DynamicBuffer,
+        dynamic_buffer: &mut impl DynamicBufferBackend,
         bind_group_layouts: &[ShaderBindGroupLayout],
         render_pass: &mut wgpu::RenderPass,
         bindings: &Self::Bindings,
@@ -147,7 +147,7 @@ impl<'a, S: Shader> TypedRenderPipeline<'a, S> {
     pub fn render(
         &self,
         device: &wgpu::Device,
-        dynamic_buffer: &mut DynamicBuffer,
+        dynamic_buffer: &mut impl DynamicBufferBackend,
         render_pass: &mut wgpu::RenderPass,
         bindings: &S::Bindings,
         vertices: VertexSource<S::Vertex>,
@@ -160,7 +160,7 @@ impl<'a, S: Shader> TypedRenderPipeline<'a, S> {
             render_pass,
             bindings,
         );
-        vertices.bind(render_pass);
+        vertices.bind(dynamic_buffer, render_pass);
         match vertices.info() {
             VertexSourceInfo::VertexBuffer { vertex_count } => {
                 render_pass.draw(0..vertex_count, 0..1);

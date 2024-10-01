@@ -760,7 +760,7 @@ fn codegen_set_bindings(bindings: &[ShaderBindingGroupDescriptor]) -> proc_macro
         // #[allow(unused)]
         fn set_bindings(
             device: &wgpu::Device,
-            dynamic_buffer: &mut crate::DynamicBuffer,
+            dynamic_buffer: &mut impl crate::DynamicBufferBackend,
             bind_group_layouts: &[crate::ShaderBindGroupLayout],
             render_pass: &mut wgpu::RenderPass,
             bindings: &Self::Bindings,
