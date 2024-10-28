@@ -9,10 +9,7 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
 };
 
-use crate::{
-    input::{action::UserInput, inputs::MouseButton},
-    render::overlay::OverlayVisitable,
-};
+use crate::{action::UserInput, inputs::MouseButton};
 
 #[derive(Clone)]
 pub struct RawInputState {
@@ -23,7 +20,7 @@ pub struct RawInputState {
     pub mouse_position: Vec2,
     pub mouse_scroll_amount: f32,
     #[allow(unused)] // TODO: implement gamepad input
-    gamepad: (),
+    pub gamepad: (),
     // TODO: mouse position?
     // How do we even handle mouse position?
 }
@@ -125,24 +122,24 @@ impl Display for RawInputState {
     }
 }
 
-impl OverlayVisitable for RawInputState {
-    fn visit_overlay(&self, collector: &mut crate::render::overlay::OverlayCollector) {
-        collector.overlay(
-            "Input State",
-            |_ctx, top_left| {
-                top_left.label(format!(
-                    "Input State: [{}] [{}]",
-                    self.mouse_buttons
-                        .iter()
-                        .filter_map(|(but, state)| state.then(|| format!("{:?}", but)))
-                        .join(", "),
-                    self.keyboard.iter().map(|v| format!("{:?}", v)).join(", ")
-                ));
-            },
-            true,
-        );
-    }
-}
+// impl OverlayVisitable for RawInputState {
+//     fn visit_overlay(&self, collector: &mut crate::render::overlay::OverlayCollector) {
+//         collector.overlay(
+//             "Input State",
+//             |_ctx, top_left| {
+//                 top_left.label(format!(
+//                     "Input State: [{}] [{}]",
+//                     self.mouse_buttons
+//                         .iter()
+//                         .filter_map(|(but, state)| state.then(|| format!("{:?}", but)))
+//                         .join(", "),
+//                     self.keyboard.iter().map(|v| format!("{:?}", v)).join(", ")
+//                 ));
+//             },
+//             true,
+//         );
+//     }
+// }
 
 #[inline]
 fn convert_winit_mouse_button(winit: winit::event::MouseButton) -> Option<MouseButton> {

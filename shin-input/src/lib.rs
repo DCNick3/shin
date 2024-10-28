@@ -15,7 +15,6 @@ pub mod inputs;
 
 // The Shiny New Input System
 mod action;
-pub mod actions;
 mod raw_input_state;
 
 pub use action::{Action, ActionMap, ActionState, InputSet, UserInput};

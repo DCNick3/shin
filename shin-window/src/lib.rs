@@ -1,6 +1,7 @@
 use std::{fmt::Debug, sync::Arc};
 
 use derive_where::derive_where;
+use shin_input::RawInputState;
 use shin_render::{
     init::{RenderResources, WgpuInitResult},
     render_pass::RenderPass,
@@ -18,9 +19,9 @@ use winit::{
 
 pub struct AppContext<'a, A: ShinApp> {
     pub event_loop_proxy: &'a ShinEventLoopProxy<A::EventType>,
+    pub input: &'a RawInputState,
     pub winit: &'a mut WindowState,
     pub render: &'a mut RenderResources,
-    // TODO: put input state here
 }
 
 pub trait ShinApp: Sized {
@@ -144,17 +145,20 @@ enum WinitAppState<A: ShinApp> {
     WaitingForInitialResume {
         // unfortunately we have to weave in the proxy from outside of the loop until winit 0.31: https://github.com/rust-windowing/winit/pull/3764
         proxy: EventLoopProxy<ShinAppEventImpl<A::EventType>>,
+        input_state: RawInputState,
         params: A::Parameters,
     },
     /// On web platform the initial winit canvas size is zero, so we have to wait for a non-zero size
     WaitingForNonzeroSize {
         proxy: EventLoopProxy<ShinAppEventImpl<A::EventType>>,
+        input_state: RawInputState,
         params: A::Parameters,
         winit: WindowState,
         surface_resize_handle: ResizeHandle<SurfaceSize>,
     },
     WaitingForWgpuInit {
         proxy: EventLoopProxy<ShinAppEventImpl<A::EventType>>,
+        input_state: RawInputState,
         params: A::Parameters,
         winit: WindowState,
         #[allow(unused)] // this is just to keep the task alive
@@ -163,6 +167,7 @@ enum WinitAppState<A: ShinApp> {
     Operational {
         proxy: EventLoopProxy<ShinAppEventImpl<A::EventType>>,
         shin_proxy: ShinEventLoopProxy<A::EventType>,
+        input_state: RawInputState,
         winit: WindowState,
         render: RenderResources,
         app: A,
@@ -173,7 +178,23 @@ enum WinitAppState<A: ShinApp> {
 
 impl<A: ShinApp> WinitAppState<A> {
     fn new(proxy: EventLoopProxy<ShinAppEventImpl<A::EventType>>, params: A::Parameters) -> Self {
-        Self::WaitingForInitialResume { proxy, params }
+        Self::WaitingForInitialResume {
+            proxy,
+            params,
+            input_state: RawInputState::new(),
+        }
+    }
+
+    pub fn input_mut(&mut self) -> &mut RawInputState {
+        match self {
+            WinitAppState::WaitingForInitialResume { input_state, .. } => input_state,
+            WinitAppState::WaitingForNonzeroSize { input_state, .. } => input_state,
+            WinitAppState::WaitingForWgpuInit { input_state, .. } => input_state,
+            WinitAppState::Operational { input_state, .. } => input_state,
+            WinitAppState::Poison => {
+                unreachable!()
+            }
+        }
     }
 
     pub fn winit(&self) -> Option<&WindowState> {
@@ -192,7 +213,11 @@ impl<A: ShinApp> WinitAppState<A> {
 impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitAppState<A> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         match std::mem::take(self) {
-            WinitAppState::WaitingForInitialResume { proxy, params } => {
+            WinitAppState::WaitingForInitialResume {
+                proxy,
+                input_state,
+                params,
+            } => {
                 let winit = WindowState::new::<A>(event_loop);
 
                 let mut surface_resize_handle = winit.resize_source.surface_handle();
@@ -207,6 +232,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
 
                     *self = WinitAppState::WaitingForWgpuInit {
                         proxy,
+                        input_state,
                         params,
                         winit,
                         task,
@@ -214,6 +240,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 } else {
                     *self = WinitAppState::WaitingForNonzeroSize {
                         proxy,
+                        input_state,
                         params,
                         winit,
                         surface_resize_handle,
@@ -232,6 +259,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
             WinitAppState::Operational {
                 proxy,
                 shin_proxy,
+                input_state,
                 winit,
                 mut render,
                 app,
@@ -248,6 +276,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 *self = WinitAppState::Operational {
                     proxy,
                     shin_proxy,
+                    input_state,
                     winit,
                     render,
                     app,
@@ -264,6 +293,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
 
                 let WinitAppState::WaitingForWgpuInit {
                     proxy,
+                    input_state,
                     params,
                     mut winit,
                     task: _,
@@ -286,6 +316,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
 
                 let context = AppContext {
                     event_loop_proxy: &shin_proxy,
+                    input: &input_state,
                     winit: &mut winit,
                     render: &mut render,
                 };
@@ -295,6 +326,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 *self = WinitAppState::Operational {
                     proxy,
                     shin_proxy,
+                    input_state,
                     winit,
                     render,
                     app,
@@ -304,6 +336,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 let WinitAppState::Operational {
                     proxy: _,
                     shin_proxy,
+                    input_state,
                     winit,
                     render,
                     app,
@@ -316,6 +349,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 app.custom_event(
                     AppContext {
                         event_loop_proxy: shin_proxy,
+                        input: input_state,
                         winit,
                         render,
                     },
@@ -331,6 +365,8 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
         window_id: WindowId,
         event: WindowEvent,
     ) {
+        self.input_mut().on_winit_event(&event);
+
         let Some(winit) = self.winit() else {
             return;
         };
@@ -351,6 +387,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 match std::mem::take(self) {
                     WinitAppState::WaitingForNonzeroSize {
                         proxy,
+                        input_state,
                         params,
                         mut surface_resize_handle,
                         winit,
@@ -364,6 +401,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
 
                             *self = WinitAppState::WaitingForWgpuInit {
                                 proxy,
+                                input_state,
                                 params,
                                 winit,
                                 task,
@@ -371,6 +409,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                         } else {
                             *self = WinitAppState::WaitingForNonzeroSize {
                                 proxy,
+                                input_state,
                                 params,
                                 winit,
                                 surface_resize_handle,
@@ -383,6 +422,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
             WindowEvent::RedrawRequested => {
                 let WinitAppState::Operational {
                     proxy: _,
+                    input_state,
                     shin_proxy,
                     winit,
                     render,
@@ -394,6 +434,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
 
                 app.update(AppContext {
                     event_loop_proxy: shin_proxy,
+                    input: input_state,
                     winit,
                     render,
                 });

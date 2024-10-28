@@ -7,13 +7,33 @@ use egui::{
     ViewportIdMap,
 };
 use egui_wgpu::{Renderer, ScreenDescriptor};
+use enum_map::{enum_map, Enum};
 use glam::vec2;
+use shin_input::{inputs::MouseButton, Action, ActionMap, ActionState, InputSet, RawInputState};
 use shin_render::GpuCommonResources;
+use winit::keyboard::KeyCode;
 
-use crate::{
-    input::{actions::OverlayManagerAction, inputs::MouseButton, ActionState, RawInputState},
-    time::Time,
-};
+use crate::time::Time;
+
+/// Overlay Manager actions
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Enum)]
+pub enum OverlayManagerAction {
+    ToggleOverlayManager,
+}
+
+impl Action for OverlayManagerAction {
+    fn default_action_map() -> ActionMap<Self> {
+        fn map(v: OverlayManagerAction) -> InputSet {
+            match v {
+                OverlayManagerAction::ToggleOverlayManager => {
+                    [KeyCode::F3.into()].into_iter().collect()
+                }
+            }
+        }
+
+        ActionMap::new(enum_map! { v => map(v) })
+    }
+}
 
 pub struct OverlayManager {
     show_overlays_window: bool,

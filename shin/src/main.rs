@@ -11,7 +11,6 @@ mod adv;
 mod audio;
 mod cli;
 mod fps_counter;
-mod input;
 mod layer;
 mod render;
 mod time;

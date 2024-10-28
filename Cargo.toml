@@ -12,13 +12,15 @@ members = [
     "shin-window",
     "sdu",
     "shin",
-    "junk",
+    "junk", "shin-input",
     #    "junk/mesh-vis",
 ]
 resolver = "2"
 
 [workspace.dependencies]
 glam = "0.28.0"
+dpi = "0.1.1"
+
 # beta version for GATs
 enum-map = "3.0.0-beta.1"
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
