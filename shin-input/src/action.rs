@@ -1,7 +1,7 @@
 use enum_map::{enum_map, Enum, EnumMap};
 use petitset::PetitSet;
 
-use crate::input::{
+use crate::{
     buttonlike::ButtonState,
     inputs::{GamepadButtonType, KeyCode, MouseButton},
     raw_input_state::RawInputState,

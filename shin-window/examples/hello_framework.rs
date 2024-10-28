@@ -1,23 +1,26 @@
 use dpi::PhysicalSize;
 use glam::{Mat4, Vec3};
 use shin_render::{
-    render_pass::RenderPass, resize::ViewportParams, DrawPrimitive, RenderProgramWithArguments,
-    RenderRequestBuilder,
-};
-use shin_render_shader_types::{
-    buffer::VertexSource,
-    vertices::{FloatColor4, PosColVertex, PosVertex, UnormColor},
+    render_pass::RenderPass,
+    resize::ViewportParams,
+    shaders::types::{
+        buffer::VertexSource,
+        vertices::{FloatColor4, PosColVertex, PosVertex, UnormColor},
+    },
+    DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_window::{AppContext, ShinApp};
 
-struct HelloApp;
+// enum HelloAction {}
+
+struct HelloApp {}
 
 impl ShinApp for HelloApp {
     type Parameters = ();
     type EventType = ();
 
     fn init(_context: AppContext<Self>, (): Self::Parameters) -> Self {
-        HelloApp
+        HelloApp {}
     }
 
     fn map_canvas_size(window_size: PhysicalSize<u32>) -> ViewportParams {

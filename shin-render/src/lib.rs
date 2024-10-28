@@ -17,6 +17,7 @@ use shin_render_shader_types::{
     texture::TextureBindGroup,
     vertices::{FloatColor4, PosColTexVertex, PosColVertex, PosVertex, TextVertex},
 };
+pub use shin_render_shaders as shaders;
 use shin_render_shaders::ShaderName;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]

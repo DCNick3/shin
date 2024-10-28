@@ -6,6 +6,7 @@ use std::{borrow::Cow, sync::Arc};
 
 pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
 use egui::Window;
+use enum_map::{enum_map, Enum};
 use glam::Mat4;
 use itertools::Itertools;
 use shin_audio::AudioManager;
@@ -20,22 +21,55 @@ use shin_core::{
         Scripter,
     },
 };
+use shin_input::{inputs::MouseButton, Action, ActionMap, ActionState, InputSet};
 use shin_render::{GpuCommonResources, Renderable};
 use smallvec::{smallvec, SmallVec};
 use tracing::{debug, warn};
 use vm_state::layers::ITER_VLAYER_SMALL_VECTOR_SIZE;
 pub use vm_state::{layers::LayerSelection, VmState};
+use winit::keyboard::KeyCode;
 
 use crate::{
     adv::assets::AdvAssets,
     audio::{BgmPlayer, SePlayer},
-    input::{actions::AdvMessageAction, ActionState},
     layer::{
         AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup, ScreenLayer, UserLayer,
     },
     render::overlay::{OverlayCollector, OverlayVisitable},
     update::{Updatable, UpdateContext},
 };
+
+/// Actions available in all ADV contexts
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Enum)]
+pub enum AdvMessageAction {
+    Advance,
+    HoldFastForward,
+    Backlog,
+    Rollback,
+}
+
+impl Action for AdvMessageAction {
+    fn default_action_map() -> ActionMap<Self> {
+        fn map(v: AdvMessageAction) -> InputSet {
+            match v {
+                AdvMessageAction::Advance => [
+                    MouseButton::Left.into(),
+                    KeyCode::Enter.into(),
+                    KeyCode::Space.into(),
+                ]
+                .into_iter()
+                .collect(),
+                AdvMessageAction::HoldFastForward => {
+                    [KeyCode::ControlLeft.into()].into_iter().collect()
+                }
+                AdvMessageAction::Backlog => [].into_iter().collect(),
+                AdvMessageAction::Rollback => [].into_iter().collect(),
+            }
+        }
+
+        ActionMap::new(enum_map! { v => map(v) })
+    }
+}
 
 pub struct Adv {
     scenario: Arc<Scenario>,

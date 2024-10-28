@@ -1,0 +1,11 @@
+[package]
+name = "shin-input"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+enum-map = { workspace = true }
+petitset = "0.2.1"
+winit = { workspace = true }
+glam = { workspace = true }
+itertools = { workspace = true }

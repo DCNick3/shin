@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 shin-tasks = { path = "../shin-tasks" }
+shin-input = { path = "../shin-input" }
 shin-render = { path = "../shin-render" }
 
 tracing = "0.1.40"
@@ -17,3 +18,8 @@ derive-where = "1.2.7"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3.70", features = ["Document"] }
+
+[dev-dependencies]
+dpi = { workspace = true }
+glam = { workspace = true }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

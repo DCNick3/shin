@@ -4045,6 +4045,7 @@ dependencies = [
  "shin-audio",
  "shin-core",
  "shin-derive",
+ "shin-input",
  "shin-render",
  "shin-tasks",
  "shin-video",
@@ -4151,6 +4152,17 @@ dependencies = [
  "quote 1.0.37",
  "syn 2.0.77",
  "synstructure 0.13.1",
+]
+
+[[package]]
+name = "shin-input"
+version = "0.1.0"
+dependencies = [
+ "enum-map",
+ "glam",
+ "itertools 0.13.0",
+ "petitset",
+ "winit",
 ]
 
 [[package]]
@@ -4270,9 +4282,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "derive-where",
+ "dpi",
+ "glam",
+ "shin-input",
  "shin-render",
  "shin-tasks",
  "tracing",
+ "tracing-subscriber",
  "web-sys",
  "wgpu",
  "winit",
