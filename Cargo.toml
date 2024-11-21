@@ -31,9 +31,8 @@ winit = "0.30.5"
 pollster = "0.3.0"
 
 # egui used for debug overlays
-# using git version for wgpu 22.0.0 compat
-egui = { git = "https://github.com/emilk/egui.git", rev = "56df31ab489312014d57247db438ecd7189a710a" }
-egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "56df31ab489312014d57247db438ecd7189a710a" }
+egui = "0.29.1"
+egui-wgpu = "0.29.1"
 
 image = { version = "0.25.1", default-features = false }
 anyhow = "1.0.69"

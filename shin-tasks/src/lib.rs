@@ -2,6 +2,9 @@
 #![doc = include_str!("../README.md")]
 
 mod slice;
+
+use std::future::Future;
+
 pub use slice::{ParallelSlice, ParallelSliceMut};
 
 #[cfg_attr(target_arch = "wasm32", path = "wasm_task.rs")]
@@ -145,4 +148,21 @@ pub fn create_task_pools() {
 
     // do not initialize the compute task pool, we do not use it (at least for now)
     debug!("Remaining Threads: {}", remaining_threads);
+}
+
+/// Blocks the current thread on a future.
+///
+/// # Examples
+///
+/// ```
+/// use futures_lite::future;
+///
+/// let val = future::block_on(async {
+///     1 + 2
+/// });
+///
+/// assert_eq!(val, 3);
+/// ```
+pub fn block_on<F: Future>(future: F) -> F::Output {
+    futures_lite::future::block_on(future)
 }
