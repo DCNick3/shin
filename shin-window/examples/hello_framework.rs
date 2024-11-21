@@ -1,5 +1,9 @@
+use std::time::Duration;
+
 use dpi::PhysicalSize;
+use enum_map::{enum_map, Enum, EnumMap};
 use glam::{Mat4, Vec3};
+use shin_input::{inputs::GamepadButton, Action, ActionState, RawInputState};
 use shin_render::{
     render_pass::RenderPass,
     resize::ViewportParams,
@@ -10,14 +14,35 @@ use shin_render::{
     DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_window::{AppContext, ShinApp};
+use winit::keyboard::KeyCode;
 
-// enum HelloAction {}
+#[derive(Enum)]
+enum HelloAction {
+    Ok,
+    Back,
+}
+
+impl Action for HelloAction {
+    fn lower(
+        RawInputState {
+            mouse: _,
+            keyboard,
+            gamepads,
+        }: &RawInputState,
+    ) -> EnumMap<Self, bool> {
+        enum_map! {
+            HelloAction::Ok => keyboard.contains(&KeyCode::Enter) || keyboard.contains(&KeyCode::Space) || gamepads.is_held(GamepadButton::A),
+            HelloAction::Back => keyboard.contains(&KeyCode::KeyQ) || keyboard.contains(&KeyCode::Escape) || gamepads.is_held(GamepadButton::B),
+        }
+    }
+}
 
 struct HelloApp {}
 
 impl ShinApp for HelloApp {
     type Parameters = ();
     type EventType = ();
+    type ActionType = HelloAction;
 
     fn init(_context: AppContext<Self>, (): Self::Parameters) -> Self {
         HelloApp {}
@@ -29,7 +54,16 @@ impl ShinApp for HelloApp {
 
     fn custom_event(&mut self, _context: AppContext<Self>, (): Self::EventType) {}
 
-    fn update(&mut self, _context: AppContext<Self>) {}
+    fn update(
+        &mut self,
+        context: AppContext<Self>,
+        input: EnumMap<HelloAction, ActionState>,
+        _elapsed: Duration,
+    ) {
+        if input[HelloAction::Back].is_clicked {
+            context.event_loop.exit();
+        }
+    }
 
     fn render(&mut self, pass: &mut RenderPass) {
         let vertices = [

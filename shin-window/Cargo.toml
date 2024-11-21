@@ -10,6 +10,10 @@ shin-render = { path = "../shin-render" }
 
 tracing = "0.1.40"
 
+cfg-if = "1.0.0"
+
+enum-map = { workspace = true }
+
 winit = { workspace = true, features = ["android-native-activity"] }
 wgpu = { workspace = true }
 
@@ -23,3 +27,4 @@ web-sys = { version = "0.3.70", features = ["Document"] }
 dpi = { workspace = true }
 glam = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+spin_sleep_util = "0.1.1"
