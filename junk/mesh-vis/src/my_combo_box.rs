@@ -2,7 +2,10 @@
 
 // patched to add back ability to focus with tab removed in https://github.com/iced-rs/iced/pull/1991
 
-use std::{cell::RefCell, fmt::Display};
+use std::{
+    cell::{Cell, RefCell},
+    fmt::Display,
+};
 
 use iced_core::{
     event::{self, Event},
@@ -15,9 +18,7 @@ use iced_core::{
     Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Theme, Vector,
 };
 use iced_widget::{
-    container,
     overlay::menu,
-    scrollable,
     text::LineHeight,
     text_input::{self, TextInput},
 };
@@ -252,6 +253,10 @@ where
 /// The local state of a [`ComboBox`].
 #[derive(Debug, Clone)]
 pub struct State<T> {
+    /// If set to true, layout will render as-if there is no focus once.
+    ///
+    /// A workaround to make the "move the focus with tab" work correctly. (without this the combobox renders without the text until next re-layout)
+    pretend_no_focus: Cell<bool>,
     options: Vec<T>,
     inner: RefCell<Inner<T>>,
 }
@@ -293,6 +298,7 @@ where
         );
 
         Self {
+            pretend_no_focus: Cell::new(false),
             options,
             inner: RefCell::new(Inner {
                 value,
@@ -404,13 +410,18 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let is_focused = {
+        let mut is_focused = {
             let text_input_state = tree.children[0]
                 .state
                 .downcast_ref::<text_input::State<Renderer::Paragraph>>();
 
             text_input_state.is_focused()
         };
+
+        if self.state.pretend_no_focus.get() {
+            is_focused = false;
+            self.state.pretend_no_focus.set(false);
+        }
 
         self.text_input.layout(
             &mut tree.children[0],
@@ -608,6 +619,12 @@ where
                 // Notify the selection
                 shell.publish((self.on_selected)(selection));
                 published_message_to_shell = true;
+
+                // Do NOT unfocus ourselves
+                // We expect the consumer to call focus_next instead
+                // Ideally we would want to do it ourselves, but we can't initiate a root-level Operation to do so
+                self.state.pretend_no_focus.set(true);
+                shell.invalidate_widgets();
 
                 // Unfocus the input
                 // let _ = self.text_input.on_event(

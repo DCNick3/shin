@@ -9,6 +9,11 @@ edition = "2021"
 iced = "0.13.1"
 iced_core = "0.13.2"
 iced_widget = "0.13.4"
+iced_runtime = { version = "0.13.2", features = ["debug"] }
+
+glam = "0.29.2"
+faer = { version = "0.19.4", default-features = false, features = ["std"] }
+float-ord = "0.3.2"
 
 iced_aw = "0.11.0"
 
