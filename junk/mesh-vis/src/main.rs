@@ -5,10 +5,15 @@ use std::fmt::Display;
 use iced::{
     color, executor, font, keyboard, widget,
     widget::{column, text, text_input, vertical_space, Column, Space, Text},
-    Application, Command, Element, Settings, Subscription, Theme,
+    Application, Element, Settings, Subscription, Task, Theme,
 };
 use iced_core::{alignment::Horizontal, Length};
-use iced_widget::{container, row, scrollable};
+use iced_widget::{
+    // combo_box as my_combo_box,
+    container,
+    row,
+    scrollable,
+};
 
 #[derive(Debug, Clone, Copy)]
 enum FieldType {
@@ -220,14 +225,14 @@ const VERTEX_DESCRTIPTORS: &[VertexDescriptor] = &[
     },
 ];
 
-struct MeshVisualizer {
+struct MeshVisualizerState {
     vertex_text: String,
     index_text: String,
     selected_vertex_type: Option<VertexDescriptor>,
     vertex_selector: my_combo_box::State<VertexDescriptor>,
 }
 
-impl Default for MeshVisualizer {
+impl Default for MeshVisualizerState {
     fn default() -> Self {
         Self {
             vertex_text: "".to_string(),
@@ -274,8 +279,8 @@ impl HexParseState {
     pub fn view(&self) -> Column<'static, Message> {
         Column::with_children([
             match self.result {
-                HexParseResult::Valid => text("Valid hex").style(color!(0x00c000)),
-                HexParseResult::PartiallyValid => text("Invalid hex!").style(color!(0xc00000)),
+                HexParseResult::Valid => text("Valid hex").color(color!(0x00c000)),
+                HexParseResult::PartiallyValid => text("Invalid hex!").color(color!(0xc00000)),
             }
             .into(),
             text(format!("{0} (0x{0:x}) bytes", self.bytes.len())).into(),
@@ -325,8 +330,8 @@ impl FloatParseState {
     pub fn view(&self) -> Column<'static, Message> {
         Column::with_children([
             match self.result {
-                FloatParseResult::Valid => text("Valid floats").style(color!(0x00c000)),
-                FloatParseResult::PartiallyValid => text("Invalid floats!").style(color!(0xc00000)),
+                FloatParseResult::Valid => text("Valid floats").color(color!(0x00c000)),
+                FloatParseResult::PartiallyValid => text("Invalid floats!").color(color!(0xc00000)),
             }
             .into(),
             text(format!("{0} (0x{0:x}) floats", self.floats.len())).into(),
@@ -343,8 +348,8 @@ enum VertexParseResult {
 impl VertexParseResult {
     pub fn view(&self) -> Text<'static> {
         match self {
-            VertexParseResult::Valid => text("Valid vertices").style(color!(0x00c000)),
-            VertexParseResult::PartiallyValid => text("Invalid vertices!").style(color!(0xc00000)),
+            VertexParseResult::Valid => text("Valid vertices").color(color!(0x00c000)),
+            VertexParseResult::PartiallyValid => text("Invalid vertices!").color(color!(0xc00000)),
         }
     }
 }
@@ -394,7 +399,7 @@ impl Vertex {
         for &field_value in &self.field_values {
             for (i, v) in (0..).zip(field_value) {
                 if i == 0 {
-                    todo!()
+                    // todo!()
                 }
 
                 let r = row([])
@@ -405,7 +410,7 @@ impl Vertex {
                     .push(
                         text(format!("{}", v))
                             .font(font::Font::MONOSPACE)
-                            .horizontal_alignment(Horizontal::Right)
+                            .align_x(Horizontal::Right)
                             .width(Length::Shrink),
                     );
 
@@ -479,157 +484,141 @@ enum Message {
     VertexTypeChanged(VertexDescriptor),
 }
 
-impl Application for MeshVisualizer {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        (Self::default(), Command::none())
-    }
-
-    fn title(&self) -> String {
-        "Mesh visualizer".to_string()
-    }
-
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        match message {
-            Message::SwitchFocus { backwards: shift } => {
-                if shift {
-                    widget::focus_previous()
-                } else {
-                    widget::focus_next()
-                }
-            }
-            Message::VertexTextChanged(text) => {
-                self.vertex_text = text;
-                Command::none()
-            }
-            Message::IndexTextChanged(text) => {
-                self.index_text = text;
-                Command::none()
-            }
-            Message::VertexTypeChanged(desc) => {
-                self.selected_vertex_type = Some(desc);
-                // well....
+fn update(state: &mut MeshVisualizerState, message: Message) -> Task<Message> {
+    match message {
+        Message::SwitchFocus { backwards: shift } => {
+            if shift {
+                widget::focus_previous()
+            } else {
                 widget::focus_next()
             }
         }
-    }
-
-    fn view(&self) -> Element<'_, Self::Message, Self::Theme> {
-        let state = MeshState::parse(&self.vertex_text, self.selected_vertex_type);
-
-        // using macro makes RustRover freak out
-
-        let col1 = Column::with_children([
-            text_input("Enter vertex buffer in hex...", &self.vertex_text)
-                .on_input(Message::VertexTextChanged)
-                .on_submit(Message::SwitchFocus { backwards: false })
-                .padding(10)
-                .into(),
-            Space::with_height(10).into(),
-            state.hex_parse.view().into(),
-            Space::with_height(10).into(),
-            state.float_parse.view().into(),
-            // ---
-            Space::with_height(20).into(),
-            // ---
-            my_combo_box::ComboBox::new(
-                &self.vertex_selector,
-                "Select vertex type...",
-                self.selected_vertex_type.as_ref(),
-                Message::VertexTypeChanged,
-            )
-            .padding(10)
-            .into(),
-            state.vertex_parse.map_or_else(
-                || Column::with_children([]).into(),
-                |state| {
-                    Column::with_children([
-                        // ---
-                        Space::with_height(10).into(),
-                        // ---
-                        state.result.view().into(),
-                        text(format!("{0} (0x{0:x}) vertices", state.vertices.len())).into(),
-                        scrollable(
-                            iced_aw::Grid::with_rows(
-                                [iced_aw::GridRow::with_elements(
-                                    state
-                                        .descriptor
-                                        .column_names()
-                                        .into_iter()
-                                        .map(|v| {
-                                            text(v)
-                                                .width(Length::Fill)
-                                                .horizontal_alignment(Horizontal::Left)
-                                                .font(iced::Font {
-                                                    weight: font::Weight::Bold,
-                                                    ..iced::Font::MONOSPACE
-                                                })
-                                        })
-                                        .collect(),
-                                )]
-                                .into_iter()
-                                .chain(
-                                    state
-                                        .vertices
-                                        .iter()
-                                        .map(|v| v.view(state.descriptor.fields)),
-                                )
-                                .collect(),
-                            )
-                            // .column_widths(&[
-                            //     Length::FillPortion(1),
-                            //     Length::FillPortion(1),
-                            //     Length::FillPortion(1),
-                            // ])
-                            .horizontal_alignment(Horizontal::Right)
-                            .column_spacing(20)
-                            .width(Length::Fill), // .padding(20),
-                        )
-                        .width(Length::Fill)
-                        .into(),
-                    ])
-                    .into()
-                },
-            ),
-        ])
-        .padding(25);
-
-        let col2 =
-            Column::with_children([
-                text_input("Enter index buffer as array...", &self.index_text)
-                    .on_input(Message::IndexTextChanged)
-                    .padding(10)
-                    .into(),
-            ])
-            .padding(25);
-
-        let res: Element<_> = row!(col1, col2).padding(25).into();
-
-        res
-        //
-        // .explain(color!(0xff0000))
-    }
-
-    fn subscription(&self) -> Subscription<Self::Message> {
-        keyboard::on_key_press(|key, modifiers| {
-            let keyboard::Key::Named(key) = key else {
-                return None;
-            };
-
-            match (key, modifiers) {
-                (keyboard::key::Named::Tab, _) => Some(Message::SwitchFocus {
-                    backwards: modifiers.shift(),
-                }),
-                _ => None,
-            }
-        })
+        Message::VertexTextChanged(text) => {
+            state.vertex_text = text;
+            Task::none()
+        }
+        Message::IndexTextChanged(text) => {
+            state.index_text = text;
+            Task::none()
+        }
+        Message::VertexTypeChanged(desc) => {
+            state.selected_vertex_type = Some(desc);
+            // well....
+            widget::focus_next()
+        }
     }
 }
 
+fn view(app_state: &MeshVisualizerState) -> Element<Message> {
+    let state = MeshState::parse(&app_state.vertex_text, app_state.selected_vertex_type);
+
+    // using macro makes RustRover freak out
+
+    let col1 = Column::with_children([
+        text_input("Enter vertex buffer in hex...", &app_state.vertex_text)
+            .on_input(Message::VertexTextChanged)
+            .on_submit(Message::SwitchFocus { backwards: false })
+            .padding(10)
+            .into(),
+        Space::with_height(10).into(),
+        state.hex_parse.view().into(),
+        Space::with_height(10).into(),
+        state.float_parse.view().into(),
+        // ---
+        Space::with_height(20).into(),
+        // ---
+        my_combo_box::ComboBox::new(
+            &app_state.vertex_selector,
+            "Select vertex type...",
+            app_state.selected_vertex_type.as_ref(),
+            Message::VertexTypeChanged,
+        )
+        .padding(10)
+        .into(),
+        state.vertex_parse.map_or_else(
+            || Column::with_children([]).into(),
+            |state| {
+                Column::with_children([
+                    // ---
+                    Space::with_height(10).into(),
+                    // ---
+                    state.result.view().into(),
+                    text(format!("{0} (0x{0:x}) vertices", state.vertices.len())).into(),
+                    scrollable(
+                        iced_aw::Grid::with_rows(
+                            [iced_aw::GridRow::with_elements(
+                                state
+                                    .descriptor
+                                    .column_names()
+                                    .into_iter()
+                                    .map(|v| {
+                                        text(v).width(Length::Fill).align_x(Horizontal::Left).font(
+                                            iced::Font {
+                                                weight: font::Weight::Bold,
+                                                ..iced::Font::MONOSPACE
+                                            },
+                                        )
+                                    })
+                                    .collect(),
+                            )]
+                            .into_iter()
+                            .chain(
+                                state
+                                    .vertices
+                                    .iter()
+                                    .map(|v| v.view(state.descriptor.fields)),
+                            )
+                            .collect(),
+                        )
+                        // .column_widths(&[
+                        //     Length::FillPortion(1),
+                        //     Length::FillPortion(1),
+                        //     Length::FillPortion(1),
+                        // ])
+                        .horizontal_alignment(Horizontal::Right)
+                        .column_spacing(20)
+                        .width(Length::Fill), // .padding(20),
+                    )
+                    .width(Length::Fill)
+                    .into(),
+                ])
+                .into()
+            },
+        ),
+    ])
+    .padding(25);
+
+    let col2 = Column::with_children([text_input(
+        "Enter index buffer as array...",
+        &app_state.index_text,
+    )
+    .on_input(Message::IndexTextChanged)
+    .padding(10)
+    .into()])
+    .padding(25);
+
+    let res: Element<_> = row!(col1, col2).padding(25).into();
+
+    res
+}
+
 fn main() -> iced::Result {
-    MeshVisualizer::run(Settings::default())
+    iced::application::application("Mesh visualizer", update, view)
+        .subscription(|_state| {
+            keyboard::on_key_press(|key, modifiers| {
+                let keyboard::Key::Named(key) = key else {
+                    return None;
+                };
+
+                match (key, modifiers) {
+                    (keyboard::key::Named::Tab, _) => Some(Message::SwitchFocus {
+                        backwards: modifiers.shift(),
+                    }),
+                    _ => None,
+                }
+            })
+        })
+        .run()
+
+    // MeshVisualizerState::run(Settings::default())
 }

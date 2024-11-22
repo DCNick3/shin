@@ -1,4 +1,7 @@
 //! Display a dropdown list of searchable and selectable options.
+
+// patched to add back ability to focus with tab removed in https://github.com/iced-rs/iced/pull/1991
+
 use std::{cell::RefCell, fmt::Display};
 
 use iced_core::{
@@ -9,7 +12,7 @@ use iced_core::{
     mouse, overlay, renderer, text,
     time::Instant,
     widget::{self, Operation, Tree, Widget},
-    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Vector,
+    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Theme, Vector,
 };
 use iced_widget::{
     container,
@@ -21,13 +24,64 @@ use iced_widget::{
 
 /// A widget for searching and selecting a single value from a list of options.
 ///
-/// This widget is composed by a [`TextInput`] that can be filled with the text
-/// to search for corresponding values from the list of options that are displayed
-/// as a Menu.
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::combo_box;
+///
+/// struct State {
+///    fruits: combo_box::State<Fruit>,
+///    favorite: Option<Fruit>,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Fruit {
+///     Apple,
+///     Orange,
+///     Strawberry,
+///     Tomato,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     FruitSelected(Fruit),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     combo_box(
+///         &state.fruits,
+///         "Select your favorite fruit...",
+///         state.favorite.as_ref(),
+///         Message::FruitSelected
+///     )
+///     .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::FruitSelected(fruit) => {
+///             state.favorite = Some(fruit);
+///         }
+///     }
+/// }
+///
+/// impl std::fmt::Display for Fruit {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         f.write_str(match self {
+///             Self::Apple => "Apple",
+///             Self::Orange => "Orange",
+///             Self::Strawberry => "Strawberry",
+///             Self::Tomato => "Tomato",
+///         })
+///     }
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
-pub struct ComboBox<'a, T, Message, Theme = iced_widget::Theme, Renderer = iced_widget::Renderer>
+pub struct ComboBox<'a, T, Message, Theme = iced::Theme, Renderer = iced::Renderer>
 where
-    Theme: text_input::StyleSheet + menu::StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     state: &'a State<T>,
@@ -36,9 +90,10 @@ where
     selection: text_input::Value,
     on_selected: Box<dyn Fn(T) -> Message>,
     on_option_hovered: Option<Box<dyn Fn(T) -> Message>>,
+    on_open: Option<Message>,
     on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
-    menu_style: <Theme as menu::StyleSheet>::Style,
+    menu_class: <Theme as menu::Catalog>::Class<'a>,
     padding: Padding,
     size: Option<f32>,
 }
@@ -46,7 +101,7 @@ where
 impl<'a, T, Message, Theme, Renderer> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
-    Theme: text_input::StyleSheet + menu::StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     /// Creates a new [`ComboBox`] with the given list of options, a placeholder,
@@ -58,8 +113,9 @@ where
         selection: Option<&T>,
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
-        let text_input =
-            TextInput::new(placeholder, &state.value()).on_input(TextInputEvent::TextChanged);
+        let text_input = TextInput::new(placeholder, &state.value())
+            .on_input(TextInputEvent::TextChanged)
+            .class(Theme::default_input());
 
         let selection = selection.map(T::to_string).unwrap_or_default();
 
@@ -71,8 +127,9 @@ where
             on_selected: Box::new(on_selected),
             on_option_hovered: None,
             on_input: None,
+            on_open: None,
             on_close: None,
-            menu_style: Default::default(),
+            menu_class: <Theme as Catalog>::default_menu(),
             padding: text_input::DEFAULT_PADDING,
             size: None,
         }
@@ -92,6 +149,13 @@ where
         self
     }
 
+    /// Sets the message that will be produced when the  [`ComboBox`] is
+    /// opened.
+    pub fn on_open(mut self, message: Message) -> Self {
+        self.on_open = Some(message);
+        self
+    }
+
     /// Sets the message that will be produced when the outside area
     /// of the [`ComboBox`] is pressed.
     pub fn on_close(mut self, message: Message) -> Self {
@@ -103,18 +167,6 @@ where
     pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
         self.padding = padding.into();
         self.text_input = self.text_input.padding(self.padding);
-        self
-    }
-
-    /// Sets the style of the [`ComboBox`].
-    pub fn style<S>(mut self, style: S) -> Self
-    where
-        S: Into<<Theme as text_input::StyleSheet>::Style>
-            + Into<<Theme as menu::StyleSheet>::Style>
-            + Clone,
-    {
-        self.menu_style = style.clone().into();
-        self.text_input = self.text_input.style(style);
         self
     }
 
@@ -155,16 +207,58 @@ where
             ..self
         }
     }
+
+    /// Sets the style of the input of the [`ComboBox`].
+    #[must_use]
+    pub fn input_style(
+        mut self,
+        style: impl Fn(&Theme, text_input::Status) -> text_input::Style + 'a,
+    ) -> Self
+    where
+        <Theme as text_input::Catalog>::Class<'a>: From<text_input::StyleFn<'a, Theme>>,
+    {
+        self.text_input = self.text_input.style(style);
+        self
+    }
+
+    /// Sets the style of the menu of the [`ComboBox`].
+    #[must_use]
+    pub fn menu_style(mut self, style: impl Fn(&Theme) -> menu::Style + 'a) -> Self
+    where
+        <Theme as menu::Catalog>::Class<'a>: From<menu::StyleFn<'a, Theme>>,
+    {
+        self.menu_class = (Box::new(style) as menu::StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the input of the [`ComboBox`].
+    #[must_use]
+    pub fn input_class(
+        mut self,
+        class: impl Into<<Theme as text_input::Catalog>::Class<'a>>,
+    ) -> Self {
+        self.text_input = self.text_input.class(class);
+        self
+    }
+
+    /// Sets the style class of the menu of the [`ComboBox`].
+    #[must_use]
+    pub fn menu_class(mut self, class: impl Into<<Theme as menu::Catalog>::Class<'a>>) -> Self {
+        self.menu_class = class.into();
+        self
+    }
 }
 
 /// The local state of a [`ComboBox`].
 #[derive(Debug, Clone)]
-pub struct State<T>(RefCell<Inner<T>>);
+pub struct State<T> {
+    options: Vec<T>,
+    inner: RefCell<Inner<T>>,
+}
 
 #[derive(Debug, Clone)]
 struct Inner<T> {
     value: String,
-    options: Vec<T>,
     option_matchers: Vec<String>,
     filtered_options: Filtered<T>,
 }
@@ -198,36 +292,55 @@ where
                 .collect(),
         );
 
-        Self(RefCell::new(Inner {
-            value,
+        Self {
             options,
-            option_matchers,
-            filtered_options,
-        }))
+            inner: RefCell::new(Inner {
+                value,
+                option_matchers,
+                filtered_options,
+            }),
+        }
+    }
+
+    /// Returns the options of the [`State`].
+    ///
+    /// These are the options provided when the [`State`]
+    /// was constructed with [`State::new`].
+    pub fn options(&self) -> &[T] {
+        &self.options
     }
 
     fn value(&self) -> String {
-        let inner = self.0.borrow();
+        let inner = self.inner.borrow();
 
         inner.value.clone()
     }
 
     fn with_inner<O>(&self, f: impl FnOnce(&Inner<T>) -> O) -> O {
-        let inner = self.0.borrow();
+        let inner = self.inner.borrow();
 
         f(&inner)
     }
 
     fn with_inner_mut(&self, f: impl FnOnce(&mut Inner<T>)) {
-        let mut inner = self.0.borrow_mut();
+        let mut inner = self.inner.borrow_mut();
 
         f(&mut inner);
     }
 
     fn sync_filtered_options(&self, options: &mut Filtered<T>) {
-        let inner = self.0.borrow();
+        let inner = self.inner.borrow();
 
         inner.filtered_options.sync(options);
+    }
+}
+
+impl<T> Default for State<T>
+where
+    T: Display + Clone,
+{
+    fn default() -> Self {
+        Self::new(Vec::new())
     }
 }
 
@@ -278,8 +391,7 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone,
-    Theme:
-        container::StyleSheet + text_input::StyleSheet + scrollable::StyleSheet + menu::StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn size(&self) -> Size<Length> {
@@ -382,7 +494,7 @@ where
                 state.value = new_value;
 
                 state.filtered_options.update(
-                    search(&state.options, &state.option_matchers, &state.value)
+                    search(&self.state.options, &state.option_matchers, &state.value)
                         .cloned()
                         .collect(),
                 );
@@ -417,7 +529,7 @@ where
                     ..
                 }) = event
                 {
-                    match (named_key) {
+                    match named_key {
                         key::Named::Enter => {
                             if let Some(index) = &menu.hovered_option {
                                 if let Some(option) = state.filtered_options.options.get(*index) {
@@ -490,7 +602,7 @@ where
             if let Some(selection) = menu.new_selection.take() {
                 // Clear the value and reset the options and menu
                 state.value = String::new();
-                state.filtered_options.update(state.options.clone());
+                state.filtered_options.update(self.state.options.clone());
                 menu.menu = menu::State::default();
 
                 // Notify the selection
@@ -519,15 +631,19 @@ where
             text_input_state.is_focused()
         };
 
-        if started_focused && !is_focused && !published_message_to_shell {
-            if let Some(message) = self.on_close.take() {
-                shell.publish(message);
-            }
-        }
-
-        // Focus changed, invalidate widget tree to force a fresh `view`
         if started_focused != is_focused {
+            // Focus changed, invalidate widget tree to force a fresh `view`
             shell.invalidate_widgets();
+
+            if !published_message_to_shell {
+                if is_focused {
+                    if let Some(on_open) = self.on_open.take() {
+                        shell.publish(on_open);
+                    }
+                } else if let Some(on_close) = self.on_close.take() {
+                    shell.publish(on_close);
+                }
+            }
         }
 
         event_status
@@ -603,37 +719,41 @@ where
                 ..
             } = tree.state.downcast_mut::<Menu<T>>();
 
-            let bounds = layout.bounds();
-
             self.state.sync_filtered_options(filtered_options);
 
-            let mut menu = menu::Menu::new(
-                menu,
-                &filtered_options.options,
-                hovered_option,
-                |x| {
-                    tree.children[0]
-                        .state
-                        .downcast_mut::<text_input::State<Renderer::Paragraph>>()
-                        .unfocus();
+            if filtered_options.options.is_empty() {
+                None
+            } else {
+                let bounds = layout.bounds();
 
-                    (self.on_selected)(x)
-                },
-                self.on_option_hovered.as_deref(),
-            )
-            .width(bounds.width)
-            .padding(self.padding)
-            .style(self.menu_style.clone());
+                let mut menu = menu::Menu::new(
+                    menu,
+                    &filtered_options.options,
+                    hovered_option,
+                    |x| {
+                        tree.children[0]
+                            .state
+                            .downcast_mut::<text_input::State<Renderer::Paragraph>>()
+                            .unfocus();
 
-            if let Some(font) = self.font {
-                menu = menu.font(font);
+                        (self.on_selected)(x)
+                    },
+                    self.on_option_hovered.as_deref(),
+                    &self.menu_class,
+                )
+                .width(bounds.width)
+                .padding(self.padding);
+
+                if let Some(font) = self.font {
+                    menu = menu.font(font);
+                }
+
+                if let Some(size) = self.size {
+                    menu = menu.text_size(size);
+                }
+
+                Some(menu.overlay(layout.position() + translation, bounds.height))
             }
-
-            if let Some(size) = self.size {
-                menu = menu.text_size(size);
-            }
-
-            Some(menu.overlay(layout.position() + translation, bounds.height))
         } else {
             None
         }
@@ -644,7 +764,7 @@ where
         state: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             struct OperationWrapper<'a, Message> {
@@ -674,9 +794,11 @@ where
                     state: &mut dyn widget::operation::Scrollable,
                     id: Option<&widget::Id>,
                     bounds: Rectangle,
+                    content_bounds: Rectangle,
                     translation: Vector,
                 ) {
-                    self.operation.scrollable(state, id, bounds, translation)
+                    self.operation
+                        .scrollable(state, id, bounds, content_bounds, translation)
                 }
 
                 fn text_input(
@@ -711,17 +833,28 @@ impl<'a, T, Message, Theme, Renderer> From<ComboBox<'a, T, Message, Theme, Rende
 where
     T: Display + Clone + 'static,
     Message: Clone + 'a,
-    Theme: container::StyleSheet
-        + text_input::StyleSheet
-        + scrollable::StyleSheet
-        + menu::StyleSheet
-        + 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(combo_box: ComboBox<'a, T, Message, Theme, Renderer>) -> Self {
         Self::new(combo_box)
     }
 }
+
+/// The theme catalog of a [`ComboBox`].
+pub trait Catalog: text_input::Catalog + menu::Catalog {
+    /// The default class for the text input of the [`ComboBox`].
+    fn default_input<'a>() -> <Self as text_input::Catalog>::Class<'a> {
+        <Self as text_input::Catalog>::default()
+    }
+
+    /// The default class for the menu of the [`ComboBox`].
+    fn default_menu<'a>() -> <Self as menu::Catalog>::Class<'a> {
+        <Self as menu::Catalog>::default()
+    }
+}
+
+impl Catalog for Theme {}
 
 fn search<'a, T, A>(
     options: impl IntoIterator<Item = T> + 'a,

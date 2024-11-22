@@ -6,11 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-iced = "0.12.1"
-iced_core = "0.12.1"
-iced_widget = "0.12.1"
+iced = "0.13.1"
+iced_core = "0.13.2"
+iced_widget = "0.13.4"
 
-iced_aw = "0.9.3"
+iced_aw = "0.11.0"
 
 hex = "0.4.3"
 

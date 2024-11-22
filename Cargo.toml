@@ -10,10 +10,11 @@ members = [
     "shin-audio",
     "shin-asm",
     "shin-window",
+    "shin-input",
     "sdu",
     "shin",
-    "junk", "shin-input",
-    #    "junk/mesh-vis",
+    "junk",
+    "junk/mesh-vis",
 ]
 resolver = "2"
 
