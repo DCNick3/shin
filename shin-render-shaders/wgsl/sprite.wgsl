@@ -5,9 +5,9 @@ var<uniform> params: SpriteUniformParams;
 
 // this will be detected as out build script as a single texture bind group
 // we can only bind these in an isolated bind group!
-@group(1) @binding(0)
+@group(0) @binding(1)
 var sprite_texture: texture_2d<f32>;
-@group(1) @binding(1)
+@group(0) @binding(2)
 var sprite_sampler: sampler;
 
 struct VertexOutput {

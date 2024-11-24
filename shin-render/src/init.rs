@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use shin_render_shader_types::{buffer::BytesAddress, texture::TextureBindGroupLayout};
+use shin_render_shader_types::buffer::BytesAddress;
 use tracing::{debug, info};
 use wgpu::SurfaceTarget;
 
@@ -205,7 +205,6 @@ pub struct RenderResources {
     pub canvas_depth_stencil_buffer: ResizeableTexture<CanvasSize>,
     pub dynamic_buffer: DynamicBuffer,
     pub pipelines: PipelineStorage,
-    pub texture_bind_group_layout: TextureBindGroupLayout,
 
     // render parameters or idk
     pub surface_texture_format: wgpu::TextureFormat,
@@ -222,13 +221,8 @@ impl RenderResources {
             wgpu.queue.clone(),
             BytesAddress::new(1024 * 1024),
         );
-        let texture_bind_group_layout = TextureBindGroupLayout::new(&wgpu.device);
 
-        let pipelines = PipelineStorage::new(
-            wgpu.device.clone(),
-            wgpu.surface_texture_format,
-            &texture_bind_group_layout,
-        );
+        let pipelines = PipelineStorage::new(wgpu.device.clone(), wgpu.surface_texture_format);
 
         let surface_depth_stencil_buffer = ResizeableTexture::new(
             wgpu.device.clone(),
@@ -251,7 +245,6 @@ impl RenderResources {
             canvas_depth_stencil_buffer,
             dynamic_buffer,
             pipelines,
-            texture_bind_group_layout,
             surface_texture_format: wgpu.surface_texture_format,
         }
     }

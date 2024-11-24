@@ -5726,6 +5726,8 @@ dependencies = [
  "bytemuck",
  "enum-iterator",
  "heck 0.5.0",
+ "indexmap 2.6.0",
+ "itertools 0.13.0",
  "naga 22.1.0",
  "naga_oil 0.15.0",
  "prettyplease",

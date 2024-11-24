@@ -28,3 +28,6 @@ proc-macro2 = "1.0.2"
 quote = "1.0.37"
 syn = "2.0.77"
 prettyplease = "0.2.22"
+
+itertools = "0.13.0"
+indexmap = "2.6.0"

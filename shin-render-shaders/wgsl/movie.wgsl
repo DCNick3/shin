@@ -5,13 +5,13 @@ var<uniform> params: MovieUniformParams;
 
 // this will be detected as out build script as a single texture bind group
 // we can only bind these in an isolated bind group!
-@group(1) @binding(0)
+@group(0) @binding(1)
 var luma_texture: texture_2d<f32>;
-@group(1) @binding(1)
+@group(0) @binding(2)
 var luma_sampler: sampler;
-@group(2) @binding(0)
+@group(0) @binding(3)
 var chroma_texture: texture_2d<f32>;
-@group(2) @binding(1)
+@group(0) @binding(4)
 var chroma_sampler: sampler;
 
 struct VertexOutput {
