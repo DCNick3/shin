@@ -38,7 +38,6 @@ enum-iterator = { workspace = true }
 sketches-ddsketch = "0.3.0"
 
 [build-dependencies]
-wgsl_bindgen = { path = "/home/dcnick3/git_cloned/wgsl-bindgen/wgsl_bindgen" }
 miette = { version = "7.2.0", features = ["fancy", "syntect"] }
 
 [dev-dependencies]
