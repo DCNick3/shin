@@ -1,7 +1,10 @@
 use std::{fmt, io, num, str};
 
+use dpi::PhysicalSize;
 use futures_lite::{io::BufReader, AsyncBufReadExt, AsyncRead, AsyncReadExt};
 use num_integer::Integer;
+
+use crate::h264_decoder::Nv12Frame;
 
 const FILE_MAGICK: &[u8] = b"YUV4MPEG2 ";
 const FRAME_MAGICK: &[u8] = b"FRAME";
@@ -203,25 +206,6 @@ pub enum Colorspace {
 }
 
 impl Colorspace {
-    /// Return the bit depth per sample
-    #[inline]
-    pub fn get_bit_depth(self) -> usize {
-        match self {
-            Colorspace::Cmono
-            | Colorspace::C420
-            | Colorspace::C422
-            | Colorspace::C444
-            | Colorspace::C420jpeg
-            | Colorspace::C420paldv
-            | Colorspace::C420mpeg2 => 8,
-            Colorspace::C420p10 | Colorspace::C422p10 | Colorspace::C444p10 => 10,
-            Colorspace::Cmono12
-            | Colorspace::C420p12
-            | Colorspace::C422p12
-            | Colorspace::C444p12 => 12,
-        }
-    }
-
     pub fn get_bits_per_sample(self) -> BitsPerSample {
         match self {
             Colorspace::Cmono
@@ -290,7 +274,6 @@ impl Default for Limits {
 
 /// YUV4MPEG2 decoder.
 // gstreamer impl does not use YUV4MPEG2, but passes stuff directly in-memory
-#[cfg_attr(feature = "gstreamer", allow(unused))]
 pub struct Decoder<R: AsyncRead> {
     reader: BufReader<R>,
     params_buf: Vec<u8>,
@@ -299,7 +282,6 @@ pub struct Decoder<R: AsyncRead> {
     plane_sizes: [PlaneSize; 3],
 }
 
-#[cfg_attr(feature = "gstreamer", allow(unused))]
 impl<R: AsyncRead + Unpin> Decoder<R> {
     /// Create a new decoder instance.
     pub async fn new(reader: R) -> Result<Decoder<R>, Error> {
@@ -375,7 +357,7 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
     }
 
     /// Iterate over frames. End of input is indicated by `Error::EOF`.
-    pub async fn read_frame(&mut self) -> Result<Frame, Error> {
+    pub async fn read_frame(&mut self) -> Result<PlanarFrame, Error> {
         self.params_buf.clear();
         self.reader
             .read_until(TERMINATOR, &mut self.params_buf)
@@ -392,9 +374,9 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
         }
         // We don't parse frame params currently but user has access to them.
         let start_params_pos = FRAME_MAGICK.len();
-        let raw_params = if self.params_buf.len() - start_params_pos > 0 {
+        let _raw_params = if self.params_buf.len() - start_params_pos > 0 {
             // Check for extra space.
-            if dbg!(self.params_buf[start_params_pos]) != FIELD_SEP {
+            if self.params_buf[start_params_pos] != FIELD_SEP {
                 parse_error!(ParseError::InvalidY4M)
             }
             Some(self.params_buf[start_params_pos + 1..].to_owned())
@@ -405,13 +387,12 @@ impl<R: AsyncRead + Unpin> Decoder<R> {
 
         let [y_len, u_len, _] = self.plane_sizes.map(|v| v.get_bytes_len());
 
-        Ok(Frame::new(
+        Ok(PlanarFrame::new(
             [
                 self.frame_buf[0..y_len].to_vec(),
                 self.frame_buf[y_len..y_len + u_len].to_vec(),
                 self.frame_buf[y_len + u_len..].to_vec(),
             ],
-            raw_params,
             FrameSize {
                 plane_sizes: self.plane_sizes,
                 colorspace: self.colorspace,
@@ -470,46 +451,50 @@ pub struct FrameSize {
 
 /// A single frame.
 #[derive(Debug)]
-pub struct Frame {
+pub struct PlanarFrame {
     planes: [Vec<u8>; 3],
-    raw_params: Option<Vec<u8>>,
     info: FrameSize,
 }
 
-impl Frame {
+impl PlanarFrame {
     /// Create a new frame with optional parameters.
     /// No heap allocations are made.
-    pub fn new(planes: [Vec<u8>; 3], raw_params: Option<Vec<u8>>, info: FrameSize) -> Frame {
-        Frame {
-            planes,
-            raw_params,
-            info,
-        }
-    }
-
-    /// Return Y (first) plane.
-    #[inline]
-    pub fn get_y_plane(&self) -> &[u8] {
-        self.planes[0].as_ref()
-    }
-    /// Return U (second) plane. Empty in case of grayscale.
-    #[inline]
-    pub fn get_u_plane(&self) -> &[u8] {
-        self.planes[1].as_ref()
-    }
-    /// Return V (third) plane. Empty in case of grayscale.
-    #[inline]
-    pub fn get_v_plane(&self) -> &[u8] {
-        self.planes[2].as_ref()
-    }
-    /// Return frame raw parameters if any.
-    #[inline]
-    pub fn get_raw_params(&self) -> Option<&[u8]> {
-        self.raw_params.as_ref().map(|v| &v[..])
+    pub fn new(planes: [Vec<u8>; 3], info: FrameSize) -> PlanarFrame {
+        PlanarFrame { planes, info }
     }
 
     #[inline]
     pub fn size(&self) -> &FrameSize {
         &self.info
+    }
+
+    pub fn into_nv12(self) -> Nv12Frame {
+        let size = self.size();
+        assert_eq!(size.colorspace, Colorspace::C420mpeg2);
+        assert_eq!(size.plane_sizes[0].bits_per_sample, BitsPerSample::B8);
+
+        let y_size = size.plane_sizes[0];
+        // check that it's in I420, the only format we support
+        assert_eq!(size.plane_sizes[1].width, y_size.width / 2);
+        assert_eq!(size.plane_sizes[1].height, y_size.height / 2);
+        assert_eq!(size.plane_sizes[1].bits_per_sample, BitsPerSample::B8);
+        assert_eq!(size.plane_sizes[2].width, y_size.width / 2);
+        assert_eq!(size.plane_sizes[2].height, y_size.height / 2);
+        assert_eq!(size.plane_sizes[2].bits_per_sample, BitsPerSample::B8);
+
+        let [y_plane, u_plane, v_plane] = self.planes;
+
+        // interleave u and v samples
+        let uv_plane = u_plane
+            .iter()
+            .zip(v_plane.iter())
+            .flat_map(|(u, v)| [*u, *v])
+            .collect::<Vec<u8>>();
+
+        Nv12Frame {
+            y_plane,
+            uv_plane,
+            size: PhysicalSize::new(y_size.width, y_size.height),
+        }
     }
 }

@@ -38,7 +38,7 @@ pub trait ShinApp: Sized {
     fn init(context: AppContext<Self>, parameters: Self::Parameters) -> Self;
 
     fn map_canvas_size(window_size: PhysicalSize<u32>) -> ViewportParams {
-        ViewportParams::both(window_size)
+        ViewportParams::with_aspect_ratio(window_size, 16.0 / 9.0)
     }
 
     fn custom_event(&mut self, context: AppContext<Self>, event: Self::EventType);
@@ -128,6 +128,35 @@ impl WindowState {
         Self {
             window,
             resize_source: window_resize_source,
+        }
+    }
+
+    pub fn toggle_fullscreen(&self) {
+        let window = &self.window;
+
+        if window.fullscreen().is_some() {
+            info!("Exiting fullscreen mode");
+            window.set_fullscreen(None);
+        } else {
+            if let Some(monitor) = window.current_monitor() {
+                if let Some(video_mode) = monitor.video_modes().next() {
+                    info!(
+                        "Attempting to enter exclusive fullscreen mode {}",
+                        video_mode
+                    );
+                    window.set_fullscreen(Some(winit::window::Fullscreen::Exclusive(video_mode)));
+                }
+                if window.fullscreen().is_none() {
+                    info!(
+                        "Attempting to enter non-exclusive fullscreen mode on {}",
+                        monitor
+                            .name()
+                            .unwrap_or_else(|| "unknown monitor".to_string())
+                    );
+                    window
+                        .set_fullscreen(Some(winit::window::Fullscreen::Borderless(Some(monitor))));
+                }
+            }
         }
     }
 }

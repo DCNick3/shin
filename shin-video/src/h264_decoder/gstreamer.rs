@@ -1,16 +1,16 @@
 use std::io::{Read, Seek};
 
 use anyhow::{bail, Context, Result};
+use dpi::PhysicalSize;
 use gst::prelude::*;
 use once_cell::sync::Lazy;
 use tracing::{debug, error, trace, warn};
 
 use crate::{
-    h264_decoder::{BitsPerSample, Colorspace, Frame, FrameSize, FrameTiming, PlaneSize},
+    h264_decoder::{nv12::Nv12Frame, FrameTiming},
     mp4::Mp4TrackReader,
     mp4_bitstream_converter::Mp4BitstreamConverter,
 };
-
 // NOTE: doing this one-time init in a library is bad practice
 // but we want to abstract away the gstreamer dependency, so we do it in hopes no other dep uses GStreamer
 
@@ -28,7 +28,7 @@ pub struct GStreamerH264Decoder {
     #[allow(dead_code)] // it's required to keep the pipeline alive
     pipeline: gst::Pipeline,
     app_sink: gst_app::AppSink,
-    frame_size: FrameSize,
+    frame_size: PhysicalSize<u32>,
     saved_frame: Option<gst::Sample>,
     time_base: u32,
     frame_number: u32,
@@ -65,7 +65,7 @@ impl super::H264DecoderTrait for GStreamerH264Decoder {
             .context("Failed to create videoconvert")?;
 
         let out_video_caps = gst::caps::Caps::builder("video/x-raw")
-            .field("format", "I420")
+            .field("format", "NV12")
             .field("interlace-mode", "progressive")
             .build();
 
@@ -180,7 +180,7 @@ impl super::H264DecoderTrait for GStreamerH264Decoder {
             let caps = sample.caps().context("Failed to get caps from sample")?;
             let video_info = gst_video::VideoInfo::from_caps(caps)
                 .context("Failed to get video info from caps")?;
-            if video_info.format() != gst_video::VideoFormat::I420 {
+            if video_info.format() != gst_video::VideoFormat::Nv12 {
                 bail!("Unsupported video format: {:?}", video_info.format())
             }
             if video_info.interlace_mode() != gst_video::VideoInterlaceMode::Progressive {
@@ -200,14 +200,7 @@ impl super::H264DecoderTrait for GStreamerH264Decoder {
             let width = video_info.width();
             let height = video_info.height();
 
-            FrameSize {
-                colorspace: Colorspace::C420mpeg2,
-                plane_sizes: [
-                    PlaneSize::new(width, height, BitsPerSample::B8),
-                    PlaneSize::new(width / 2, height / 2, BitsPerSample::B8),
-                    PlaneSize::new(width / 2, height / 2, BitsPerSample::B8),
-                ],
-            }
+            PhysicalSize::new(width, height)
         };
 
         Ok(Self {
@@ -220,7 +213,7 @@ impl super::H264DecoderTrait for GStreamerH264Decoder {
         })
     }
 
-    fn read_frame(&mut self) -> Result<Option<(FrameTiming, Frame)>> {
+    fn read_frame(&mut self) -> Result<Option<(FrameTiming, Nv12Frame)>> {
         if self.app_sink.is_eos() {
             return Ok(None);
         }
@@ -255,22 +248,25 @@ impl super::H264DecoderTrait for GStreamerH264Decoder {
             start_time
         );
 
-        let [y_len, uv_len, _] = self.frame_size.plane_sizes.map(|v| v.get_bytes_len());
+        let y_len = (self.frame_size.width * self.frame_size.height) as usize;
+        let uv_len = (y_len / 2) as usize;
 
-        let mut y_data = vec![0; y_len];
-        let mut u_data = vec![0; uv_len];
-        let mut v_data = vec![0; uv_len];
+        let mut y_plane = vec![0; y_len];
+        let mut uv_plane = vec![0; uv_len];
 
-        buffer.copy_to_slice(0, &mut y_data).unwrap();
-        buffer.copy_to_slice(y_len, &mut u_data).unwrap();
-        buffer.copy_to_slice(y_len + uv_len, &mut v_data).unwrap();
+        buffer.copy_to_slice(0, &mut y_plane).unwrap();
+        buffer.copy_to_slice(y_len, &mut uv_plane).unwrap();
 
-        let frame = Frame::new([y_data, u_data, v_data], None, self.frame_size);
+        let frame = Nv12Frame {
+            y_plane,
+            uv_plane,
+            size: self.frame_size,
+        };
 
         Ok(Some((frame_timing, frame)))
     }
 
-    fn frame_size(&mut self) -> Result<FrameSize> {
+    fn frame_size(&mut self) -> Result<PhysicalSize<u32>> {
         Ok(self.frame_size)
     }
 }

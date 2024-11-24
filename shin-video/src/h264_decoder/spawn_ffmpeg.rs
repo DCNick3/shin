@@ -9,12 +9,16 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
+use dpi::PhysicalSize;
 use futures_lite::{io::BufReader, AsyncBufReadExt, AsyncWriteExt};
 use shin_tasks::{IoTaskPool, Task};
 use tracing::{debug, error, trace, warn};
 
 use crate::{
-    h264_decoder::{y4m, Frame, FrameSize, FrameTiming},
+    h264_decoder::{
+        y4m::{self, FrameSize, PlanarFrame},
+        FrameTiming, Nv12Frame,
+    },
     mp4::Mp4TrackReader,
     mp4_bitstream_converter::Mp4BitstreamConverter,
 };
@@ -24,7 +28,7 @@ use crate::{
 /// Currently implemented as a pipe to the ffmpeg binary, other options are possible in the future.
 pub struct SpawnFfmpegH264Decoder {
     process: async_process::Child,
-    frame_receiver: Peekable<std::sync::mpsc::IntoIter<Frame>>,
+    frame_receiver: Peekable<std::sync::mpsc::IntoIter<PlanarFrame>>,
     frame_timing_receiver: std::sync::mpsc::Receiver<FrameTiming>,
     #[allow(unused)]
     frame_sender_task: Task<()>,
@@ -204,27 +208,35 @@ impl super::H264DecoderTrait for SpawnFfmpegH264Decoder {
         })
     }
 
-    fn read_frame(&mut self) -> Result<Option<(FrameTiming, Frame)>> {
+    fn read_frame(&mut self) -> Result<Option<(FrameTiming, Nv12Frame)>> {
         trace!("Reading frame from ffmpeg...");
         match self.frame_receiver.next() {
             Some(frame) => {
                 let timing = self.frame_timing_receiver.recv().unwrap();
 
                 self.frame_size = Some(*frame.size());
+                // TODO: this causes an extra avoidable copy. Should ideally be integrated into the y4m parser
+                let frame = frame.into_nv12();
+
                 Ok(Some((timing, frame)))
             }
             None => Ok(None),
         }
     }
 
-    fn frame_size(&mut self) -> Result<FrameSize> {
+    fn frame_size(&mut self) -> Result<PhysicalSize<u32>> {
         debug!("Reading frame info from ffmpeg");
         match self.frame_size {
-            Some(info) => Ok(info),
+            Some(info) => {
+                let size = info.plane_sizes[0];
+                Ok(PhysicalSize::new(size.width, size.height))
+            }
             None => match self.frame_receiver.peek() {
                 Some(frame) => {
                     self.frame_size = Some(*frame.size());
-                    Ok(*frame.size())
+
+                    let size = frame.size().plane_sizes[0];
+                    Ok(PhysicalSize::new(size.width, size.height))
                 }
                 None => {
                     bail!("No frames available, don't know the format")

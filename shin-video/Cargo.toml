@@ -39,6 +39,8 @@ async-process = "2.2.3"
 futures-lite = "2.3.0"
 num-integer = "0.1.45"
 
+dpi = { workspace = true }
+
 [features]
 gstreamer = [
     "dep:gst",
@@ -48,9 +50,13 @@ gstreamer = [
 ]
 
 [dev-dependencies]
-winit = { workspace = true }
+shin-window = { path = "../shin-window" }
+shin-input = { path = "../shin-input" }
+shin-tasks = { path = "../shin-tasks" }
+
+enum-map = { workspace = true }
+
 wgpu = { workspace = true, features = [] }
 kira = { workspace = true, features = ["cpal"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-pollster = { workspace = true }
 image = { workspace = true, features = ["png"] }

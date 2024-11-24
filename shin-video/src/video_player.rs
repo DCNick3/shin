@@ -1,34 +1,38 @@
 use std::io::{Read, Seek};
 
 use anyhow::{Context, Result};
-use glam::Mat4;
+use glam::{Mat4, Vec3, Vec4};
 use kira::track::TrackId;
 use shin_audio::{AudioData, AudioManager, AudioSettings};
 use shin_core::{
     time::{Ticks, Tween},
     vm::command::types::{Pan, Volume},
 };
+use shin_render::{
+    render_pass::RenderPass,
+    shaders::types::{buffer::VertexSource, vertices::MovieVertex},
+    DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
+};
 use tracing::{error, info, trace, warn};
 
 use crate::{
     audio::AacFrameSource,
-    h264_decoder::{Frame, FrameTiming, H264Decoder, H264DecoderTrait},
+    h264_decoder::{FrameTiming, H264Decoder, H264DecoderTrait, Nv12Frame},
     mp4::Mp4,
     timer::Timer,
-    YuvTexture,
+    VideoFrameTexture,
 };
 
 pub struct VideoPlayer {
     timer: Timer,
     video_decoder: H264Decoder,
-    video_texture: YuvTexture,
-    vertex_buffer: SpriteVertexBuffer,
-    pending_frame: Option<(FrameTiming, Frame)>,
+    video_texture: VideoFrameTexture,
+    pending_frame: Option<(FrameTiming, Nv12Frame)>,
 }
 
 impl VideoPlayer {
     pub fn new<S: Read + Seek + Send + 'static>(
-        resources: &GpuCommonResources,
+        device: &wgpu::Device,
         audio_manager: &AudioManager,
         mp4: Mp4<S>,
     ) -> Result<VideoPlayer> {
@@ -44,8 +48,8 @@ impl VideoPlayer {
 
         info!("H264Decoder::new took {:?}", duration);
 
-        let video_texture = YuvTexture::new(
-            resources,
+        let video_texture = VideoFrameTexture::new(
+            device,
             video_decoder
                 .frame_size()
                 .context("Getting H264 frame size")?,
@@ -74,13 +78,10 @@ impl VideoPlayer {
             None => Timer::new_independent(time_base),
         };
 
-        let vertex_buffer = SpriteVertexBuffer::new_fullscreen(resources);
-
         Ok(VideoPlayer {
             timer,
             video_decoder,
             video_texture,
-            vertex_buffer,
             pending_frame,
         })
     }
@@ -128,7 +129,7 @@ impl VideoPlayer {
                     timing.frame_number,
                     timing.start_time
                 );
-                self.video_texture.write_data(frame, queue);
+                self.video_texture.write_data_nv12(queue, frame);
                 // the loop will not enter again, so the pending frame will now be displayed
             } else {
                 skipped_frames += 1;
@@ -146,26 +147,39 @@ impl VideoPlayer {
     pub fn is_finished(&self) -> bool {
         self.pending_frame.is_none()
     }
-}
 
-// or should it just provide a renderable texture?
-// depends on how will the generic layer rendering will be implemented...
-impl Renderable for VideoPlayer {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        let total_transform = projection * transform;
-        resources.draw_yuv_sprite(
-            render_pass,
-            self.vertex_buffer.vertex_source(),
-            self.video_texture.bind_group(),
-            total_transform,
-        );
+    pub fn render(&self, pass: &mut RenderPass) {
+        pass.run(RenderRequestBuilder::new().build(
+            RenderProgramWithArguments::Movie {
+                vertices: VertexSource::VertexData {
+                    vertex_data: &[
+                        MovieVertex {
+                            coords: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                        },
+                        MovieVertex {
+                            coords: Vec4::new(1.0, 0.0, 1.0, 0.0),
+                        },
+                        MovieVertex {
+                            coords: Vec4::new(0.0, 1.0, 0.0, 1.0),
+                        },
+                        MovieVertex {
+                            coords: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                        },
+                    ],
+                },
+                texture_luma: self.video_texture.get_y_source(),
+                texture_chroma: self.video_texture.get_uv_source(),
+                // TODO: the coordinate systems are probably all whack
+                transform: Mat4::from_scale(Vec3::new(2.0, 2.0, -1.0))
+                    * Mat4::from_translation(Vec3::new(-0.5, -0.5, 0.0)),
+                color_bias: Vec4::new(0.0625, 0.5, 0.5, 1.1643835),
+                color_transform: [
+                    Vec4::new(1.1643835, 0.0, 1.7927411, 0.0),
+                    Vec4::new(1.1643835, -0.21322097, -0.5328817, 0.0),
+                    Vec4::new(1.1643835, 2.1124017, 0.0, 0.0),
+                ],
+            },
+            DrawPrimitive::TrianglesStrip,
+        ))
     }
-
-    fn resize(&mut self, _resources: &GpuCommonResources) {}
 }

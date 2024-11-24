@@ -4,6 +4,7 @@
 // an important departure is not using global variables, but making all the arguments explicit (helped by a builder pattern with typestates (maybe))
 
 mod dynamic_buffer;
+pub mod gpu_texture;
 pub mod init;
 pub mod pipelines;
 pub mod render_pass;

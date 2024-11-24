@@ -48,10 +48,6 @@ impl ShinApp for HelloApp {
         HelloApp {}
     }
 
-    fn map_canvas_size(window_size: PhysicalSize<u32>) -> ViewportParams {
-        ViewportParams::with_aspect_ratio(window_size, 16.0 / 9.0)
-    }
-
     fn custom_event(&mut self, _context: AppContext<Self>, (): Self::EventType) {}
 
     fn update(

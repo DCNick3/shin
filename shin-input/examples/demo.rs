@@ -266,10 +266,6 @@ impl ShinApp for HelloApp {
         }
     }
 
-    fn map_canvas_size(window_size: PhysicalSize<u32>) -> ViewportParams {
-        ViewportParams::with_aspect_ratio(window_size, 16.0 / 9.0)
-    }
-
     fn custom_event(&mut self, _context: AppContext<Self>, (): Self::EventType) {}
 
     fn update(
@@ -283,34 +279,7 @@ impl ShinApp for HelloApp {
         }
 
         if input[HelloAction::ToggleFullscreen].is_clicked {
-            let window = &context.winit.window;
-
-            if window.fullscreen().is_some() {
-                info!("Exiting fullscreen mode");
-                window.set_fullscreen(None);
-            } else {
-                if let Some(monitor) = window.current_monitor() {
-                    if let Some(video_mode) = monitor.video_modes().next() {
-                        info!(
-                            "Attempting to enter exclusive fullscreen mode {}",
-                            video_mode
-                        );
-                        window
-                            .set_fullscreen(Some(winit::window::Fullscreen::Exclusive(video_mode)));
-                    }
-                    if window.fullscreen().is_none() {
-                        info!(
-                            "Attempting to enter non-exclusive fullscreen mode on {}",
-                            monitor
-                                .name()
-                                .unwrap_or_else(|| "unknown monitor".to_string())
-                        );
-                        window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(Some(
-                            monitor,
-                        ))));
-                    }
-                }
-            }
+            context.winit.toggle_fullscreen();
         }
 
         if input[HelloAction::SwitchScene].is_clicked {
