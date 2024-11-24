@@ -15,7 +15,7 @@ use glam::{Mat4, Vec4};
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::TextureBindGroup,
-    vertices::{FloatColor4, PosColTexVertex, PosColVertex, PosVertex, TextVertex},
+    vertices::{FloatColor4, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex},
 };
 pub use shin_render_shaders as shaders;
 use shin_render_shaders::ShaderName;
@@ -132,7 +132,14 @@ pub enum RenderProgramWithArguments<'a> {
 
     Dissolve {},
     TapEffect {},
-    Movie {},
+    Movie {
+        vertices: VertexSource<'a, MovieVertex>,
+        texture_luma: TextureSource,
+        texture_chroma: TextureSource,
+        transform: Mat4,
+        color_bias: Vec4,
+        color_transform: [Vec4; 3],
+    },
     MovieAlpha {},
 
     Wiper {

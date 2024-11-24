@@ -5,7 +5,7 @@ use glam::{Mat4, Vec4};
 
 pub use crate::uniforms::metadata::UniformType;
 use crate::{
-    uniforms::metadata::{FieldSchema, PrimitiveType, StructSchema, TypeSchema},
+    uniforms::metadata::{ArraySchema, FieldSchema, PrimitiveType, StructSchema, TypeSchema},
     vertices::FloatColor4,
 };
 
@@ -23,6 +23,17 @@ impl_primitive! {
     f32 => PrimitiveType::Float32,
     Vec4 => PrimitiveType::Float32x4,
     Mat4 => PrimitiveType::Float32x4x4
+}
+
+impl<T, const S: usize> UniformType for [T; S]
+where
+    T: UniformType,
+{
+    const SCHEMA: TypeSchema = TypeSchema::Array(ArraySchema {
+        ty: &T::SCHEMA,
+        length: S as u32,
+        stride: T::SCHEMA.size(),
+    });
 }
 
 #[derive(ShaderType)]
@@ -106,6 +117,38 @@ impl UniformType for FontUniformParams {
                 name: "color2",
                 ty: &<Vec4 as UniformType>::SCHEMA,
                 offset: FontUniformParams::METADATA.extra.offsets[2] as u32,
+            },
+        ],
+    });
+}
+
+#[derive(ShaderType)]
+pub struct MovieUniformParams {
+    pub transform: Mat4,
+    pub color_bias: Vec4,
+    pub color_transform: [Vec4; 3],
+}
+
+impl UniformType for MovieUniformParams {
+    const SCHEMA: TypeSchema = TypeSchema::Struct(StructSchema {
+        name: "MovieUniformParams",
+        size: MovieUniformParams::METADATA.min_size.get() as u32,
+        alignment: MovieUniformParams::METADATA.alignment.get() as u32,
+        fields: &[
+            FieldSchema {
+                name: "transform",
+                ty: &<Mat4 as UniformType>::SCHEMA,
+                offset: MovieUniformParams::METADATA.extra.offsets[0] as u32,
+            },
+            FieldSchema {
+                name: "color_bias",
+                ty: &<Vec4 as UniformType>::SCHEMA,
+                offset: MovieUniformParams::METADATA.extra.offsets[1] as u32,
+            },
+            FieldSchema {
+                name: "color_transform",
+                ty: &<[Vec4; 3] as UniformType>::SCHEMA,
+                offset: MovieUniformParams::METADATA.extra.offsets[2] as u32,
             },
         ],
     });

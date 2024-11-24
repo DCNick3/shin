@@ -207,8 +207,13 @@ fn dump_info(path: PathBuf, output_filename: Option<PathBuf>) -> Result<()> {
     for (i, movie) in tables.movie_info.iter().enumerate() {
         writeln!(
             output,
-            "  {}: {:?} {:?} {:?} {:?}",
-            i, movie.name, movie.linked_picture_id, movie.flags, movie.linked_picture_id
+            "  {}: {:?} {:?} {:?} {:?} {:?}",
+            i,
+            movie.name,
+            movie.linked_picture_id,
+            movie.volume_source,
+            movie.transparency,
+            movie.linked_picture_id
         )?;
     }
     writeln!(output, "Voice Mappings:")?;

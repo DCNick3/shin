@@ -114,6 +114,34 @@ impl SeInfoItem {
     }
 }
 
+/// Defines how to deal with transparency when playing a movie.
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
+pub enum MovieTransparencyMode {
+    /// Opaque mode. The video will be played normally.
+    #[brw(magic = 0x0u8)]
+    Opaque,
+    /// Transparent mode. The top half of the frame will be stretched to fill the screen, while the bottom half will be interpreted as an alpha mask.
+    #[brw(magic = 0x1u8)]
+    Transparent,
+}
+
+/// Defines which volume setting to use when playing a movie.
+#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
+pub enum MovieVolumeSource {
+    /// Ignore settings, always play at full volume
+    #[brw(magic = 0x0u8)]
+    Ignore,
+    /// Set the volume to BGM volume
+    #[brw(magic = 0x1u8)]
+    Bgm,
+    /// Set the volume to SE volume
+    #[brw(magic = 0x2u8)]
+    Se,
+    /// Set the volume to voice volume
+    #[brw(magic = 0x3u8)]
+    Voice,
+}
+
 /// References a movie, i.e. a video that can be played back by the engine. The engine makes no fundamental distinction between movies used for cutscenes (e.g. openings) and movies used for animation purposes.
 #[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct MovieInfoItem {
@@ -123,8 +151,11 @@ pub struct MovieInfoItem {
     /// The ID of the picture (indexing into [`PictureInfo`]) that will be displayed instead of the movie after the movie has finished playing. This is only really relevant for movies used in animations; the movies used in cutscenes have this set to 0.
     pub linked_picture_id: u16,
 
-    /// A bitfield controlling the movie's exact playback behavior.
-    pub flags: u16, // todo: document meanings of bits
+    /// Which volume setting to use when playing audio for this movie.
+    pub volume_source: MovieVolumeSource,
+
+    /// The transparency mode to use when playing this movie.
+    pub transparency: MovieTransparencyMode,
 
     /// The ID of the BGM (indexing into [`BgmInfo`]) that will be unlocked in the Music Box if this movie is played back. This is only really relevant for cutscene movies, where the Music Box entry for an opening theme needs to be unlocked. If there is no linked BGM track, the value is `-1`.
     pub linked_bgm_id: i16,

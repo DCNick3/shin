@@ -3,6 +3,7 @@
 
 use std::{
     collections::{BTreeMap, HashMap},
+    num::NonZeroU32,
     path::Path,
 };
 
@@ -14,12 +15,13 @@ use naga::{
 use quote::{quote, TokenStreamExt};
 use shin_render_shader_types::{
     uniforms::{
-        metadata::{PrimitiveType, StructSchema, TypeSchema},
-        ClearUniformParams, FillUniformParams, FontUniformParams, SpriteUniformParams, UniformType,
+        metadata::{ArraySchema, PrimitiveType, StructSchema, TypeSchema},
+        ClearUniformParams, FillUniformParams, FontUniformParams, MovieUniformParams,
+        SpriteUniformParams, UniformType,
     },
     vertices::{
-        BlendVertex, LayerVertex, MaskVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex,
-        VertexType, WindowVertex,
+        BlendVertex, LayerVertex, MaskVertex, MovieVertex, PosColTexVertex, PosColVertex,
+        PosVertex, TextVertex, VertexType, WindowVertex,
     },
 };
 
@@ -92,6 +94,29 @@ impl GenCtx {
         }
     }
 
+    fn gen_array(&mut self, schema: &ArraySchema) -> Handle<Type> {
+        let ty = match schema.ty {
+            TypeSchema::Primitive(prim) => self.primitives.get(&prim).unwrap().clone(),
+            TypeSchema::Struct(_schema) => {
+                todo!("Structs in arrays??? Who would need such complexity?????")
+                // self.gen_struct(schema)
+            }
+            TypeSchema::Array(_array) => {
+                todo!("Arrays in arrays??? Who would need such complexity?????")
+            }
+        };
+
+        let ty = Type {
+            name: None,
+            inner: naga::TypeInner::Array {
+                base: ty,
+                size: naga::ArraySize::Constant(NonZeroU32::new(schema.length).unwrap()),
+                stride: schema.stride,
+            },
+        };
+        self.type_arena.insert(ty, naga::Span::UNDEFINED)
+    }
+
     fn gen_struct(
         &mut self,
         schema: &StructSchema,
@@ -117,6 +142,7 @@ impl GenCtx {
                         todo!("Structs in structs??? Who would need such complexity?????")
                         // self.gen_struct(schema)
                     }
+                    TypeSchema::Array(array) => self.gen_array(&array),
                 };
 
                 naga::StructMember {
@@ -232,6 +258,7 @@ impl GenCtx {
         match T::SCHEMA {
             TypeSchema::Primitive(prim) => self.primitives.get(&prim).unwrap().clone(),
             TypeSchema::Struct(schema) => self.gen_struct(&schema, fully_qualified_rust_name),
+            TypeSchema::Array(array) => self.gen_array(&array),
         }
     }
 }
@@ -253,11 +280,13 @@ fn generate_wgsl_types() -> WgslSchema {
     ctx.gen_vertex::<WindowVertex>();
     ctx.gen_vertex::<LayerVertex>();
     ctx.gen_vertex::<MaskVertex>();
+    ctx.gen_vertex::<MovieVertex>();
 
     ctx.gen_uniform::<ClearUniformParams>();
     ctx.gen_uniform::<FillUniformParams>();
     ctx.gen_uniform::<SpriteUniformParams>();
     ctx.gen_uniform::<FontUniformParams>();
+    ctx.gen_uniform::<MovieUniformParams>();
 
     let vertex_rust_names = ctx.known_vertices;
     let struct_rust_names = ctx

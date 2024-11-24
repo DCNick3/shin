@@ -38,6 +38,10 @@ struct MaskVertex {
     @location(1) texture_position: vec4<f32>,
 }
 
+struct MovieVertex {
+    @location(0) coords: vec4<f32>,
+}
+
 struct ClearUniformParams {
     color: vec4<f32>,
 }
@@ -54,5 +58,11 @@ struct FontUniformParams {
     transform: mat4x4<f32>,
     color1_: vec4<f32>,
     color2_: vec4<f32>,
+}
+
+struct MovieUniformParams {
+    transform: mat4x4<f32>,
+    color_bias: vec4<f32>,
+    color_transform: array<vec4<f32>, 3>,
 }
 

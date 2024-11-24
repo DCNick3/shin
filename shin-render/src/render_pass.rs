@@ -1,7 +1,9 @@
 use shin_render_shader_types::uniforms::{
-    ClearUniformParams, FillUniformParams, SpriteUniformParams,
+    ClearUniformParams, FillUniformParams, MovieUniformParams, SpriteUniformParams,
 };
-use shin_render_shaders::{Clear, ClearBindings, Fill, FillBindings, Sprite, SpriteBindings};
+use shin_render_shaders::{
+    Clear, ClearBindings, Fill, FillBindings, Movie, MovieBindings, Sprite, SpriteBindings,
+};
 
 use crate::{
     dynamic_buffer::DynamicBuffer,
@@ -125,6 +127,29 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
                 &SpriteBindings {
                     params: SpriteUniformParams { transform },
                     sprite,
+                },
+                vertices,
+            ),
+
+            RenderProgramWithArguments::Movie {
+                vertices,
+                texture_luma,
+                texture_chroma,
+                transform,
+                color_bias,
+                color_transform,
+            } => self.pipeline_storage.get::<Movie>(key).render(
+                self.device,
+                self.dynamic_buffer,
+                pass,
+                &MovieBindings {
+                    params: MovieUniformParams {
+                        transform,
+                        color_bias,
+                        color_transform,
+                    },
+                    luma: texture_luma,
+                    chroma: texture_chroma,
                 },
                 vertices,
             ),
