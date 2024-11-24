@@ -32,7 +32,15 @@ impl ResizeableSurface<'_> {
 
         let viewport = self.resize_handle.get_viewport();
 
-        let texture = self.surface.get_current_texture()?;
+        let texture = match self.surface.get_current_texture() {
+            Ok(texture) => texture,
+            Err(wgpu::SurfaceError::Outdated | wgpu::SurfaceError::Lost) => {
+                debug!("Surface error, recreating surface");
+                self.surface.configure(&self.device, &self.surface_config);
+                return self.get_current_texture();
+            }
+            Err(e) => return Err(e),
+        };
         let view = texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -99,6 +107,13 @@ pub async fn init_wgpu<'window>(
     let surface = instance
         .create_surface(surface_target)
         .context("Creating surface")?;
+
+    let adapters = instance.enumerate_adapters(wgpu::Backends::all());
+    for adapter in adapters {
+        let info = adapter.get_info();
+        info!("Found adapter: {:?}", info);
+    }
+
     let adapter = wgpu::util::initialize_adapter_from_env_or_default(
         &instance,
         // NOTE: this select the low-power GPU by default
@@ -226,11 +241,13 @@ impl RenderResources {
 
         let surface_depth_stencil_buffer = ResizeableTexture::new(
             wgpu.device.clone(),
+            Some("Surface DepthStencil"),
             DEPTH_STENCIL_FORMAT,
             surface_resize_handle,
         );
         let canvas_depth_stencil_buffer = ResizeableTexture::new(
             wgpu.device.clone(),
+            Some("Canvas DepthStencil"),
             DEPTH_STENCIL_FORMAT,
             canvas_resize_handle,
         );

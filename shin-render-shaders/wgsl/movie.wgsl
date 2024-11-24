@@ -34,7 +34,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let luma = textureSample(luma_texture, luma_sampler, input.texture_position).x;
     let chroma = textureSample(chroma_texture, chroma_sampler, input.texture_position).xy;
 
-    let biased_yuv = vec3<f32>(luma, chroma.x - 0.5, chroma.y - 0.5) - params.color_bias.xyz;
+    let biased_yuv = vec3<f32>(luma, chroma.x, chroma.y) - params.color_bias.xyz;
 
     let r = dot(biased_yuv, params.color_transform[0].xyz);
     let g = dot(biased_yuv, params.color_transform[1].xyz);

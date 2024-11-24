@@ -226,3 +226,12 @@ impl<A: Enum> ActionsState<A> {
 pub trait Action: Enum {
     fn lower(raw_input_state: &RawInputState) -> EnumMap<Self, bool>;
 }
+
+#[derive(Debug, Copy, Clone, Enum)]
+pub enum DummyAction {}
+
+impl Action for DummyAction {
+    fn lower(_raw_input_state: &RawInputState) -> EnumMap<Self, bool> {
+        enum_map! {}
+    }
+}

@@ -27,18 +27,3 @@ pub struct TextureSource<'a> {
     pub view: &'a wgpu::TextureView,
     pub sampler: &'a wgpu::Sampler,
 }
-
-// TODO: texture format type safety
-#[derive(Debug)]
-pub struct TextureBindGroup(pub wgpu::BindGroup);
-
-// TODO: when implementing, try to make it consistent with `ResizeableTexture`, which is a thing we use to keep Framebuffer-sized textures
-// struct TextureInner {
-//     texture: wgpu::Texture,
-//     bind_group: TextureBindGroup,
-//     width: u32,
-//     height: u32,
-// }
-//
-// pub struct ReadonlyTexture {}
-// pub struct WriteableTexture {}
