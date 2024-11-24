@@ -4,7 +4,6 @@ use std::{collections::HashMap, sync::Arc};
 
 use enum_iterator::Sequence;
 use rustc_hash::FxHashMap;
-use shin_render_shader_types::texture::TextureBindGroupLayout;
 use shin_render_shaders::{Shader, ShaderContext, ShaderName, TypedRenderPipeline};
 
 use crate::{ColorBlendType, CullFace, DepthStencilPipelineState, DrawPrimitive};
@@ -90,12 +89,10 @@ struct ShaderContextStorage {
 }
 
 impl ShaderContextStorage {
-    pub fn new(device: &wgpu::Device, texture_bind_group_layout: &TextureBindGroupLayout) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
         let mut shaders = HashMap::default();
         for shader in enum_iterator::all::<ShaderName>() {
-            let context = shader
-                .descriptor()
-                .create_shader_context(device, texture_bind_group_layout);
+            let context = shader.descriptor().create_shader_context(device);
             shaders.insert(shader, context);
         }
         Self { shaders }
@@ -114,13 +111,8 @@ pub struct PipelineStorage {
 }
 
 impl PipelineStorage {
-    pub fn new(
-        device: Arc<wgpu::Device>,
-        the_texture_format: wgpu::TextureFormat,
-        texture_bind_group_layout: &TextureBindGroupLayout,
-    ) -> Self {
-        // TODO: actually populate the map with pipelines
-        let shader_context = ShaderContextStorage::new(&device, texture_bind_group_layout);
+    pub fn new(device: Arc<wgpu::Device>, the_texture_format: wgpu::TextureFormat) -> Self {
+        let shader_context = ShaderContextStorage::new(&device);
         Self {
             device,
             the_texture_format,

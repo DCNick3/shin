@@ -8,6 +8,8 @@ use std::{
 };
 
 use heck::ToPascalCase;
+use indexmap::IndexMap;
+use itertools::{EitherOrBoth, Itertools};
 use naga::{
     valid::{Capabilities, ValidationFlags},
     Handle, ShaderStage, Type, UniqueArena,
@@ -357,19 +359,26 @@ fn add_module_to_composer(
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum ShaderBindingGroupDescriptor {
-    Texture { name: String },
-    Uniform { name: String, ty: String, size: u32 },
+    Texture {
+        texture_binding: u32,
+        sampler_binding: u32,
+    },
+    Uniform {
+        binding: u32,
+        ty: String,
+        size: u32,
+    },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct ShaderDescriptor {
     vertex_type: String,
-    bind_groups: Vec<ShaderBindingGroupDescriptor>,
+    bind_groups: IndexMap<String, ShaderBindingGroupDescriptor>,
     vertex_entry_name: String,
     fragment_entry_name: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct ShaderWithDescriptor {
     snake_name: String,
     pascal_name: String,
@@ -537,14 +546,22 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
             let vertex_entry_name = vertex_entry_name.unwrap();
             let vertex_type_name = vertex_type_name.unwrap();
 
-            let mut texture_bindings = BTreeMap::<u32, String>::new();
-            let mut sampler_bindings = BTreeMap::<u32, String>::new();
-            let mut struct_bindings = BTreeMap::<u32, (String, String, u32)>::new();
+            struct StructBindingInfo {
+                binding: u32,
+                fully_qualified_rust_ty: String,
+                size: u32,
+            }
+
+            let mut texture_bindings = IndexMap::<String, u32>::new();
+            let mut sampler_bindings = IndexMap::<String, u32>::new();
+            let mut struct_bindings = IndexMap::<String, StructBindingInfo>::new();
 
             for (_, var) in module.global_variables.iter() {
                 let Some(binding) = &var.binding else {
                     continue;
                 };
+
+                assert_eq!(binding.group, 0);
 
                 let ty = &module.types[var.ty];
                 match &ty.inner {
@@ -553,7 +570,13 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                         arrayed,
                         class,
                     } => {
-                        assert_eq!(binding.binding, 0);
+                        let name = var
+                            .name
+                            .as_deref()
+                            .unwrap()
+                            .strip_suffix("_texture")
+                            .unwrap();
+                        // assert_eq!(binding.binding, 0);
                         assert_eq!(arrayed, false);
                         assert_eq!(dim, naga::ImageDimension::D2);
                         assert_eq!(
@@ -564,16 +587,22 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                             }
                         );
 
-                        texture_bindings.insert(binding.group, var.name.clone().unwrap());
+                        texture_bindings.insert(name.to_string(), binding.binding);
                     }
                     &naga::TypeInner::Sampler { comparison } => {
-                        assert_eq!(binding.binding, 1);
+                        let name = var
+                            .name
+                            .as_deref()
+                            .unwrap()
+                            .strip_suffix("_sampler")
+                            .unwrap();
+                        // assert_eq!(binding.binding, 1);
                         assert_eq!(comparison, false);
 
-                        sampler_bindings.insert(binding.group, var.name.clone().unwrap());
+                        sampler_bindings.insert(name.to_string(), binding.binding);
                     }
                     naga::TypeInner::Struct { .. } => {
-                        assert_eq!(binding.binding, 0);
+                        // assert_eq!(binding.binding, 0);
 
                         let type_name = ty
                             .name
@@ -586,12 +615,12 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                             wgsl_schema.struct_rust_names.get(type_name).unwrap();
 
                         struct_bindings.insert(
-                            binding.group,
-                            (
-                                var.name.clone().unwrap(),
-                                fully_qualified_rust_name.clone(),
-                                ty.inner.size(module.to_ctx()),
-                            ),
+                            var.name.clone().unwrap(),
+                            StructBindingInfo {
+                                binding: binding.binding,
+                                fully_qualified_rust_ty: fully_qualified_rust_name.clone(),
+                                size: ty.inner.size(module.to_ctx()),
+                            },
                         );
                     }
                     e => panic!("unsupported global variable type {:?}", e),
@@ -602,48 +631,77 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
             // eprintln!("sampler_bindings: {:?}", sampler_bindings);
             // eprintln!("struct_bindings: {:?}", struct_bindings);
 
-            let mut bindings_unified = BTreeMap::new();
+            let mut bindings_unified = IndexMap::new();
 
-            for (group, (name, ty, size)) in struct_bindings.iter() {
+            for (name, info) in struct_bindings.into_iter() {
                 assert_eq!(
                     bindings_unified.insert(
-                        *group,
+                        name,
                         ShaderBindingGroupDescriptor::Uniform {
-                            name: name.to_string(),
-                            ty: ty.to_string(),
-                            size: *size,
+                            binding: info.binding,
+                            ty: info.fully_qualified_rust_ty,
+                            size: info.size,
                         },
                     ),
                     None
                 );
             }
 
-            for ((texture_group, texture_name), (sampler_group, sampler_name)) in
-                texture_bindings.iter().zip(sampler_bindings.iter())
+            for v in texture_bindings
+                .into_iter()
+                .merge_join_by(sampler_bindings, |(texture_name, _), (sampler_name, _)| {
+                    texture_name.cmp(sampler_name)
+                })
             {
-                assert_eq!(texture_group, sampler_group);
-                let texture_name = texture_name.strip_suffix("_texture").unwrap();
-                let sampler_name = sampler_name.strip_suffix("_sampler").unwrap();
-                assert_eq!(texture_name, sampler_name);
-
-                assert_eq!(
-                    bindings_unified.insert(
-                        *texture_group,
-                        ShaderBindingGroupDescriptor::Texture {
-                            name: texture_name.to_string(),
-                        },
-                    ),
-                    None
-                );
+                match v {
+                    EitherOrBoth::Both((name, texture_binding), (_, sampler_binding)) => {
+                        let existing = bindings_unified.insert(
+                            name,
+                            ShaderBindingGroupDescriptor::Texture {
+                                texture_binding,
+                                sampler_binding,
+                            },
+                        );
+                        assert_eq!(existing, None);
+                    }
+                    EitherOrBoth::Left((texture_name, _)) => {
+                        panic!("missing sampler for texture {texture_name}")
+                    }
+                    EitherOrBoth::Right((sampler_name, _)) => {
+                        panic!("missing texture for sampler {sampler_name}")
+                    }
+                }
             }
+
+            // if let Some(max_binding) = bindings_unified
+            //     .iter()
+            //     .map(|(_, d)| match d {
+            //         &ShaderBindingGroupDescriptor::Texture {
+            //             texture_binding,
+            //             sampler_binding,
+            //         } => std::cmp::max(texture_binding, sampler_binding),
+            //         &ShaderBindingGroupDescriptor::Uniform { binding, .. } => binding,
+            //     })
+            //     .max()
+            // {
+            //     // TODO: this check is invalid
+            //     // assert_eq!(
+            //     //     max_binding as usize,
+            //     //     bindings_unified.len() - 1,
+            //     //     "binding numbers must not have gaps"
+            //     // );
+            // }
 
             // eprintln!("bindings_unified: {:?}", bindings_unified);
-            assert_eq!(
-                bindings_unified.len() - 1,
-                *bindings_unified.last_key_value().unwrap().0 as usize
-            );
 
-            let bindings_unified = bindings_unified.into_values().collect::<Vec<_>>();
+            // sort by binding number, so just for nicer output
+            bindings_unified.sort_by_cached_key(|_, v| match v {
+                &ShaderBindingGroupDescriptor::Texture {
+                    texture_binding,
+                    sampler_binding,
+                } => std::cmp::min(texture_binding, sampler_binding),
+                &ShaderBindingGroupDescriptor::Uniform { binding, .. } => binding,
+            });
 
             let descriptor = ShaderDescriptor {
                 vertex_type: vertex_type_name.clone(),
@@ -690,12 +748,12 @@ fn codegen_shader_descriptor(shader: &ShaderWithDescriptor) -> proc_macro2::Toke
 
     let bind_groups = bind_groups
         .iter()
-        .map(|bind_group| match bind_group {
-            ShaderBindingGroupDescriptor::Texture { .. } => {
-                quote!(crate::ShaderBindingGroupDescriptor::Texture,)
+        .map(|(_name, bind_group)| match bind_group {
+            ShaderBindingGroupDescriptor::Texture { texture_binding, sampler_binding } => {
+                quote!(crate::ShaderBindingGroupDescriptor::Texture { texture_binding: #texture_binding, sampler_binding: #sampler_binding },)
             }
-            ShaderBindingGroupDescriptor::Uniform { size, .. } => {
-                quote!(crate::ShaderBindingGroupDescriptor::Uniform { size: #size },)
+            ShaderBindingGroupDescriptor::Uniform { binding, size, .. } => {
+                quote!(crate::ShaderBindingGroupDescriptor::Uniform { binding: #binding, size: #size },)
             }
         })
         .collect::<proc_macro2::TokenStream>();
@@ -719,22 +777,21 @@ fn codegen_shader_descriptor(shader: &ShaderWithDescriptor) -> proc_macro2::Toke
 
 fn codegen_bindings(
     bindings_name: &proc_macro2::Ident,
-    bindings: &[ShaderBindingGroupDescriptor],
+    bindings: &IndexMap<String, ShaderBindingGroupDescriptor>,
 ) -> proc_macro2::TokenStream {
     let body = bindings
         .iter()
-        .map(|binding| {
-            let name = match binding {
-                ShaderBindingGroupDescriptor::Texture { name } => name,
-                ShaderBindingGroupDescriptor::Uniform { name, .. } => name,
-            };
+        .map(|(name, binding)| {
             let name = quote::format_ident!("{}", name);
 
             let ty = match binding {
                 ShaderBindingGroupDescriptor::Texture { .. } => {
-                    quote!(shin_render_shader_types::texture::TextureBindGroup)
+                    quote!(shin_render_shader_types::texture::TextureSource<'a>)
                 }
-                ShaderBindingGroupDescriptor::Uniform { ty, .. } => ty.parse().unwrap(),
+                ShaderBindingGroupDescriptor::Uniform { ty, .. } => {
+                    let ty: proc_macro2::TokenStream = ty.parse().unwrap();
+                    quote!(&'a #ty)
+                }
             };
 
             quote! {
@@ -744,57 +801,85 @@ fn codegen_bindings(
         .collect::<proc_macro2::TokenStream>();
 
     quote! {
-        pub struct #bindings_name {
+        pub struct #bindings_name<'a> {
             #body
         }
     }
 }
 
-fn codegen_set_bindings(bindings: &[ShaderBindingGroupDescriptor]) -> proc_macro2::TokenStream {
-    let body = (0..).zip(bindings.iter()).map(|(binding_index, binding)| {
-        let binding_index: proc_macro2::TokenStream = binding_index.to_string().parse().unwrap();
+fn codegen_set_bindings(
+    bindings: &IndexMap<String, ShaderBindingGroupDescriptor>,
+) -> proc_macro2::TokenStream {
+    let mut prelude = proc_macro2::TokenStream::new();
 
-        let bind_group_ref = match binding {
-            ShaderBindingGroupDescriptor::Texture { name } => {
-                let name = quote::format_ident!("{}", name);
-                quote!(&bindings.#name.0)
-            }
-            ShaderBindingGroupDescriptor::Uniform { name, .. } => {
-                let name = quote::format_ident!("{}", name);
-                quote! {
-                    &{
-                        let crate::ShaderBindGroupLayout::Uniform(layout) = &bind_group_layouts[#binding_index] else {
-                            unreachable!()
-                        };
-                        let buffer = dynamic_buffer.get_uniform_with_data(&bindings.#name);
-                        device.create_bind_group(&wgpu::BindGroupDescriptor {
-                            label: None,
-                            layout,
-                            entries: &[wgpu::BindGroupEntry {
-                                binding: 0,
-                                resource: wgpu::BindingResource::Buffer(buffer.as_buffer_binding()),
-                            }],
-                        })
+    let bind_group_entries = bindings
+        .iter()
+        .map(|(name, binding)| {
+            let name = quote::format_ident!("{}", name);
+
+            match binding {
+                ShaderBindingGroupDescriptor::Texture {
+                    texture_binding,
+                    sampler_binding,
+                } => {
+                    quote!(
+                        wgpu::BindGroupEntry {
+                            binding: #texture_binding,
+                            resource: wgpu::BindingResource::TextureView(bindings.#name.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: #sampler_binding,
+                            resource: wgpu::BindingResource::Sampler(bindings.#name.sampler),
+                        },
+                    )
+                }
+                ShaderBindingGroupDescriptor::Uniform { binding, .. } => {
+                    prelude.extend(quote! {
+                        let #name = dynamic_buffer.get_uniform_with_data(bindings.#name);
+                    });
+
+                    quote! {
+                        wgpu::BindGroupEntry {
+                            binding: #binding,
+                            resource: wgpu::BindingResource::Buffer(#name.as_buffer_binding()),
+                        },
+                        // &{
+                        //     let crate::ShaderBindGroupLayout::Uniform(layout) = &bind_group_layouts[#binding_index] else {
+                        //         unreachable!()
+                        //     };
+                        //     let buffer = dynamic_buffer.get_uniform_with_data(&bindings.#name);
+                        //     device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        //         label: None,
+                        //         layout,
+                        //         entries: &[wgpu::BindGroupEntry {
+                        //             binding: 0,
+                        //             resource: wgpu::BindingResource::Buffer(buffer.as_buffer_binding()),
+                        //         }],
+                        //     })
+                        // }
                     }
                 }
             }
-        };
-
-        quote! {
-            render_pass.set_bind_group(#binding_index, #bind_group_ref, &[]);
-        }
-    }).collect::<proc_macro2::TokenStream>();
+        })
+        .collect::<proc_macro2::TokenStream>();
 
     quote! {
         // #[allow(unused)]
         fn set_bindings(
             device: &wgpu::Device,
             dynamic_buffer: &mut impl crate::DynamicBufferBackend,
-            bind_group_layouts: &[crate::ShaderBindGroupLayout],
+            bind_group_layout: &wgpu::BindGroupLayout,
             render_pass: &mut wgpu::RenderPass,
-            bindings: &Self::Bindings,
+            bindings: Self::Bindings<'_>,
         ) {
-            #body
+            #prelude
+
+            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: bind_group_layout,
+                entries: &[#bind_group_entries],
+            });
+            render_pass.set_bind_group(0, &bind_group, &[]);
         }
     }
 }
@@ -825,7 +910,7 @@ fn codegen_shader(shader: &ShaderWithDescriptor) -> proc_macro2::TokenStream {
             const NAME: ShaderName = ShaderName::#shader_ty_name;
             const DESCRIPTOR: crate::ShaderDescriptor = #shader_descriptor;
 
-            type Bindings = #bindings_ty_name;
+            type Bindings<'a> = #bindings_ty_name<'a>;
             type Vertex = #vertex;
 
             #set_bindings

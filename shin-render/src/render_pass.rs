@@ -96,8 +96,8 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
                     self.device,
                     self.dynamic_buffer,
                     pass,
-                    &ClearBindings {
-                        params: ClearUniformParams { color },
+                    ClearBindings {
+                        params: &ClearUniformParams { color },
                     },
                     vertices,
                 );
@@ -110,8 +110,8 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
                     self.device,
                     self.dynamic_buffer,
                     pass,
-                    &FillBindings {
-                        params: FillUniformParams { transform },
+                    FillBindings {
+                        params: &FillUniformParams { transform },
                     },
                     vertices,
                 );
@@ -124,8 +124,8 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
                 self.device,
                 self.dynamic_buffer,
                 pass,
-                &SpriteBindings {
-                    params: SpriteUniformParams { transform },
+                SpriteBindings {
+                    params: &SpriteUniformParams { transform },
                     sprite,
                 },
                 vertices,
@@ -142,8 +142,8 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
                 self.device,
                 self.dynamic_buffer,
                 pass,
-                &MovieBindings {
-                    params: MovieUniformParams {
+                MovieBindings {
+                    params: &MovieUniformParams {
                         transform,
                         color_bias,
                         color_transform,

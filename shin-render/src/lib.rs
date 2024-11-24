@@ -14,7 +14,7 @@ use enum_iterator::Sequence;
 use glam::{Mat4, Vec4};
 use shin_render_shader_types::{
     buffer::VertexSource,
-    texture::TextureBindGroup,
+    texture::TextureSource,
     vertices::{FloatColor4, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex},
 };
 pub use shin_render_shaders as shaders;
@@ -47,9 +47,6 @@ pub enum WiperKind {
     Glass,
 }
 
-// not yet sure if a separate type is needed
-pub type TextureSource = TextureBindGroup;
-
 #[derive(Debug)]
 pub enum RenderProgramWithArguments<'a> {
     // TODO: specify all arguments required for all programs
@@ -68,26 +65,26 @@ pub enum RenderProgramWithArguments<'a> {
     },
     Sprite {
         vertices: VertexSource<'a, PosColTexVertex>,
-        sprite: TextureSource,
+        sprite: TextureSource<'a>,
         transform: Mat4,
     },
     Font {
         vertices: VertexSource<'a, TextVertex>,
-        texture: TextureSource,
+        texture: TextureSource<'a>,
         transform: Mat4,
         color1: FloatColor4,
         color2: FloatColor4,
     },
     FontBorder {
         vertices: VertexSource<'a, TextVertex>,
-        texture: TextureSource,
+        texture: TextureSource<'a>,
         transform: Mat4,
         distances: [Vec4; 4],
         color: FloatColor4,
     },
     Button {
         vertices: VertexSource<'a, PosColTexVertex>,
-        texture: TextureSource,
+        texture: TextureSource<'a>,
         transform: Mat4,
         // IDK what is the difference between those, seems like they do the same thing repeatedly?
         // higurashi and dc4 only have one of those
@@ -97,8 +94,8 @@ pub enum RenderProgramWithArguments<'a> {
     Blend {
         // TODO
         // vertices: VertexSource<'a, NewBlendVertex>,
-        texture1: TextureSource,
-        texture2: TextureSource,
+        texture1: TextureSource<'a>,
+        texture2: TextureSource<'a>,
         transform: Mat4,
         blend: Vec4,
         flash: Vec4,
@@ -113,7 +110,7 @@ pub enum RenderProgramWithArguments<'a> {
         operation: LayerShaderOperation,
         // TODO
         // vertices: VertexSource<'a, NewLayerVertex>,
-        texture: TextureSource,
+        texture: TextureSource<'a>,
         transform: Mat4,
         color: FloatColor4,
         fragment_shader_param: Vec4,
@@ -122,8 +119,8 @@ pub enum RenderProgramWithArguments<'a> {
         operation: LayerShaderOperation,
         // TODO
         // vertices: VertexSource<'a, NewMaskVertex>,
-        texture1: TextureSource,
-        texture2: TextureSource,
+        texture1: TextureSource<'a>,
+        texture2: TextureSource<'a>,
         transform: Mat4,
         color: FloatColor4,
         fragment_shader_param: Vec4,
@@ -134,8 +131,8 @@ pub enum RenderProgramWithArguments<'a> {
     TapEffect {},
     Movie {
         vertices: VertexSource<'a, MovieVertex>,
-        texture_luma: TextureSource,
-        texture_chroma: TextureSource,
+        texture_luma: TextureSource<'a>,
+        texture_chroma: TextureSource<'a>,
         transform: Mat4,
         color_bias: Vec4,
         color_transform: [Vec4; 3],
