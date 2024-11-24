@@ -52,6 +52,7 @@ impl DefaultTextureSampler {
     }
 }
 
+// TODO: texture format type safety
 #[derive(Debug)]
 pub struct TextureBindGroup(pub wgpu::BindGroup);
 

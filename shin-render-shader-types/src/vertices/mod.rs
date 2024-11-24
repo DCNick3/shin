@@ -211,3 +211,20 @@ impl VertexType for MaskVertex {
         },
     ];
 }
+
+#[derive(Copy, Clone, Debug, NoUninit)]
+#[repr(C, packed)]
+pub struct MovieVertex {
+    /// Combined position (xy) and texture coordinate (zw)
+    pub coords: Vec4,
+}
+
+impl VertexType for MovieVertex {
+    const NAME: &'static str = "MovieVertex";
+    const ATTRIBUTE_NAMES: &'static [&'static str] = &["coords"];
+    const ATTRIBUTES: &'static [wgpu::VertexAttribute] = &[wgpu::VertexAttribute {
+        format: <Vec4 as VertexAttribute>::FORMAT,
+        offset: std::mem::offset_of!(MovieVertex, coords) as wgpu::BufferAddress,
+        shader_location: 0,
+    }];
+}
