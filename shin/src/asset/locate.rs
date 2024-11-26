@@ -62,7 +62,7 @@ fn try_assets_directory(path: &Path) -> anyhow::Result<Option<LayeredAssetIo>> {
 /// 2. The directory specified in the `SHIN_ASSETS` environment variable
 /// 3. The directory "assets" next to the executable
 /// 4. The directory "assets" in the current working directory
-/// 5. The user's shared data directory (see `dirs::data_dir`, `/home/alice/.local/share/shin/assets` / `C:\Users\Alice\AppData\Roaming\shin\assets` / `/Users/Alice/Library/Application Support/shin/assets`)
+/// 5. The user's shared data directory (see [`dirs_next::data_dir`], `/home/alice/.local/share/shin/assets` / `C:\Users\Alice\AppData\Roaming\shin\assets` / `/Users/Alice/Library/Application Support/shin/assets`)
 ///
 /// The used asset directory is the first one having a "data" directory or a "data.rom" file.
 #[allow(clippy::match_result_ok)]

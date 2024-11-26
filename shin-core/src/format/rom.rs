@@ -6,11 +6,18 @@
 //!
 //! When using BufReader, the startup time with Umineko's rom is about 300 ms on my machine, so it's not a big deal.
 
-use std::{collections::BTreeMap, io, io::SeekFrom};
+use std::{
+    borrow::Borrow,
+    collections::BTreeMap,
+    io,
+    io::{BufReader, Seek as _, SeekFrom},
+    marker::PhantomData,
+};
 
 use anyhow::{anyhow, bail, Context, Result};
 use binrw::{BinRead, BinResult, BinWrite, Endian, NullString};
 use itertools::Itertools;
+use shin_primitives::stateless_reader::{StatelessIoWrapper, StatelessReader};
 use smartstring::alias::CompactString;
 
 const VERSION: u32 = 0x10001;
@@ -236,19 +243,19 @@ impl BinRead for IndexDirectory {
 /// Allows reading files from the archive
 ///
 /// Assumes that the underlying file will not change
-pub struct RomReader<S: io::Read + io::Seek> {
+pub struct RomReader<S: StatelessReader> {
     index: IndexDirectory,
     reader: S,
 }
 
-impl<S: io::Read + io::Seek> RomReader<S> {
-    pub fn new(mut reader: S) -> Result<Self> {
-        reader.seek(SeekFrom::Start(0))?;
-        let header = RawHeader::read(&mut reader).context("Reading rom header")?;
+impl<S: StatelessReader> RomReader<S> {
+    pub fn new(reader: S) -> Result<Self> {
+        let mut header_io = BufReader::new(StatelessIoWrapper::new(&reader));
+        let header = RawHeader::read(&mut header_io).context("Reading rom header")?;
         if VERSION != header.version {
             bail!("Unknown version: 0x{:08x}", header.version)
         }
-        let index_offset = reader.stream_position()?;
+        let index_offset = header_io.stream_position()?;
 
         let ctx = ReadContext {
             index_offset,
@@ -256,7 +263,7 @@ impl<S: io::Read + io::Seek> RomReader<S> {
             data_offset_multiplier: header.offset_multiplier as u64,
         };
 
-        let index = IndexDirectory::read_le_args(&mut reader, ctx)?;
+        let index = IndexDirectory::read_le_args(&mut header_io, ctx)?;
 
         Ok(Self { index, reader })
     }
@@ -301,12 +308,8 @@ impl<S: io::Read + io::Seek> RomReader<S> {
         })
     }
 
-    pub fn open_file(&mut self, file: IndexFile) -> Result<RomFileReader<S>> {
-        Ok(RomFileReader {
-            reader: self,
-            file,
-            position: 0,
-        })
+    pub fn open_file(&mut self, file: IndexFile) -> Result<RomFileReader<S, &Self>> {
+        Ok(RomFileReader::new(self, file))
     }
 
     pub fn traverse(&self) -> impl Iterator<Item = (String, &IndexEntry)> {
@@ -356,22 +359,46 @@ impl<'a> Iterator for Traverse<'a> {
 
 /// Implements `Read` for `RomReader`
 /// Assumes that the underlying file will not change
-pub struct RomFileReader<'a, S: io::Read + io::Seek> {
-    reader: &'a mut RomReader<S>,
+pub struct RomFileReader<S: StatelessReader, Rom: Borrow<RomReader<S>>> {
+    rom: Rom,
     file: IndexFile,
     position: u64,
+    phantom: PhantomData<S>,
 }
 
-impl<'a, S: io::Read + io::Seek> io::Read for RomFileReader<'a, S> {
+impl<S: StatelessReader, Rom: Borrow<RomReader<S>>> RomFileReader<S, Rom> {
+    pub fn new(rom: Rom, file: IndexFile) -> Self {
+        Self {
+            rom,
+            file,
+            position: 0,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<S: StatelessReader, Rom: Borrow<RomReader<S>> + Clone> Clone for RomFileReader<S, Rom> {
+    fn clone(&self) -> Self {
+        Self {
+            rom: self.rom.clone(),
+            file: self.file,
+            position: self.position,
+            phantom: PhantomData,
+        }
+    }
+}
+
+// TODO: for consistency, it would be nice to provide a stateless interface based on [`StatelessReader`] too
+impl<S: StatelessReader, Rom: Borrow<RomReader<S>>> io::Read for RomFileReader<S, Rom> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let to_read =
             std::cmp::min(buf.len() as u64, self.file.data_size as u64 - self.position) as usize;
-        self.reader
+        self.rom
+            .borrow()
             .reader
-            .seek(SeekFrom::Start(self.file.data_offset + self.position))?;
-        let read = self.reader.reader.read(&mut buf[..to_read])?;
-        self.position += read as u64;
-        Ok(read)
+            .read_at_exact(self.file.data_offset + self.position, &mut buf[..to_read])?;
+        self.position += to_read as u64;
+        Ok(to_read)
     }
 }
 
@@ -383,7 +410,7 @@ fn checked_add_signed(pos: u64, offset: i64) -> Option<u64> {
     }
 }
 
-impl<'a, S: io::Read + io::Seek> io::Seek for RomFileReader<'a, S> {
+impl<S: StatelessReader, Rom: Borrow<RomReader<S>>> io::Seek for RomFileReader<S, Rom> {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
         let new_pos = match pos {
             SeekFrom::Start(pos) => Some(pos),

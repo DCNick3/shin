@@ -11,6 +11,7 @@ members = [
     "shin-asm",
     "shin-window",
     "shin-input",
+    "shin-primitives",
     "sdu",
     "shin",
     "junk",

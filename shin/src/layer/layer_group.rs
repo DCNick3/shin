@@ -2,7 +2,6 @@ use bevy_utils::hashbrown::HashMap;
 use glam::Mat4;
 use itertools::Itertools;
 use shin_core::vm::command::types::LayerId;
-use shin_render::{GpuCommonResources, RenderTarget, Renderable};
 
 use crate::{
     adv::LayerSelection,
@@ -12,24 +11,24 @@ use crate::{
 
 pub struct LayerGroup {
     layers: HashMap<LayerId, UserLayer>,
-    render_target: RenderTarget,
+    // render_target: RenderTarget,
     properties: LayerProperties,
 }
 
 impl LayerGroup {
-    pub fn new(resources: &GpuCommonResources) -> Self {
-        let render_target = RenderTarget::new(
-            resources,
-            resources.current_render_buffer_size(),
-            Some("LayerGroup RenderTarget"),
-        );
-
-        Self {
-            layers: HashMap::new(),
-            render_target,
-            properties: LayerProperties::new(),
-        }
-    }
+    // pub fn new(resources: &GpuCommonResources) -> Self {
+    //     let render_target = RenderTarget::new(
+    //         resources,
+    //         resources.current_render_buffer_size(),
+    //         Some("LayerGroup RenderTarget"),
+    //     );
+    //
+    //     Self {
+    //         layers: HashMap::new(),
+    //         render_target,
+    //         properties: LayerProperties::new(),
+    //     }
+    // }
 
     pub fn get_layer_ids(&self) -> impl Iterator<Item = LayerId> + '_ {
         self.layers.keys().cloned()
@@ -82,55 +81,55 @@ impl Updatable for LayerGroup {
     }
 }
 
-impl Renderable for LayerGroup {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        {
-            let mut encoder = resources.start_encoder();
-            let mut render_pass = self
-                .render_target
-                .begin_srgb_render_pass(&mut encoder, Some("LayerGroup RenderPass"));
-
-            let ordered_layers = self
-                .layers
-                .iter()
-                .sorted_by_key(|&(id, _)| {
-                    // TODO: use render order property
-                    *id
-                })
-                .collect::<Vec<_>>();
-
-            let transform = self.properties.compute_transform(transform);
-            let projection = self.render_target.projection_matrix();
-
-            for (id, l) in ordered_layers {
-                render_pass.push_debug_group(&format!("Layer {:?}", id));
-                l.render(resources, &mut render_pass, transform, projection);
-                render_pass.pop_debug_group();
-            }
-        }
-
-        render_pass.push_debug_group("LayerGroup Render");
-        // TODO use layer pseudo-pipeline
-        resources.draw_sprite(
-            render_pass,
-            self.render_target.vertex_source(),
-            self.render_target.bind_group(),
-            projection,
-        );
-        render_pass.pop_debug_group();
-    }
-
-    fn resize(&mut self, resources: &GpuCommonResources) {
-        self.render_target
-            .resize(resources, resources.current_render_buffer_size());
-    }
-}
+// impl Renderable for LayerGroup {
+//     fn render<'enc>(
+//         &'enc self,
+//         resources: &'enc GpuCommonResources,
+//         render_pass: &mut wgpu::RenderPass<'enc>,
+//         transform: Mat4,
+//         projection: Mat4,
+//     ) {
+//         {
+//             let mut encoder = resources.start_encoder();
+//             let mut render_pass = self
+//                 .render_target
+//                 .begin_srgb_render_pass(&mut encoder, Some("LayerGroup RenderPass"));
+//
+//             let ordered_layers = self
+//                 .layers
+//                 .iter()
+//                 .sorted_by_key(|&(id, _)| {
+//                     // TODO: use render order property
+//                     *id
+//                 })
+//                 .collect::<Vec<_>>();
+//
+//             let transform = self.properties.compute_transform(transform);
+//             let projection = self.render_target.projection_matrix();
+//
+//             for (id, l) in ordered_layers {
+//                 render_pass.push_debug_group(&format!("Layer {:?}", id));
+//                 l.render(resources, &mut render_pass, transform, projection);
+//                 render_pass.pop_debug_group();
+//             }
+//         }
+//
+//         render_pass.push_debug_group("LayerGroup Render");
+//         // TODO use layer pseudo-pipeline
+//         resources.draw_sprite(
+//             render_pass,
+//             self.render_target.vertex_source(),
+//             self.render_target.bind_group(),
+//             projection,
+//         );
+//         render_pass.pop_debug_group();
+//     }
+//
+//     fn resize(&mut self, resources: &GpuCommonResources) {
+//         self.render_target
+//             .resize(resources, resources.current_render_buffer_size());
+//     }
+// }
 
 impl Layer for LayerGroup {
     fn properties(&self) -> &LayerProperties {

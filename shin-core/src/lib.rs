@@ -7,6 +7,7 @@
 // macro hack
 extern crate self as shin_core;
 
+pub use shin_primitives as primitives;
 // re-export for convenience
 pub use shin_tasks::create_task_pools;
 

@@ -127,7 +127,13 @@ impl GpuTexture {
         }
     }
 
-    pub fn texture(&self) -> &wgpu::Texture {
+    pub fn size(&self) -> PhysicalSize<u32> {
+        PhysicalSize::new(self.texture.width(), self.texture.height())
+    }
+
+    // TODO: we should provide APIs instead of just exposing the raw wgpu texture
+    // right now this is mostly used for updatable textures
+    pub fn wgpu_texture(&self) -> &wgpu::Texture {
         &self.texture
     }
 

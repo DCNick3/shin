@@ -5,9 +5,13 @@ use std::{
 
 use bevy_utils::{Entry, HashMap};
 use glam::{vec2, Vec2};
-use shin_render::{GpuCommonResources, TextureBindGroup};
+use shin_render::{
+    gpu_texture::{GpuTexture, TextureKind},
+    shaders::types::texture::TextureSource,
+};
 use tracing::info;
 use usvg::{tiny_skia_path, NodeKind, NormalizedF32, TreeParsing};
+use winit::dpi::PhysicalSize;
 
 use crate::render::overlay::{OverlayCollector, OverlayVisitable};
 
@@ -49,9 +53,7 @@ pub struct DynamicAtlas<P: ImageProvider> {
     label: String,
 
     // TODO: support multiple atlas pages
-    texture: wgpu::Texture,
-    texture_bind_group: TextureBindGroup,
-    texture_size: (u32, u32),
+    texture: GpuTexture,
 
     // TODO: I am not sure that this "split" locking can't cause deadlocks
     allocator: Mutex<etagere::BucketedAtlasAllocator>,
@@ -63,52 +65,27 @@ pub struct DynamicAtlas<P: ImageProvider> {
 
 impl<P: ImageProvider> DynamicAtlas<P> {
     pub fn new(
-        resources: &GpuCommonResources,
+        device: &wgpu::Device,
         image_provider: P,
-        texture_size: (u32, u32),
+        texture_size: PhysicalSize<u32>,
         label: Option<&str>,
     ) -> Self {
         let label = label
             .map(|s| format!("{} DynamicAtlas", s))
             .unwrap_or_else(|| "DynamicAtlas".to_string());
 
-        let texture = resources.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some(&format!("{} Texture", label)),
-            size: wgpu::Extent3d {
-                width: texture_size.0,
-                height: texture_size.1,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: P::MIPMAP_LEVELS,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: P::IMAGE_FORMAT,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        // TODO: make sampler configurable
-        let texture_sampler = resources.device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some(&format!("{} Sampler", label)),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
-        let texture_bind_group = TextureBindGroup::new(
-            resources,
-            &texture_view,
-            &texture_sampler,
-            Some(&format!("{} TextureBindGroup", label)),
+        let texture = GpuTexture::new_empty(
+            device,
+            Some(&format!("{} Texture", label)),
+            texture_size,
+            P::IMAGE_FORMAT,
+            TextureKind::Updatable,
         );
 
         let allocator = etagere::BucketedAtlasAllocator::with_options(
             etagere::Size::new(
-                texture_size.0.try_into().unwrap(),
-                texture_size.1.try_into().unwrap(),
+                texture_size.width.try_into().unwrap(),
+                texture_size.height.try_into().unwrap(),
             ),
             &etagere::AllocatorOptions {
                 alignment: etagere::Size::new(8, 8), // TODO: make this configurable
@@ -121,25 +98,23 @@ impl<P: ImageProvider> DynamicAtlas<P> {
             image_provider,
             label,
             texture,
-            texture_bind_group,
-            texture_size,
             allocator: Mutex::new(allocator),
             active_allocations: RwLock::new(HashMap::default()),
             eviction_ready: Mutex::new(HashMap::default()),
         }
     }
 
-    pub fn texture_bind_group(&self) -> &TextureBindGroup {
-        &self.texture_bind_group
+    pub fn texture_size(&self) -> PhysicalSize<u32> {
+        self.texture.size()
     }
 
-    pub fn texture_size(&self) -> (u32, u32) {
-        self.texture_size
+    pub fn texture_source(&self) -> TextureSource {
+        self.texture.as_source()
     }
 
     /// Gets an image from the atlas, or adds it if it's not already there.
     /// Increases the ref count of the image.
-    pub fn get_image(&self, resources: &GpuCommonResources, id: P::Id) -> Option<AtlasImage> {
+    pub fn get_image(&self, queue: &wgpu::Queue, id: P::Id) -> Option<AtlasImage> {
         let mut active_allocations = self.active_allocations.write().unwrap();
 
         let entry = active_allocations.entry(id);
@@ -216,7 +191,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
 
                         // Upload the image to the atlas
                         let texture_copy_view = wgpu::ImageCopyTexture {
-                            texture: &self.texture,
+                            texture: self.texture.wgpu_texture(),
                             mip_level,
                             origin: wgpu::Origin3d {
                                 x: x / mip_scale,
@@ -226,7 +201,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                             aspect: Default::default(),
                         };
 
-                        resources.queue.write_texture(
+                        queue.write_texture(
                             texture_copy_view,
                             &data,
                             wgpu::ImageDataLayout {
@@ -438,8 +413,8 @@ impl<P: ImageProvider> OverlayVisitable for DynamicAtlas<P> {
                     .show(ctx, |ui| {
                         ui.label(format!(
                             "Atlas size: {}x{}\nFree space: {:.2}%",
-                            self.texture_size.0,
-                            self.texture_size.1,
+                            self.texture_size().width,
+                            self.texture_size().height,
                             100.0 * self.free_space()
                         ));
 

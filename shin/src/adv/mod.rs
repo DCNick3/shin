@@ -21,8 +21,7 @@ use shin_core::{
         Scripter,
     },
 };
-use shin_input::{inputs::MouseButton, Action, ActionMap, ActionState, InputSet};
-use shin_render::{GpuCommonResources, Renderable};
+use shin_input::{inputs::MouseButton, Action, ActionState};
 use smallvec::{smallvec, SmallVec};
 use tracing::{debug, warn};
 use vm_state::layers::ITER_VLAYER_SMALL_VECTOR_SIZE;
@@ -48,42 +47,42 @@ pub enum AdvMessageAction {
     Rollback,
 }
 
-impl Action for AdvMessageAction {
-    fn default_action_map() -> ActionMap<Self> {
-        fn map(v: AdvMessageAction) -> InputSet {
-            match v {
-                AdvMessageAction::Advance => [
-                    MouseButton::Left.into(),
-                    KeyCode::Enter.into(),
-                    KeyCode::Space.into(),
-                ]
-                .into_iter()
-                .collect(),
-                AdvMessageAction::HoldFastForward => {
-                    [KeyCode::ControlLeft.into()].into_iter().collect()
-                }
-                AdvMessageAction::Backlog => [].into_iter().collect(),
-                AdvMessageAction::Rollback => [].into_iter().collect(),
-            }
-        }
-
-        ActionMap::new(enum_map! { v => map(v) })
-    }
-}
+// impl Action for AdvMessageAction {
+//     fn default_action_map() -> ActionMap<Self> {
+//         fn map(v: AdvMessageAction) -> InputSet {
+//             match v {
+//                 AdvMessageAction::Advance => [
+//                     MouseButton::Left.into(),
+//                     KeyCode::Enter.into(),
+//                     KeyCode::Space.into(),
+//                 ]
+//                 .into_iter()
+//                 .collect(),
+//                 AdvMessageAction::HoldFastForward => {
+//                     [KeyCode::ControlLeft.into()].into_iter().collect()
+//                 }
+//                 AdvMessageAction::Backlog => [].into_iter().collect(),
+//                 AdvMessageAction::Rollback => [].into_iter().collect(),
+//             }
+//         }
+//
+//         ActionMap::new(enum_map! { v => map(v) })
+//     }
+// }
 
 pub struct Adv {
     scenario: Arc<Scenario>,
     scripter: Scripter,
     vm_state: VmState,
     adv_state: AdvState,
-    action_state: ActionState<AdvMessageAction>,
+    // action_state: ActionState<AdvMessageAction>,
     current_command: Option<ExecutingCommand>,
     fast_forward_to_bp: Option<BreakpointObserver>,
 }
 
 impl Adv {
     pub fn new(
-        resources: &GpuCommonResources,
+        // resources: &GpuCommonResources,
         audio_manager: Arc<AudioManager>,
         assets: AdvAssets,
         init_val: i32,
@@ -92,17 +91,19 @@ impl Adv {
         let scenario = assets.scenario.clone();
         let scripter = Scripter::new(&scenario, init_val, random_seed);
         let vm_state = VmState::new();
-        let adv_state = AdvState::new(resources, audio_manager, assets);
+        // let adv_state = AdvState::new(resources, audio_manager, assets);
 
-        Self {
-            scenario,
-            scripter,
-            vm_state,
-            adv_state,
-            action_state: ActionState::new(),
-            current_command: None,
-            fast_forward_to_bp: None,
-        }
+        todo!()
+
+        // Self {
+        //     scenario,
+        //     scripter,
+        //     vm_state,
+        //     adv_state,
+        //     // action_state: ActionState::new(),
+        //     current_command: None,
+        //     fast_forward_to_bp: None,
+        // }
     }
 
     pub fn fast_forward_to(&mut self, addr: CodeAddress) {
@@ -113,18 +114,19 @@ impl Adv {
 
 impl Updatable for Adv {
     fn update(&mut self, context: &UpdateContext) {
-        self.action_state.update(context.raw_input_state);
+        // self.action_state.update(context.raw_input_state);
 
-        let fast_forward_button_held = self
-            .action_state
-            .is_pressed(AdvMessageAction::HoldFastForward);
+        let fast_forward_button_held = false;
+        // self
+        //     .action_state
+        //     .is_pressed(AdvMessageAction::HoldFastForward);
 
-        if self.action_state.is_just_pressed(AdvMessageAction::Advance) {
-            self.adv_state
-                .root_layer_group
-                .message_layer_mut()
-                .advance();
-        }
+        // if self.action_state.is_just_pressed(AdvMessageAction::Advance) {
+        //     self.adv_state
+        //         .root_layer_group
+        //         .message_layer_mut()
+        //         .advance();
+        // }
 
         if fast_forward_button_held || self.fast_forward_to_bp.is_some() {
             self.adv_state
@@ -188,22 +190,22 @@ impl Updatable for Adv {
     }
 }
 
-impl Renderable for Adv {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        self.adv_state
-            .render(resources, render_pass, transform, projection);
-    }
-
-    fn resize(&mut self, resources: &GpuCommonResources) {
-        self.adv_state.resize(resources);
-    }
-}
+// impl Renderable for Adv {
+//     fn render<'enc>(
+//         &'enc self,
+//         resources: &'enc GpuCommonResources,
+//         render_pass: &mut wgpu::RenderPass<'enc>,
+//         transform: Mat4,
+//         projection: Mat4,
+//     ) {
+//         self.adv_state
+//             .render(resources, render_pass, transform, projection);
+//     }
+//
+//     fn resize(&mut self, resources: &GpuCommonResources) {
+//         self.adv_state.resize(resources);
+//     }
+// }
 
 impl OverlayVisitable for Adv {
     fn visit_overlay(&self, collector: &mut OverlayCollector) {
@@ -271,20 +273,22 @@ pub struct AdvState {
 
 impl AdvState {
     pub fn new(
-        resources: &GpuCommonResources,
+        // resources: &GpuCommonResources,
         audio_manager: Arc<AudioManager>,
         assets: AdvAssets,
     ) -> Self {
-        Self {
-            root_layer_group: RootLayerGroup::new(
-                resources,
-                ScreenLayer::new(resources),
-                MessageLayer::new(resources, assets.fonts, assets.messagebox_textures),
-            ),
-            audio_manager: audio_manager.clone(),
-            bgm_player: BgmPlayer::new(audio_manager.clone()),
-            se_player: SePlayer::new(audio_manager),
-        }
+        todo!()
+
+        // Self {
+        //     root_layer_group: RootLayerGroup::new(
+        //         // resources,
+        //         ScreenLayer::new(resources),
+        //         MessageLayer::new(resources, assets.fonts, assets.messagebox_textures),
+        //     ),
+        //     audio_manager: audio_manager.clone(),
+        //     bgm_player: BgmPlayer::new(audio_manager.clone()),
+        //     se_player: SePlayer::new(audio_manager),
+        // }
     }
 
     pub fn current_plane_layer_group(&self, vm_state: &VmState) -> &LayerGroup {
@@ -406,19 +410,19 @@ impl Updatable for AdvState {
     }
 }
 
-impl Renderable for AdvState {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        self.root_layer_group
-            .render(resources, render_pass, transform, projection);
-    }
-
-    fn resize(&mut self, resources: &GpuCommonResources) {
-        self.root_layer_group.resize(resources);
-    }
-}
+// impl Renderable for AdvState {
+//     fn render<'enc>(
+//         &'enc self,
+//         resources: &'enc GpuCommonResources,
+//         render_pass: &mut wgpu::RenderPass<'enc>,
+//         transform: Mat4,
+//         projection: Mat4,
+//     ) {
+//         self.root_layer_group
+//             .render(resources, render_pass, transform, projection);
+//     }
+//
+//     fn resize(&mut self, resources: &GpuCommonResources) {
+//         self.root_layer_group.resize(resources);
+//     }
+// }

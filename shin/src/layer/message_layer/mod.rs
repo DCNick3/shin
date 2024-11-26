@@ -6,12 +6,10 @@ use std::sync::Arc;
 
 use glam::{vec2, Mat4};
 use message::{Message, MessageStatus};
-pub use messagebox::MessageboxTextures;
 use shin_core::{
     time::Ticks,
     vm::command::types::{MessageboxStyle, MessageboxType},
 };
-use shin_render::{GpuCommonResources, Renderable};
 
 use crate::{
     adv::assets::AdvFonts,
@@ -32,17 +30,13 @@ pub struct MessageLayer {
 }
 
 impl MessageLayer {
-    pub fn new(
-        resources: &GpuCommonResources,
-        fonts: AdvFonts,
-        textures: Arc<MessageboxTextures>,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, fonts: AdvFonts, textures: ()) -> Self {
         Self {
             props: LayerProperties::new(),
             style: MessageboxStyle::default(),
-            font_atlas: Arc::new(FontAtlas::new(resources, fonts.medium_font)),
+            font_atlas: Arc::new(FontAtlas::new(device, queue, fonts.medium_font)),
             message: None,
-            messagebox: Messagebox::new(textures, resources),
+            messagebox: Messagebox::new(textures),
         }
     }
 
@@ -117,26 +111,26 @@ impl MessageLayer {
     }
 }
 
-impl Renderable for MessageLayer {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        let transform = self.props.compute_transform(transform);
-        self.messagebox
-            .render(resources, render_pass, transform, projection);
-        if let Some(message) = &self.message {
-            message.render(resources, render_pass, transform, projection);
-        }
-    }
-
-    fn resize(&mut self, _resources: &GpuCommonResources) {
-        // no internal buffers to resize
-    }
-}
+// impl Renderable for MessageLayer {
+//     fn render<'enc>(
+//         &'enc self,
+//         resources: &'enc GpuCommonResources,
+//         render_pass: &mut wgpu::RenderPass<'enc>,
+//         transform: Mat4,
+//         projection: Mat4,
+//     ) {
+//         let transform = self.props.compute_transform(transform);
+//         self.messagebox
+//             .render(resources, render_pass, transform, projection);
+//         if let Some(message) = &self.message {
+//             message.render(resources, render_pass, transform, projection);
+//         }
+//     }
+//
+//     fn resize(&mut self, _resources: &GpuCommonResources) {
+//         // no internal buffers to resize
+//     }
+// }
 
 impl Updatable for MessageLayer {
     fn update(&mut self, ctx: &UpdateContext) {

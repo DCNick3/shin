@@ -92,6 +92,52 @@ pub struct WgpuInitResult<'window> {
     pub queue: Arc<wgpu::Queue>,
 }
 
+impl WgpuInitResult<'static> {
+    pub fn into_resources(
+        self,
+        surface_resize_handle: ResizeHandle<SurfaceSize>,
+        canvas_resize_handle: ResizeHandle<CanvasSize>,
+    ) -> (WgpuResources, RenderResources) {
+        let dynamic_buffer = DynamicBuffer::new(
+            self.device.clone(),
+            self.queue.clone(),
+            BytesAddress::new(1024 * 1024),
+        );
+
+        let pipelines = PipelineStorage::new(self.device.clone(), self.surface_texture_format);
+
+        let surface_depth_stencil_buffer = ResizeableTexture::new(
+            self.device.clone(),
+            Some("Surface DepthStencil"),
+            DEPTH_STENCIL_FORMAT,
+            surface_resize_handle,
+        );
+        let canvas_depth_stencil_buffer = ResizeableTexture::new(
+            self.device.clone(),
+            Some("Canvas DepthStencil"),
+            DEPTH_STENCIL_FORMAT,
+            canvas_resize_handle,
+        );
+
+        (
+            WgpuResources {
+                instance: self.instance,
+                adapter: self.adapter,
+                device: self.device,
+                queue: self.queue,
+            },
+            RenderResources {
+                surface: self.surface,
+                surface_depth_stencil_buffer,
+                canvas_depth_stencil_buffer,
+                dynamic_buffer,
+                pipelines,
+                surface_texture_format: self.surface_texture_format,
+            },
+        )
+    }
+}
+
 pub async fn init_wgpu<'window>(
     surface_target: impl Into<SurfaceTarget<'window>>,
     surface_resize_handle: ResizeHandle<SurfaceSize>,
@@ -206,16 +252,19 @@ pub fn surface_reinit<'window>(
     ))
 }
 
-pub struct RenderResources {
-    // the wgpu stuff
+pub struct WgpuResources {
     pub instance: wgpu::Instance,
     pub adapter: wgpu::Adapter,
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
+}
 
+pub struct RenderResources {
     // render-related resources
     pub surface: ResizeableSurface<'static>,
     // keeping two depth stencil buffers because surface and canvas can potentially be of different sizes
+    // needed to initiate render passes
+    // might want to move it to a separate struct
     pub surface_depth_stencil_buffer: ResizeableTexture<SurfaceSize>,
     pub canvas_depth_stencil_buffer: ResizeableTexture<CanvasSize>,
     pub dynamic_buffer: DynamicBuffer,
@@ -223,46 +272,4 @@ pub struct RenderResources {
 
     // render parameters or idk
     pub surface_texture_format: wgpu::TextureFormat,
-}
-
-impl RenderResources {
-    pub fn new(
-        wgpu: WgpuInitResult<'static>,
-        surface_resize_handle: ResizeHandle<SurfaceSize>,
-        canvas_resize_handle: ResizeHandle<CanvasSize>,
-    ) -> Self {
-        let dynamic_buffer = DynamicBuffer::new(
-            wgpu.device.clone(),
-            wgpu.queue.clone(),
-            BytesAddress::new(1024 * 1024),
-        );
-
-        let pipelines = PipelineStorage::new(wgpu.device.clone(), wgpu.surface_texture_format);
-
-        let surface_depth_stencil_buffer = ResizeableTexture::new(
-            wgpu.device.clone(),
-            Some("Surface DepthStencil"),
-            DEPTH_STENCIL_FORMAT,
-            surface_resize_handle,
-        );
-        let canvas_depth_stencil_buffer = ResizeableTexture::new(
-            wgpu.device.clone(),
-            Some("Canvas DepthStencil"),
-            DEPTH_STENCIL_FORMAT,
-            canvas_resize_handle,
-        );
-
-        Self {
-            instance: wgpu.instance,
-            adapter: wgpu.adapter,
-            device: wgpu.device,
-            queue: wgpu.queue,
-            surface: wgpu.surface,
-            surface_depth_stencil_buffer,
-            canvas_depth_stencil_buffer,
-            dynamic_buffer,
-            pipelines,
-            surface_texture_format: wgpu.surface_texture_format,
-        }
-    }
 }

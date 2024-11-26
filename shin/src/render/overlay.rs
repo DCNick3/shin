@@ -9,8 +9,7 @@ use egui::{
 use egui_wgpu::{Renderer, ScreenDescriptor};
 use enum_map::{enum_map, Enum};
 use glam::vec2;
-use shin_input::{inputs::MouseButton, Action, ActionMap, ActionState, InputSet, RawInputState};
-use shin_render::GpuCommonResources;
+use shin_input::{inputs::MouseButton, Action, ActionState, RawInputState};
 use winit::keyboard::KeyCode;
 
 use crate::time::Time;
@@ -21,23 +20,23 @@ pub enum OverlayManagerAction {
     ToggleOverlayManager,
 }
 
-impl Action for OverlayManagerAction {
-    fn default_action_map() -> ActionMap<Self> {
-        fn map(v: OverlayManagerAction) -> InputSet {
-            match v {
-                OverlayManagerAction::ToggleOverlayManager => {
-                    [KeyCode::F3.into()].into_iter().collect()
-                }
-            }
-        }
-
-        ActionMap::new(enum_map! { v => map(v) })
-    }
-}
+// impl Action for OverlayManagerAction {
+//     fn default_action_map() -> ActionMap<Self> {
+//         fn map(v: OverlayManagerAction) -> InputSet {
+//             match v {
+//                 OverlayManagerAction::ToggleOverlayManager => {
+//                     [KeyCode::F3.into()].into_iter().collect()
+//                 }
+//             }
+//         }
+//
+//         ActionMap::new(enum_map! { v => map(v) })
+//     }
+// }
 
 pub struct OverlayManager {
     show_overlays_window: bool,
-    action_state: ActionState<OverlayManagerAction>,
+    // action_state: ActionState<OverlayManagerAction>,
     renderer: Renderer,
     context: Context,
     primitives: Vec<ClippedPrimitive>,
@@ -47,8 +46,8 @@ pub struct OverlayManager {
 }
 
 impl OverlayManager {
-    pub fn new(resources: &GpuCommonResources, texture_format: wgpu::TextureFormat) -> Self {
-        let renderer = Renderer::new(&resources.device, texture_format, None, 1, false);
+    pub fn new(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> Self {
+        let renderer = Renderer::new(device, texture_format, None, 1, false);
         let context = Context::default();
 
         let alpha = 128;
@@ -113,7 +112,7 @@ impl OverlayManager {
 
         Self {
             show_overlays_window: false,
-            action_state: ActionState::new(),
+            // action_state: ActionState::new(),
             renderer,
             context,
             primitives: Vec::new(),
@@ -150,14 +149,14 @@ impl OverlayManager {
     ) {
         let ctx = &self.context;
 
-        self.action_state.update(raw_input_state);
-
-        if self
-            .action_state
-            .is_just_pressed(OverlayManagerAction::ToggleOverlayManager)
-        {
-            self.show_overlays_window = !self.show_overlays_window;
-        }
+        // self.action_state.update(raw_input_state);
+        //
+        // if self
+        //     .action_state
+        //     .is_just_pressed(OverlayManagerAction::ToggleOverlayManager)
+        // {
+        //     self.show_overlays_window = !self.show_overlays_window;
+        // }
 
         for id in self.free_textures.drain(..) {
             self.renderer.free_texture(&id);
@@ -168,16 +167,17 @@ impl OverlayManager {
         let mut events = Vec::new();
 
         let mouse_pos = Pos2::new(
-            raw_input_state.mouse_position.x / ctx.pixels_per_point(),
-            raw_input_state.mouse_position.y / ctx.pixels_per_point(),
+            raw_input_state.mouse.position.x / ctx.pixels_per_point(),
+            raw_input_state.mouse.position.y / ctx.pixels_per_point(),
         );
 
         events.push(egui::Event::PointerMoved(mouse_pos));
         events.extend(
             self.prev_input
-                .mouse_buttons
+                .mouse
+                .buttons
                 .iter()
-                .zip(raw_input_state.mouse_buttons.values())
+                .zip(raw_input_state.mouse.buttons.values())
                 .filter_map(|((button, &prev), &new)| {
                     if prev != new {
                         Some(egui::Event::PointerButton {
@@ -230,6 +230,7 @@ impl OverlayManager {
             hovered_files: vec![],
             dropped_files: vec![],
             focused: false,
+            system_theme: None,
         };
 
         self.prev_input = raw_input_state.clone();
@@ -278,7 +279,8 @@ impl OverlayManager {
 
     pub fn finish_update(
         &mut self,
-        resources: &GpuCommonResources,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
         // yes, we can mutate the input state
         // this is needed to consume the mouse events
         raw_input_state: &mut RawInputState,
@@ -289,10 +291,11 @@ impl OverlayManager {
         // consume mouse events if egui wants them
         if ctx.wants_pointer_input() {
             raw_input_state
-                .mouse_buttons
+                .mouse
+                .buttons
                 .values_mut()
                 .for_each(|v| *v = false);
-            raw_input_state.mouse_scroll_amount = 0.0;
+            raw_input_state.mouse.scroll_amount = 0.0;
         }
 
         // TODO: handle platform outputs or smth
@@ -301,40 +304,36 @@ impl OverlayManager {
 
         // update the textures as requested
         for (id, tex) in full_output.textures_delta.set {
-            self.renderer
-                .update_texture(&resources.device, &resources.queue, id, &tex);
+            self.renderer.update_texture(device, queue, id, &tex);
         }
 
-        let mut encoder =
-            resources
-                .device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Egui Encoder"),
-                });
-
-        let user_cmd_bufs = self.renderer.update_buffers(
-            &resources.device,
-            &resources.queue,
-            &mut encoder,
-            &self.primitives,
-            &self.screen_descriptor(),
-        );
-
-        resources.queue.submit(
-            user_cmd_bufs
-                .into_iter()
-                .chain(std::iter::once(encoder.finish())),
-        );
+        // let mut encoder =
+        //     resources
+        //         .device
+        //         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        //             label: Some("Egui Encoder"),
+        //         });
+        //
+        // let user_cmd_bufs = self.renderer.update_buffers(
+        //     &resources.device,
+        //     &resources.queue,
+        //     &mut encoder,
+        //     &self.primitives,
+        //     &self.screen_descriptor(),
+        // );
+        //
+        // resources.queue.submit(
+        //     user_cmd_bufs
+        //         .into_iter()
+        //         .chain(std::iter::once(encoder.finish())),
+        // );
     }
 
-    pub fn render<'a>(
-        &'a self,
-        _resources: &GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
+    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.push_debug_group("Overlay");
-        self.renderer
-            .render(render_pass, &self.primitives, &self.screen_descriptor());
+        todo!();
+        // self.renderer
+        //     .render(render_pass, &self.primitives, &self.screen_descriptor());
         render_pass.pop_debug_group();
     }
 }

@@ -2,15 +2,14 @@ use std::{sync::Arc, time::Duration};
 
 use enum_dispatch::enum_dispatch;
 use shin_core::time::Ticks;
-use shin_render::GpuCommonResources;
 
-use crate::{asset::AnyAssetServer, input::RawInputState, layer::UserLayer, time::Time};
+use crate::{asset::AssetServer, layer::UserLayer, time::Time};
 
 pub struct UpdateContext<'a> {
     pub time: &'a Time,
-    pub gpu_resources: &'a Arc<GpuCommonResources>,
-    pub asset_server: &'a Arc<AnyAssetServer>,
-    pub raw_input_state: &'a RawInputState,
+    // pub gpu_resources: &'a Arc<GpuCommonResources>,
+    pub asset_server: &'a Arc<AssetServer>,
+    // pub raw_input_state: &'a RawInputState,
 }
 
 impl<'a> UpdateContext<'a> {

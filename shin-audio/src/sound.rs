@@ -16,7 +16,7 @@ use shin_core::{
     time::{Ticks, Tween, Tweener},
     vm::command::types::{AudioWaitStatus, Pan, Volume},
 };
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::{resampler::Resampler, AudioData};
 

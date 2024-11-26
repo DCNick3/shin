@@ -16,6 +16,7 @@ shin-tasks = { path = "../shin-tasks" }
 shin-audio = { path = "../shin-audio" }
 shin-input = { path = "../shin-input" }
 shin-video = { path = "../shin-video" }
+shin-window = { path = "../shin-window" }
 
 anyhow = { workspace = true }
 async-trait = "0.1.81"

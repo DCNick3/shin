@@ -1,7 +1,10 @@
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::{fs::File, path::PathBuf};
 
 use anyhow::{Context, Result};
-use shin_core::format::rom::{IndexEntry, IndexFile};
+use shin_core::{
+    format::rom::{IndexEntry, IndexFile},
+    primitives::stateless_reader::StatelessFile,
+};
 
 #[derive(clap::Subcommand, Debug)]
 pub enum RomCommand {
@@ -33,7 +36,7 @@ pub fn rom_command(command: RomCommand) -> Result<()> {
     match command {
         RomCommand::List { rom_path: path } => {
             let rom = File::open(path).context("Opening rom file")?;
-            let rom = BufReader::new(rom);
+            let rom = StatelessFile::new(rom).context("Creating stateless file")?;
             let reader = shin_core::format::rom::RomReader::new(rom).context("Parsing ROM")?;
             for (name, entry) in reader.traverse() {
                 let ty = match entry {
@@ -51,7 +54,7 @@ pub fn rom_command(command: RomCommand) -> Result<()> {
         } => {
             use std::io::Read;
             let rom = File::open(rom_path).context("Opening rom file")?;
-            let rom = BufReader::new(rom);
+            let rom = StatelessFile::new(rom).context("Creating stateless file")?;
             let mut reader = shin_core::format::rom::RomReader::new(rom).context("Parsing ROM")?;
             let file = reader
                 .find_file(&rom_filename)
@@ -69,7 +72,7 @@ pub fn rom_command(command: RomCommand) -> Result<()> {
         } => {
             use std::io::Read;
             let rom = File::open(rom_path).context("Opening rom file")?;
-            let rom = BufReader::new(rom);
+            let rom = StatelessFile::new(rom).context("Creating stateless file")?;
             let mut reader = shin_core::format::rom::RomReader::new(rom).context("Parsing ROM")?;
 
             // First, make a list of all the files in the rom

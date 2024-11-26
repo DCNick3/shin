@@ -46,21 +46,22 @@ impl StartableCommand for command::runtime::LAYERLOAD {
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         // TODO: loading should be done async
-        let resources = context.gpu_resources.clone();
+        // let resources = context.gpu_resources.clone();
         let asset_server = context.asset_server.clone();
         let audio_manager = adv_state.audio_manager.clone();
         let scenario = scenario.clone();
 
         let load_task = AsyncComputeTaskPool::get().spawn(async move {
-            UserLayer::load(
-                &resources,
-                &asset_server,
-                &audio_manager,
-                &scenario,
-                self.layer_type,
-                self.params,
-            )
-            .await
+            todo!()
+            // UserLayer::load(
+            //     &resources,
+            //     &asset_server,
+            //     &audio_manager,
+            //     &scenario,
+            //     self.layer_type,
+            //     self.params,
+            // )
+            // .await
         });
 
         Yield(

@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use glam::Mat4;
-use shin_render::{GpuCommonResources, Renderable};
 
 use crate::{
     layer::{Layer, LayerProperties},
@@ -20,20 +19,20 @@ impl NullLayer {
     }
 }
 
-impl Renderable for NullLayer {
-    fn render<'enc>(
-        &'enc self,
-        _resources: &'enc GpuCommonResources,
-        _render_pass: &mut wgpu::RenderPass<'enc>,
-        _transform: Mat4,
-        _projection: Mat4,
-    ) {
-    }
-
-    fn resize(&mut self, _resources: &GpuCommonResources) {
-        // no internal buffers to resize
-    }
-}
+// impl Renderable for NullLayer {
+//     fn render<'enc>(
+//         &'enc self,
+//         _resources: &'enc GpuCommonResources,
+//         _render_pass: &mut wgpu::RenderPass<'enc>,
+//         _transform: Mat4,
+//         _projection: Mat4,
+//     ) {
+//     }
+//
+//     fn resize(&mut self, _resources: &GpuCommonResources) {
+//         // no internal buffers to resize
+//     }
+// }
 
 impl Updatable for NullLayer {
     fn update(&mut self, _ctx: &UpdateContext) {}

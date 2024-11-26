@@ -4,17 +4,14 @@ use anyhow::Result;
 use futures::try_join;
 use shin_core::format::{font::LazyFont, scenario::Scenario};
 
-use crate::{
-    asset::{asset_paths, AnyAssetServer},
-    layer::MessageboxTextures,
-};
+use crate::asset::{asset_paths, AssetServer};
 
 // TODO: this can be done with a macro
 #[derive(Clone)]
 pub struct AdvAssets {
     pub scenario: Arc<Scenario>,
     pub fonts: AdvFonts,
-    pub messagebox_textures: Arc<MessageboxTextures>,
+    // pub messagebox_textures: Arc<MessageboxTextures>,
 }
 
 #[derive(Clone)]
@@ -25,23 +22,23 @@ pub struct AdvFonts {
 }
 
 impl AdvAssets {
-    pub async fn load(asset_server: &AnyAssetServer) -> Result<Self> {
+    pub async fn load(asset_server: &AssetServer) -> Result<Self> {
         let result = try_join!(
             asset_server.load(asset_paths::SCENARIO),
             AdvFonts::load(asset_server),
-            asset_server.load(asset_paths::MSGTEX),
+            // asset_server.load(asset_paths::MSGTEX),
         )?;
 
         Ok(Self {
             scenario: result.0,
             fonts: result.1,
-            messagebox_textures: result.2,
+            // messagebox_textures: result.2,
         })
     }
 }
 
 impl AdvFonts {
-    pub async fn load(asset_server: &AnyAssetServer) -> Result<Self> {
+    pub async fn load(asset_server: &AssetServer) -> Result<Self> {
         let result = try_join!(
             asset_server.load(asset_paths::SYSTEM_FNT),
             asset_server.load(asset_paths::NEWRODIN_MEDIUM_FNT),
