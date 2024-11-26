@@ -1,7 +1,6 @@
 use std::{fmt::Debug, sync::Arc};
 
 use glam::Mat4;
-use shin_render::{GpuCommonResources, Renderable};
 
 use crate::{
     asset::picture::Picture,
@@ -18,12 +17,12 @@ pub struct PictureLayer {
 
 impl PictureLayer {
     pub fn new(
-        resources: &GpuCommonResources,
+        // resources: &GpuCommonResources,
         picture: Arc<Picture>,
         picture_name: Option<String>,
     ) -> Self {
         // ensure the picture is loaded to gpu
-        picture.gpu_image(resources);
+        // picture.gpu_image(resources);
 
         Self {
             picture,
@@ -33,29 +32,29 @@ impl PictureLayer {
     }
 }
 
-impl Renderable for PictureLayer {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        let total_transform = projection * self.props.compute_transform(transform);
-        // TODO: there should be a generic function to render a layer (from texture?)
-        let gpu_image = self.picture.gpu_image(resources);
-        resources.draw_sprite(
-            render_pass,
-            gpu_image.vertex_source(),
-            gpu_image.bind_group(),
-            total_transform,
-        );
-    }
-
-    fn resize(&mut self, _resources: &GpuCommonResources) {
-        // no internal buffers to resize
-    }
-}
+// impl Renderable for PictureLayer {
+//     fn render<'enc>(
+//         &'enc self,
+//         resources: &'enc GpuCommonResources,
+//         render_pass: &mut wgpu::RenderPass<'enc>,
+//         transform: Mat4,
+//         projection: Mat4,
+//     ) {
+//         let total_transform = projection * self.props.compute_transform(transform);
+//         // TODO: there should be a generic function to render a layer (from texture?)
+//         let gpu_image = self.picture.gpu_image(resources);
+//         resources.draw_sprite(
+//             render_pass,
+//             gpu_image.vertex_source(),
+//             gpu_image.bind_group(),
+//             total_transform,
+//         );
+//     }
+//
+//     fn resize(&mut self, _resources: &GpuCommonResources) {
+//         // no internal buffers to resize
+//     }
+// }
 
 impl Updatable for PictureLayer {
     fn update(&mut self, ctx: &UpdateContext) {

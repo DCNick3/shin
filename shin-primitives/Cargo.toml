@@ -1,0 +1,9 @@
+[package]
+name = "shin-primitives"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cfg-if = "1.0.0"
+
+#[features]

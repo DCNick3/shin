@@ -9,6 +9,7 @@ authors = ["DCNick3"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+shin-primitives = { path = "../shin-primitives" }
 shin-tasks = { path = "../shin-tasks" }
 
 # derive macros

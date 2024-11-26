@@ -46,7 +46,7 @@ impl VideoFrameTexture {
 
         queue.write_texture(
             wgpu::ImageCopyTexture {
-                texture: self.tex_y.texture(),
+                texture: self.tex_y.wgpu_texture(),
                 mip_level: 0,
                 origin: Default::default(),
                 aspect: wgpu::TextureAspect::All,
@@ -65,7 +65,7 @@ impl VideoFrameTexture {
         );
         queue.write_texture(
             wgpu::ImageCopyTexture {
-                texture: self.tex_uv.texture(),
+                texture: self.tex_uv.wgpu_texture(),
                 mip_level: 0,
                 origin: Default::default(),
                 aspect: Default::default(),

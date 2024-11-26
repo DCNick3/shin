@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use shin_core::format::font::{GlyphId, GlyphMipLevel, GlyphTrait, LazyFont};
-use shin_render::{GpuCommonResources, TextureBindGroup};
+use shin_render::shaders::types::texture::TextureSource;
 use strum::IntoEnumIterator;
 use wgpu::TextureFormat;
+use winit::dpi::PhysicalSize;
 
 use crate::render::{
     dynamic_atlas::{AtlasImage, DynamicAtlas, ImageProvider},
@@ -34,7 +35,7 @@ impl ImageProvider for FontImageProvider {
     }
 }
 
-const TEXTURE_SIZE: (u32, u32) = (2048, 2048);
+const TEXTURE_SIZE: PhysicalSize<u32> = PhysicalSize::new(2048, 2048);
 
 // TODO: later this should migrate away from the MessageLayer and ideally should be shared with all the game
 pub struct FontAtlas {
@@ -45,14 +46,14 @@ const COMMON_CHARACTERS: &str =
     "…\u{3000}、。「」あいうえおかがきくけこさしじすせそただちっつてでとどなにねのはひまめもゃやよらりるれろわをんー亞人代右宮戦真里\u{f8f0}！？";
 
 impl FontAtlas {
-    pub fn new(resources: &GpuCommonResources, font: Arc<LazyFont>) -> Self {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, font: Arc<LazyFont>) -> Self {
         let provider = FontImageProvider { font };
-        let atlas = DynamicAtlas::new(resources, provider, TEXTURE_SIZE, Some("FontAtlas"));
+        let atlas = DynamicAtlas::new(device, provider, TEXTURE_SIZE, Some("FontAtlas"));
 
         // Preload some common characters (not unloadable)
         for c in COMMON_CHARACTERS.chars() {
             let glyph_id = atlas.provider().font.get_character_mapping()[c as usize];
-            let _ = atlas.get_image(resources, glyph_id);
+            let _ = atlas.get_image(queue, glyph_id);
         }
 
         Self { atlas }
@@ -62,18 +63,18 @@ impl FontAtlas {
         &self.atlas.provider().font
     }
 
-    pub fn texture_bind_group(&self) -> &TextureBindGroup {
-        self.atlas.texture_bind_group()
+    pub fn texture_source(&self) -> TextureSource {
+        self.atlas.texture_source()
     }
 
-    pub fn texture_size(&self) -> (u32, u32) {
+    pub fn texture_size(&self) -> PhysicalSize<u32> {
         self.atlas.texture_size()
     }
 
-    pub fn get_glyph(&self, resources: &GpuCommonResources, charcode: u16) -> AtlasImage {
+    pub fn get_glyph(&self, queue: &wgpu::Queue, charcode: u16) -> AtlasImage {
         let glyph_id = self.get_font().get_character_mapping()[charcode as usize];
         self.atlas
-            .get_image(resources, glyph_id)
+            .get_image(queue, glyph_id)
             .expect("Could not fit image in atlas")
     }
 

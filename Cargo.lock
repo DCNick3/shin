@@ -5438,6 +5438,7 @@ dependencies = [
  "shin-render",
  "shin-tasks",
  "shin-video",
+ "shin-window",
  "smallvec 1.9.0",
  "strum",
  "tracing",
@@ -5522,6 +5523,7 @@ dependencies = [
  "serde",
  "serde-big-array",
  "shin-derive",
+ "shin-primitives",
  "shin-tasks",
  "smallvec 1.9.0",
  "smartstring",
@@ -5561,6 +5563,13 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "winit",
+]
+
+[[package]]
+name = "shin-primitives"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]

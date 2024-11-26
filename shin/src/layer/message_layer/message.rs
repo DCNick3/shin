@@ -9,7 +9,6 @@ use shin_core::{
     time::Ticks,
     vm::command::types::MessageTextLayout,
 };
-use shin_render::{vertices::TextVertex, GpuCommonResources, Renderable, VertexBuffer};
 use tracing::warn;
 
 use crate::{
@@ -32,7 +31,7 @@ pub struct Message {
     used_codepoints: Vec<u16>,
     actions: Vec<Action>,
     blocks: Vec<Block>,
-    vertex_buffer: VertexBuffer<TextVertex>,
+    // vertex_buffer: VertexBuffer<TextVertex>,
     sent_signals: u32,
     received_signals: u32,
     completed_blocks: u32,
@@ -136,7 +135,7 @@ impl Message {
             .chain(chars);
 
         let mut used_codepoints = Vec::new();
-        let mut vertices = Vec::new();
+        // let mut vertices = Vec::new();
         for char in all_chars_iter {
             // TODO: support for BOLD font
             let glyph_info = font_atlas
@@ -145,12 +144,12 @@ impl Message {
                 .get_info();
 
             let atlas_size = font_atlas.texture_size();
-            let atlas_size = vec2(atlas_size.0 as f32, atlas_size.1 as f32);
+            let atlas_size = vec2(atlas_size.width as f32, atlas_size.height as f32);
 
             let AtlasImage {
                 position: tex_position,
                 size: _, // the atlas size is not to be trusted, as it can be larger than the actual texture (even larger than the power of 2 padded texture...)
-            } = font_atlas.get_glyph(context.gpu_resources, char.codepoint);
+            } = font_atlas.get_glyph(todo!(), char.codepoint);
             // save the codepoint to free it from the atlas later
             used_codepoints.push(char.codepoint);
 
@@ -189,23 +188,24 @@ impl Message {
                 };
             }
 
-            vertices.extend([
-                // Top left triangle
-                v!((0.0, 0.0), (0.0, 0.0)),
-                v!((1.0, 0.0), (1.0, 0.0)),
-                v!((0.0, 1.0), (0.0, 1.0)),
-                // Bottom right triangle
-                v!((1.0, 1.0), (1.0, 1.0)),
-                v!((0.0, 1.0), (0.0, 1.0)),
-                v!((1.0, 0.0), (1.0, 0.0)),
-            ]);
+            todo!()
+            // vertices.extend([
+            //     // Top left triangle
+            //     v!((0.0, 0.0), (0.0, 0.0)),
+            //     v!((1.0, 0.0), (1.0, 0.0)),
+            //     v!((0.0, 1.0), (0.0, 1.0)),
+            //     // Bottom right triangle
+            //     v!((1.0, 1.0), (1.0, 1.0)),
+            //     v!((0.0, 1.0), (0.0, 1.0)),
+            //     v!((1.0, 0.0), (1.0, 0.0)),
+            // ]);
         }
 
-        let vertex_buffer = VertexBuffer::new(
-            context.gpu_resources,
-            &vertices,
-            Some("Message VertexBuffer"),
-        );
+        // let vertex_buffer = VertexBuffer::new(
+        //     context.gpu_resources,
+        //     &vertices,
+        //     Some("Message VertexBuffer"),
+        // );
 
         Self {
             time: Ticks::ZERO,
@@ -213,7 +213,7 @@ impl Message {
             used_codepoints,
             actions,
             blocks,
-            vertex_buffer,
+            // vertex_buffer,
             sent_signals: 0,
             received_signals: 0,
             completed_blocks: 0,
@@ -352,43 +352,43 @@ impl Updatable for Message {
     }
 }
 
-impl Renderable for Message {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        const OUTLINE_DISTANCE: f32 = 3.5;
-
-        let total_transform = projection * transform;
-
-        let atlas_size = self.font_atlas.texture_size();
-        let scaled_distance = OUTLINE_DISTANCE / vec2(atlas_size.0 as f32, atlas_size.1 as f32);
-
-        render_pass.push_debug_group("Message");
-        resources.draw_text_outline(
-            render_pass,
-            self.vertex_buffer.vertex_source(),
-            self.font_atlas.texture_bind_group(),
-            total_transform,
-            self.time,
-            scaled_distance,
-        );
-
-        resources.draw_text(
-            render_pass,
-            self.vertex_buffer.vertex_source(),
-            self.font_atlas.texture_bind_group(),
-            total_transform,
-            self.time,
-        );
-        render_pass.pop_debug_group();
-    }
-
-    fn resize(&mut self, _resources: &GpuCommonResources) {}
-}
+// impl Renderable for Message {
+//     fn render<'enc>(
+//         &'enc self,
+//         resources: &'enc GpuCommonResources,
+//         render_pass: &mut wgpu::RenderPass<'enc>,
+//         transform: Mat4,
+//         projection: Mat4,
+//     ) {
+//         const OUTLINE_DISTANCE: f32 = 3.5;
+//
+//         let total_transform = projection * transform;
+//
+//         let atlas_size = self.font_atlas.texture_size();
+//         let scaled_distance = OUTLINE_DISTANCE / vec2(atlas_size.0 as f32, atlas_size.1 as f32);
+//
+//         render_pass.push_debug_group("Message");
+//         resources.draw_text_outline(
+//             render_pass,
+//             self.vertex_buffer.vertex_source(),
+//             self.font_atlas.texture_bind_group(),
+//             total_transform,
+//             self.time,
+//             scaled_distance,
+//         );
+//
+//         resources.draw_text(
+//             render_pass,
+//             self.vertex_buffer.vertex_source(),
+//             self.font_atlas.texture_bind_group(),
+//             total_transform,
+//             self.time,
+//         );
+//         render_pass.pop_debug_group();
+//     }
+//
+//     fn resize(&mut self, _resources: &GpuCommonResources) {}
+// }
 
 impl Drop for Message {
     fn drop(&mut self) {

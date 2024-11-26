@@ -18,5 +18,5 @@ pub mod asset_paths {
 
 pub use locate::locate_assets;
 pub use server::{
-    AnyAssetIo, AnyAssetServer, Asset, AssetIo, AssetServer, DirAssetIo, LayeredAssetIo, RomAssetIo,
+    Asset, AssetDataAccessor, AssetIo, AssetServer, DirAssetIo, LayeredAssetIo, RomAssetIo,
 };

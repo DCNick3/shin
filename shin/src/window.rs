@@ -4,9 +4,6 @@ use anyhow::{Context, Result};
 use glam::Mat4;
 use shin_audio::AudioManager;
 use shin_core::format::scenario::instruction_elements::CodeAddress;
-use shin_render::{
-    BindGroupLayouts, Camera, GpuCommonResources, Pillarbox, Pipelines, RenderTarget, Renderable,
-};
 use tracing::{debug, info, warn};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;

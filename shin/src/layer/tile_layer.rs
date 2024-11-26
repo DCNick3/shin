@@ -1,7 +1,6 @@
 use std::{fmt::Debug, sync::Arc};
 
 use glam::{vec4, Mat4, Vec4};
-use shin_render::{GpuCommonResources, PosVertexBuffer, Renderable};
 
 use crate::{
     layer::{Layer, LayerProperties},
@@ -10,15 +9,14 @@ use crate::{
 
 pub struct TileLayer {
     vertex_color: Vec4,
-    vertex_buffer: Arc<PosVertexBuffer>,
-
+    // vertex_buffer: Arc<PosVertexBuffer>,
     props: LayerProperties,
 }
 
 impl TileLayer {
     #[allow(clippy::identity_op)]
     pub fn new(
-        resources: &GpuCommonResources,
+        // resources: &GpuCommonResources,
         tile_color: i32,
         offset_x: i32,
         offset_y: i32,
@@ -45,39 +43,41 @@ impl TileLayer {
             (offset_y + height) as f32,
         );
 
-        let vertex_buffer = PosVertexBuffer::new(resources, rect);
+        todo!()
 
-        Self {
-            vertex_color,
-            vertex_buffer: Arc::new(vertex_buffer),
-
-            props: LayerProperties::new(),
-        }
+        // let vertex_buffer = PosVertexBuffer::new(resources, rect);
+        //
+        // Self {
+        //     vertex_color,
+        //     vertex_buffer: Arc::new(vertex_buffer),
+        //
+        //     props: LayerProperties::new(),
+        // }
     }
 }
 
-impl Renderable for TileLayer {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        let total_transform = projection * self.props.compute_transform(transform);
-
-        resources.draw_fill(
-            render_pass,
-            self.vertex_buffer.vertex_source(),
-            total_transform,
-            self.vertex_color,
-        );
-    }
-
-    fn resize(&mut self, _resources: &GpuCommonResources) {
-        // no internal buffers to resize
-    }
-}
+// impl Renderable for TileLayer {
+//     fn render<'enc>(
+//         &'enc self,
+//         resources: &'enc GpuCommonResources,
+//         render_pass: &mut wgpu::RenderPass<'enc>,
+//         transform: Mat4,
+//         projection: Mat4,
+//     ) {
+//         let total_transform = projection * self.props.compute_transform(transform);
+//
+//         resources.draw_fill(
+//             render_pass,
+//             self.vertex_buffer.vertex_source(),
+//             total_transform,
+//             self.vertex_color,
+//         );
+//     }
+//
+//     fn resize(&mut self, _resources: &GpuCommonResources) {
+//         // no internal buffers to resize
+//     }
+// }
 
 impl Updatable for TileLayer {
     fn update(&mut self, ctx: &UpdateContext) {

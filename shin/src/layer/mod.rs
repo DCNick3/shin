@@ -19,7 +19,7 @@ use enum_dispatch::enum_dispatch;
 use enum_map::{enum_map, EnumMap};
 use glam::{vec3, Mat4};
 pub use layer_group::LayerGroup;
-pub use message_layer::{MessageLayer, MessageboxTextures};
+pub use message_layer::MessageLayer;
 pub use movie_layer::MovieLayer;
 pub use null_layer::NullLayer;
 pub use page_layer::PageLayer;
@@ -36,12 +36,11 @@ use shin_core::{
     time::{Ticks, Tweener},
     vm::command::types::{LayerProperty, LayerType},
 };
-use shin_render::{GpuCommonResources, Renderable};
 pub use tile_layer::TileLayer;
 use tracing::{debug, warn};
 
 use crate::{
-    asset::{bustup::Bustup, movie::Movie, picture::Picture, AnyAssetServer},
+    asset::{bustup::Bustup, movie::Movie, picture::Picture, AssetServer},
     layer::wobbler::Wobbler,
     update::{Updatable, UpdateContext},
 };
@@ -225,7 +224,9 @@ impl LayerPropertiesSnapshot {
 }
 
 #[enum_dispatch]
-pub trait Layer: Renderable + Updatable {
+pub trait Layer:
+// Renderable +
+Updatable {
     fn properties(&self) -> &LayerProperties;
     fn properties_mut(&mut self) -> &mut LayerProperties;
 }
@@ -249,8 +250,9 @@ pub enum UserLayer {
 
 impl UserLayer {
     pub async fn load(
-        resources: &GpuCommonResources,
-        asset_server: &AnyAssetServer,
+        device: &wgpu::Device,
+        // resources: &GpuCommonResources,
+        asset_server: &AssetServer,
         audio_manager: &AudioManager,
         scenario: &Scenario,
         layer_ty: LayerType,
@@ -262,7 +264,7 @@ impl UserLayer {
             LayerType::Null => NullLayer::new().into(),
             LayerType::Tile => {
                 let (tile_color, offset_x, offset_y, width, height, ..) = params;
-                TileLayer::new(resources, tile_color, offset_x, offset_y, width, height).into()
+                TileLayer::new(tile_color, offset_x, offset_y, width, height).into()
             }
             LayerType::Picture => {
                 let (pic_id, ..) = params;
@@ -273,7 +275,7 @@ impl UserLayer {
                     .load::<Picture, _>(pic_info.path())
                     .await
                     .expect("Failed to load picture");
-                PictureLayer::new(resources, pic, Some(name.to_string())).into()
+                PictureLayer::new(pic, Some(name.to_string())).into()
             }
             LayerType::Bustup => {
                 let (bup_id, ..) = params;
@@ -291,26 +293,26 @@ impl UserLayer {
                     .await
                     .expect("Failed to load bustup");
 
-                BustupLayer::new(resources, bup, Some(name.to_string()), emotion.as_str()).into()
+                BustupLayer::new(bup, Some(name.to_string()), emotion.as_str()).into()
             }
             LayerType::Movie => {
                 let (movie_id, _volume, _flags, ..) = params;
                 let movie_info @ MovieInfoItem {
                     name,
                     linked_picture_id,
-                    flags,
+                    volume_source,
+                    transparency,
                     linked_bgm_id,
                 } = scenario.info_tables().movie_info(movie_id);
                 debug!(
-                    "Load movie: {} -> {} {} {} {}",
-                    movie_id, name, linked_picture_id, flags, linked_bgm_id
+                    "Load movie: {movie_id} -> {name} {linked_picture_id} {volume_source:?} {transparency:?} {linked_bgm_id}"
                 );
                 let movie = asset_server
                     .load::<Movie, _>(movie_info.path())
                     .await
                     .expect("Failed to load movie");
 
-                MovieLayer::new(resources, audio_manager, movie, Some(name.to_string())).into()
+                MovieLayer::new(device, audio_manager, movie, Some(name.to_string())).into()
             }
             LayerType::Rain => {
                 let (_always_zero, _min_distance, _max_distance, ..) = params;
@@ -325,33 +327,33 @@ impl UserLayer {
     }
 }
 
-impl Renderable for UserLayer {
-    fn render<'enc>(
-        &'enc self,
-        resources: &'enc GpuCommonResources,
-        render_pass: &mut wgpu::RenderPass<'enc>,
-        transform: Mat4,
-        projection: Mat4,
-    ) {
-        match self {
-            UserLayer::NullLayer(l) => l.render(resources, render_pass, transform, projection),
-            UserLayer::PictureLayer(l) => l.render(resources, render_pass, transform, projection),
-            UserLayer::BustupLayer(l) => l.render(resources, render_pass, transform, projection),
-            UserLayer::TileLayer(l) => l.render(resources, render_pass, transform, projection),
-            UserLayer::MovieLayer(l) => l.render(resources, render_pass, transform, projection),
-        }
-    }
-
-    fn resize(&mut self, resources: &GpuCommonResources) {
-        match self {
-            UserLayer::NullLayer(l) => l.resize(resources),
-            UserLayer::PictureLayer(l) => l.resize(resources),
-            UserLayer::BustupLayer(l) => l.resize(resources),
-            UserLayer::TileLayer(l) => l.resize(resources),
-            UserLayer::MovieLayer(l) => l.resize(resources),
-        }
-    }
-}
+// impl Renderable for UserLayer {
+//     fn render<'enc>(
+//         &'enc self,
+//         resources: &'enc GpuCommonResources,
+//         render_pass: &mut wgpu::RenderPass<'enc>,
+//         transform: Mat4,
+//         projection: Mat4,
+//     ) {
+//         match self {
+//             UserLayer::NullLayer(l) => l.render(resources, render_pass, transform, projection),
+//             UserLayer::PictureLayer(l) => l.render(resources, render_pass, transform, projection),
+//             UserLayer::BustupLayer(l) => l.render(resources, render_pass, transform, projection),
+//             UserLayer::TileLayer(l) => l.render(resources, render_pass, transform, projection),
+//             UserLayer::MovieLayer(l) => l.render(resources, render_pass, transform, projection),
+//         }
+//     }
+//
+//     fn resize(&mut self, resources: &GpuCommonResources) {
+//         match self {
+//             UserLayer::NullLayer(l) => l.resize(resources),
+//             UserLayer::PictureLayer(l) => l.resize(resources),
+//             UserLayer::BustupLayer(l) => l.resize(resources),
+//             UserLayer::TileLayer(l) => l.resize(resources),
+//             UserLayer::MovieLayer(l) => l.resize(resources),
+//         }
+//     }
+// }
 
 #[derive(From)]
 pub enum AnyLayer<'a> {

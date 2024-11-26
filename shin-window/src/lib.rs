@@ -9,7 +9,7 @@ use derive_where::derive_where;
 use enum_map::EnumMap;
 use shin_input::{Action, ActionState, ActionsState, RawInputAccumulator};
 use shin_render::{
-    init::{RenderResources, WgpuInitResult},
+    init::{RenderResources, WgpuInitResult, WgpuResources},
     render_pass::RenderPass,
     resize::{CanvasSize, ResizeHandle, SurfaceResizeSource, SurfaceSize, ViewportParams},
 };
@@ -27,7 +27,15 @@ pub struct AppContext<'a, A: ShinApp> {
     pub event_loop: &'a ActiveEventLoop,
     pub event_loop_proxy: &'a ShinEventLoopProxy<A::EventType>,
     pub winit: &'a mut WindowState,
+    pub wgpu: &'a WgpuResources,
     pub render: &'a mut RenderResources,
+}
+
+pub struct AppContextOwned<A: ShinApp> {
+    pub event_loop_proxy: ShinEventLoopProxy<A::EventType>,
+    pub winit: WindowState,
+    pub wgpu: WgpuResources,
+    pub render: RenderResources,
 }
 
 pub trait ShinApp: Sized {
@@ -35,7 +43,7 @@ pub trait ShinApp: Sized {
     type EventType: Send + Debug + 'static;
     type ActionType: Action;
 
-    fn init(context: AppContext<Self>, parameters: Self::Parameters) -> Self;
+    fn init(context: AppContext<Self>, parameters: Self::Parameters) -> anyhow::Result<Self>;
 
     fn map_canvas_size(window_size: PhysicalSize<u32>) -> ViewportParams {
         ViewportParams::with_aspect_ratio(window_size, 16.0 / 9.0)
@@ -228,8 +236,7 @@ fn finish_wgpu_init<A: ShinApp>(
 
     // finish render init
     // the depth stencil should be the same size as the surface, even though it's a bit wasteful
-    let mut render = RenderResources::new(
-        wgpu,
+    let (wgpu, mut render) = wgpu.into_resources(
         winit.resize_source.handle::<SurfaceSize>(),
         winit.resize_source.handle::<CanvasSize>(),
     );
@@ -242,19 +249,27 @@ fn finish_wgpu_init<A: ShinApp>(
         event_loop,
         event_loop_proxy: &shin_proxy,
         winit: &mut winit,
+        wgpu: &wgpu,
         render: &mut render,
     };
 
-    let app = A::init(context, params);
+    let app = A::init(context, params)
+        // TODO: report this error to the user better than just panicking
+        .expect("App initialization failed");
+
+    let context = AppContextOwned {
+        event_loop_proxy: shin_proxy,
+        winit,
+        wgpu,
+        render,
+    };
 
     WinitAppState::Operational {
         proxy,
-        shin_proxy,
         last_update: Instant::now(),
         raw_input_state,
         input_state: ActionsState::new(),
-        winit,
-        render,
+        context,
         app,
     }
 }
@@ -286,12 +301,10 @@ enum WinitAppState<A: ShinApp> {
     },
     Operational {
         proxy: EventLoopProxy<ShinAppEventImpl<A::EventType>>,
-        shin_proxy: ShinEventLoopProxy<A::EventType>,
         last_update: Instant,
         raw_input_state: RawInputAccumulator,
         input_state: ActionsState<A::ActionType>,
-        winit: WindowState,
-        render: RenderResources,
+        context: AppContextOwned<A>,
         app: A,
     },
     #[default]
@@ -336,7 +349,7 @@ impl<A: ShinApp> WinitAppState<A> {
             WinitAppState::WaitingForInitialResume { .. } => None,
             WinitAppState::WaitingForNonzeroSize { winit, .. } => Some(winit),
             WinitAppState::WaitingForWgpuInit { winit, .. } => Some(winit),
-            WinitAppState::Operational { winit, .. } => Some(winit),
+            WinitAppState::Operational { context, .. } => Some(&context.winit),
             WinitAppState::Poison => {
                 unreachable!()
             }
@@ -380,31 +393,27 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
             }
             WinitAppState::Operational {
                 proxy,
-                shin_proxy,
                 last_update,
                 raw_input_state,
                 input_state,
-                winit,
-                mut render,
+                mut context,
                 app,
             } => {
-                render.surface = shin_render::init::surface_reinit(
-                    &render.instance,
-                    render.device.clone(),
-                    winit.window.clone(),
-                    winit.resize_source.handle::<SurfaceSize>(),
-                    render.surface_texture_format,
+                context.render.surface = shin_render::init::surface_reinit(
+                    &context.wgpu.instance,
+                    context.wgpu.device.clone(),
+                    context.winit.window.clone(),
+                    context.winit.resize_source.handle::<SurfaceSize>(),
+                    context.render.surface_texture_format,
                 )
                 .expect("surface reinit failed");
 
                 *self = WinitAppState::Operational {
                     proxy,
-                    shin_proxy,
                     last_update,
                     raw_input_state,
                     input_state,
-                    winit,
-                    render,
+                    context,
                     app,
                 };
             }
@@ -437,12 +446,16 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
             ShinAppEventImpl::Custom(e) => {
                 let WinitAppState::Operational {
                     proxy: _,
-                    shin_proxy,
                     last_update: _,
                     raw_input_state: _,
                     input_state: _,
-                    winit,
-                    render,
+                    context:
+                        AppContextOwned {
+                            event_loop_proxy,
+                            winit,
+                            wgpu,
+                            render,
+                        },
                     app,
                 } = self
                 else {
@@ -453,7 +466,8 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 app.custom_event(
                     AppContext {
                         event_loop: &event_loop,
-                        event_loop_proxy: shin_proxy,
+                        event_loop_proxy,
+                        wgpu,
                         winit,
                         render,
                     },
@@ -518,9 +532,13 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                     last_update,
                     raw_input_state,
                     input_state,
-                    shin_proxy,
-                    winit,
-                    render,
+                    context:
+                        AppContextOwned {
+                            event_loop_proxy,
+                            winit,
+                            wgpu,
+                            render,
+                        },
                     app,
                 } = self
                 else {
@@ -541,8 +559,9 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 app.update(
                     AppContext {
                         event_loop: &event_loop,
-                        event_loop_proxy: shin_proxy,
+                        event_loop_proxy,
                         winit,
+                        wgpu,
                         render,
                     },
                     input_state,
@@ -550,7 +569,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 );
                 raw_input_state.finish_frame();
 
-                let mut encoder = render
+                let mut encoder = wgpu
                     .device
                     .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
                 let (viewport, surface_texture) = render.surface.get_current_texture().unwrap();
@@ -558,7 +577,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 let mut pass = RenderPass::new(
                     &mut render.pipelines,
                     &mut render.dynamic_buffer,
-                    &render.device,
+                    &wgpu.device,
                     &mut encoder,
                     &surface_texture.view,
                     &render.surface_depth_stencil_buffer.get_view(),
@@ -569,7 +588,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
 
                 drop(pass);
 
-                render.queue.submit(std::iter::once(encoder.finish()));
+                wgpu.queue.submit(std::iter::once(encoder.finish()));
 
                 winit.window.pre_present_notify();
                 surface_texture.texture.present();
