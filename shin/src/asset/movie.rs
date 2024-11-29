@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use shin_audio::AudioManager;
 use shin_video::{mp4::Mp4, VideoPlayer};
 
-use crate::asset::{server::AssetDataCursor, Asset, AssetDataAccessor};
+use crate::asset::system::{Asset, AssetDataAccessor, AssetDataCursor, AssetLoadContext};
 
 pub struct Movie {
     // TODO: allow to start decoding the video before the first frame is requested
@@ -12,7 +12,7 @@ pub struct Movie {
 }
 
 impl Asset for Movie {
-    async fn load(data: AssetDataAccessor) -> Result<Self> {
+    async fn load(_context: &AssetLoadContext, data: AssetDataAccessor) -> Result<Self> {
         let cursor = data.cursor();
         let mp4 = Mp4::new(cursor).context("Reading Mp4")?;
         Ok(Self { mp4 })

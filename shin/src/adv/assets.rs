@@ -4,7 +4,7 @@ use anyhow::Result;
 use futures::try_join;
 use shin_core::format::{font::LazyFont, scenario::Scenario};
 
-use crate::asset::{asset_paths, AssetServer};
+use crate::asset::{asset_paths, system::AssetServer};
 
 // TODO: this can be done with a macro
 #[derive(Clone)]

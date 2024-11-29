@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use bevy_utils::HashMap;
 use glam::{vec2, Vec2};
 
-use crate::asset::{Asset, AssetDataAccessor};
+use crate::asset::system::{Asset, AssetDataAccessor, AssetLoadContext};
 
 struct BustupExpression {
     // face_picture: Option<LazyGpuImage>,
@@ -59,7 +59,7 @@ impl Bustup {
 }
 
 impl Asset for Bustup {
-    async fn load(data: AssetDataAccessor) -> Result<Self> {
+    async fn load(_context: &AssetLoadContext, data: AssetDataAccessor) -> Result<Self> {
         let bustup = shin_core::format::bustup::read_bustup(&data.read_all().await)?;
 
         let origin = vec2(bustup.origin.0 as f32, bustup.origin.1 as f32);

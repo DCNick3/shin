@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use anyhow::bail;
 use tracing::{debug, instrument, trace};
 
-use crate::asset::LayeredAssetIo;
+use crate::asset::system::LayeredAssetIo;
 
 #[instrument]
 fn try_assets_directory(path: &Path) -> anyhow::Result<Option<LayeredAssetIo>> {
@@ -96,7 +96,7 @@ pub fn locate_assets(cli_assets: Option<&Path>) -> anyhow::Result<LayeredAssetIo
     // | Linux   | `$XDG_DATA_HOME` or `$HOME`/.local/share | /home/alice/.local/share                 |
     // | macOS   | `$HOME`/Library/Application Support      | /Users/Alice/Library/Application Support |
     // | Windows | `{FOLDERID_RoamingAppData}`              | C:\Users\Alice\AppData\Roaming           |
-    if let Some(shared_assets) = dirs_next::data_dir().map(|p| p.join("shin").join("assets")) {
+    if let Some(shared_assets) = dirs_next::data_dir().map(|p| p.join("../../..").join("assets")) {
         try_list.push(shared_assets);
     }
 

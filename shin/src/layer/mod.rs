@@ -40,7 +40,7 @@ pub use tile_layer::TileLayer;
 use tracing::{debug, warn};
 
 use crate::{
-    asset::{bustup::Bustup, movie::Movie, picture::Picture, AssetServer},
+    asset::{bustup::Bustup, movie::Movie, picture::Picture, system::AssetServer},
     layer::wobbler::Wobbler,
     update::{Updatable, UpdateContext},
 };
