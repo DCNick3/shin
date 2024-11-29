@@ -1,12 +1,10 @@
 use std::time::Duration;
 
-use dpi::PhysicalSize;
 use enum_map::{enum_map, Enum, EnumMap};
 use glam::{Mat4, Vec3};
 use shin_input::{inputs::GamepadButton, Action, ActionState, RawInputState};
 use shin_render::{
     render_pass::RenderPass,
-    resize::ViewportParams,
     shaders::types::{
         buffer::VertexSource,
         vertices::{FloatColor4, PosColVertex, PosVertex, UnormColor},
@@ -44,8 +42,8 @@ impl ShinApp for HelloApp {
     type EventType = ();
     type ActionType = HelloAction;
 
-    fn init(_context: AppContext<Self>, (): Self::Parameters) -> Self {
-        HelloApp {}
+    fn init(_context: AppContext<Self>, (): Self::Parameters) -> anyhow::Result<Self> {
+        Ok(HelloApp {})
     }
 
     fn custom_event(&mut self, _context: AppContext<Self>, (): Self::EventType) {}

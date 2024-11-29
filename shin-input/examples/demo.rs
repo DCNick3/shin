@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, time::Duration};
 
-use dpi::PhysicalSize;
 use enum_map::{enum_map, Enum, EnumMap};
 use glam::{Mat4, Vec3};
 use shin_input::{
@@ -257,13 +256,13 @@ impl ShinApp for HelloApp {
     type EventType = ();
     type ActionType = HelloAction;
 
-    fn init(_context: AppContext<Self>, (): Self::Parameters) -> Self {
-        HelloApp {
+    fn init(_context: AppContext<Self>, (): Self::Parameters) -> anyhow::Result<Self> {
+        Ok(HelloApp {
             scene: Scene::History(HelloAppInputHistory {
                 input_history: VecDeque::new(),
             }),
             fps: spin_sleep_util::RateReporter::new(std::time::Duration::from_secs(1)),
-        }
+        })
     }
 
     fn custom_event(&mut self, _context: AppContext<Self>, (): Self::EventType) {}
