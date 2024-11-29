@@ -5539,6 +5539,7 @@ dependencies = [
 name = "shin-input"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "dpi",
  "enum-map",
  "gilrs",

@@ -43,18 +43,18 @@ impl ShinApp for PlayerExample {
     type EventType = ();
     type ActionType = PlayAction;
 
-    fn init(context: AppContext<Self>, _parameters: Self::Parameters) -> Self {
+    fn init(context: AppContext<Self>, _parameters: Self::Parameters) -> anyhow::Result<Self> {
         let audio_manager = AudioManager::new();
 
         // let file = File::open("ship1.mp4").unwrap();
         let file = File::open("op1.mp4").unwrap();
         let mp4 = Mp4::new(file).unwrap();
-        let video_player = VideoPlayer::new(&context.render.device, &audio_manager, mp4).unwrap();
+        let video_player = VideoPlayer::new(&context.wgpu.device, &audio_manager, mp4).unwrap();
 
-        Self {
+        Ok(Self {
             audio_manager,
             video_player,
-        }
+        })
     }
 
     fn custom_event(&mut self, _context: AppContext<Self>, _event: Self::EventType) {}
@@ -73,7 +73,7 @@ impl ShinApp for PlayerExample {
         }
 
         self.video_player
-            .update(Ticks::from_duration(elapsed_time), &context.render.queue);
+            .update(Ticks::from_duration(elapsed_time), &context.wgpu.queue);
     }
 
     fn render(&mut self, pass: &mut RenderPass) {
