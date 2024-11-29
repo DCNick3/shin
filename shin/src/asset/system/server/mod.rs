@@ -1,4 +1,5 @@
 mod accessor;
+mod context;
 
 use std::{
     fmt::Debug,
@@ -23,10 +24,16 @@ use shin_core::{
 use shin_tasks::{AsyncComputeTaskPool, IoTaskPool};
 use tracing::debug;
 
-pub use self::accessor::{AssetDataAccessor, AssetDataCursor};
+pub use self::{
+    accessor::{AssetDataAccessor, AssetDataCursor},
+    context::AssetLoadContext,
+};
 
 pub trait Asset: Send + Sync + Sized + 'static {
-    fn load(data: AssetDataAccessor) -> impl Future<Output = Result<Self>> + Send;
+    fn load(
+        context: &AssetLoadContext,
+        data: AssetDataAccessor,
+    ) -> impl Future<Output = Result<Self>> + Send;
 }
 
 struct AssetMap<T: Asset>(HashMap<String, Weak<T>>);
@@ -46,27 +53,17 @@ impl<T: Asset> DerefMut for AssetMap<T> {
 
 pub struct AssetServer {
     io: AssetIo,
+    context: Arc<AssetLoadContext>,
     loaded_assets: RwLock<anymap::Map<dyn core::any::Any + Send + Sync>>,
 }
 
 impl AssetServer {
-    pub fn new(io: AssetIo) -> Self {
+    pub fn new(io: AssetIo, context: AssetLoadContext) -> Self {
         Self {
             io,
+            context: Arc::new(context),
             loaded_assets: RwLock::new(anymap::Map::new()),
         }
-    }
-
-    #[allow(unused)]
-    pub fn new_dir(root_path: PathBuf) -> Self {
-        debug!("Using directory for assets: {:?}", root_path);
-        Self::new(AssetIo::new_dir(root_path).expect("Creating directory asset IO"))
-    }
-
-    #[allow(unused)]
-    pub fn new_rom(rom_path: impl AsRef<Path>) -> Self {
-        debug!("Using ROM for assets: {}", rom_path.as_ref().display());
-        Self::new(AssetIo::new_rom(rom_path).expect("Creating ROM asset IO"))
     }
 
     pub async fn load<T: Asset, P: AsRef<str>>(&self, path: P) -> Result<Arc<T>> {
@@ -89,8 +86,10 @@ impl AssetServer {
             .read_file(path)
             .with_context(|| format!("Reading asset {:?}", path))?;
 
+        let context = self.context.clone();
+
         let asset = AsyncComputeTaskPool::get()
-            .spawn(async move { T::load(data).await })
+            .spawn(async move { T::load(&context, data).await })
             .await
             .with_context(|| format!("Loading asset {:?}", path))?;
         let asset = Arc::new(asset);

@@ -2,7 +2,7 @@ use anyhow::Result;
 use glam::vec2;
 use shin_core::format::picture::SimpleMergedPicture;
 
-use crate::asset::{Asset, AssetDataAccessor};
+use crate::asset::system::{Asset, AssetDataAccessor, AssetLoadContext};
 
 /// A Picture, uploaded to GPU on demand (because doing it in the asset loading context is awkward)
 pub struct Picture {
@@ -16,7 +16,7 @@ impl Picture {
 }
 
 impl Asset for Picture {
-    async fn load(data: AssetDataAccessor) -> Result<Self> {
+    async fn load(_context: &AssetLoadContext, data: AssetDataAccessor) -> Result<Self> {
         let picture = shin_core::format::picture::read_picture::<SimpleMergedPicture>(
             &data.read_all().await,
             (),

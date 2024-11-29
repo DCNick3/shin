@@ -9,11 +9,14 @@ use shin_window::{AppContext, ShinApp};
 use tracing::debug;
 
 use crate::{
-    asset::{locate_assets, AssetServer},
+    asset::system::{locate_assets, AssetLoadContext, AssetServer},
     cli::Cli,
 };
 
-pub struct App {}
+pub struct App {
+    audio_manager: Arc<AudioManager>,
+    asset_server: Arc<AssetServer>,
+}
 
 impl ShinApp for App {
     type Parameters = Cli;
@@ -27,9 +30,18 @@ impl ShinApp for App {
 
         debug!("Asset IO: {:#?}", asset_io);
 
-        let asset_server = Arc::new(AssetServer::new(asset_io.into()));
+        let asset_server = Arc::new(AssetServer::new(
+            asset_io.into(),
+            AssetLoadContext {
+                wgpu_device: context.wgpu.device.clone(),
+                wgpu_queue: context.wgpu.queue.clone(),
+            },
+        ));
 
-        todo!()
+        Ok(Self {
+            audio_manager,
+            asset_server,
+        })
     }
 
     fn custom_event(&mut self, context: AppContext<Self>, event: Self::EventType) {
@@ -42,10 +54,10 @@ impl ShinApp for App {
         input: EnumMap<Self::ActionType, ActionState>,
         elapsed_time: Duration,
     ) {
-        todo!()
+        // todo!()
     }
 
     fn render(&mut self, pass: &mut RenderPass) {
-        todo!()
+        // todo!()
     }
 }
