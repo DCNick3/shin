@@ -47,8 +47,6 @@ image = { workspace = true, default-features = false }
 # Theese part of bevy does not depend on ECS or the reflection, so it's not a big problem to use them
 bevy_utils = { workspace = true }
 
-pollster = { workspace = true }
-
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 enum-map = { workspace = true }

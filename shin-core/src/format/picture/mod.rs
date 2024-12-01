@@ -2,7 +2,7 @@
 //!
 //! The picture format splits the picture in blocks that are first separately transformed by using a dictionary or a differential encoding and an optional lz77 compression on top.
 //!
-//! It also stores vertices for each block specifying which regions of the image have transparency and which don't. This potentially allows for a more efficient GPU rendering (this implementation doesn't do this yet).
+//! It also stores a list of transparent and opaque rectangular regions of each block, allowing for a more efficient two-pass rendering.
 
 use std::{borrow::Cow, io, sync::Mutex};
 
@@ -86,9 +86,9 @@ impl BinWrite for CompressionFlags {
 #[br(little)]
 struct PicBlockHeader {
     compression_flags: CompressionFlags,
-    opaque_vertex_count: u16,
-    transparent_vertex_count: u16,
-    // specifies amount of padding before (possibly compressed) data in 2-byte words
+    opaque_rect_count: u16,
+    transparent_rect_count: u16,
+    /// specifies amount of padding before (possibly compressed) data in 2-byte words
     padding_before_data: u16,
     offset_x: u16,
     offset_y: u16,
@@ -111,7 +111,7 @@ impl PicBlockHeader {
 
 #[derive(BinRead, BinWrite, Debug, Copy, Clone)]
 #[br(little)]
-pub struct PicVertexEntry {
+pub struct PicBlockRect {
     pub from_x: u16,
     pub from_y: u16,
     pub to_x: u16,
@@ -134,7 +134,7 @@ impl From<Rgba8> for image::Rgba<u8> {
     }
 }
 
-pub trait PictureBuilder<'d>: Send {
+pub trait PictureBuilder: Send {
     type Args;
     type Output: Send;
 
@@ -147,34 +147,34 @@ pub trait PictureBuilder<'d>: Send {
         picture_id: u32,
     ) -> Self;
 
-    fn add_block(&mut self, position: (u32, u32), block: PictureBlock) -> Result<()>;
+    fn add_block(&mut self, data_offset: u32, position: (u32, u32), block: PicBlock) -> Result<()>;
 
     fn build(self) -> Result<Self::Output>;
 }
 
 #[derive(Debug, Clone)]
-pub struct PictureBlock {
+pub struct PicBlock {
     pub offset_x: u32,
     pub offset_y: u32,
-    pub opaque_vertices: Vec<PicVertexEntry>,
-    pub transparent_vertices: Vec<PicVertexEntry>,
+    pub opaque_rects: Vec<PicBlockRect>,
+    pub transparent_rects: Vec<PicBlockRect>,
     pub data: RgbaImage,
 }
 
-impl PictureBlock {
+impl PicBlock {
     pub fn new(
         offset_x: u32,
         offset_y: u32,
         width: u32,
         height: u32,
-        opaque_vertices: Vec<PicVertexEntry>,
-        transparent_vertices: Vec<PicVertexEntry>,
+        opaque_rects: Vec<PicBlockRect>,
+        transparent_rects: Vec<PicBlockRect>,
     ) -> Self {
         Self {
             offset_x,
             offset_y,
-            opaque_vertices,
-            transparent_vertices,
+            opaque_rects,
+            transparent_rects,
             data: ImageBuffer::new(width, height),
         }
     }
@@ -183,8 +183,8 @@ impl PictureBlock {
         Self {
             offset_x: 0,
             offset_y: 0,
-            opaque_vertices: Vec::new(),
-            transparent_vertices: Vec::new(),
+            opaque_rects: Vec::new(),
+            transparent_rects: Vec::new(),
             data: ImageBuffer::new(0, 0),
         }
     }
@@ -201,7 +201,7 @@ pub struct SimpleMergedPicture {
     pub picture_id: u32,
 }
 
-impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
+impl PictureBuilder for SimpleMergedPicture {
     type Args = ();
     type Output = SimpleMergedPicture;
 
@@ -221,7 +221,7 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
         }
     }
 
-    fn add_block(&mut self, (x, y): (u32, u32), block: PictureBlock) -> Result<()> {
+    fn add_block(&mut self, _data_offset: u32, (x, y): (u32, u32), block: PicBlock) -> Result<()> {
         // I think those are used only in bustups
         // I am not sure how to handle them yet
         assert_eq!(block.offset_x, 0);
@@ -239,7 +239,7 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
 }
 
 pub struct SimplePicture {
-    pub blocks: Vec<((u32, u32), PictureBlock)>,
+    pub blocks: Vec<((u32, u32), PicBlock)>,
     pub effective_width: u32,
     pub effective_height: u32,
     pub origin_x: i32,
@@ -247,7 +247,7 @@ pub struct SimplePicture {
     pub picture_id: u32,
 }
 
-impl<'a> PictureBuilder<'a> for SimplePicture {
+impl PictureBuilder for SimplePicture {
     type Args = ();
     type Output = SimplePicture;
 
@@ -269,7 +269,12 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
         }
     }
 
-    fn add_block(&mut self, position: (u32, u32), block: PictureBlock) -> Result<()> {
+    fn add_block(
+        &mut self,
+        _data_offset: u32,
+        position: (u32, u32),
+        block: PicBlock,
+    ) -> Result<()> {
         self.blocks.push((position, block));
         Ok(())
     }
@@ -389,24 +394,24 @@ pub fn read_texture(
 ///
 /// If the block data is an empty slice, the function will return an empry image block
 /// (this is used in some bustups)
-pub fn read_picture_block(block_data: &[u8]) -> Result<PictureBlock> {
+pub fn read_picture_block(block_data: &[u8]) -> Result<PicBlock> {
     use io::Seek;
 
     if block_data.is_empty() {
         // the game actually supports "empty" picture blocks...
         // handle them specially, since they are not really structured the same way
-        return Ok(PictureBlock::empty());
+        return Ok(PicBlock::empty());
     }
 
     let mut reader = io::Cursor::new(block_data);
     let header: PicBlockHeader = reader.read_le().context("Reading block header")?;
 
-    let opaque_vertices = (0..header.opaque_vertex_count)
+    let opaque_rects = (0..header.opaque_rect_count)
         .map(|_| reader.read_le())
-        .collect::<BinResult<Vec<PicVertexEntry>>>()?;
-    let transparent_vertices = (0..header.transparent_vertex_count)
+        .collect::<BinResult<Vec<PicBlockRect>>>()?;
+    let transparent_rects = (0..header.transparent_rect_count)
         .map(|_| reader.read_le())
-        .collect::<BinResult<Vec<PicVertexEntry>>>()?;
+        .collect::<BinResult<Vec<PicBlockRect>>>()?;
 
     // skip padding
     reader.seek(io::SeekFrom::Current(header.padding_before_data as i64 * 2))?;
@@ -414,13 +419,13 @@ pub fn read_picture_block(block_data: &[u8]) -> Result<PictureBlock> {
     let width = header.width as u32;
     let height = header.height as u32;
 
-    let mut block = PictureBlock::new(
+    let mut block = PicBlock::new(
         header.offset_x as u32,
         header.offset_y as u32,
         width,
         height,
-        opaque_vertices,
-        transparent_vertices,
+        opaque_rects,
+        transparent_rects,
     );
 
     read_texture(
@@ -434,12 +439,49 @@ pub fn read_picture_block(block_data: &[u8]) -> Result<PictureBlock> {
     Ok(block)
 }
 
-pub fn read_picture<'a, B: PictureBuilder<'a>>(
-    source: &'a [u8],
-    builder_args: B::Args,
-) -> Result<B::Output> {
+#[derive(Debug, Copy, Clone)]
+pub struct PictureHeaderInfo {
+    pub origin_x: i16,
+    pub origin_y: i16,
+    pub effective_width: u16,
+    pub effective_height: u16,
+    pub block_count: u32,
+    pub picture_id: u32,
+}
+
+pub fn read_picture_header(source: &[u8]) -> Result<PictureHeaderInfo> {
     let mut source = io::Cursor::new(source);
-    let header = PicHeader::read(&mut source)?;
+    let header: PicHeader = BinRead::read(&mut source)?;
+
+    if header.version != 3 {
+        bail!("Unsupported picture format version {}", header.version);
+    }
+
+    if header.file_size != source.get_ref().len() as u32 {
+        bail!("File size mismatch");
+    }
+
+    if !matches!(header.field_20, 0 | 1) {
+        bail!("Unknown field_20 value {}", header.field_20);
+    }
+
+    if header.scale != 4096 {
+        bail!("Unsupported scale value {}/4096", header.scale);
+    }
+
+    Ok(PictureHeaderInfo {
+        origin_x: header.origin_x,
+        origin_y: header.origin_y,
+        effective_width: header.effective_width,
+        effective_height: header.effective_height,
+        block_count: header.block_count,
+        picture_id: header.picture_id,
+    })
+}
+
+pub fn read_picture<B: PictureBuilder>(source: &[u8], builder_args: B::Args) -> Result<B::Output> {
+    let mut source = io::Cursor::new(source);
+    let header: PicHeader = BinRead::read(&mut source)?;
 
     if header.version != 3 {
         bail!("Unsupported picture format version {}", header.version);
@@ -459,10 +501,14 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
 
     let mut blocks = Vec::new();
     for _ in 0..header.block_count {
-        let block_desc = PicBlockDesc::read(&mut source)?;
+        let block_desc: PicBlockDesc = BinRead::read(&mut source)?;
         let block_data =
             &source.get_ref()[block_desc.offset as usize..][..block_desc.size as usize];
-        blocks.push(((block_desc.x as usize, block_desc.y as usize), block_data));
+        blocks.push((
+            block_desc.offset,
+            (block_desc.x as usize, block_desc.y as usize),
+            block_data,
+        ));
     }
 
     let builder = B::new(
@@ -476,15 +522,16 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
 
     let builder = Mutex::new(builder);
     blocks
-        .par_map(shin_tasks::AsyncComputeTaskPool::get(), |&(pos, data)| {
-            (pos, read_picture_block(data))
-        })
+        .par_map(
+            shin_tasks::AsyncComputeTaskPool::get(),
+            |&(data_offset, pos, data)| (data_offset, pos, read_picture_block(data)),
+        )
         .into_iter()
-        .try_for_each(|(pos, block)| {
+        .try_for_each(|(data_offset, pos, block)| {
             builder
                 .lock()
                 .unwrap()
-                .add_block((pos.0 as u32, pos.1 as u32), block?)
+                .add_block(data_offset, (pos.0 as u32, pos.1 as u32), block?)
         })?;
 
     let listener = builder.into_inner().unwrap();

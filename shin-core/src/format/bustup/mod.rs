@@ -20,7 +20,7 @@ use image::RgbaImage;
 use shin_tasks::ParallelSlice;
 
 use crate::format::{
-    picture::{read_picture_block, PictureBlock},
+    picture::{read_picture_block, PicBlock},
     text::ZeroString,
 };
 
@@ -96,17 +96,17 @@ pub struct Bustup {
 }
 
 pub struct BustupExpression {
-    pub face_chunk: PictureBlock,
-    pub mouth_chunks: Vec<PictureBlock>,
+    pub face_chunk: PicBlock,
+    pub mouth_chunks: Vec<PicBlock>,
 }
 
-fn cleanup_unused_areas(chunk: &mut PictureBlock) {
+fn cleanup_unused_areas(chunk: &mut PicBlock) {
     let mut bitbox = bitbox![0u32; chunk.data.width() as usize * chunk.data.height() as usize];
     let coord_to_index = |x: u32, y: u32| (y * chunk.data.width() + x) as usize;
     for vertex in chunk
-        .opaque_vertices
+        .opaque_rects
         .iter()
-        .chain(chunk.transparent_vertices.iter())
+        .chain(chunk.transparent_rects.iter())
     {
         let clamp_y = |y: u16| std::cmp::min(y, chunk.data.height() as u16 - 1);
         let clamp_x = |x: u16| std::cmp::min(x, chunk.data.width() as u16 - 1);
@@ -164,7 +164,7 @@ pub fn read_bustup(source: &[u8]) -> Result<Bustup> {
     fn par_decode_chunks(
         chunks: Vec<(u32, BustupChunkDesc)>,
         source: &[u8],
-    ) -> Vec<Result<(u32, PictureBlock)>> {
+    ) -> Vec<Result<(u32, PicBlock)>> {
         chunks.par_chunk_map(
             shin_tasks::AsyncComputeTaskPool::get(),
             1,

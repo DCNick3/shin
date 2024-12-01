@@ -18,6 +18,10 @@ use crate::{
 pub enum BufferUsage {
     /// COPY_DST | INDEX | VERTEX | UNIFORM
     DynamicBuffer,
+    /// VERTEX
+    Vertex,
+    /// INDEX
+    Index,
 }
 
 impl From<BufferUsage> for wgpu::BufferUsages {
@@ -29,6 +33,8 @@ impl From<BufferUsage> for wgpu::BufferUsages {
                     | wgpu::BufferUsages::VERTEX
                     | wgpu::BufferUsages::UNIFORM
             }
+            BufferUsage::Vertex => wgpu::BufferUsages::VERTEX,
+            BufferUsage::Index => wgpu::BufferUsages::INDEX,
         }
     }
 }
@@ -49,6 +55,7 @@ pub struct BufferRef<'a, T: BufferType> {
 }
 
 impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
+    // TODO: perhaps make it private?
     pub fn allocate_raw(
         device: &wgpu::Device,
         size_bytes: BytesAddress,
@@ -76,6 +83,8 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
         }
     }
 
+    // TODO: it would be nice to support mapping the typed buffer and allowing the API user to write to it directly
+    // instead of building the whole buffer in memory and then copying it to the GPU
     pub fn allocate_raw_with_contents(
         device: &wgpu::Device,
         contents: &[u8],
@@ -162,6 +171,9 @@ pub type OwnedBuffer<T> = Buffer<Owned, T>;
 pub type SharedBuffer<T> = Buffer<Shared, T>;
 pub type AnyBuffer<T> = Buffer<AnyOwnership, T>;
 
+pub type OwnedVertexBuffer<T> = OwnedBuffer<VertexMarker<T>>;
+pub type OwnedIndexBuffer = OwnedBuffer<IndexMarker>;
+
 pub type AnyVertexBuffer<T> = AnyBuffer<VertexMarker<T>>;
 pub type AnyIndexBuffer = AnyBuffer<IndexMarker>;
 
@@ -187,6 +199,31 @@ impl<T: BufferType> SharedBuffer<T> {
             size,
             phantom: Default::default(),
         }
+    }
+}
+
+impl<T: ArrayBufferType> OwnedBuffer<T> {
+    pub fn allocate_with_array_contents(
+        device: &wgpu::Device,
+        data: &[T::Element],
+        usage: BufferUsage,
+        label: Option<&str>,
+    ) -> Self {
+        let data: &[u8] = bytemuck::cast_slice(data);
+
+        Self::allocate_raw_with_contents(device, data, usage, label)
+    }
+}
+
+impl<T: VertexType> OwnedBuffer<VertexMarker<T>> {
+    pub fn allocate_vertex(device: &wgpu::Device, data: &[T], label: Option<&str>) -> Self {
+        Self::allocate_with_array_contents(device, data, BufferUsage::Vertex, label)
+    }
+}
+
+impl OwnedBuffer<IndexMarker> {
+    pub fn allocate_index(device: &wgpu::Device, data: &[u16], label: Option<&str>) -> Self {
+        Self::allocate_with_array_contents(device, data, BufferUsage::Index, label)
     }
 }
 

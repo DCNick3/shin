@@ -16,7 +16,6 @@ use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use bevy_utils::HashMap;
 use derive_more::From;
-use pollster::FutureExt;
 use shin_core::{
     format::rom::{RomFileReader, RomReader},
     primitives::stateless_reader::{StatelessFile, StatelessReader},
@@ -30,6 +29,10 @@ pub use self::{
 };
 
 pub trait Asset: Send + Sync + Sized + 'static {
+    /// Load an asset from the provided data accessor.
+    ///
+    /// The future returned by this function will be spawned on the IO task pool.
+    /// CPU-intensive work should be offloaded to the compute task pool.
     fn load(
         context: &AssetLoadContext,
         data: AssetDataAccessor,
@@ -88,7 +91,9 @@ impl AssetServer {
 
         let context = self.context.clone();
 
-        let asset = AsyncComputeTaskPool::get()
+        // spawn tasks on IO task pool because they can be blocking
+        // they should take care off-load CPU-intensive work to the compute task pool
+        let asset = IoTaskPool::get()
             .spawn(async move { T::load(&context, data).await })
             .await
             .with_context(|| format!("Loading asset {:?}", path))?;
@@ -108,8 +113,8 @@ impl AssetServer {
     /// Though it might cause lockups if the loading is not blazing fast (tm).
     ///
     /// Ideally I want to get rid of all uses of this function
-    pub fn load_sync<T: Asset, P: AsRef<str>>(&self, path: P) -> Result<Arc<T>> {
-        self.load(path).block_on()
+    pub fn load_sync<T: Asset>(&self, path: impl AsRef<str>) -> Result<Arc<T>> {
+        shin_tasks::block_on(self.load(path))
     }
 }
 
