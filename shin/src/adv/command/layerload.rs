@@ -1,6 +1,5 @@
 use std::fmt::{Debug, Formatter};
 
-use pollster::FutureExt;
 use shin_tasks::{AsyncComputeTaskPool, Task};
 
 use super::prelude::*;
@@ -85,7 +84,8 @@ impl UpdatableCommand for LAYERLOAD {
         _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
         if self.load_task.as_ref().unwrap().is_finished() {
-            let layer = self.load_task.take().unwrap().block_on();
+            // TODO: do not block here; poll the task in a loop instead
+            let layer = shin_tasks::block_on(self.load_task.take().unwrap());
 
             match self.layer_id.repr() {
                 VLayerIdRepr::RootLayerGroup

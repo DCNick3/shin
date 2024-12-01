@@ -30,7 +30,6 @@ smallvec = { git = "https://github.com/servo/rust-smallvec.git", rev = "98b49e4d
 wgpu = "22.1.0"
 kira = { version = "0.9.3", default-features = false }
 winit = "0.30.5"
-pollster = "0.3.0"
 
 # egui used for debug overlays
 egui = "0.29.1"

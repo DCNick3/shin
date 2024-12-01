@@ -9,7 +9,10 @@ use shin_window::{AppContext, ShinApp};
 use tracing::debug;
 
 use crate::{
-    asset::system::{locate_assets, AssetLoadContext, AssetServer},
+    asset::{
+        picture::Picture,
+        system::{locate_assets, AssetLoadContext, AssetServer},
+    },
     cli::Cli,
 };
 
