@@ -1,8 +1,8 @@
 //! Support for decoding PIC format used by the game
 //!
-//! The picture format splits the picture in chunks that are first separately transformed by using a dictionary or a differential encoding and an optional lz77 compression on top.
+//! The picture format splits the picture in blocks that are first separately transformed by using a dictionary or a differential encoding and an optional lz77 compression on top.
 //!
-//! It also stores vertices for each chunk specifying which regions of the image have transparency and which don't. This potentially allows for a more efficient GPU rendering (this implementation doesn't do this yet).
+//! It also stores vertices for each block specifying which regions of the image have transparency and which don't. This potentially allows for a more efficient GPU rendering (this implementation doesn't do this yet).
 
 use std::{borrow::Cow, io, sync::Mutex};
 
@@ -23,15 +23,17 @@ struct PicHeader {
     origin_y: i16,
     effective_width: u16,
     effective_height: u16,
+    /// Some sort of flags. Varying bit (1 << 0) seen in files, the game has code to handle the (1 << 1) bit somehow
     field_20: u32,
-    chunk_count: u32,
+    block_count: u32,
     picture_id: u32,
-    field_32: u32,
+    /// Scale in units of 1/4096
+    scale: u32,
 }
 
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little)]
-struct PicChunkDesc {
+struct PicBlockDesc {
     x: u16,
     y: u16,
     // from the beginning of the pic file
@@ -82,7 +84,7 @@ impl BinWrite for CompressionFlags {
 
 #[derive(BinRead, BinWrite, Debug)]
 #[br(little)]
-struct PicChunkHeader {
+struct PicBlockHeader {
     compression_flags: CompressionFlags,
     opaque_vertex_count: u16,
     transparent_vertex_count: u16,
@@ -96,7 +98,7 @@ struct PicChunkHeader {
     unknown_bool: u16,
 }
 
-impl PicChunkHeader {
+impl PicBlockHeader {
     pub fn use_inline_alpha(&self) -> bool {
         self.compression_flags
             .contains(CompressionFlags::USE_INLINE_ALPHA)
@@ -145,13 +147,13 @@ pub trait PictureBuilder<'d>: Send {
         picture_id: u32,
     ) -> Self;
 
-    fn add_chunk(&mut self, position: (u32, u32), chunk: PictureChunk) -> Result<()>;
+    fn add_block(&mut self, position: (u32, u32), block: PictureBlock) -> Result<()>;
 
     fn build(self) -> Result<Self::Output>;
 }
 
 #[derive(Debug, Clone)]
-pub struct PictureChunk {
+pub struct PictureBlock {
     pub offset_x: u32,
     pub offset_y: u32,
     pub opaque_vertices: Vec<PicVertexEntry>,
@@ -159,7 +161,7 @@ pub struct PictureChunk {
     pub data: RgbaImage,
 }
 
-impl PictureChunk {
+impl PictureBlock {
     pub fn new(
         offset_x: u32,
         offset_y: u32,
@@ -219,14 +221,14 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
         }
     }
 
-    fn add_chunk(&mut self, (x, y): (u32, u32), chunk: PictureChunk) -> Result<()> {
+    fn add_block(&mut self, (x, y): (u32, u32), block: PictureBlock) -> Result<()> {
         // I think those are used only in bustups
         // I am not sure how to handle them yet
-        assert_eq!(chunk.offset_x, 0);
-        assert_eq!(chunk.offset_y, 0);
+        assert_eq!(block.offset_x, 0);
+        assert_eq!(block.offset_y, 0);
 
-        let chunk_image = chunk.data;
-        image::imageops::replace(&mut self.image, &chunk_image, x as i64, y as i64);
+        let block_image = block.data;
+        image::imageops::replace(&mut self.image, &block_image, x as i64, y as i64);
 
         Ok(())
     }
@@ -237,7 +239,7 @@ impl<'a> PictureBuilder<'a> for SimpleMergedPicture {
 }
 
 pub struct SimplePicture {
-    pub chunks: Vec<((u32, u32), PictureChunk)>,
+    pub blocks: Vec<((u32, u32), PictureBlock)>,
     pub effective_width: u32,
     pub effective_height: u32,
     pub origin_x: i32,
@@ -258,7 +260,7 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
         picture_id: u32,
     ) -> Self {
         Self {
-            chunks: vec![],
+            blocks: vec![],
             effective_width,
             effective_height,
             origin_x,
@@ -267,8 +269,8 @@ impl<'a> PictureBuilder<'a> for SimplePicture {
         }
     }
 
-    fn add_chunk(&mut self, position: (u32, u32), chunk: PictureChunk) -> Result<()> {
-        self.chunks.push((position, chunk));
+    fn add_block(&mut self, position: (u32, u32), block: PictureBlock) -> Result<()> {
+        self.blocks.push((position, block));
         Ok(())
     }
 
@@ -383,21 +385,21 @@ pub fn read_texture(
     }
 }
 
-/// Read a picture chunk from the data
+/// Read a picture block from the data
 ///
-/// If the chunk data is an empty slice, the function will return an empry image chunk
+/// If the block data is an empty slice, the function will return an empry image block
 /// (this is used in some bustups)
-pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
+pub fn read_picture_block(block_data: &[u8]) -> Result<PictureBlock> {
     use io::Seek;
 
-    if chunk_data.is_empty() {
-        // the game actually supports "empty" picture chunks...
+    if block_data.is_empty() {
+        // the game actually supports "empty" picture blocks...
         // handle them specially, since they are not really structured the same way
-        return Ok(PictureChunk::empty());
+        return Ok(PictureBlock::empty());
     }
 
-    let mut reader = io::Cursor::new(chunk_data);
-    let header: PicChunkHeader = reader.read_le().context("Reading chunk header")?;
+    let mut reader = io::Cursor::new(block_data);
+    let header: PicBlockHeader = reader.read_le().context("Reading block header")?;
 
     let opaque_vertices = (0..header.opaque_vertex_count)
         .map(|_| reader.read_le())
@@ -412,7 +414,7 @@ pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
     let width = header.width as u32;
     let height = header.height as u32;
 
-    let mut chunk = PictureChunk::new(
+    let mut block = PictureBlock::new(
         header.offset_x as u32,
         header.offset_y as u32,
         width,
@@ -422,14 +424,14 @@ pub fn read_picture_chunk(chunk_data: &[u8]) -> Result<PictureChunk> {
     );
 
     read_texture(
-        &chunk_data[reader.position() as usize..],
+        &block_data[reader.position() as usize..],
         header.compressed_size as usize,
-        &mut chunk.data,
+        &mut block.data,
         header.use_dict_encoding(),
         header.use_inline_alpha(),
     );
 
-    Ok(chunk)
+    Ok(block)
 }
 
 pub fn read_picture<'a, B: PictureBuilder<'a>>(
@@ -451,16 +453,16 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
         bail!("Unknown field_20 value {}", header.field_20);
     }
 
-    if header.field_32 != 0x1000 {
-        bail!("Unknown field_32 value {}", header.field_32);
+    if header.scale != 4096 {
+        bail!("Unsupported scale value {}/4096", header.scale);
     }
 
-    let mut chunks = Vec::new();
-    for _ in 0..header.chunk_count {
-        let chunk_desc = PicChunkDesc::read(&mut source)?;
-        let chunk_data =
-            &source.get_ref()[chunk_desc.offset as usize..][..chunk_desc.size as usize];
-        chunks.push(((chunk_desc.x as usize, chunk_desc.y as usize), chunk_data));
+    let mut blocks = Vec::new();
+    for _ in 0..header.block_count {
+        let block_desc = PicBlockDesc::read(&mut source)?;
+        let block_data =
+            &source.get_ref()[block_desc.offset as usize..][..block_desc.size as usize];
+        blocks.push(((block_desc.x as usize, block_desc.y as usize), block_data));
     }
 
     let builder = B::new(
@@ -471,23 +473,18 @@ pub fn read_picture<'a, B: PictureBuilder<'a>>(
         header.origin_y as i32,
         header.picture_id,
     );
-    // TODO: how should be parallelize it in bevy?
-    // bevy doesn't use rayon, so using it here may be suboptimal
-    // ideally we want to be generic over the parallelization strategy
+
     let builder = Mutex::new(builder);
-    chunks
-        .par_chunk_map(shin_tasks::AsyncComputeTaskPool::get(), 1, |chunk| {
-            let &[(pos, data)] = chunk else {
-                unreachable!()
-            };
-            (pos, read_picture_chunk(data))
+    blocks
+        .par_map(shin_tasks::AsyncComputeTaskPool::get(), |&(pos, data)| {
+            (pos, read_picture_block(data))
         })
         .into_iter()
-        .try_for_each(|(pos, chunk)| {
+        .try_for_each(|(pos, block)| {
             builder
                 .lock()
                 .unwrap()
-                .add_chunk((pos.0 as u32, pos.1 as u32), chunk?)
+                .add_block((pos.0 as u32, pos.1 as u32), block?)
         })?;
 
     let listener = builder.into_inner().unwrap();
