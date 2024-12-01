@@ -44,6 +44,23 @@ pub trait ParallelSlice<T: Sync>: AsRef<[T]> {
         })
     }
 
+    /// Maps the slice in parallel across the provided `task_pool`. One task is spawned in the task pool for every item.
+    ///
+    /// Returns a `Vec` of the mapped results in the same order as the input.
+    fn par_map<F, R>(&self, task_pool: &TaskPool, f: F) -> Vec<R>
+    where
+        F: Fn(&T) -> R + Send + Sync,
+        R: Send + 'static,
+    {
+        let slice = self.as_ref();
+        let f = &f;
+        task_pool.scope(|scope| {
+            for item in slice {
+                scope.spawn(async move { f(item) });
+            }
+        })
+    }
+
     /// Splits the slice into a maximum of `max_tasks` chunks, and maps the chunks in parallel
     /// across the provided `task_pool`. One task is spawned in the task pool for every chunk.
     ///
