@@ -22,6 +22,7 @@ macro_rules! impl_primitive {
 impl_primitive! {
     f32 => PrimitiveType::Float32,
     Vec4 => PrimitiveType::Float32x4,
+    FloatColor4 => PrimitiveType::Float32x4,
     Mat4 => PrimitiveType::Float32x4x4,
     u32 => PrimitiveType::Uint32
 }
@@ -126,7 +127,7 @@ impl UniformType for FontUniformParams {
 #[derive(ShaderType)]
 pub struct LayerUniformParams {
     pub transform: Mat4,
-    pub color: Vec4,
+    pub color: FloatColor4,
     pub fragment_param: Vec4,
     // in reality those are enums, but wgsl doesn't natively support them
     // we can probably be a bit smarter and generate constants for those but that's a paaaaaain
@@ -147,7 +148,7 @@ impl UniformType for LayerUniformParams {
             },
             FieldSchema {
                 name: "color",
-                ty: &<Vec4 as UniformType>::SCHEMA,
+                ty: &<FloatColor4 as UniformType>::SCHEMA,
                 offset: LayerUniformParams::METADATA.extra.offsets[1] as u32,
             },
             FieldSchema {

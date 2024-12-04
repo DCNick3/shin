@@ -2,11 +2,13 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Context;
 use enum_map::{Enum, EnumMap};
+use glam::vec4;
 use shin_audio::AudioManager;
-use shin_input::{Action, ActionState, DummyAction, RawInputState};
-use shin_render::{render_pass::RenderPass, PassKind};
+use shin_core::vm::command::types::LayerProperty;
+use shin_input::{Action, ActionState, RawInputState};
+use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4, PassKind};
 use shin_window::{AppContext, ShinApp};
-use tracing::{debug, trace};
+use tracing::debug;
 use winit::keyboard::KeyCode;
 
 use crate::{
@@ -15,7 +17,9 @@ use crate::{
         system::{locate_assets, AssetLoadContext, AssetServer},
     },
     cli::Cli,
-    layer::{NewDrawableLayerWrapper, PictureLayer},
+    layer::{
+        render_params::TransformParams, Layer, NewDrawableLayerWrapper, PictureLayer, TileLayer,
+    },
 };
 
 #[derive(Debug, Enum)]
@@ -35,6 +39,7 @@ pub struct App {
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
     picture_layer: NewDrawableLayerWrapper<PictureLayer>,
+    tile_layer: NewDrawableLayerWrapper<TileLayer>,
 }
 
 impl ShinApp for App {
@@ -60,17 +65,30 @@ impl ShinApp for App {
         let picture_name = "/picture/text001.pic";
 
         let picture = asset_server.load_sync::<Picture>(picture_name).unwrap();
-        let picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
+
+        let mut picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
+        picture_layer
+            .properties_mut()
+            .property_tweener_mut(LayerProperty::TranslateZ)
+            .fast_forward_to(1500.0);
+
         let picture_layer = NewDrawableLayerWrapper::new(picture_layer);
+
+        let tile_layer = TileLayer::new(
+            FloatColor4::PASTEL_PINK,
+            vec4(-1088.0, -612.0, 2176.0, 1224.0),
+        );
+        let tile_layer = NewDrawableLayerWrapper::new(tile_layer);
 
         Ok(Self {
             audio_manager,
             asset_server,
             picture_layer,
+            tile_layer,
         })
     }
 
-    fn custom_event(&mut self, context: AppContext<Self>, event: Self::EventType) {
+    fn custom_event(&mut self, _context: AppContext<Self>, _event: Self::EventType) {
         todo!()
     }
 
@@ -86,12 +104,20 @@ impl ShinApp for App {
     }
 
     fn render(&mut self, pass: &mut RenderPass) {
+        let transform = TransformParams::default();
+
         pass.push_debug("opaque_pass");
-        self.picture_layer.render(pass, 1, PassKind::Opaque);
+        self.picture_layer
+            .render(pass, &transform, 2, PassKind::Opaque);
+        self.tile_layer
+            .render(pass, &transform, 1, PassKind::Opaque);
         pass.pop_debug();
 
         pass.push_debug("transparent_pass");
-        self.picture_layer.render(pass, 2, PassKind::Transparent);
+        self.tile_layer
+            .render(pass, &transform, 3, PassKind::Transparent);
+        self.picture_layer
+            .render(pass, &transform, 4, PassKind::Transparent);
         pass.pop_debug();
     }
 }

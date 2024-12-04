@@ -13,7 +13,9 @@ pub trait DrawableLayer {
 }
 
 pub trait NewDrawableLayer: DrawableLayer {
-    fn needs_separate_pass(&self) -> bool;
+    fn needs_separate_pass(&self) -> bool {
+        false
+    }
     fn render_drawable_indirect(&self) {
         // TODO: initiate a generic render pass and delegate to Self::render_drawable_direct
         todo!()
@@ -72,7 +74,13 @@ impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
         todo!("implement NewDrawableLayerWrapper effects");
     }
 
-    pub fn render(&self, pass: &mut RenderPass, stencil_ref: u8, pass_kind: PassKind) {
+    pub fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
         // TODO: implement the indirect drawing stuff
 
         let properties = self.inner_layer.get_properties();
@@ -80,15 +88,15 @@ impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
             return;
         }
 
-        let transform = properties.get_transform_params();
-        // TODO: compose the current-layer transform params with the transform params passed from the parent
+        let mut self_transform = properties.get_transform_params();
+        self_transform.compose_with(transform, properties.get_compose_flags());
 
         let drawable = properties.get_drawable_params();
         let clip = properties.get_clip_params();
 
         self.inner_layer.render_drawable_direct(
             pass,
-            &transform,
+            &self_transform,
             &drawable,
             &clip,
             stencil_ref,

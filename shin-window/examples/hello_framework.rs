@@ -60,7 +60,7 @@ impl ShinApp for HelloApp {
     }
 
     fn render(&mut self, pass: &mut RenderPass) {
-        let vertices = [
+        let vertices = &[
             PosVertex {
                 position: Vec3::new(-1.0, -1.0, 0.0),
             },
@@ -77,15 +77,13 @@ impl ShinApp for HelloApp {
 
         pass.run(RenderRequestBuilder::new().build(
             RenderProgramWithArguments::Clear {
-                vertices: VertexSource::VertexData {
-                    vertex_data: &vertices,
-                },
+                vertices: VertexSource::VertexData { vertices },
                 color: FloatColor4::BLUE,
             },
             DrawPrimitive::TrianglesStrip,
         ));
 
-        let vertices = [
+        let vertices = &[
             PosColVertex {
                 position: Vec3::new(0.0, 0.5, 0.0),
                 color: UnormColor::RED,
@@ -102,9 +100,7 @@ impl ShinApp for HelloApp {
 
         pass.run(RenderRequestBuilder::new().build(
             RenderProgramWithArguments::Fill {
-                vertices: VertexSource::VertexData {
-                    vertex_data: &vertices,
-                },
+                vertices: VertexSource::VertexData { vertices },
                 transform: Mat4::IDENTITY,
             },
             DrawPrimitive::Triangles,

@@ -12,7 +12,7 @@ pub mod resize;
 pub mod resizeable_texture;
 
 use enum_iterator::Sequence;
-use glam::{Mat4, Vec4};
+use glam::{vec3, vec4, Mat4, Vec3, Vec4};
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::TextureSource,
@@ -46,6 +46,56 @@ pub enum LayerFragmentShader {
     Fill2,
     Negative,
     Gamma,
+}
+
+impl LayerFragmentShader {
+    pub fn is_equivalent_to_default(self, param: Vec4) -> bool {
+        match self {
+            LayerFragmentShader::Default => true,
+            LayerFragmentShader::Mono => param == vec4(1.0, 1.0, 1.0, 0.0),
+            LayerFragmentShader::Fill => param.w == 0.0,
+            LayerFragmentShader::Fill2 => param.truncate() == Vec3::ZERO,
+            LayerFragmentShader::Negative => false,
+            LayerFragmentShader::Gamma => param.truncate() == Vec3::ONE,
+        }
+    }
+
+    /// If the shader is equivalent to the default shader with the given parameters, downgrades to the default shader.
+    pub fn simplify(self, param: Vec4) -> Self {
+        if self.is_equivalent_to_default(param) {
+            LayerFragmentShader::Default
+        } else {
+            self
+        }
+    }
+
+    pub fn evaluate(self, color: FloatColor4, param: Vec4) -> FloatColor4 {
+        let color = color.into_vec4();
+
+        let color = match self {
+            LayerFragmentShader::Default => color,
+            LayerFragmentShader::Mono => {
+                let luma = color.truncate().dot(vec3(0.299, 0.587, 0.114));
+
+                Vec3::splat(luma).extend(color.w) * param.truncate().extend(1.0)
+            }
+            LayerFragmentShader::Fill => {
+                // Vec4::lerp()
+                todo!()
+            }
+            LayerFragmentShader::Fill2 => {
+                todo!()
+            }
+            LayerFragmentShader::Negative => {
+                todo!()
+            }
+            LayerFragmentShader::Gamma => {
+                todo!()
+            }
+        };
+
+        FloatColor4::from_vec4(color)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
@@ -122,7 +172,7 @@ pub enum RenderProgramWithArguments<'a> {
         vertices: VertexSource<'a, LayerVertex>,
         texture: TextureSource<'a>,
         transform: Mat4,
-        color_multiplier: Vec4,
+        color_multiplier: FloatColor4,
         fragment_shader_param: Vec4,
     },
     Mask {
@@ -373,6 +423,7 @@ pub enum DrawPrimitive {
 }
 
 #[derive(Default, Copy, Clone)]
+#[must_use]
 pub struct RenderRequestBuilder {
     depth_stencil: DepthStencilState,
     color_blend_type: ColorBlendType,
@@ -435,6 +486,7 @@ impl RenderRequestBuilder {
     }
 }
 
+#[must_use]
 pub struct RenderRequest<'a> {
     depth_stencil: DepthStencilState,
     color_blend_type: ColorBlendType,

@@ -284,18 +284,18 @@ impl<O: BufferOwnership> Buffer<O, RawMarker> {
 #[derive(Debug)]
 pub enum VertexSource<'a, T: VertexType> {
     VertexBuffer {
-        vertex_buffer: VertexBufferRef<'a, T>,
+        vertices: VertexBufferRef<'a, T>,
     },
     VertexAndIndexBuffer {
-        vertex_buffer: VertexBufferRef<'a, T>,
-        index_buffer: IndexBufferRef<'a>,
+        vertices: VertexBufferRef<'a, T>,
+        indices: IndexBufferRef<'a>,
     },
     VertexData {
-        vertex_data: &'a [T],
+        vertices: &'a [T],
     },
     VertexAndIndexData {
-        vertex_data: &'a [T],
-        index_data: &'a [u16],
+        vertices: &'a [T],
+        indices: &'a [u16],
     },
 }
 
@@ -309,21 +309,25 @@ pub enum VertexSourceInfo {
 impl<'a, T: VertexType> VertexSource<'a, T> {
     pub fn info(&self) -> VertexSourceInfo {
         match self {
-            VertexSource::VertexBuffer { vertex_buffer } => VertexSourceInfo::VertexBuffer {
+            VertexSource::VertexBuffer {
+                vertices: vertex_buffer,
+            } => VertexSourceInfo::VertexBuffer {
                 vertex_count: vertex_buffer.count(),
             },
             VertexSource::VertexAndIndexBuffer {
-                vertex_buffer: _,
-                index_buffer,
+                vertices: _,
+                indices: index_buffer,
             } => VertexSourceInfo::VertexAndIndexBuffer {
                 index_count: index_buffer.count(),
             },
-            VertexSource::VertexData { vertex_data } => VertexSourceInfo::VertexBuffer {
+            VertexSource::VertexData {
+                vertices: vertex_data,
+            } => VertexSourceInfo::VertexBuffer {
                 vertex_count: vertex_data.len() as u32,
             },
             VertexSource::VertexAndIndexData {
-                vertex_data: _,
-                index_data,
+                vertices: _,
+                indices: index_data,
             } => VertexSourceInfo::VertexAndIndexBuffer {
                 index_count: index_data.len() as u32,
             },
@@ -336,23 +340,27 @@ impl<'a, T: VertexType> VertexSource<'a, T> {
         pass: &mut wgpu::RenderPass,
     ) {
         match self {
-            VertexSource::VertexBuffer { vertex_buffer } => {
+            VertexSource::VertexBuffer {
+                vertices: vertex_buffer,
+            } => {
                 pass.set_vertex_buffer(0, vertex_buffer.slice);
             }
             VertexSource::VertexAndIndexBuffer {
-                vertex_buffer,
-                index_buffer,
+                vertices: vertex_buffer,
+                indices: index_buffer,
             } => {
                 pass.set_vertex_buffer(0, vertex_buffer.slice);
                 pass.set_index_buffer(index_buffer.slice, wgpu::IndexFormat::Uint16);
             }
-            VertexSource::VertexData { vertex_data } => {
+            VertexSource::VertexData {
+                vertices: vertex_data,
+            } => {
                 let vertex_buffer = dynamic_buffer.get_vertex_with_data(vertex_data);
                 pass.set_vertex_buffer(0, vertex_buffer.as_buffer_ref().slice);
             }
             VertexSource::VertexAndIndexData {
-                vertex_data,
-                index_data,
+                vertices: vertex_data,
+                indices: index_data,
             } => {
                 let vertex_buffer = dynamic_buffer.get_vertex_with_data(vertex_data);
                 let index_buffer = dynamic_buffer.get_index_with_data(index_data);

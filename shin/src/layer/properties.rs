@@ -1,5 +1,5 @@
 use enum_map::{enum_map, EnumMap};
-use glam::{vec2, vec3, vec4, Mat4, Vec2, Vec3, Vec4};
+use glam::{vec2, vec3, vec4, Mat4, Vec2, Vec4};
 use shin_core::{
     time::{Ticks, Tweener},
     vm::command::types::LayerProperty,
@@ -8,7 +8,9 @@ use shin_render::{shaders::types::vertices::FloatColor4, LayerBlendType, LayerFr
 
 use crate::{
     layer::{
-        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
+        render_params::{
+            ComposeFlags, DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams,
+        },
         wobbler::Wobbler,
     },
     update::{Updatable, UpdateContext},
@@ -103,7 +105,7 @@ impl LayerProperties {
         self.get_effective_alpha() > 0.0
     }
 
-    pub fn get_color_multiplier(&self) -> Vec4 {
+    pub fn get_color_multiplier(&self) -> FloatColor4 {
         use LayerProperty::*;
 
         // NB: we initially multiply the color channels by 0.0005 instead of 0.001
@@ -119,7 +121,7 @@ impl LayerProperties {
         // restore the original range
         color *= vec4(2.0, 2.0, 2.0, 1.0);
 
-        color
+        FloatColor4::from_vec4(color)
     }
 
     pub fn get_blend_type(&self) -> LayerBlendType {
@@ -287,10 +289,11 @@ impl LayerProperties {
             * std::f32::consts::TAU;
 
         let total_translation = vec3(
-            self.get_value(TranslateX) + self.get_value(TranslateX2) - self.get_value(Prop20),
-            self.get_value(TranslateY) + self.get_value(TranslateY2) - self.get_value(Prop21),
-            // for some reason we are not getting the same transform matrix if we add the Z translation here
-            0.0, // self.get_value(TranslateZ),
+            self.get_value(TranslateX) + self.get_value(TranslateX2)
+                - self.get_value(NegatedTranslationX),
+            self.get_value(TranslateY) + self.get_value(TranslateY2)
+                - self.get_value(NegatedTranslationY),
+            self.get_value(TranslateZ),
         );
 
         result = Mat4::from_translation(-scale_origin) * result;
@@ -316,20 +319,28 @@ impl LayerProperties {
 
         let transform = self.get_transform();
 
-        let some_vector = vec3(
-            self.get_value(Prop85),
-            self.get_value(Prop86),
-            self.get_value(Prop87),
+        let camera_position = vec3(
+            self.get_value(CameraPositionX),
+            self.get_value(CameraPositionY),
+            self.get_value(CameraPositionZ),
         );
-        let another_vector = vec2(self.get_value(Prop88), self.get_value(Prop89));
+        let unconditionally_inherited_translation = vec2(
+            self.get_value(UnconditionallyInheritedTranslationX),
+            self.get_value(UnconditionallyInheritedTranslationY),
+        );
         let wobble_translation = self.get_wobble_translation();
 
         TransformParams {
             transform,
-            some_vector,
-            another_vector,
+            camera_position,
+            unconditionally_inherited_translation,
             wobble_translation,
         }
+    }
+
+    pub fn get_compose_flags(&self) -> ComposeFlags {
+        let flags = self.get_value(LayerProperty::ComposeFlags) as i32;
+        ComposeFlags::from_bits_truncate(flags)
     }
 }
 

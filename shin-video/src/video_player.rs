@@ -152,7 +152,7 @@ impl VideoPlayer {
         pass.run(RenderRequestBuilder::new().build(
             RenderProgramWithArguments::Movie {
                 vertices: VertexSource::VertexData {
-                    vertex_data: &[
+                    vertices: &[
                         MovieVertex {
                             coords: Vec4::new(0.0, 0.0, 0.0, 0.0),
                         },

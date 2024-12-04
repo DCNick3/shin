@@ -23,58 +23,55 @@ fn vertex_main(input: LayerVertex) -> VertexOutput {
     return output;
 }
 
+fn evaluate_fragment_shader(color: vec3<f32>, operation: u32, param: vec4<f32>) -> vec3<f32> {
+    if operation == 0 {
+        // default
+        return color;
+    } else if operation == 1 {
+        // mono
+        let luma = dot(color, vec3(0.299, 0.587, 0.114));
+        let mix = mix(color, vec3(luma), param.w);
+        return mix * param.xyz;
+    } else if operation == 2 {
+        // fill
+        return mix(color, param.xyz, param.w);
+    } else if operation == 3 {
+        // fill2
+        // I have no idea how it is different from default
+        return color;
+    } else if operation == 4 {
+        // negative
+        let negated = 1 - color;
+        return mix(color, negated, param.w);
+    } else if operation == 5 {
+        // gamma
+        return exp2(log2(color) * 1 / param.xyz);
+    } else {
+        return color;
+    }
+}
+
 @fragment
 fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    var value = textureSample(texture_texture, texture_sampler, input.texture_position);
+    let sampled = textureSample(texture_texture, texture_sampler, input.texture_position);
 
     if params.output_type == 1 {
-        if value.w * params.color.w - 0.00100000005 < 0.0 {
+        if sampled.w * params.color.w - 0.00100000005 < 0.0 {
             discard;
         }
     }
 
-    value = value * params.color;
-
-    if params.fragment_operation == 0 {
-        // default
-    } else if params.fragment_operation == 1 {
-        // mono
-        let wet = params.fragment_param.w;
-        let dry = 1.0 - wet;
-
-        let luma = dot(value.xyz, vec3(0.298999995, 0.587000012, 0.114));
-        let mix = vec3(luma) * wet + value.xyz * dry;
-        value = vec4<f32>(mix * params.fragment_param.xyz, value.w);
-    } else if params.fragment_operation == 2 {
-        // fill
-        let wet = params.fragment_param.w;
-        let dry = 1.0 - wet;
-
-        let mix = params.fragment_param.xyz * wet + value.xyz * dry;
-        value = vec4<f32>(mix, value.w);
-    } else if params.fragment_operation == 3 {
-        // fill2
-        // I have no idea how it is different from default
-    } else if params.fragment_operation == 4 {
-        // negative
-        let wet = params.fragment_param.w;
-        let dry = 1.0 - wet;
-
-        let negated = 1 - value.xyz;
-        let mix = negated * wet + value.xyz * dry;
-        value = vec4<f32>(mix, value.w);
-    } else if params.fragment_operation == 5 {
-        // gamma
-        let corrected = exp2(log2(value.xyz) * 1 / params.fragment_param.xyz);
-        value = vec4<f32>(corrected, value.w);
-    }
+    let tinted = sampled * params.color;
+    // the fragment shader won't change the alpha channel
+    let value = evaluate_fragment_shader(tinted.xyz, params.fragment_operation, params.fragment_param);
+    let processed = vec4<f32>(value, sampled.w);
 
     if params.output_type == 0 || params.output_type == 2 {
         // normal & discard
-        return value;
+        return processed;
     } else if params.output_type == 1 {
         // premultiply
-        return value * vec4<f32>(value.www, 1.0);
+        return processed * vec4<f32>(processed.www, 1.0);
     } else {
         return vec4<f32>(0.0, 0.0, 0.0, 0.0);
     }

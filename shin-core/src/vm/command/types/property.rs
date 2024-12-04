@@ -32,8 +32,8 @@ pub enum LayerProperty {
     Rotation = 18,
     Rotation2 = 19,
 
-    Prop20 = 20,
-    Prop21 = 21,
+    NegatedTranslationX = 20,
+    NegatedTranslationY = 21,
 
     ShowLayer = 22,
     BlendType = 23,
@@ -123,12 +123,12 @@ pub enum LayerProperty {
     RippleLPeriod = 83,
     RippleTPeriod = 84,
 
-    Prop85 = 85,
-    Prop86 = 86,
-    Prop87 = 87,
+    CameraPositionX = 85,
+    CameraPositionY = 86,
+    CameraPositionZ = 87,
 
-    Prop88 = 88,
-    Prop89 = 89,
+    UnconditionallyInheritedTranslationX = 88,
+    UnconditionallyInheritedTranslationY = 89,
 }
 
 impl LayerProperty {
