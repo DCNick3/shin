@@ -1,12 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::Context;
-use enum_map::EnumMap;
+use enum_map::{Enum, EnumMap};
 use shin_audio::AudioManager;
-use shin_input::{ActionState, DummyAction};
+use shin_input::{Action, ActionState, DummyAction, RawInputState};
 use shin_render::{render_pass::RenderPass, PassKind};
 use shin_window::{AppContext, ShinApp};
 use tracing::{debug, trace};
+use winit::keyboard::KeyCode;
 
 use crate::{
     asset::{
@@ -17,6 +18,19 @@ use crate::{
     layer::{NewDrawableLayerWrapper, PictureLayer},
 };
 
+#[derive(Debug, Enum)]
+pub enum AppAction {
+    ToggleFullscreen,
+}
+
+impl Action for AppAction {
+    fn lower(raw_input_state: &RawInputState) -> EnumMap<Self, bool> {
+        EnumMap::from_fn(|action| match action {
+            AppAction::ToggleFullscreen => raw_input_state.keyboard.contains(&KeyCode::F11),
+        })
+    }
+}
+
 pub struct App {
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
@@ -26,7 +40,7 @@ pub struct App {
 impl ShinApp for App {
     type Parameters = Cli;
     type EventType = ();
-    type ActionType = DummyAction;
+    type ActionType = AppAction;
 
     fn init(context: AppContext<Self>, cli: Self::Parameters) -> anyhow::Result<Self> {
         let audio_manager = Arc::new(AudioManager::new());
@@ -66,7 +80,9 @@ impl ShinApp for App {
         input: EnumMap<Self::ActionType, ActionState>,
         elapsed_time: Duration,
     ) {
-        // todo!()
+        if input[AppAction::ToggleFullscreen].is_clicked {
+            context.winit.toggle_fullscreen();
+        }
     }
 
     fn render(&mut self, pass: &mut RenderPass) {
