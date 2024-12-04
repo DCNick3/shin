@@ -7,20 +7,17 @@ mod null_layer;
 mod page_layer;
 mod picture_layer;
 mod properties;
-mod render_params;
+pub mod render_params;
 mod root_layer_group;
 mod screen_layer;
 mod tile_layer;
 mod wobbler;
 
-use std::f32::consts::PI;
-
 pub use bustup_layer::BustupLayer;
 use derivative::Derivative;
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
-use enum_map::{enum_map, EnumMap};
-use glam::{vec3, Mat4};
+use glam::vec4;
 pub use layer_group::LayerGroup;
 pub use message_layer::MessageLayer;
 pub use movie_layer::MovieLayer;
@@ -38,16 +35,15 @@ use shin_core::{
         instruction_elements::UntypedNumberArray,
         Scenario,
     },
-    time::{Ticks, Tweener},
-    vm::command::types::{LayerProperty, LayerType},
+    vm::command::types::LayerType,
 };
+use shin_render::shaders::types::vertices::FloatColor4;
 pub use tile_layer::TileLayer;
 use tracing::{debug, warn};
 
 use crate::{
     asset::{bustup::Bustup, movie::Movie, picture::Picture, system::AssetServer},
-    layer::wobbler::Wobbler,
-    update::{Updatable, UpdateContext},
+    update::Updatable,
 };
 
 #[enum_dispatch]
@@ -90,8 +86,16 @@ impl UserLayer {
         match layer_ty {
             LayerType::Null => NullLayer::new().into(),
             LayerType::Tile => {
-                let (tile_color, offset_x, offset_y, width, height, ..) = params;
-                TileLayer::new(tile_color, offset_x, offset_y, width, height).into()
+                let (color, offset_x, offset_y, width, height, ..) = params;
+                let color = FloatColor4::from_4bpp_property(color);
+                let rect = vec4(
+                    offset_x as f32,
+                    offset_y as f32,
+                    width as f32,
+                    height as f32,
+                );
+
+                TileLayer::new(color, rect).into()
             }
             LayerType::Picture => {
                 let (pic_id, ..) = params;

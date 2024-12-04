@@ -3,7 +3,10 @@ use std::{fmt::Debug, sync::Arc};
 use glam::{Mat4, Vec3, Vec4};
 use shin_render::{
     render_pass::RenderPass,
-    shaders::types::buffer::{BytesAddress, VertexSource},
+    shaders::types::{
+        buffer::{BytesAddress, VertexSource},
+        vertices::FloatColor4,
+    },
     ColorBlendType, DrawPrimitive, LayerBlendType, LayerFragmentShader, LayerShaderOutputKind,
     PassKind, RenderProgramWithArguments, RenderRequestBuilder,
 };
@@ -32,7 +35,7 @@ pub enum PictureBlockPassKind {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PictureBlockParams {
     pass_kind: PictureBlockPassKind,
-    color_multiplier: Vec4,
+    color_multiplier: FloatColor4,
     blend_type: LayerBlendType,
     fragment_shader: LayerFragmentShader,
     fragment_shader_param: Vec4,
@@ -40,10 +43,10 @@ pub struct PictureBlockParams {
 
 impl PictureBlockParams {
     pub fn setup(gfx_pass_kind: PassKind, drawable_params: &DrawableParams) -> Option<Self> {
-        let mut can_render_in_two_passes;
+        let can_render_in_two_passes;
 
         if drawable_params.blend_type == LayerBlendType::Type1 {
-            let everything_needs_blending = drawable_params.color_multiplier.w < 1.0;
+            let everything_needs_blending = drawable_params.color_multiplier.a < 1.0;
             can_render_in_two_passes = !everything_needs_blending;
 
             if gfx_pass_kind == PassKind::Opaque && everything_needs_blending {
@@ -65,39 +68,7 @@ impl PictureBlockParams {
         let blend_type = drawable_params.blend_type;
         let shader_param = drawable_params.shader_param;
 
-        // downgrade no-op shader operations to default
-        let fragment_shader = match drawable_params.fragment_shader {
-            LayerFragmentShader::Default => LayerFragmentShader::Default,
-            LayerFragmentShader::Mono => {
-                if shader_param == Vec4::new(1.0, 1.0, 1.0, 0.0) {
-                    LayerFragmentShader::Default
-                } else {
-                    LayerFragmentShader::Mono
-                }
-            }
-            LayerFragmentShader::Fill => {
-                if shader_param.w == 0.0 {
-                    LayerFragmentShader::Default
-                } else {
-                    LayerFragmentShader::Fill
-                }
-            }
-            LayerFragmentShader::Fill2 => {
-                if shader_param.truncate() == Vec3::ZERO {
-                    LayerFragmentShader::Default
-                } else {
-                    LayerFragmentShader::Fill2
-                }
-            }
-            LayerFragmentShader::Negative => LayerFragmentShader::Negative,
-            LayerFragmentShader::Gamma => {
-                if shader_param.truncate() == Vec3::new(1.0, 1.0, 1.0) {
-                    LayerFragmentShader::Default
-                } else {
-                    LayerFragmentShader::Gamma
-                }
-            }
-        };
+        let fragment_shader = drawable_params.fragment_shader.simplify(shader_param);
 
         if !can_render_in_two_passes && gfx_pass_kind == PassKind::Transparent {
             pass_kind = PictureBlockPassKind::OpaqueAndTransparent;
@@ -159,8 +130,8 @@ pub fn render_block(
         BytesAddress::from_usize(count * GpuPictureBlock::INDICES_PER_RECT),
     );
     let vertices = VertexSource::VertexAndIndexBuffer {
-        vertex_buffer: vertices,
-        index_buffer: indices,
+        vertices: vertices,
+        indices: indices,
     };
 
     let color_blend_type = match pass_kind {
@@ -237,10 +208,6 @@ impl DrawableLayer for PictureLayer {
 }
 
 impl NewDrawableLayer for PictureLayer {
-    fn needs_separate_pass(&self) -> bool {
-        false
-    }
-
     fn render_drawable_direct(
         &self,
         pass: &mut RenderPass,

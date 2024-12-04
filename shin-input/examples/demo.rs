@@ -8,7 +8,6 @@ use shin_input::{
 };
 use shin_render::{
     render_pass::RenderPass,
-    resize::ViewportParams,
     shaders::types::{
         buffer::VertexSource,
         vertices::{PosColVertex, UnormColor},
@@ -118,7 +117,7 @@ impl HelloAppInputHistory {
         pass.run(RenderRequestBuilder::new().build(
             RenderProgramWithArguments::Fill {
                 vertices: VertexSource::VertexData {
-                    vertex_data: &vertices,
+                    vertices: &vertices,
                 },
                 // transform to fit the grid into normalized device coordinates
                 transform: Mat4::from_translation(Vec3::new(-1.0, -1.0, 0.0))
@@ -217,7 +216,7 @@ impl HelloAppMove {
         pass.run(RenderRequestBuilder::new().build(
             RenderProgramWithArguments::Fill {
                 vertices: VertexSource::VertexData {
-                    vertex_data: &vertices,
+                    vertices: &vertices,
                 },
                 transform: Mat4::from_scale(Vec3::new(2.0 / 1920.0, 2.0 / 1080.0, 1.0))
                     * Mat4::from_translation(Vec3::new(
