@@ -2,7 +2,7 @@ use glam::Mat4;
 use shin_core::vm::command::types::PLANES_COUNT;
 
 use crate::{
-    layer::{Layer, LayerGroup, LayerProperties},
+    layer::{properties::LayerProperties, Layer, LayerGroup},
     update::{Updatable, UpdateContext},
 };
 

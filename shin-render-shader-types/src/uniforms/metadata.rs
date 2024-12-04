@@ -28,6 +28,7 @@ pub enum PrimitiveType {
     Float32x3,
     Float32x4,
     Float32x4x4,
+    Uint32,
 }
 
 impl PrimitiveType {
@@ -38,6 +39,7 @@ impl PrimitiveType {
             PrimitiveType::Float32x3 => 12,
             PrimitiveType::Float32x4 => 16,
             PrimitiveType::Float32x4x4 => 64,
+            PrimitiveType::Uint32 => 4,
         }
     }
 }

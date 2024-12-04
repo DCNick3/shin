@@ -1,7 +1,7 @@
 use glam::Mat4;
 
 use crate::{
-    layer::{page_layer::PageLayer, Layer, LayerProperties},
+    layer::{page_layer::PageLayer, properties::LayerProperties, Layer},
     update::{Updatable, UpdateContext},
 };
 

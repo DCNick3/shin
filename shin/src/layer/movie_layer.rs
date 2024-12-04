@@ -6,7 +6,7 @@ use shin_video::VideoPlayer;
 
 use crate::{
     asset::movie::Movie,
-    layer::{Layer, LayerProperties},
+    layer::{properties::LayerProperties, Layer},
     update::{Updatable, UpdateContext},
 };
 

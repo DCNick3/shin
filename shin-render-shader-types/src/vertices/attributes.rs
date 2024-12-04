@@ -39,6 +39,10 @@ impl FloatColor4 {
         }
     }
 
+    pub const fn from_vec4(vec4: Vec4) -> Self {
+        Self { inner: vec4 }
+    }
+
     pub const RED: Self = Self::from_unorm(UnormColor::RED);
     pub const GREEN: Self = Self::from_unorm(UnormColor::GREEN);
     pub const BLUE: Self = Self::from_unorm(UnormColor::BLUE);

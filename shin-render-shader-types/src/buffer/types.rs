@@ -94,7 +94,7 @@ impl<T: encase::ShaderType + encase::ShaderSize> BufferType for UniformMarker<T>
     }
 
     fn is_valid_size(size: BytesAddress) -> bool {
-        size == BytesAddress::from_usize(std::mem::size_of::<T>())
+        size == BytesAddress::new(T::SHADER_SIZE.get())
     }
 }
 impl<T: encase::ShaderSize + encase::internal::WriteInto> StructBufferType for UniformMarker<T> {

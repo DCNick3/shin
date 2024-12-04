@@ -5,7 +5,7 @@ use shin_core::vm::command::types::LayerId;
 
 use crate::{
     adv::LayerSelection,
-    layer::{Layer, LayerProperties, UserLayer},
+    layer::{properties::LayerProperties, Layer, UserLayer},
     update::{Updatable, UpdateContext},
 };
 

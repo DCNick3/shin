@@ -1,9 +1,8 @@
 use std::collections::BTreeMap;
 
 use anyhow::Result;
-use bevy_utils::HashMap;
-use glam::{vec2, Vec4};
-use shin_core::format::picture::{PicBlock, PicBlockRect, PictureBuilder, SimpleMergedPicture};
+use glam::{vec2, Vec2, Vec4};
+use shin_core::format::picture::{PicBlock, PicBlockRect, PictureBuilder};
 use shin_render::{
     gpu_texture::GpuTexture,
     shaders::types::{
@@ -15,23 +14,18 @@ use shin_render::{
 use crate::asset::system::{Asset, AssetDataAccessor, AssetLoadContext};
 
 pub struct GpuPictureBlock {
-    vertex_buffer: OwnedVertexBuffer<LayerVertex>,
-    index_buffer: OwnedIndexBuffer,
-    opaque_rect_count: u32,
-    transparent_rect_count: u32,
-    texture: GpuTexture,
+    pub vertex_buffer: OwnedVertexBuffer<LayerVertex>,
+    pub index_buffer: OwnedIndexBuffer,
+    pub opaque_rect_count: usize,
+    pub transparent_rect_count: usize,
+    pub texture: GpuTexture,
 }
 
 impl GpuPictureBlock {
-    const VERTICES_PER_RECT: usize = 4;
-    const INDICES_PER_RECT: usize = 6;
+    pub const VERTICES_PER_RECT: usize = 4;
+    pub const INDICES_PER_RECT: usize = 6;
 
-    pub fn new(
-        context: GpuTextureBuilderContext,
-        position: (u32, u32),
-        block: PicBlock,
-        label: &str,
-    ) -> Self {
+    pub fn new(context: GpuTextureBuilderContext, block: PicBlock, label: &str) -> Self {
         let rect_count = block.opaque_rects.len() + block.transparent_rects.len();
 
         let mut vertex_buffer = Vec::with_capacity(rect_count * Self::VERTICES_PER_RECT);
@@ -70,7 +64,7 @@ impl GpuPictureBlock {
             let indices: [u16; Self::INDICES_PER_RECT] = [0, 1, 2, 3, 2, 1].map(|i| index_base + i);
 
             vertex_buffer.extend(vertices.map(|((px, tx), (py, ty))| LayerVertex {
-                position: Vec4::new(px, py, tx, ty),
+                coords: Vec4::new(px, py, tx, ty),
             }));
             index_buffer.extend(indices);
         };
@@ -103,8 +97,8 @@ impl GpuPictureBlock {
         GpuPictureBlock {
             vertex_buffer,
             index_buffer,
-            opaque_rect_count: block.opaque_rects.len() as u32,
-            transparent_rect_count: block.transparent_rects.len() as u32,
+            opaque_rect_count: block.opaque_rects.len(),
+            transparent_rect_count: block.transparent_rects.len(),
             texture,
         }
     }
@@ -123,7 +117,7 @@ struct GpuPictureBuilder<'a> {
     effective_height: u32,
     origin_x: i32,
     origin_y: i32,
-    blocks: BTreeMap<u32, GpuPictureBlock>,
+    blocks: BTreeMap<u32, (Vec<Vec2>, GpuPictureBlock)>,
 }
 
 impl<'a> PictureBuilder for GpuPictureBuilder<'a> {
@@ -149,15 +143,26 @@ impl<'a> PictureBuilder for GpuPictureBuilder<'a> {
         }
     }
 
-    fn add_block(&mut self, data_offset: u32, position: (u32, u32), block: PicBlock) -> Result<()> {
+    fn add_block(
+        &mut self,
+        data_offset: u32,
+        positions: Vec<(u32, u32)>,
+        block: PicBlock,
+    ) -> Result<()> {
         let block = GpuPictureBlock::new(
             self.context,
-            position,
             block,
             &format!("{}/{}", self.label, data_offset),
         );
+        let positions = positions
+            .into_iter()
+            .map(|(x, y)| vec2(x as f32, y as f32))
+            .collect::<Vec<_>>();
 
-        self.blocks.insert(data_offset, block);
+        assert!(self
+            .blocks
+            .insert(data_offset, (positions, block))
+            .is_none());
 
         Ok(())
     }
@@ -185,18 +190,12 @@ impl<'a> PictureBuilder for GpuPictureBuilder<'a> {
 
 /// A Picture, uploaded to GPU on demand (because doing it in the asset loading context is awkward)
 pub struct Picture {
-    label: String,
-    effective_width: u32,
-    effective_height: u32,
-    origin_x: i32,
-    origin_y: i32,
-    blocks: BTreeMap<u32, GpuPictureBlock>,
-}
-
-impl Picture {
-    // pub fn gpu_image(&self, resources: &GpuCommonResources) -> &GpuImage {
-    //     self.picture.gpu_image(resources)
-    // }
+    pub label: String,
+    pub effective_width: u32,
+    pub effective_height: u32,
+    pub origin_x: i32,
+    pub origin_y: i32,
+    pub blocks: BTreeMap<u32, (Vec<Vec2>, GpuPictureBlock)>,
 }
 
 impl Asset for Picture {

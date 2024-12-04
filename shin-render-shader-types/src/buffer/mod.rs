@@ -156,6 +156,25 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
 }
 
 impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
+    pub fn as_sliced_buffer_ref(&self, offset: BytesAddress, size: BytesAddress) -> BufferRef<T> {
+        // check if we are within the bounds of the buffer
+        assert!((BytesAddress::ZERO..self.size).contains(&offset));
+        assert!((BytesAddress::ZERO..self.size).contains(&(offset + size)));
+
+        let new_offset = self.offset + offset;
+
+        let slice = self
+            .ownership
+            .get()
+            .slice(new_offset.get()..(new_offset + self.size).get());
+
+        BufferRef {
+            slice,
+            size: self.size,
+            phantom: PhantomData,
+        }
+    }
+
     pub fn count(&self) -> u32 {
         (self.size.get() as usize / size_of::<T::Element>()) as u32
     }

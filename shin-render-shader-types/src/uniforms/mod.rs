@@ -22,7 +22,8 @@ macro_rules! impl_primitive {
 impl_primitive! {
     f32 => PrimitiveType::Float32,
     Vec4 => PrimitiveType::Float32x4,
-    Mat4 => PrimitiveType::Float32x4x4
+    Mat4 => PrimitiveType::Float32x4x4,
+    u32 => PrimitiveType::Uint32
 }
 
 impl<T, const S: usize> UniformType for [T; S]
@@ -117,6 +118,52 @@ impl UniformType for FontUniformParams {
                 name: "color2",
                 ty: &<Vec4 as UniformType>::SCHEMA,
                 offset: FontUniformParams::METADATA.extra.offsets[2] as u32,
+            },
+        ],
+    });
+}
+
+#[derive(ShaderType)]
+pub struct LayerUniformParams {
+    pub transform: Mat4,
+    pub color: Vec4,
+    pub fragment_param: Vec4,
+    // in reality those are enums, but wgsl doesn't natively support them
+    // we can probably be a bit smarter and generate constants for those but that's a paaaaaain
+    pub output_type: u32,
+    pub fragment_operation: u32,
+}
+
+impl UniformType for LayerUniformParams {
+    const SCHEMA: TypeSchema = TypeSchema::Struct(StructSchema {
+        name: "LayerUniformParams",
+        size: LayerUniformParams::METADATA.min_size.get() as u32,
+        alignment: LayerUniformParams::METADATA.alignment.get() as u32,
+        fields: &[
+            FieldSchema {
+                name: "transform",
+                ty: &<Mat4 as UniformType>::SCHEMA,
+                offset: LayerUniformParams::METADATA.extra.offsets[0] as u32,
+            },
+            FieldSchema {
+                name: "color",
+                ty: &<Vec4 as UniformType>::SCHEMA,
+                offset: LayerUniformParams::METADATA.extra.offsets[1] as u32,
+            },
+            FieldSchema {
+                name: "fragment_param",
+                ty: &<Vec4 as UniformType>::SCHEMA,
+                offset: LayerUniformParams::METADATA.extra.offsets[2] as u32,
+            },
+            FieldSchema {
+                name: "output_type",
+                ty: &<u32 as UniformType>::SCHEMA,
+                offset: LayerUniformParams::METADATA.extra.offsets[3] as u32,
+            },
+            FieldSchema {
+                name: "fragment_operation",
+                ty: &<u32 as UniformType>::SCHEMA,
+                offset: LayerUniformParams::METADATA.extra.offsets[4] as u32,
             },
         ],
     });

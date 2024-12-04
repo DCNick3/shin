@@ -86,6 +86,14 @@ impl Wobbler {
         self.mode != WobbleMode::Disabled && self.period > Ticks::ZERO
     }
 
+    pub fn value_opt(&self) -> Option<f32> {
+        if self.active() {
+            Some(self.value())
+        } else {
+            None
+        }
+    }
+
     pub fn update(&mut self, delta_time: Ticks, mode: f32, period: Ticks) {
         let mode = mode as i32;
         let mode = WobbleMode::from_i32(mode).unwrap_or_else(|| {

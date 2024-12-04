@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use glam::Mat4;
 
 use crate::{
-    layer::{Layer, LayerProperties},
+    layer::{properties::LayerProperties, Layer},
     update::{Updatable, UpdateContext},
 };
 

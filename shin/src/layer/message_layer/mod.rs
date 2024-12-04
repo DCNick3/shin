@@ -15,7 +15,8 @@ use crate::{
     adv::assets::AdvFonts,
     layer::{
         message_layer::{font_atlas::FontAtlas, messagebox::Messagebox},
-        Layer, LayerProperties,
+        properties::LayerProperties,
+        Layer,
     },
     render::overlay::{OverlayCollector, OverlayVisitable},
     update::{Updatable, UpdateContext},

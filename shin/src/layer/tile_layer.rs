@@ -3,7 +3,7 @@ use std::{fmt::Debug, sync::Arc};
 use glam::{vec4, Mat4, Vec4};
 
 use crate::{
-    layer::{Layer, LayerProperties},
+    layer::{properties::LayerProperties, Layer},
     update::{Updatable, UpdateContext},
 };
 

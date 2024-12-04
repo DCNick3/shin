@@ -5,22 +5,19 @@ use std::{
     fmt::Debug,
     fs::File,
     future::Future,
-    io,
-    io::BufReader,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, RwLock, Weak},
+    sync::{Arc, RwLock, Weak},
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use async_trait::async_trait;
 use bevy_utils::HashMap;
 use derive_more::From;
 use shin_core::{
     format::rom::{RomFileReader, RomReader},
-    primitives::stateless_reader::{StatelessFile, StatelessReader},
+    primitives::stateless_reader::StatelessFile,
 };
-use shin_tasks::{AsyncComputeTaskPool, IoTaskPool};
+use shin_tasks::IoTaskPool;
 use tracing::debug;
 
 pub use self::{

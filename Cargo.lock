@@ -5401,6 +5401,7 @@ dependencies = [
  "arrayvec",
  "async-trait",
  "bevy_utils",
+ "bitflags 2.6.0",
  "bytemuck",
  "bytes",
  "cfg-if",

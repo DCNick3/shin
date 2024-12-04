@@ -175,15 +175,15 @@ impl VertexType for WindowVertex {
 #[repr(C, packed)]
 pub struct LayerVertex {
     /// Combined position (xy) and texture coordinate (zw)
-    pub position: Vec4,
+    pub coords: Vec4,
 }
 
 impl VertexType for LayerVertex {
     const NAME: &'static str = "LayerVertex";
-    const ATTRIBUTE_NAMES: &'static [&'static str] = &["position"];
+    const ATTRIBUTE_NAMES: &'static [&'static str] = &["coords"];
     const ATTRIBUTES: &'static [wgpu::VertexAttribute] = &[wgpu::VertexAttribute {
         format: <Vec4 as VertexAttribute>::FORMAT,
-        offset: std::mem::offset_of!(LayerVertex, position) as wgpu::BufferAddress,
+        offset: std::mem::offset_of!(LayerVertex, coords) as wgpu::BufferAddress,
         shader_location: 0,
     }];
 }

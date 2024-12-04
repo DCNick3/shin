@@ -14,10 +14,10 @@ pub enum LayerProperty {
     TranslateY2 = 4,
     RenderPosition = 5,
 
-    Prop6 = 6,
-    Prop7 = 7,
-    Prop8 = 8,
-    Prop9 = 9,
+    MulColorRed = 6,
+    MulColorGreen = 7,
+    MulColorBlue = 8,
+    MulColorAlpha = 9,
 
     ScaleOriginX = 10,
     ScaleOriginY = 11,
@@ -83,15 +83,15 @@ pub enum LayerProperty {
     GhostingRotationOriginDx = 59,
     GhostingRotationOriginDy = 60,
 
-    // dunno
-    Prop61 = 61,
-    Prop62 = 62,
-    Prop63 = 63,
-    Prop64 = 64,
-    Prop65 = 65,
+    // Clipping, makes the layer render only within a certain rectangle
+    ClipMode = 61,
+    ClipFromX = 62,
+    ClipToX = 63,
+    ClipFromY = 64,
+    ClipToY = 65,
 
     // "Blur" effect?
-    Prop66 = 66,
+    BlurRadius = 66,
     // "pixelizes" the image
     MosaicSize = 67,
 
@@ -107,9 +107,10 @@ pub enum LayerProperty {
     // "Rain" effect, only applicable to the RainLayer (I think)
     RainIntensity = 73,
     RainDirection = 74,
-    Prop75 = 75,
+    RainSpeed = 75,
 
     // "Raster" effect (wavey)
+    // TODO: which one is horizontal and which one is vertical again? Not sure it's named correctly
     RasterHorizontalAmplitude = 76,
     RasterHorizontalLPeriod = 77,
     RasterHorizontalTPeriod = 78,
@@ -125,9 +126,9 @@ pub enum LayerProperty {
     Prop85 = 85,
     Prop86 = 86,
     Prop87 = 87,
+
     Prop88 = 88,
     Prop89 = 89,
-    Prop90 = 90,
 }
 
 impl LayerProperty {
@@ -138,10 +139,10 @@ impl LayerProperty {
         match self {
             TranslateZ => 1000,
             RenderPosition => 1000,
-            Prop6 => 1000,
-            Prop7 => 1000,
-            Prop8 => 1000,
-            Prop9 => 1000,
+            MulColorRed => 1000,
+            MulColorGreen => 1000,
+            MulColorBlue => 1000,
+            MulColorAlpha => 1000,
             ScaleX => 1000,
             ScaleY => 1000,
             ScaleX2 => 1000,
@@ -157,7 +158,7 @@ impl LayerProperty {
             WobbleScaleYBias => 1000,
             GhostingZoom => 1000,
             RainIntensity => 1000,
-            Prop75 => 1000,
+            RainSpeed => 1000,
             _ => 0,
         }
     }

@@ -4,9 +4,9 @@ use anyhow::Context;
 use enum_map::EnumMap;
 use shin_audio::AudioManager;
 use shin_input::{ActionState, DummyAction};
-use shin_render::render_pass::RenderPass;
+use shin_render::{render_pass::RenderPass, PassKind};
 use shin_window::{AppContext, ShinApp};
-use tracing::debug;
+use tracing::{debug, trace};
 
 use crate::{
     asset::{
@@ -14,11 +14,13 @@ use crate::{
         system::{locate_assets, AssetLoadContext, AssetServer},
     },
     cli::Cli,
+    layer::{NewDrawableLayerWrapper, PictureLayer},
 };
 
 pub struct App {
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
+    picture_layer: NewDrawableLayerWrapper<PictureLayer>,
 }
 
 impl ShinApp for App {
@@ -41,9 +43,16 @@ impl ShinApp for App {
             },
         ));
 
+        let picture_name = "/picture/text001.pic";
+
+        let picture = asset_server.load_sync::<Picture>(picture_name).unwrap();
+        let picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
+        let picture_layer = NewDrawableLayerWrapper::new(picture_layer);
+
         Ok(Self {
             audio_manager,
             asset_server,
+            picture_layer,
         })
     }
 
@@ -61,6 +70,12 @@ impl ShinApp for App {
     }
 
     fn render(&mut self, pass: &mut RenderPass) {
-        // todo!()
+        pass.push_debug("opaque_pass");
+        self.picture_layer.render(pass, 1, PassKind::Opaque);
+        pass.pop_debug();
+
+        pass.push_debug("transparent_pass");
+        self.picture_layer.render(pass, 2, PassKind::Transparent);
+        pass.pop_debug();
     }
 }

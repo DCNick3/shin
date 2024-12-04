@@ -79,6 +79,8 @@ impl GpuTexture {
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: label.map(|s| format!("{} sampler", s)).as_deref(),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
             ..wgpu::SamplerDescriptor::default()
         });
 
