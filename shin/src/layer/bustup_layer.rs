@@ -4,7 +4,7 @@ use glam::Mat4;
 
 use crate::{
     asset::bustup::Bustup,
-    layer::{Layer, LayerProperties},
+    layer::{properties::LayerProperties, Layer},
     update::{Updatable, UpdateContext},
 };
 

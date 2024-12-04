@@ -18,8 +18,8 @@ use quote::{quote, TokenStreamExt};
 use shin_render_shader_types::{
     uniforms::{
         metadata::{ArraySchema, PrimitiveType, StructSchema, TypeSchema},
-        ClearUniformParams, FillUniformParams, FontUniformParams, MovieUniformParams,
-        SpriteUniformParams, UniformType,
+        ClearUniformParams, FillUniformParams, FontUniformParams, LayerUniformParams,
+        MovieUniformParams, SpriteUniformParams, UniformType,
     },
     vertices::{
         BlendVertex, LayerVertex, MaskVertex, MovieVertex, PosColTexVertex, PosColVertex,
@@ -47,6 +47,7 @@ fn gen_primitive(primitive_type: PrimitiveType) -> naga::TypeInner {
             rows: naga::VectorSize::Quad,
             scalar: naga::Scalar::F32,
         },
+        PrimitiveType::Uint32 => naga::TypeInner::Scalar(naga::Scalar::U32),
     }
 }
 
@@ -219,8 +220,8 @@ impl GenCtx {
                 binding: Some(naga::Binding::Location {
                     location: attribute.shader_location,
                     second_blend_source: false,
-                    interpolation: Some(naga::Interpolation::Perspective),
-                    sampling: Some(naga::Sampling::Center),
+                    interpolation: None,
+                    sampling: None,
                 }),
                 // NOTE: this offset is not the same as the offset specified in the VertexBufferLayout
                 // this is because the layout of vertex stream and vertex the wgsl struct, while similar, are not the same
@@ -288,6 +289,7 @@ fn generate_wgsl_types() -> WgslSchema {
     ctx.gen_uniform::<FillUniformParams>();
     ctx.gen_uniform::<SpriteUniformParams>();
     ctx.gen_uniform::<FontUniformParams>();
+    ctx.gen_uniform::<LayerUniformParams>();
     ctx.gen_uniform::<MovieUniformParams>();
 
     let vertex_rust_names = ctx.known_vertices;

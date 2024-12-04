@@ -2,9 +2,12 @@ mod bustup_layer;
 mod layer_group;
 mod message_layer;
 mod movie_layer;
+mod new_drawable_layer;
 mod null_layer;
 mod page_layer;
 mod picture_layer;
+mod properties;
+mod render_params;
 mod root_layer_group;
 mod screen_layer;
 mod tile_layer;
@@ -21,9 +24,11 @@ use glam::{vec3, Mat4};
 pub use layer_group::LayerGroup;
 pub use message_layer::MessageLayer;
 pub use movie_layer::MovieLayer;
+pub use new_drawable_layer::{DrawableLayer, NewDrawableLayer, NewDrawableLayerWrapper};
 pub use null_layer::NullLayer;
 pub use page_layer::PageLayer;
 pub use picture_layer::PictureLayer;
+pub use properties::{LayerProperties, LayerPropertiesSnapshot};
 pub use root_layer_group::RootLayerGroup;
 pub use screen_layer::ScreenLayer;
 use shin_audio::AudioManager;
@@ -44,184 +49,6 @@ use crate::{
     layer::wobbler::Wobbler,
     update::{Updatable, UpdateContext},
 };
-
-fn initial_values() -> EnumMap<LayerProperty, i32> {
-    enum_map! {
-        v => v.initial_value()
-    }
-}
-
-pub struct LayerProperties {
-    properties: EnumMap<LayerProperty, Tweener>,
-    wobbler_x: Wobbler,
-    wobbler_y: Wobbler,
-    wobbler_alpha: Wobbler,
-    wobbler_rotation: Wobbler,
-    wobbler_scale_x: Wobbler,
-    wobbler_scale_y: Wobbler,
-}
-
-impl LayerProperties {
-    pub fn new() -> Self {
-        Self {
-            properties: initial_values().map(|_, v| Tweener::new(v as f32)),
-            wobbler_x: Wobbler::new(),
-            wobbler_y: Wobbler::new(),
-            wobbler_alpha: Wobbler::new(),
-            wobbler_rotation: Wobbler::new(),
-            wobbler_scale_x: Wobbler::new(),
-            wobbler_scale_y: Wobbler::new(),
-        }
-    }
-
-    pub fn get_property_value(&self, property: LayerProperty) -> f32 {
-        self.properties[property].value()
-    }
-    #[allow(unused)]
-    pub fn property_tweener(&self, property: LayerProperty) -> &Tweener {
-        &self.properties[property]
-    }
-
-    pub fn property_tweener_mut(&mut self, property: LayerProperty) -> &mut Tweener {
-        &mut self.properties[property]
-    }
-
-    pub fn init(&mut self) {
-        for (prop, val) in initial_values() {
-            self.properties[prop].fast_forward_to(val as f32);
-        }
-    }
-
-    pub fn compute_transform(&self, base_transform: Mat4) -> Mat4 {
-        macro_rules! get {
-            (Zero) => {
-                0.0
-            };
-            ($property:ident) => {
-                self.get_property_value(LayerProperty::$property)
-            };
-            ($x_property:ident, $y_property:ident, $z_property:ident) => {
-                vec3(get!($x_property), get!($y_property), get!($z_property))
-            };
-        }
-
-        macro_rules! wobble {
-            ($wobbler_name:ident, $amplitude:ident, $bias:ident) => {
-                self.$wobbler_name.value() * get!($amplitude) + get!($bias)
-            };
-        }
-
-        // TODO: actually use all the properties
-
-        let transforms = [
-            // apply scale
-            Mat4::from_translation(-get!(ScaleOriginX, ScaleOriginY, Zero)),
-            Mat4::from_scale(vec3(
-                get!(ScaleX) / 1000.0 * get!(ScaleX2) / 1000.0
-                    * wobble!(wobbler_scale_x, WobbleScaleXAmplitude, WobbleScaleXBias)
-                    / 1000.0,
-                get!(ScaleY) / 1000.0 * get!(ScaleY2) / 1000.0
-                    * wobble!(wobbler_scale_y, WobbleScaleYAmplitude, WobbleScaleYBias)
-                    / 1000.0,
-                1.0,
-            )),
-            Mat4::from_translation(get!(ScaleOriginX, ScaleOriginY, Zero)),
-            // apply rotation
-            Mat4::from_translation(-get!(RotationOriginX, RotationOriginY, Zero)),
-            Mat4::from_rotation_z({
-                let rotations = get!(Rotation)
-                    + get!(Rotation2)
-                    + wobble!(
-                        wobbler_rotation,
-                        WobbleRotationAmplitude,
-                        WobbleRotationBias
-                    );
-
-                rotations / 1000.0 * 2.0 * PI
-            }),
-            Mat4::from_translation(get!(RotationOriginX, RotationOriginY, Zero)),
-            // apply translation
-            Mat4::from_translation(get!(TranslateX, TranslateY, Zero)),
-            Mat4::from_translation(get!(TranslateX2, TranslateY2, Zero)),
-            Mat4::from_translation(vec3(
-                wobble!(wobbler_x, WobbleXAmplitude, WobbleXBias),
-                wobble!(wobbler_y, WobbleYAmplitude, WobbleYBias),
-                0.0,
-            )),
-            base_transform,
-        ];
-
-        transforms
-            .into_iter()
-            .fold(Mat4::IDENTITY, |acc, t| t * acc)
-    }
-}
-
-impl Updatable for LayerProperties {
-    fn update(&mut self, context: &UpdateContext) {
-        let dt = context.time_delta_ticks();
-
-        for property in self.properties.values_mut() {
-            property.update(dt);
-        }
-
-        macro_rules! get {
-            ($property:ident) => {
-                self.get_property_value(LayerProperty::$property)
-            };
-        }
-
-        macro_rules! get_ticks {
-            ($property:ident) => {
-                Ticks::from_f32(get!($property))
-            };
-        }
-
-        macro_rules! wobble {
-            ($wobbler_name:ident, $wobble_mode:ident, $wobble_period:ident) => {
-                self.$wobbler_name
-                    .update(dt, get!($wobble_mode), get_ticks!($wobble_period));
-            };
-        }
-
-        wobble!(wobbler_x, WobbleXMode, WobbleXPeriod);
-        wobble!(wobbler_y, WobbleYMode, WobbleYPeriod);
-        wobble!(wobbler_alpha, WobbleAlphaMode, WobbleAlphaPeriod);
-        wobble!(wobbler_rotation, WobbleRotationMode, WobbleRotationPeriod);
-        wobble!(wobbler_scale_x, WobbleScaleXMode, WobbleScaleXPeriod);
-        wobble!(wobbler_scale_y, WobbleScaleYMode, WobbleScaleYPeriod);
-    }
-}
-
-/// Stores only target property values.
-/// Used to implement save/load (to quickly restore the state of the scene).
-#[derive(Debug, Clone)]
-pub struct LayerPropertiesSnapshot {
-    // The game can actually only set integer values
-    // hence the the use of i32 instead of f32
-    properties: EnumMap<LayerProperty, i32>,
-}
-
-impl LayerPropertiesSnapshot {
-    pub fn new() -> Self {
-        Self {
-            properties: initial_values(),
-        }
-    }
-
-    pub fn init(&mut self) {
-        self.properties = initial_values();
-    }
-
-    #[allow(unused)]
-    pub fn get_property(&self, property: LayerProperty) -> i32 {
-        self.properties[property]
-    }
-
-    pub fn set_property(&mut self, property: LayerProperty, value: i32) {
-        self.properties[property] = value;
-    }
-}
 
 #[enum_dispatch]
 pub trait Layer:

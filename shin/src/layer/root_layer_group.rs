@@ -1,7 +1,7 @@
 use glam::Mat4;
 
 use crate::{
-    layer::{screen_layer::ScreenLayer, Layer, LayerProperties, MessageLayer},
+    layer::{properties::LayerProperties, screen_layer::ScreenLayer, Layer, MessageLayer},
     update::{Updatable, UpdateContext},
 };
 

@@ -1,8 +1,10 @@
 use shin_render_shader_types::uniforms::{
-    ClearUniformParams, FillUniformParams, MovieUniformParams, SpriteUniformParams,
+    ClearUniformParams, FillUniformParams, LayerUniformParams, MovieUniformParams,
+    SpriteUniformParams,
 };
 use shin_render_shaders::{
-    Clear, ClearBindings, Fill, FillBindings, Movie, MovieBindings, Sprite, SpriteBindings,
+    Clear, ClearBindings, Fill, FillBindings, Layer, LayerBindings, Movie, MovieBindings, Sprite,
+    SpriteBindings,
 };
 
 use crate::{
@@ -69,6 +71,14 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
         }
     }
 
+    pub fn push_debug(&mut self, label: &str) {
+        self.pass.push_debug_group(label)
+    }
+
+    pub fn pop_debug(&mut self) {
+        self.pass.pop_debug_group()
+    }
+
     pub fn run(&mut self, request: RenderRequest) {
         let pass = &mut self.pass;
 
@@ -127,6 +137,31 @@ impl<'pipelines, 'dynbuffer, 'device, 'encoder>
                 SpriteBindings {
                     params: &SpriteUniformParams { transform },
                     sprite,
+                },
+                vertices,
+            ),
+
+            RenderProgramWithArguments::Layer {
+                output_kind,
+                fragment_shader,
+                vertices,
+                texture,
+                transform,
+                color_multiplier,
+                fragment_shader_param,
+            } => self.pipeline_storage.get::<Layer>(key).render(
+                self.device,
+                self.dynamic_buffer,
+                pass,
+                LayerBindings {
+                    params: &LayerUniformParams {
+                        transform,
+                        color: color_multiplier,
+                        fragment_param: fragment_shader_param,
+                        output_type: output_kind as u32,
+                        fragment_operation: fragment_shader as u32,
+                    },
+                    texture,
                 },
                 vertices,
             ),

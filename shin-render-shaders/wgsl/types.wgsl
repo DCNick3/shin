@@ -30,7 +30,7 @@ struct WindowVertex {
 }
 
 struct LayerVertex {
-    @location(0) position: vec4<f32>,
+    @location(0) coords: vec4<f32>,
 }
 
 struct MaskVertex {
@@ -58,6 +58,14 @@ struct FontUniformParams {
     transform: mat4x4<f32>,
     color1_: vec4<f32>,
     color2_: vec4<f32>,
+}
+
+struct LayerUniformParams {
+    transform: mat4x4<f32>,
+    color: vec4<f32>,
+    fragment_param: vec4<f32>,
+    output_type: u32,
+    fragment_operation: u32,
 }
 
 struct MovieUniformParams {

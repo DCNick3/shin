@@ -4,7 +4,7 @@
 //!
 //! It also stores a list of transparent and opaque rectangular regions of each block, allowing for a more efficient two-pass rendering.
 
-use std::{borrow::Cow, io, sync::Mutex};
+use std::{borrow::Cow, collections::BTreeMap, io, sync::Mutex};
 
 use anyhow::{bail, Context, Result};
 use binrw::{prelude::*, Endian};
@@ -147,7 +147,12 @@ pub trait PictureBuilder: Send {
         picture_id: u32,
     ) -> Self;
 
-    fn add_block(&mut self, data_offset: u32, position: (u32, u32), block: PicBlock) -> Result<()>;
+    fn add_block(
+        &mut self,
+        data_offset: u32,
+        positions: Vec<(u32, u32)>,
+        block: PicBlock,
+    ) -> Result<()>;
 
     fn build(self) -> Result<Self::Output>;
 }
@@ -221,14 +226,21 @@ impl PictureBuilder for SimpleMergedPicture {
         }
     }
 
-    fn add_block(&mut self, _data_offset: u32, (x, y): (u32, u32), block: PicBlock) -> Result<()> {
+    fn add_block(
+        &mut self,
+        _data_offset: u32,
+        positions: Vec<(u32, u32)>,
+        block: PicBlock,
+    ) -> Result<()> {
         // I think those are used only in bustups
         // I am not sure how to handle them yet
         assert_eq!(block.offset_x, 0);
         assert_eq!(block.offset_y, 0);
 
         let block_image = block.data;
-        image::imageops::replace(&mut self.image, &block_image, x as i64, y as i64);
+        for &(x, y) in &positions {
+            image::imageops::replace(&mut self.image, &block_image, x as i64, y as i64);
+        }
 
         Ok(())
     }
@@ -239,7 +251,7 @@ impl PictureBuilder for SimpleMergedPicture {
 }
 
 pub struct SimplePicture {
-    pub blocks: Vec<((u32, u32), PicBlock)>,
+    pub blocks: Vec<(Vec<(u32, u32)>, PicBlock)>,
     pub effective_width: u32,
     pub effective_height: u32,
     pub origin_x: i32,
@@ -272,10 +284,10 @@ impl PictureBuilder for SimplePicture {
     fn add_block(
         &mut self,
         _data_offset: u32,
-        position: (u32, u32),
+        positions: Vec<(u32, u32)>,
         block: PicBlock,
     ) -> Result<()> {
-        self.blocks.push((position, block));
+        self.blocks.push((positions, block));
         Ok(())
     }
 
@@ -499,16 +511,15 @@ pub fn read_picture<B: PictureBuilder>(source: &[u8], builder_args: B::Args) -> 
         bail!("Unsupported scale value {}/4096", header.scale);
     }
 
-    let mut blocks = Vec::new();
+    let mut blocks = BTreeMap::new();
     for _ in 0..header.block_count {
         let block_desc: PicBlockDesc = BinRead::read(&mut source)?;
         let block_data =
             &source.get_ref()[block_desc.offset as usize..][..block_desc.size as usize];
-        blocks.push((
-            block_desc.offset,
-            (block_desc.x as usize, block_desc.y as usize),
-            block_data,
-        ));
+        let (positions, _) = blocks
+            .entry(block_desc.offset)
+            .or_insert_with(|| (Vec::new(), block_data));
+        positions.push((block_desc.x as u32, block_desc.y as u32));
     }
 
     let builder = B::new(
@@ -522,16 +533,15 @@ pub fn read_picture<B: PictureBuilder>(source: &[u8], builder_args: B::Args) -> 
 
     let builder = Mutex::new(builder);
     blocks
+        .into_iter()
+        .collect::<Vec<_>>()
         .par_map(
             shin_tasks::AsyncComputeTaskPool::get(),
-            |&(data_offset, pos, data)| (data_offset, pos, read_picture_block(data)),
+            |&(data_offset, (ref pos, data))| (data_offset, pos.clone(), read_picture_block(data)),
         )
         .into_iter()
         .try_for_each(|(data_offset, pos, block)| {
-            builder
-                .lock()
-                .unwrap()
-                .add_block(data_offset, (pos.0 as u32, pos.1 as u32), block?)
+            builder.lock().unwrap().add_block(data_offset, pos, block?)
         })?;
 
     let listener = builder.into_inner().unwrap();

@@ -16,20 +16,30 @@ use glam::{Mat4, Vec4};
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::TextureSource,
-    vertices::{FloatColor4, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex},
+    vertices::{
+        FloatColor4, LayerVertex, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex,
+    },
 };
 pub use shin_render_shaders as shaders;
 use shin_render_shaders::ShaderName;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
-pub enum LayerShaderOutputKind {
-    Layer,
-    LayerDiscard,
-    LayerPremultiply,
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum PassKind {
+    Opaque,
+    Transparent,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
-pub enum LayerShaderOperation {
+#[repr(u32)]
+pub enum LayerShaderOutputKind {
+    Layer,
+    LayerPremultiply,
+    LayerDiscard,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
+#[repr(u32)]
+pub enum LayerFragmentShader {
     Default,
     Mono,
     Fill,
@@ -108,22 +118,21 @@ pub enum RenderProgramWithArguments<'a> {
 
     Layer {
         output_kind: LayerShaderOutputKind,
-        operation: LayerShaderOperation,
-        // TODO
-        // vertices: VertexSource<'a, NewLayerVertex>,
+        fragment_shader: LayerFragmentShader,
+        vertices: VertexSource<'a, LayerVertex>,
         texture: TextureSource<'a>,
         transform: Mat4,
-        color: FloatColor4,
+        color_multiplier: Vec4,
         fragment_shader_param: Vec4,
     },
     Mask {
-        operation: LayerShaderOperation,
+        fragment_shader: LayerFragmentShader,
         // TODO
         // vertices: VertexSource<'a, NewMaskVertex>,
         texture1: TextureSource<'a>,
         texture2: TextureSource<'a>,
         transform: Mat4,
-        color: FloatColor4,
+        color_multiplier: FloatColor4,
         fragment_shader_param: Vec4,
         minmax: Vec4,
     },
@@ -273,6 +282,31 @@ pub struct DepthStencilState {
 }
 
 impl DepthStencilState {
+    pub fn shorthand(stencil_ref: u8, allow_eq_stencil: bool, test_depth: bool) -> Self {
+        let depth = if test_depth {
+            DepthState {
+                function: DepthFunction::Less,
+                write_enable: false,
+            }
+        } else {
+            DepthState::default()
+        };
+        let stencil = StencilState {
+            pipeline: StencilPipelineState {
+                function: if allow_eq_stencil {
+                    StencilFunction::GreaterOrEqual
+                } else {
+                    StencilFunction::Greater
+                },
+                pass_operation: StencilOperation::Replace,
+                ..Default::default()
+            },
+            stencil_reference: stencil_ref,
+        };
+
+        Self { depth, stencil }
+    }
+
     pub fn into_pipeline_parts(self) -> (DepthStencilPipelineState, u8) {
         (
             DepthStencilPipelineState {
@@ -299,6 +333,31 @@ pub enum ColorBlendType {
     LayerPremultiplied3,
 }
 
+impl ColorBlendType {
+    pub fn from_regular_layer(layer: LayerBlendType) -> Self {
+        match layer {
+            LayerBlendType::Type1 => ColorBlendType::Layer1,
+            LayerBlendType::Type2 => ColorBlendType::Layer2,
+            LayerBlendType::Type3 => ColorBlendType::Layer3,
+        }
+    }
+
+    pub fn from_premultiplied_layer(layer: LayerBlendType) -> Self {
+        match layer {
+            LayerBlendType::Type1 => ColorBlendType::LayerPremultiplied1,
+            LayerBlendType::Type2 => ColorBlendType::LayerPremultiplied2,
+            LayerBlendType::Type3 => ColorBlendType::LayerPremultiplied3,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum LayerBlendType {
+    Type1,
+    Type2,
+    Type3,
+}
+
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
 pub enum CullFace {
     #[default]
@@ -313,7 +372,7 @@ pub enum DrawPrimitive {
     TrianglesStrip,
 }
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub struct RenderRequestBuilder {
     depth_stencil: DepthStencilState,
     color_blend_type: ColorBlendType,
@@ -330,6 +389,17 @@ impl RenderRequestBuilder {
         self
     }
 
+    pub fn depth_stencil_shorthand(
+        mut self,
+        stencil_ref: u8,
+        allow_eq_stencil: bool,
+        test_depth: bool,
+    ) -> Self {
+        self.depth_stencil =
+            DepthStencilState::shorthand(stencil_ref, allow_eq_stencil, test_depth);
+        self
+    }
+
     pub fn cull_faces(mut self, cull_faces: CullFace) -> Self {
         self.cull_faces = cull_faces;
         self
@@ -337,6 +407,16 @@ impl RenderRequestBuilder {
 
     pub fn color_blend_type(mut self, color_blend_type: ColorBlendType) -> Self {
         self.color_blend_type = color_blend_type;
+        self
+    }
+
+    pub fn layer_color_blend(mut self, color_blend_type: LayerBlendType) -> Self {
+        self.color_blend_type = ColorBlendType::from_regular_layer(color_blend_type);
+        self
+    }
+
+    pub fn layer_color_blend_premultiplied(mut self, color_blend_type: LayerBlendType) -> Self {
+        self.color_blend_type = ColorBlendType::from_premultiplied_layer(color_blend_type);
         self
     }
 
