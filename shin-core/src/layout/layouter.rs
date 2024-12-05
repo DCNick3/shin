@@ -317,6 +317,7 @@ impl<'a> Layouter<'a> {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum BlockExitCondition {
     /// Wait for user to press "Advance" button
     ClickWait,
@@ -339,6 +340,7 @@ pub enum BlockExitCondition {
 ///
 /// They also contain exit conditions, which are used to determine
 ///  when the next block (or message) should be executed.
+#[derive(Clone)]
 pub struct Block {
     pub exit_condition: BlockExitCondition,
     pub start_time: Ticks,

@@ -1,12 +1,13 @@
 use std::fmt::Debug;
 
-use glam::Mat4;
+use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
-    layer::{properties::LayerProperties, Layer},
+    layer::{properties::LayerProperties, render_params::TransformParams, DrawableLayer, Layer},
     update::{Updatable, UpdateContext},
 };
 
+#[derive(Clone)]
 pub struct NullLayer {
     props: LayerProperties,
 }
@@ -19,21 +20,6 @@ impl NullLayer {
     }
 }
 
-// impl Renderable for NullLayer {
-//     fn render<'enc>(
-//         &'enc self,
-//         _resources: &'enc GpuCommonResources,
-//         _render_pass: &mut wgpu::RenderPass<'enc>,
-//         _transform: Mat4,
-//         _projection: Mat4,
-//     ) {
-//     }
-//
-//     fn resize(&mut self, _resources: &GpuCommonResources) {
-//         // no internal buffers to resize
-//     }
-// }
-
 impl Updatable for NullLayer {
     fn update(&mut self, _ctx: &UpdateContext) {}
 }
@@ -45,6 +31,17 @@ impl Debug for NullLayer {
 }
 
 impl Layer for NullLayer {
+    fn render(
+        &self,
+        _pass: &mut RenderPass,
+        _transform: &TransformParams,
+        _stencil_ref: u8,
+        _pass_kind: PassKind,
+    ) {
+    }
+}
+
+impl DrawableLayer for NullLayer {
     fn properties(&self) -> &LayerProperties {
         &self.props
     }

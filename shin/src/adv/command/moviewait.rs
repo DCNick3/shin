@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use shin_core::vm::command::types::LayerId;
 
 use super::prelude::*;
-use crate::layer::UserLayer;
+use crate::layer::user::UserLayer;
 
 pub struct MOVIEWAIT {
     token: Option<command::token::MOVIEWAIT>,

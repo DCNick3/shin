@@ -19,7 +19,7 @@ mod prelude {
 
     pub use crate::{
         adv::{AdvState, CommandStartResult, StartableCommand, UpdatableCommand, VmState},
-        layer::Layer,
+        layer::DrawableLayer,
         update::UpdateContext,
     };
 }

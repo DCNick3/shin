@@ -2,11 +2,12 @@ use std::{fmt::Debug, sync::Arc};
 
 use glam::Mat4;
 use shin_audio::AudioManager;
+use shin_render::{render_pass::RenderPass, PassKind};
 use shin_video::VideoPlayer;
 
 use crate::{
     asset::movie::Movie,
-    layer::{properties::LayerProperties, Layer},
+    layer::{properties::LayerProperties, render_params::TransformParams, DrawableLayer, Layer},
     update::{Updatable, UpdateContext},
 };
 
@@ -98,7 +99,25 @@ impl Debug for MovieLayer {
     }
 }
 
+impl Clone for MovieLayer {
+    fn clone(&self) -> Self {
+        todo!()
+    }
+}
+
 impl Layer for MovieLayer {
+    fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        todo!()
+    }
+}
+
+impl DrawableLayer for MovieLayer {
     fn properties(&self) -> &LayerProperties {
         &self.props
     }

@@ -1,10 +1,15 @@
 use glam::Mat4;
+use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
-    layer::{page_layer::PageLayer, properties::LayerProperties, Layer},
+    layer::{
+        page_layer::PageLayer, properties::LayerProperties, render_params::TransformParams,
+        DrawableLayer, Layer,
+    },
     update::{Updatable, UpdateContext},
 };
 
+#[derive(Clone)]
 pub struct ScreenLayer {
     page_layer: PageLayer,
     properties: LayerProperties,
@@ -81,6 +86,18 @@ impl Updatable for ScreenLayer {
 // }
 
 impl Layer for ScreenLayer {
+    fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        todo!()
+    }
+}
+
+impl DrawableLayer for ScreenLayer {
     fn properties(&self) -> &LayerProperties {
         &self.properties
     }

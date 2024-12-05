@@ -14,10 +14,9 @@ use shin_render::{
 use crate::{
     asset::picture::{GpuPictureBlock, Picture},
     layer::{
-        new_drawable_layer::{DrawableLayer, NewDrawableLayer},
-        properties::LayerProperties,
+        new_drawable_layer::NewDrawableLayer,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        Layer,
+        NewDrawableLayerWrapper,
     },
     update::{Updatable, UpdateContext},
 };
@@ -84,7 +83,7 @@ impl PictureBlockParams {
     }
 }
 
-fn cull_block(block: &GpuPictureBlock, transform: Mat4) -> bool {
+fn cull_block(_block: &GpuPictureBlock, _transform: Mat4) -> bool {
     // TODO: implement picture block culling
     true
 }
@@ -155,19 +154,17 @@ pub fn render_block(
     ));
 }
 
-pub struct PictureLayer {
+#[derive(Clone)]
+pub struct PictureLayerImpl {
     picture: Arc<Picture>,
     picture_name: Option<String>,
-
-    props: LayerProperties,
 }
 
-impl PictureLayer {
+impl PictureLayerImpl {
     pub fn new(picture: Arc<Picture>, picture_name: Option<String>) -> Self {
         Self {
             picture,
             picture_name,
-            props: LayerProperties::new(),
         }
     }
 
@@ -201,13 +198,15 @@ impl PictureLayer {
     }
 }
 
-impl DrawableLayer for PictureLayer {
-    fn get_properties(&self) -> &LayerProperties {
-        &self.props
+pub type PictureLayer = NewDrawableLayerWrapper<PictureLayerImpl>;
+
+impl PictureLayer {
+    pub fn new(picture: Arc<Picture>, picture_name: Option<String>) -> Self {
+        Self::from_inner(PictureLayerImpl::new(picture, picture_name))
     }
 }
 
-impl NewDrawableLayer for PictureLayer {
+impl NewDrawableLayer for PictureLayerImpl {
     fn render_drawable_direct(
         &self,
         pass: &mut RenderPass,
@@ -235,13 +234,11 @@ impl NewDrawableLayer for PictureLayer {
     }
 }
 
-impl Updatable for PictureLayer {
-    fn update(&mut self, ctx: &UpdateContext) {
-        self.props.update(ctx);
-    }
+impl Updatable for PictureLayerImpl {
+    fn update(&mut self, _ctx: &UpdateContext) {}
 }
 
-impl Debug for PictureLayer {
+impl Debug for PictureLayerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("PictureLayer")
             .field(
@@ -251,15 +248,5 @@ impl Debug for PictureLayer {
                     .map_or("<unnamed>", |v| v.as_str()),
             )
             .finish()
-    }
-}
-
-impl Layer for PictureLayer {
-    fn properties(&self) -> &LayerProperties {
-        &self.props
-    }
-
-    fn properties_mut(&mut self) -> &mut LayerProperties {
-        &mut self.props
     }
 }

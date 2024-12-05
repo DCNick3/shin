@@ -16,6 +16,7 @@ enum State {
 
 /// Holds a value and plays back tweens which smoothly
 /// adjust that value.
+#[derive(Debug, Clone)]
 pub struct Tweener {
     tween_queue: VecDeque<(Value, Tween)>,
     state: State,

@@ -16,12 +16,13 @@ use crate::{
     layer::{
         message_layer::{font_atlas::FontAtlas, messagebox::Messagebox},
         properties::LayerProperties,
-        Layer,
+        DrawableLayer,
     },
     render::overlay::{OverlayCollector, OverlayVisitable},
     update::{Updatable, UpdateContext},
 };
 
+#[derive(Clone)]
 pub struct MessageLayer {
     props: LayerProperties,
     style: MessageboxStyle,
@@ -196,12 +197,12 @@ impl OverlayVisitable for MessageLayer {
     }
 }
 
-impl Layer for MessageLayer {
-    fn properties(&self) -> &LayerProperties {
-        &self.props
-    }
-
-    fn properties_mut(&mut self) -> &mut LayerProperties {
-        &mut self.props
-    }
-}
+// impl DrawableLayer for MessageLayer {
+//     fn properties(&self) -> &LayerProperties {
+//         &self.props
+//     }
+//
+//     fn properties_mut(&mut self) -> &mut LayerProperties {
+//         &mut self.props
+//     }
+// }

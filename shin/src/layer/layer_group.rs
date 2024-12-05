@@ -2,17 +2,22 @@ use bevy_utils::hashbrown::HashMap;
 use glam::Mat4;
 use itertools::Itertools;
 use shin_core::vm::command::types::LayerId;
+use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
     adv::LayerSelection,
-    layer::{properties::LayerProperties, Layer, UserLayer},
+    layer::{
+        properties::LayerProperties, render_params::TransformParams, DrawableLayer, Layer,
+        UserLayer,
+    },
     update::{Updatable, UpdateContext},
 };
 
+#[derive(Clone)]
 pub struct LayerGroup {
     layers: HashMap<LayerId, UserLayer>,
     // render_target: RenderTarget,
-    properties: LayerProperties,
+    props: LayerProperties,
 }
 
 impl LayerGroup {
@@ -74,7 +79,7 @@ impl LayerGroup {
 
 impl Updatable for LayerGroup {
     fn update(&mut self, context: &UpdateContext) {
-        self.properties.update(context);
+        self.props.update(context);
         for layer in self.layers.values_mut() {
             layer.update(context);
         }
@@ -132,11 +137,23 @@ impl Updatable for LayerGroup {
 // }
 
 impl Layer for LayerGroup {
+    fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        todo!()
+    }
+}
+
+impl DrawableLayer for LayerGroup {
     fn properties(&self) -> &LayerProperties {
-        &self.properties
+        &self.props
     }
 
     fn properties_mut(&mut self) -> &mut LayerProperties {
-        &mut self.properties
+        &mut self.props
     }
 }

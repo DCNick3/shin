@@ -1,10 +1,15 @@
 use glam::Mat4;
+use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
-    layer::{properties::LayerProperties, screen_layer::ScreenLayer, Layer, MessageLayer},
+    layer::{
+        properties::LayerProperties, render_params::TransformParams, screen_layer::ScreenLayer,
+        DrawableLayer, Layer, MessageLayer,
+    },
     update::{Updatable, UpdateContext},
 };
 
+#[derive(Clone)]
 pub struct RootLayerGroup {
     screen_layer: ScreenLayer,
     message_layer: MessageLayer,
@@ -105,6 +110,18 @@ impl Updatable for RootLayerGroup {
 // }
 
 impl Layer for RootLayerGroup {
+    fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        todo!()
+    }
+}
+
+impl DrawableLayer for RootLayerGroup {
     fn properties(&self) -> &LayerProperties {
         &self.properties
     }

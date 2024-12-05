@@ -18,7 +18,9 @@ use crate::{
     },
     cli::Cli,
     layer::{
-        render_params::TransformParams, Layer, NewDrawableLayerWrapper, PictureLayer, TileLayer,
+        render_params::TransformParams,
+        user::{PictureLayer, TileLayer},
+        DrawableLayer, Layer as _,
     },
 };
 
@@ -38,8 +40,8 @@ impl Action for AppAction {
 pub struct App {
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
-    picture_layer: NewDrawableLayerWrapper<PictureLayer>,
-    tile_layer: NewDrawableLayerWrapper<TileLayer>,
+    picture_layer: PictureLayer,
+    tile_layer: TileLayer,
 }
 
 impl ShinApp for App {
@@ -72,13 +74,10 @@ impl ShinApp for App {
             .property_tweener_mut(LayerProperty::TranslateZ)
             .fast_forward_to(1500.0);
 
-        let picture_layer = NewDrawableLayerWrapper::new(picture_layer);
-
         let tile_layer = TileLayer::new(
             FloatColor4::PASTEL_PINK,
             vec4(-1088.0, -612.0, 2176.0, 1224.0),
         );
-        let tile_layer = NewDrawableLayerWrapper::new(tile_layer);
 
         Ok(Self {
             audio_manager,
@@ -105,6 +104,9 @@ impl ShinApp for App {
 
     fn render(&mut self, pass: &mut RenderPass) {
         let transform = TransformParams::default();
+
+        self.picture_layer.pre_render();
+        self.tile_layer.pre_render();
 
         pass.push_debug("opaque_pass");
         self.picture_layer

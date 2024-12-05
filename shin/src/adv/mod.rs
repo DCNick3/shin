@@ -32,7 +32,8 @@ use crate::{
     adv::assets::AdvAssets,
     audio::{BgmPlayer, SePlayer},
     layer::{
-        AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup, ScreenLayer, UserLayer,
+        user::UserLayer, AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup,
+        ScreenLayer,
     },
     render::overlay::{OverlayCollector, OverlayVisitable},
     update::{Updatable, UpdateContext},

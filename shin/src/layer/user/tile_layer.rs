@@ -13,36 +13,33 @@ use shin_render::{
 
 use crate::{
     layer::{
-        properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        DrawableLayer, Layer, NewDrawableLayer,
+        NewDrawableLayer, NewDrawableLayerWrapper,
     },
     update::{Updatable, UpdateContext},
 };
 
-pub struct TileLayer {
+#[derive(Clone)]
+pub struct TileLayerImpl {
     color: FloatColor4,
     rect: Vec4,
-    props: LayerProperties,
 }
+
+impl TileLayerImpl {
+    pub fn new(color: FloatColor4, rect: Vec4) -> Self {
+        Self { color, rect }
+    }
+}
+
+pub type TileLayer = NewDrawableLayerWrapper<TileLayerImpl>;
 
 impl TileLayer {
     pub fn new(color: FloatColor4, rect: Vec4) -> Self {
-        Self {
-            color,
-            rect,
-            props: LayerProperties::new(),
-        }
+        Self::from_inner(TileLayerImpl::new(color, rect))
     }
 }
 
-impl DrawableLayer for TileLayer {
-    fn get_properties(&self) -> &LayerProperties {
-        &self.props
-    }
-}
-
-impl NewDrawableLayer for TileLayer {
+impl NewDrawableLayer for TileLayerImpl {
     fn render_drawable_direct(
         &self,
         pass: &mut RenderPass,
@@ -130,23 +127,11 @@ impl NewDrawableLayer for TileLayer {
     }
 }
 
-impl Layer for TileLayer {
-    fn properties(&self) -> &LayerProperties {
-        &self.props
-    }
-
-    fn properties_mut(&mut self) -> &mut LayerProperties {
-        &mut self.props
-    }
+impl Updatable for TileLayerImpl {
+    fn update(&mut self, _ctx: &UpdateContext) {}
 }
 
-impl Updatable for TileLayer {
-    fn update(&mut self, ctx: &UpdateContext) {
-        self.props.update(ctx);
-    }
-}
-
-impl Debug for TileLayer {
+impl Debug for TileLayerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let color = self.color.into_array().map(|v| (v * 255.0) as u8);
         let color = format!(

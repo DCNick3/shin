@@ -1,20 +1,25 @@
 use std::{fmt::Debug, sync::Arc};
 
 use glam::Mat4;
+use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
     asset::bustup::Bustup,
-    layer::{properties::LayerProperties, Layer},
+    layer::{
+        render_params::{DrawableClipParams, DrawableParams, TransformParams},
+        NewDrawableLayer, NewDrawableLayerWrapper,
+    },
     update::{Updatable, UpdateContext},
 };
 
-pub struct BustupLayer {
+#[derive(Clone)]
+pub struct BustupLayerImpl {
     bustup: Arc<Bustup>,
     bustup_name: Option<String>,
     emotion: String,
-
-    properties: LayerProperties,
 }
+
+pub type BustupLayer = NewDrawableLayerWrapper<BustupLayerImpl>;
 
 impl BustupLayer {
     pub fn new(bustup: Arc<Bustup>, bustup_name: Option<String>, emotion: &str) -> Self {
@@ -22,12 +27,11 @@ impl BustupLayer {
         todo!();
         // bustup.base_gpu_image(resources);
 
-        Self {
+        Self::from_inner(BustupLayerImpl {
             bustup,
             bustup_name,
             emotion: emotion.to_owned(),
-            properties: LayerProperties::new(),
-        }
+        })
     }
 }
 
@@ -69,13 +73,25 @@ impl BustupLayer {
 //     }
 // }
 
-impl Updatable for BustupLayer {
-    fn update(&mut self, ctx: &UpdateContext) {
-        self.properties.update(ctx);
+impl NewDrawableLayer for BustupLayerImpl {
+    fn render_drawable_direct(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        drawable: &DrawableParams,
+        clip: &DrawableClipParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        todo!()
     }
 }
 
-impl Debug for BustupLayer {
+impl Updatable for BustupLayerImpl {
+    fn update(&mut self, _ctx: &UpdateContext) {}
+}
+
+impl Debug for BustupLayerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("BustupLayer")
             .field(
@@ -86,15 +102,5 @@ impl Debug for BustupLayer {
             )
             .field(&self.emotion)
             .finish()
-    }
-}
-
-impl Layer for BustupLayer {
-    fn properties(&self) -> &LayerProperties {
-        &self.properties
-    }
-
-    fn properties_mut(&mut self) -> &mut LayerProperties {
-        &mut self.properties
     }
 }
