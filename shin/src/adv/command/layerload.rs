@@ -97,9 +97,13 @@ impl UpdatableCommand for LAYERLOAD {
                 VLayerIdRepr::Selected => {
                     todo!("LAYERLOAD: selected");
                 }
-                VLayerIdRepr::Layer(id) => adv_state
-                    .current_plane_layer_group_mut(vm_state)
-                    .add_layer(id, layer),
+                VLayerIdRepr::Layer(id) => {
+                    todo!()
+
+                    // adv_state
+                    //     .current_plane_layer_group_mut(vm_state)
+                    //     .add_layer(id, layer)
+                }
             }
 
             return Some(self.token.take().unwrap().finish());

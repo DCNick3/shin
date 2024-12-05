@@ -340,7 +340,7 @@ impl Updatable for Message {
     fn update(&mut self, context: &UpdateContext) {
         if let Some(block) = self.current_block() {
             if !block.completed(self.time) {
-                self.time += context.time_delta_ticks();
+                self.time += context.delta_time;
             } else {
                 match block.exit_condition {
                     BlockExitCondition::None => self.next_block(),

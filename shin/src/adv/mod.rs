@@ -208,62 +208,62 @@ impl Updatable for Adv {
 //     }
 // }
 
-impl OverlayVisitable for Adv {
-    fn visit_overlay(&self, collector: &mut OverlayCollector) {
-        collector.subgroup(
-            "ADV",
-            |collector| {
-                collector.overlay(
-                    "Command",
-                    |_ctx, top_left| {
-                        let command = if let Some(command) = &self.current_command {
-                            Cow::Owned(format!("{:?}", command))
-                        } else {
-                            Cow::Borrowed("None")
-                        };
-                        top_left.label(format!(
-                            "Command: {:08x} {}",
-                            self.scripter.position().0,
-                            command
-                        ));
-                    },
-                    true,
-                );
-                self.adv_state
-                    .root_layer_group
-                    .message_layer()
-                    .visit_overlay(collector);
-                collector.overlay(
-                    "User Layers",
-                    |ctx, _top_left| {
-                        let page_layer =
-                            self.adv_state.root_layer_group.screen_layer().page_layer();
-                        Window::new("User Layers").show(ctx, |ui| {
-                            for plane in 0..PLANES_COUNT {
-                                let layer_group = page_layer.plane(plane as u32);
-                                let layer_ids =
-                                    layer_group.get_layer_ids().sorted().collect::<Vec<_>>();
-                                if !layer_ids.is_empty() {
-                                    ui.monospace(format!("Plane {}:", plane));
-                                    for layer_id in layer_ids {
-                                        let layer = layer_group.get_layer(layer_id).unwrap();
-                                        ui.monospace(format!(
-                                            "  {:>2}: {:?}",
-                                            layer_id.raw(),
-                                            layer
-                                        ));
-                                    }
-                                }
-                            }
-                        });
-                    },
-                    false,
-                );
-            },
-            true,
-        );
-    }
-}
+// impl OverlayVisitable for Adv {
+//     fn visit_overlay(&self, collector: &mut OverlayCollector) {
+//         collector.subgroup(
+//             "ADV",
+//             |collector| {
+//                 collector.overlay(
+//                     "Command",
+//                     |_ctx, top_left| {
+//                         let command = if let Some(command) = &self.current_command {
+//                             Cow::Owned(format!("{:?}", command))
+//                         } else {
+//                             Cow::Borrowed("None")
+//                         };
+//                         top_left.label(format!(
+//                             "Command: {:08x} {}",
+//                             self.scripter.position().0,
+//                             command
+//                         ));
+//                     },
+//                     true,
+//                 );
+//                 self.adv_state
+//                     .root_layer_group
+//                     .message_layer()
+//                     .visit_overlay(collector);
+//                 collector.overlay(
+//                     "User Layers",
+//                     |ctx, _top_left| {
+//                         let page_layer =
+//                             self.adv_state.root_layer_group.screen_layer().page_layer();
+//                         Window::new("User Layers").show(ctx, |ui| {
+//                             for plane in 0..PLANES_COUNT {
+//                                 let layer_group = page_layer.plane(plane as u32);
+//                                 let layer_ids =
+//                                     layer_group.get_layer_ids().sorted().collect::<Vec<_>>();
+//                                 if !layer_ids.is_empty() {
+//                                     ui.monospace(format!("Plane {}:", plane));
+//                                     for layer_id in layer_ids {
+//                                         let layer = layer_group.get_layer(layer_id).unwrap();
+//                                         ui.monospace(format!(
+//                                             "  {:>2}: {:?}",
+//                                             layer_id.raw(),
+//                                             layer
+//                                         ));
+//                                     }
+//                                 }
+//                             }
+//                         });
+//                     },
+//                     false,
+//                 );
+//             },
+//             true,
+//         );
+//     }
+// }
 
 pub struct AdvState {
     pub root_layer_group: RootLayerGroup,
@@ -307,30 +307,34 @@ impl AdvState {
     }
 
     pub fn get_layer(&self, vm_state: &VmState, id: LayerId) -> Option<&UserLayer> {
-        let layer = self.current_plane_layer_group(vm_state).get_layer(id);
-        if let Some(layer) = layer {
-            Some(layer)
-        } else {
-            None
-        }
+        todo!()
+
+        // let layer = self.current_plane_layer_group(vm_state).get_layer(id);
+        // if let Some(layer) = layer {
+        //     Some(layer)
+        // } else {
+        //     None
+        // }
     }
 
     pub fn get_layer_mut(&mut self, vm_state: &VmState, id: LayerId) -> Option<&mut UserLayer> {
-        let layer = self
-            .current_plane_layer_group_mut(vm_state)
-            .get_layer_mut(id);
-        if let Some(layer) = layer {
-            Some(layer)
-        } else {
-            None
-        }
+        todo!()
+
+        // let layer = self
+        //     .current_plane_layer_group_mut(vm_state)
+        //     .get_layer_mut(id);
+        // if let Some(layer) = layer {
+        //     Some(layer)
+        // } else {
+        //     None
+        // }
     }
 
     #[allow(unused)]
     pub fn get_vlayer(&self, vm_state: &VmState, id: VLayerId) -> impl Iterator<Item = AnyLayer> {
         // I could implement a special iterator for this, but it's not really worth it IMO
         // small vector will save A LOT of complexity
-        match id.repr() {
+        let result: SmallVec<AnyLayer, { ITER_VLAYER_SMALL_VECTOR_SIZE }> = match id.repr() {
             VLayerIdRepr::RootLayerGroup => smallvec![(&self.root_layer_group).into()],
             VLayerIdRepr::ScreenLayer => smallvec![self.root_layer_group.screen_layer().into()],
             VLayerIdRepr::PageLayer => {
@@ -341,10 +345,11 @@ impl AdvState {
             }
             VLayerIdRepr::Selected => {
                 if let Some(selection) = vm_state.layers.layer_selection {
-                    self.current_plane_layer_group(vm_state)
-                        .get_layers(selection)
-                        .map(|v| v.into())
-                        .collect::<SmallVec<AnyLayer, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
+                    todo!()
+                    // self.current_plane_layer_group(vm_state)
+                    //     .get_layers(selection)
+                    //     .map(|v| v.into())
+                    //     .collect::<SmallVec<AnyLayer, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
                 } else {
                     warn!("AdvState::iter_vlayer: no layer selected");
                     smallvec![]
@@ -359,8 +364,9 @@ impl AdvState {
                     smallvec![]
                 }
             }
-        }
-        .into_iter()
+        };
+
+        result.into_iter()
     }
 
     pub fn get_vlayer_mut(
@@ -368,7 +374,7 @@ impl AdvState {
         vm_state: &VmState,
         id: VLayerId,
     ) -> impl Iterator<Item = AnyLayerMut> {
-        match id.repr() {
+        let result: SmallVec<AnyLayerMut, { ITER_VLAYER_SMALL_VECTOR_SIZE }> = match id.repr() {
             VLayerIdRepr::RootLayerGroup => smallvec![(&mut self.root_layer_group).into()],
             VLayerIdRepr::ScreenLayer => smallvec![self.root_layer_group.screen_layer_mut().into()],
             VLayerIdRepr::PageLayer => {
@@ -381,10 +387,11 @@ impl AdvState {
             }
             VLayerIdRepr::Selected => {
                 if let Some(selection) = vm_state.layers.layer_selection {
-                    self.current_plane_layer_group_mut(vm_state)
-                        .get_layers_mut(selection)
-                        .map(|v| v.into())
-                        .collect::<SmallVec<AnyLayerMut, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
+                    todo!()
+                    // self.current_plane_layer_group_mut(vm_state)
+                    //     .get_layers_mut(selection)
+                    //     .map(|v| v.into())
+                    //     .collect::<SmallVec<AnyLayerMut, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
                 } else {
                     warn!("AdvState::get_vlayer_mut: no layer selected");
                     smallvec![]
@@ -399,8 +406,9 @@ impl AdvState {
                     smallvec![]
                 }
             }
-        }
-        .into_iter()
+        };
+
+        result.into_iter()
     }
 }
 
