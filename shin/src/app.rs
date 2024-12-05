@@ -4,7 +4,7 @@ use anyhow::Context;
 use enum_map::{Enum, EnumMap};
 use glam::vec4;
 use shin_audio::AudioManager;
-use shin_core::vm::command::types::LayerProperty;
+use shin_core::vm::command::types::{LayerId, LayerProperty};
 use shin_input::{Action, ActionState, RawInputState};
 use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4, PassKind};
 use shin_window::{AppContext, ShinApp};
@@ -18,9 +18,10 @@ use crate::{
     },
     cli::Cli,
     layer::{
+        render_layer, render_layers,
         render_params::TransformParams,
         user::{PictureLayer, TileLayer},
-        DrawableLayer, Layer as _,
+        DrawableLayer, Layer as _, LayerGroup,
     },
 };
 
@@ -40,8 +41,7 @@ impl Action for AppAction {
 pub struct App {
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
-    picture_layer: PictureLayer,
-    tile_layer: TileLayer,
+    layer_group: LayerGroup,
 }
 
 impl ShinApp for App {
@@ -68,22 +68,31 @@ impl ShinApp for App {
 
         let picture = asset_server.load_sync::<Picture>(picture_name).unwrap();
 
-        let mut picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
-        picture_layer
-            .properties_mut()
-            .property_tweener_mut(LayerProperty::TranslateZ)
-            .fast_forward_to(1500.0);
-
-        let tile_layer = TileLayer::new(
+        let mut tile_layer = TileLayer::new(
             FloatColor4::PASTEL_PINK,
             vec4(-1088.0, -612.0, 2176.0, 1224.0),
         );
+        tile_layer.properties_mut().set_layer_id(LayerId::new(1));
+
+        let mut picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
+        {
+            let props = picture_layer.properties_mut();
+            props.set_layer_id(LayerId::new(2));
+            props
+                .property_tweener_mut(LayerProperty::TranslateZ)
+                .fast_forward_to(1500.0);
+            props
+                .property_tweener_mut(LayerProperty::MulColorAlpha)
+                .fast_forward_to(800.0);
+        }
+
+        let layer_group =
+            LayerGroup::from_layers(vec![tile_layer.into(), picture_layer.into()], None);
 
         Ok(Self {
             audio_manager,
             asset_server,
-            picture_layer,
-            tile_layer,
+            layer_group,
         })
     }
 
@@ -105,21 +114,8 @@ impl ShinApp for App {
     fn render(&mut self, pass: &mut RenderPass) {
         let transform = TransformParams::default();
 
-        self.picture_layer.pre_render();
-        self.tile_layer.pre_render();
+        self.layer_group.pre_render(&transform);
 
-        pass.push_debug("opaque_pass");
-        self.picture_layer
-            .render(pass, &transform, 2, PassKind::Opaque);
-        self.tile_layer
-            .render(pass, &transform, 1, PassKind::Opaque);
-        pass.pop_debug();
-
-        pass.push_debug("transparent_pass");
-        self.tile_layer
-            .render(pass, &transform, 3, PassKind::Transparent);
-        self.picture_layer
-            .render(pass, &transform, 4, PassKind::Transparent);
-        pass.pop_debug();
+        render_layer(pass, &transform, &self.layer_group, FloatColor4::BLACK, 0);
     }
 }

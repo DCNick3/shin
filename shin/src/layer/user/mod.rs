@@ -1,5 +1,6 @@
 use derivative::Derivative;
 use enum_dispatch::enum_dispatch;
+use from_variants::FromVariants;
 use glam::vec4;
 use shin_audio::AudioManager;
 use shin_core::{
@@ -10,10 +11,14 @@ use shin_core::{
     },
     vm::command::types::LayerType,
 };
-use shin_render::shaders::types::vertices::FloatColor4;
+use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4, PassKind};
 use tracing::{debug, warn};
 
-use crate::asset::{bustup::Bustup, movie::Movie, picture::Picture, system::AssetServer};
+use crate::{
+    asset::{bustup::Bustup, movie::Movie, picture::Picture, system::AssetServer},
+    layer::{render_params::TransformParams, DrawableLayer, Layer, LayerProperties},
+    update::{Updatable, UpdateContext},
+};
 
 mod bustup_layer;
 mod movie_layer;
@@ -26,21 +31,19 @@ pub use self::{
     picture_layer::PictureLayer, tile_layer::TileLayer,
 };
 
-#[enum_dispatch(DrawableLayer, Layer, Updatable)]
-#[derive(Derivative, Clone)]
+#[derive(Derivative, Clone, FromVariants)]
 #[derivative(Debug)]
-#[allow(clippy::enum_variant_names)]
 pub enum UserLayer {
     #[derivative(Debug = "transparent")]
-    NullLayer,
+    NullLayer(NullLayer),
     #[derivative(Debug = "transparent")]
-    PictureLayer,
+    PictureLayer(PictureLayer),
     #[derivative(Debug = "transparent")]
-    BustupLayer,
+    BustupLayer(BustupLayer),
     #[derivative(Debug = "transparent")]
-    TileLayer,
+    TileLayer(TileLayer),
     #[derivative(Debug = "transparent")]
-    MovieLayer,
+    MovieLayer(MovieLayer),
 }
 
 impl UserLayer {
@@ -130,30 +133,74 @@ impl UserLayer {
     }
 }
 
-// impl Renderable for UserLayer {
-//     fn render<'enc>(
-//         &'enc self,
-//         resources: &'enc GpuCommonResources,
-//         render_pass: &mut wgpu::RenderPass<'enc>,
-//         transform: Mat4,
-//         projection: Mat4,
-//     ) {
-//         match self {
-//             UserLayer::NullLayer(l) => l.render(resources, render_pass, transform, projection),
-//             UserLayer::PictureLayer(l) => l.render(resources, render_pass, transform, projection),
-//             UserLayer::BustupLayer(l) => l.render(resources, render_pass, transform, projection),
-//             UserLayer::TileLayer(l) => l.render(resources, render_pass, transform, projection),
-//             UserLayer::MovieLayer(l) => l.render(resources, render_pass, transform, projection),
-//         }
-//     }
-//
-//     fn resize(&mut self, resources: &GpuCommonResources) {
-//         match self {
-//             UserLayer::NullLayer(l) => l.resize(resources),
-//             UserLayer::PictureLayer(l) => l.resize(resources),
-//             UserLayer::BustupLayer(l) => l.resize(resources),
-//             UserLayer::TileLayer(l) => l.resize(resources),
-//             UserLayer::MovieLayer(l) => l.resize(resources),
-//         }
-//     }
-// }
+impl Updatable for UserLayer {
+    fn update(&mut self, context: &UpdateContext) {
+        match self {
+            Self::NullLayer(layer) => layer.update(context),
+            Self::PictureLayer(layer) => layer.update(context),
+            Self::BustupLayer(layer) => layer.update(context),
+            Self::TileLayer(layer) => layer.update(context),
+            Self::MovieLayer(layer) => layer.update(context),
+        }
+    }
+}
+
+impl DrawableLayer for UserLayer {
+    fn properties(&self) -> &LayerProperties {
+        match self {
+            Self::NullLayer(layer) => layer.properties(),
+            Self::PictureLayer(layer) => layer.properties(),
+            Self::BustupLayer(layer) => layer.properties(),
+            Self::TileLayer(layer) => layer.properties(),
+            Self::MovieLayer(layer) => layer.properties(),
+        }
+    }
+
+    fn properties_mut(&mut self) -> &mut LayerProperties {
+        match self {
+            Self::NullLayer(layer) => layer.properties_mut(),
+            Self::PictureLayer(layer) => layer.properties_mut(),
+            Self::BustupLayer(layer) => layer.properties_mut(),
+            Self::TileLayer(layer) => layer.properties_mut(),
+            Self::MovieLayer(layer) => layer.properties_mut(),
+        }
+    }
+}
+
+impl Layer for UserLayer {
+    fn get_stencil_bump(&self) -> u8 {
+        match self {
+            Self::NullLayer(layer) => layer.get_stencil_bump(),
+            Self::PictureLayer(layer) => layer.get_stencil_bump(),
+            Self::BustupLayer(layer) => layer.get_stencil_bump(),
+            Self::TileLayer(layer) => layer.get_stencil_bump(),
+            Self::MovieLayer(layer) => layer.get_stencil_bump(),
+        }
+    }
+
+    fn pre_render(&mut self, transform: &TransformParams) {
+        match self {
+            Self::NullLayer(layer) => layer.pre_render(transform),
+            Self::PictureLayer(layer) => layer.pre_render(transform),
+            Self::BustupLayer(layer) => layer.pre_render(transform),
+            Self::TileLayer(layer) => layer.pre_render(transform),
+            Self::MovieLayer(layer) => layer.pre_render(transform),
+        }
+    }
+
+    fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        match self {
+            Self::NullLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::PictureLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::BustupLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::TileLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::MovieLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+        }
+    }
+}

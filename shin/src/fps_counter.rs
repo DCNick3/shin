@@ -21,7 +21,9 @@ impl FpsCounter {
 
 impl Updatable for FpsCounter {
     fn update(&mut self, context: &UpdateContext) {
-        self.values.push_back(context.time_delta());
+        todo!();
+
+        // self.values.push_back(context.time_delta());
         if self.values.len() > WINDOW_SIZE {
             self.values.pop_front();
         }

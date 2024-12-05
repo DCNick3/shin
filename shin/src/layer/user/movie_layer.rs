@@ -85,7 +85,7 @@ impl MovieLayer {
 impl Updatable for MovieLayer {
     fn update(&mut self, ctx: &UpdateContext) {
         self.video_player.update(
-            ctx.time_delta_ticks(),
+            ctx.delta_time,
             todo!(), // &ctx.gpu_resources.queue
         );
     }

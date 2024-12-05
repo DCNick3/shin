@@ -3,3 +3,4 @@
 heaptrack.*.zst
 .flatpak-builder
 *.snr
+*.cap

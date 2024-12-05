@@ -47,6 +47,7 @@ image = { workspace = true, default-features = false }
 # Theese part of bevy does not depend on ECS or the reflection, so it's not a big problem to use them
 bevy_utils = { workspace = true }
 
+# just one more derive macros and rust will be perfect
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 enum-map = { workspace = true }
@@ -56,6 +57,7 @@ strum = { workspace = true }
 anymap = "1.0.0-beta.2"
 derivative = "2.2.0"
 serde = "1.0.204"
+from_variants = "1.0.2"
 
 itertools = { workspace = true }
 once_cell = "1.19.0"

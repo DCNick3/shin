@@ -244,8 +244,8 @@ pub enum DepthFunction {
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
 pub struct DepthState {
-    function: DepthFunction,
-    write_enable: bool,
+    pub function: DepthFunction,
+    pub write_enable: bool,
 }
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
@@ -283,12 +283,12 @@ pub enum StencilMask {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
 pub struct StencilPipelineState {
-    function: StencilFunction,
-    stencil_fail_operation: StencilOperation,
-    depth_fail_operation: StencilOperation,
-    pass_operation: StencilOperation,
-    stencil_read_mask: StencilMask,
-    stencil_write_mask: StencilMask,
+    pub function: StencilFunction,
+    pub stencil_fail_operation: StencilOperation,
+    pub depth_fail_operation: StencilOperation,
+    pub pass_operation: StencilOperation,
+    pub stencil_read_mask: StencilMask,
+    pub stencil_write_mask: StencilMask,
 }
 
 impl Default for StencilPipelineState {
@@ -306,8 +306,8 @@ impl Default for StencilPipelineState {
 
 #[derive(Debug, Copy, Clone)]
 pub struct StencilState {
-    pipeline: StencilPipelineState,
-    stencil_reference: u8,
+    pub pipeline: StencilPipelineState,
+    pub stencil_reference: u8,
 }
 
 impl Default for StencilState {
@@ -321,14 +321,14 @@ impl Default for StencilState {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
 pub struct DepthStencilPipelineState {
-    depth: DepthState,
-    stencil: StencilPipelineState,
+    pub depth: DepthState,
+    pub stencil: StencilPipelineState,
 }
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct DepthStencilState {
-    depth: DepthState,
-    stencil: StencilState,
+    pub depth: DepthState,
+    pub stencil: StencilState,
 }
 
 impl DepthStencilState {

@@ -2,7 +2,7 @@ use enum_map::{enum_map, EnumMap};
 use glam::{vec2, vec3, vec4, Mat4, Vec2, Vec4};
 use shin_core::{
     time::{Ticks, Tweener},
-    vm::command::types::LayerProperty,
+    vm::command::types::{LayerId, LayerProperty},
 };
 use shin_render::{shaders::types::vertices::FloatColor4, LayerBlendType, LayerFragmentShader};
 
@@ -24,6 +24,8 @@ fn initial_values() -> EnumMap<LayerProperty, i32> {
 
 #[derive(Debug, Clone)]
 pub struct LayerProperties {
+    layer_load_counter1: u32,
+    layer_id: LayerId,
     properties: EnumMap<LayerProperty, Tweener>,
     wobbler_x: Wobbler,
     wobbler_y: Wobbler,
@@ -36,6 +38,8 @@ pub struct LayerProperties {
 impl LayerProperties {
     pub fn new() -> Self {
         Self {
+            layer_load_counter1: 0,
+            layer_id: LayerId::new(0),
             properties: initial_values().map(|_, v| Tweener::new(v as f32)),
             wobbler_x: Wobbler::new(),
             wobbler_y: Wobbler::new(),
@@ -62,6 +66,18 @@ impl LayerProperties {
         for (prop, val) in initial_values() {
             self.properties[prop].fast_forward_to(val as f32);
         }
+    }
+
+    pub fn get_layer_id(&self) -> LayerId {
+        self.layer_id
+    }
+
+    pub fn set_layer_id(&mut self, layer_id: LayerId) {
+        self.layer_id = layer_id;
+    }
+
+    pub fn set_layerload_counter1(&mut self, layer_load_counter1: u32) {
+        self.layer_load_counter1 = layer_load_counter1;
     }
 
     fn evaluate_wobbler(
@@ -152,6 +168,37 @@ impl LayerProperties {
         }
     }
 
+    pub fn get_fragment_shader_param(&self) -> Vec4 {
+        use LayerProperty::*;
+
+        vec4(
+            self.get_value(ShaderParamX) * 0.001,
+            self.get_value(ShaderParamY) * 0.001,
+            self.get_value(ShaderParamZ) * 0.001,
+            self.get_value(ShaderParamW) * 0.001,
+        )
+    }
+
+    pub fn is_fragment_shader_nontrivial(&self) -> bool {
+        if self.get_color_multiplier() != FloatColor4::WHITE {
+            return true;
+        }
+
+        let fragment_shader = self.get_fragment_shader();
+        let shader_param = self.get_fragment_shader_param();
+
+        !fragment_shader.is_equivalent_to_default(shader_param)
+    }
+
+    pub fn is_blending_nontrivial(&self) -> bool {
+        use LayerProperty::*;
+
+        // NB: not using get_effective_alpha here, wobbler alpha is not taken into account
+        // this might be a bug in the original code
+        self.get_value(MulColorAlpha) * 0.001 < 1.0
+            || self.get_blend_type() != LayerBlendType::Type1
+    }
+
     pub fn get_drawable_params(&self) -> DrawableParams {
         use LayerProperty::*;
 
@@ -159,12 +206,7 @@ impl LayerProperties {
         let blend_type = self.get_blend_type();
         let fragment_shader = self.get_fragment_shader();
 
-        let shader_param = vec4(
-            self.get_value(ShaderParamX) * 0.001,
-            self.get_value(ShaderParamY) * 0.001,
-            self.get_value(ShaderParamZ) * 0.001,
-            self.get_value(ShaderParamW) * 0.001,
-        );
+        let shader_param = self.get_fragment_shader_param();
 
         DrawableParams {
             color_multiplier,
@@ -347,7 +389,7 @@ impl LayerProperties {
 
 impl Updatable for LayerProperties {
     fn update(&mut self, context: &UpdateContext) {
-        let dt = context.time_delta_ticks();
+        let dt = context.delta_time;
 
         for property in self.properties.values_mut() {
             property.update(dt);

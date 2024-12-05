@@ -112,6 +112,8 @@ impl NewDrawableLayer for TileLayerImpl {
             },
         ];
 
+        pass.push_debug("TileLayer");
+
         pass.run(
             RenderRequestBuilder::new()
                 .depth_stencil_shorthand(stencil_ref, false, false)
@@ -124,6 +126,8 @@ impl NewDrawableLayer for TileLayerImpl {
                     DrawPrimitive::TrianglesStrip,
                 ),
         );
+
+        pass.pop_debug();
     }
 }
 

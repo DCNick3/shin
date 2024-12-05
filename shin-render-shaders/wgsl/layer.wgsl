@@ -55,7 +55,8 @@ fn evaluate_fragment_shader(color: vec3<f32>, operation: u32, param: vec4<f32>) 
 fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let sampled = textureSample(texture_texture, texture_sampler, input.texture_position);
 
-    if params.output_type == 1 {
+    if params.output_type == 2 {
+        // discard
         if sampled.w * params.color.w - 0.00100000005 < 0.0 {
             discard;
         }
@@ -64,7 +65,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let tinted = sampled * params.color;
     // the fragment shader won't change the alpha channel
     let value = evaluate_fragment_shader(tinted.xyz, params.fragment_operation, params.fragment_param);
-    let processed = vec4<f32>(value, sampled.w);
+    let processed = vec4<f32>(value, tinted.w);
 
     if params.output_type == 0 || params.output_type == 2 {
         // normal & discard

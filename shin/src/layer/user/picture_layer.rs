@@ -128,10 +128,7 @@ pub fn render_block(
         BytesAddress::from_usize(offset * GpuPictureBlock::INDICES_PER_RECT),
         BytesAddress::from_usize(count * GpuPictureBlock::INDICES_PER_RECT),
     );
-    let vertices = VertexSource::VertexAndIndexBuffer {
-        vertices: vertices,
-        indices: indices,
-    };
+    let vertices = VertexSource::VertexAndIndexBuffer { vertices, indices };
 
     let color_blend_type = match pass_kind {
         PictureBlockPassKind::OpaqueOnly => ColorBlendType::Opaque,
@@ -157,14 +154,14 @@ pub fn render_block(
 #[derive(Clone)]
 pub struct PictureLayerImpl {
     picture: Arc<Picture>,
-    picture_name: Option<String>,
+    label: String,
 }
 
 impl PictureLayerImpl {
     pub fn new(picture: Arc<Picture>, picture_name: Option<String>) -> Self {
         Self {
             picture,
-            picture_name,
+            label: picture_name.unwrap_or_else(|| "unnamed".to_string()),
         }
     }
 
@@ -185,7 +182,15 @@ impl PictureLayerImpl {
 
         let transform = transform * scale * translation;
 
-        pass.push_debug(&self.picture_name.as_ref().map_or("unnamed", |v| v.as_str()));
+        pass.push_debug(&format!(
+            "PictureLayer[{}]/{}",
+            &self.label,
+            match params.pass_kind {
+                PictureBlockPassKind::OpaqueOnly => "opaque",
+                PictureBlockPassKind::TransparentOnly => "transparent",
+                PictureBlockPassKind::OpaqueAndTransparent => "opaque_and_transparent",
+            }
+        ));
         for (&offset, &(ref positions, ref block)) in &self.picture.blocks {
             pass.push_debug(&format!("block {}", offset));
             for position in positions {
@@ -240,13 +245,6 @@ impl Updatable for PictureLayerImpl {
 
 impl Debug for PictureLayerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("PictureLayer")
-            .field(
-                &self
-                    .picture_name
-                    .as_ref()
-                    .map_or("<unnamed>", |v| v.as_str()),
-            )
-            .finish()
+        f.debug_tuple("PictureLayer").field(&self.label).finish()
     }
 }
