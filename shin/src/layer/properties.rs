@@ -22,6 +22,7 @@ fn initial_values() -> EnumMap<LayerProperty, i32> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct LayerProperties {
     properties: EnumMap<LayerProperty, Tweener>,
     wobbler_x: Wobbler,

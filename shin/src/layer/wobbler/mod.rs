@@ -31,6 +31,7 @@ pub enum WobbleMode {
     InvSawtooth = 8,
 }
 
+#[derive(Debug, Clone)]
 pub struct Wobbler {
     mode: WobbleMode,
     #[allow(unused)]

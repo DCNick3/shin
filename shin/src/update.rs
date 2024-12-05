@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use enum_dispatch::enum_dispatch;
 use shin_core::time::Ticks;
 
-use crate::{asset::system::AssetServer, layer::UserLayer, time::Time};
+use crate::{asset::system::AssetServer, layer::user::UserLayer, time::Time};
 
 pub struct UpdateContext<'a> {
     pub time: &'a Time,

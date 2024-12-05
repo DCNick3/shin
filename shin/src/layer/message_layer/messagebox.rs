@@ -150,6 +150,7 @@ macro_rules! make_vertices {
 //     result
 // }
 
+#[derive(Clone)]
 pub struct Messagebox {
     // textures: Arc<MessageboxTextures>,
     // tex_vertex_buffer: VertexBuffer<PosColTexVertex>,

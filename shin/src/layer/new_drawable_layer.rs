@@ -1,21 +1,19 @@
 use shin_core::vm::command::types::LayerProperty;
 use shin_render::{render_pass::RenderPass, PassKind};
 
-use crate::layer::{
-    render_params::{DrawableClipParams, DrawableParams, TransformParams},
-    LayerProperties,
+use crate::{
+    layer::{
+        render_params::{DrawableClipParams, DrawableParams, TransformParams},
+        DrawableLayer, Layer, LayerProperties,
+    },
+    update::{Updatable, UpdateContext},
 };
 
-pub trait DrawableLayer {
-    // fn init(&mut self);
-    // fn set_properties(&mut self, properties: LayerProperties);
-    fn get_properties(&self) -> &LayerProperties;
-}
-
-pub trait NewDrawableLayer: DrawableLayer {
+pub trait NewDrawableLayer: Clone + Updatable {
     fn needs_separate_pass(&self) -> bool {
         false
     }
+    #[expect(unused)] // it will be used. eventually.
     fn render_drawable_indirect(&self) {
         // TODO: initiate a generic render pass and delegate to Self::render_drawable_direct
         todo!()
@@ -32,17 +30,30 @@ pub trait NewDrawableLayer: DrawableLayer {
     );
 }
 
+#[derive(Debug, Clone)]
 pub struct NewDrawableLayerWrapper<T> {
     inner_layer: T,
+    props: LayerProperties,
 }
 
 impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
-    pub fn new(inner_layer: T) -> Self {
-        Self { inner_layer }
+    pub fn from_inner(inner_layer: T) -> Self {
+        Self {
+            inner_layer,
+            props: LayerProperties::new(),
+        }
     }
+}
 
-    pub fn pre_render(&mut self) {
-        let properties = self.inner_layer.get_properties();
+impl<T: NewDrawableLayer> Updatable for NewDrawableLayerWrapper<T> {
+    fn update(&mut self, context: &UpdateContext) {
+        self.inner_layer.update(context);
+    }
+}
+
+impl<T: NewDrawableLayer> Layer for NewDrawableLayerWrapper<T> {
+    fn pre_render(&mut self) {
+        let properties = self.properties();
         if !properties.is_visible() {
             return;
         }
@@ -70,11 +81,9 @@ impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
         {
             return;
         }
-
-        todo!("implement NewDrawableLayerWrapper effects");
     }
 
-    pub fn render(
+    fn render(
         &self,
         pass: &mut RenderPass,
         transform: &TransformParams,
@@ -83,7 +92,7 @@ impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
     ) {
         // TODO: implement the indirect drawing stuff
 
-        let properties = self.inner_layer.get_properties();
+        let properties = self.properties();
         if !properties.is_visible() {
             return;
         }
@@ -102,5 +111,15 @@ impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
             stencil_ref,
             pass_kind,
         );
+    }
+}
+
+impl<T: NewDrawableLayer> DrawableLayer for NewDrawableLayerWrapper<T> {
+    fn properties(&self) -> &LayerProperties {
+        &self.props
+    }
+
+    fn properties_mut(&mut self) -> &mut LayerProperties {
+        &mut self.props
     }
 }

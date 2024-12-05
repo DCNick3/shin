@@ -25,6 +25,7 @@ pub struct MessageMetrics {
     pub height: f32,
 }
 
+#[derive(Clone)]
 pub struct Message {
     time: Ticks,
     font_atlas: Arc<FontAtlas>,

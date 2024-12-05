@@ -1,11 +1,16 @@
 use glam::Mat4;
 use shin_core::vm::command::types::PLANES_COUNT;
+use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
-    layer::{properties::LayerProperties, Layer, LayerGroup},
+    layer::{
+        properties::LayerProperties, render_params::TransformParams, DrawableLayer, Layer,
+        LayerGroup,
+    },
     update::{Updatable, UpdateContext},
 };
 
+#[derive(Clone)]
 pub struct PageLayer {
     planes: [LayerGroup; PLANES_COUNT],
     properties: LayerProperties,
@@ -94,6 +99,18 @@ impl Updatable for PageLayer {
 // }
 
 impl Layer for PageLayer {
+    fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        todo!()
+    }
+}
+
+impl DrawableLayer for PageLayer {
     fn properties(&self) -> &LayerProperties {
         &self.properties
     }
