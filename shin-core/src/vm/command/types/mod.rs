@@ -6,7 +6,8 @@ mod property;
 
 pub use flags::{AudioWaitStatus, LayerCtrlFlags, MaskFlags};
 pub use id::{
-    LayerId, LayerIdOpt, VLayerId, VLayerIdRepr, LAYERBANKS_COUNT, LAYERS_COUNT, PLANES_COUNT,
+    LayerId, LayerIdOpt, LayerbankId, LayerbankIdOpt, PlaneId, PlaneIdOpt, VLayerId, VLayerIdRepr,
+    LAYERBANKS_COUNT, LAYERS_COUNT, PLANES_COUNT,
 };
 use num_derive::FromPrimitive;
 pub use property::LayerProperty;

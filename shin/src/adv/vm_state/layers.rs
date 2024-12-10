@@ -1,12 +1,163 @@
+use std::cell::RefCell;
+
 use bevy_utils::{hashbrown::hash_map::Entry, StableHashMap};
 use shin_core::{
     format::scenario::instruction_elements::UntypedNumberArray,
-    vm::command::types::{LayerId, LayerIdOpt, LayerType, VLayerId, VLayerIdRepr, PLANES_COUNT},
+    vm::command::types::{
+        LayerId, LayerIdOpt, LayerType, LayerbankId, LayerbankIdOpt, PlaneId, PlaneIdOpt, VLayerId,
+        VLayerIdRepr, LAYERBANKS_COUNT, LAYERS_COUNT, PLANES_COUNT,
+    },
 };
 use smallvec::{smallvec, SmallVec};
 use tracing::warn;
 
 use crate::layer::LayerPropertiesSnapshot;
+
+struct LayerRangeCache {
+    plane: PlaneIdOpt,
+    from: LayerId,
+    to: LayerId,
+    affected_layerbanks: [(LayerId, LayerbankId); LAYERBANKS_COUNT],
+    affected_layerbank_count: u32,
+}
+
+impl LayerRangeCache {
+    fn new() -> Self {
+        Self {
+            plane: PlaneIdOpt::none(),
+            from: LayerId::new(0),
+            to: LayerId::new(0),
+            affected_layerbanks: [(LayerId::new(0), LayerbankId::new(0)); LAYERBANKS_COUNT],
+            affected_layerbank_count: 0,
+        }
+    }
+
+    fn invalidate(&mut self) {
+        self.plane = PlaneIdOpt::none();
+    }
+
+    fn is_hit(&self, plane: PlaneId, from: LayerId, to: LayerId) -> bool {
+        self.plane == PlaneIdOpt::some(plane) && self.from == from && self.to == to
+    }
+
+    fn clear(&mut self) {
+        self.affected_layerbank_count = 0;
+    }
+
+    fn push(&mut self, layer: LayerId, layerbank: LayerbankId) {
+        self.affected_layerbanks[self.affected_layerbank_count as usize] = (layer, layerbank);
+        self.affected_layerbank_count += 1;
+    }
+
+    fn iter(&self) -> impl Iterator<Item = (LayerId, LayerbankId)> + '_ {
+        self.affected_layerbanks[..self.affected_layerbank_count as usize]
+            .iter()
+            .copied()
+    }
+}
+
+pub struct LayerbankAllocator {
+    free_layerbank_ids: [LayerbankId; LAYERBANKS_COUNT],
+    allocated_layerbanks: u32,
+    layer_id_to_layerbank: [LayerbankIdOpt; LAYERS_COUNT * PLANES_COUNT],
+    layerbank_id_to_layer_id: [(PlaneIdOpt, LayerIdOpt); LAYERBANKS_COUNT],
+
+    range_cache: LayerRangeCache,
+}
+
+impl LayerbankAllocator {
+    pub fn new() -> Self {
+        Self {
+            free_layerbank_ids: core::array::from_fn(|i| LayerbankId::new(i as u8)),
+            allocated_layerbanks: 0,
+            layer_id_to_layerbank: [LayerbankIdOpt::none(); LAYERS_COUNT * PLANES_COUNT],
+            layerbank_id_to_layer_id: [(PlaneIdOpt::none(), LayerIdOpt::none()); LAYERBANKS_COUNT],
+            range_cache: LayerRangeCache::new(),
+        }
+    }
+
+    fn layer_id_index(plane: PlaneId, layer: LayerId) -> usize {
+        plane.raw() as usize * LAYERS_COUNT + layer.raw() as usize
+    }
+
+    pub fn get_layerbank_id(&self, plane: PlaneId, layer: LayerId) -> Option<LayerbankId> {
+        self.layer_id_to_layerbank[Self::layer_id_index(plane, layer)].into_option()
+    }
+
+    pub fn alloc_layerbank(&mut self, plane: PlaneId, layer: LayerId) -> Option<LayerbankId> {
+        // double allocation is fine
+        if let Some(layerbank_id) = self.get_layerbank_id(plane, layer) {
+            return Some(layerbank_id);
+        }
+
+        if self.allocated_layerbanks >= LAYERBANKS_COUNT as u32 {
+            // no more layerbanks to allocate :(
+            return None;
+        }
+
+        let new_layerbank_id = self.free_layerbank_ids[self.allocated_layerbanks as usize];
+        self.allocated_layerbanks += 1;
+
+        self.layer_id_to_layerbank[Self::layer_id_index(plane, layer)] =
+            LayerbankIdOpt::some(new_layerbank_id);
+        self.layerbank_id_to_layer_id[new_layerbank_id.raw() as usize] =
+            (PlaneIdOpt::some(plane), LayerIdOpt::some(layer));
+
+        self.range_cache.invalidate();
+
+        Some(new_layerbank_id)
+    }
+
+    pub fn free_layerbank(&mut self, plane: PlaneId, layer: LayerId) {
+        let Some(layerbank_id) =
+            self.layer_id_to_layerbank[Self::layer_id_index(plane, layer)].into_option()
+        else {
+            // layerbank not allocated
+            return;
+        };
+
+        self.layer_id_to_layerbank[Self::layer_id_index(plane, layer)] = LayerbankIdOpt::none();
+        self.layerbank_id_to_layer_id[layerbank_id.raw() as usize] =
+            (PlaneIdOpt::none(), LayerIdOpt::none());
+        self.allocated_layerbanks -= 1;
+        self.free_layerbank_ids[self.allocated_layerbanks as usize] = layerbank_id;
+
+        self.range_cache.invalidate();
+    }
+
+    pub fn for_layer_in_range(
+        &mut self,
+        plane: PlaneId,
+        from: LayerId,
+        to: LayerId,
+        mut f: impl FnMut(LayerId, LayerbankId),
+    ) {
+        if from == to {
+            let Some(layerbank_id) = self.get_layerbank_id(plane, from) else {
+                return;
+            };
+            let (_, layer_id) = self.layerbank_id_to_layer_id[layerbank_id.raw() as usize];
+            f(layer_id.unwrap(), layerbank_id);
+        }
+
+        if !self.range_cache.is_hit(plane, from, to) {
+            self.range_cache.clear();
+
+            let mut position = from;
+            while position < to {
+                if let Some(layerbank_id) = self.get_layerbank_id(plane, position) {
+                    self.range_cache.push(position, layerbank_id);
+                }
+
+                position = position.next();
+            }
+        }
+
+        for (layer_id, layerbank_id) in self.range_cache.iter() {
+            f(layer_id, layerbank_id);
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub struct LayerSelection {
@@ -39,7 +190,7 @@ impl Iterator for LayerSelectionIter {
     type Item = LayerId;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.current.opt() {
+        match self.current.into_option() {
             None => None,
             Some(current) => {
                 if current > self.high {

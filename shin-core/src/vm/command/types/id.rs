@@ -1,58 +1,90 @@
 use crate::format::scenario::instruction_elements::FromNumber;
 
-pub const LAYERBANKS_COUNT: u8 = 0x30;
-pub const LAYERS_COUNT: u32 = 0x100;
+pub const LAYERBANKS_COUNT: usize = 0x30;
+pub const LAYERS_COUNT: usize = 0x100;
 pub const PLANES_COUNT: usize = 4;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Id<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: u32>(T);
+trait ThroughUsize {
+    fn from_usize(value: usize) -> Self;
+    fn into_usize(self) -> usize;
+}
+
+impl ThroughUsize for u8 {
+    fn from_usize(value: usize) -> Self {
+        value.try_into().unwrap()
+    }
+
+    fn into_usize(self) -> usize {
+        self.try_into().unwrap()
+    }
+}
+
+impl ThroughUsize for u16 {
+    fn from_usize(value: usize) -> Self {
+        value.try_into().unwrap()
+    }
+
+    fn into_usize(self) -> usize {
+        self.try_into().unwrap()
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct IdOpt<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: u32>(T);
+pub struct Id<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize>(T);
 
-impl<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: u32>
-    Id<T, SENTINEL>
-{
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct IdOpt<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize>(T);
+
+impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> Id<T, SENTINEL> {
+    pub fn try_new(id: T) -> Option<Self> {
+        if (0..SENTINEL).contains(&id.into_usize()) {
+            Some(Self(id))
+        } else {
+            None
+        }
+    }
+
     pub fn new(id: T) -> Self {
-        assert!(
-            (0..SENTINEL).contains(&id.into()),
-            "Id::new: id out of range"
-        );
-        Self(id)
+        Self::try_new(id).expect("Id::new: id out of range")
     }
 
     pub fn raw(self) -> T {
         self.0
     }
 
-    pub fn next(self) -> Self {
+    pub fn try_next(self) -> Option<Self> {
         let id = self.0 + T::one();
-        assert_ne!(id.into(), SENTINEL, "Id::next: id out of range");
-        Self::new(id)
+        if id.into_usize() == SENTINEL {
+            None
+        } else {
+            Some(Self(id))
+        }
+    }
+
+    pub fn next(self) -> Self {
+        self.try_next().expect("Id::next: id out of range")
     }
 }
 
-impl<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: u32>
-    IdOpt<T, SENTINEL>
-{
+impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> IdOpt<T, SENTINEL> {
     pub fn none() -> Self {
-        Self(
-            T::try_from(SENTINEL)
-                .map_err(|_| "BUG: sentinel conversion failed")
-                .unwrap(),
-        )
+        Self(T::from_usize(SENTINEL))
     }
 
     pub fn some(id: Id<T, SENTINEL>) -> Self {
         Self(id.0)
     }
 
-    pub fn opt(self) -> Option<Id<T, SENTINEL>> {
-        if self.0.into() == SENTINEL {
+    pub fn into_option(self) -> Option<Id<T, SENTINEL>> {
+        if self.0.into_usize() == SENTINEL {
             None
         } else {
             Some(Id(self.0))
         }
+    }
+
+    pub fn unwrap(self) -> Id<T, SENTINEL> {
+        self.into_option().expect("IdOpt::unwrap: none value")
     }
 
     pub fn raw(self) -> T {
@@ -61,9 +93,15 @@ impl<T: num_traits::Unsigned + TryFrom<u32> + Into<u32> + Copy, const SENTINEL: 
 }
 
 /// Layer id, but allowing only "real" layers
-pub type LayerId = Id<u32, { LAYERS_COUNT }>;
+pub type LayerId = Id<u16, { LAYERS_COUNT }>;
 /// Layer id, but allowing only "real" layers and a "none" value
-pub type LayerIdOpt = IdOpt<u32, { LAYERS_COUNT }>;
+pub type LayerIdOpt = IdOpt<u16, { LAYERS_COUNT }>;
+
+pub type LayerbankId = Id<u8, { LAYERBANKS_COUNT }>;
+pub type LayerbankIdOpt = IdOpt<u8, { LAYERBANKS_COUNT }>;
+
+pub type PlaneId = Id<u8, { PLANES_COUNT }>;
+pub type PlaneIdOpt = IdOpt<u8, { PLANES_COUNT }>;
 
 /// Layer id, allowing for the special values -1, -2, -3, -4, -5
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

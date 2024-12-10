@@ -258,8 +258,13 @@ pub enum Command {
     LAYERLOAD {
         layer_id: NumberSpec<VLayerId>,
         layer_type: NumberSpec<LayerType>,
-        // TODO: what does this mean again?
-        leave_uninitialized: NumberSpec,
+        /// Flags modifying LAYERLOAD behavior. Unused in umi
+        ///
+        /// Bit 0 - prevents setting some flag in ADV
+        /// Bit 1 - keep previous layer parameters (requires the loaded layer to be the same type and params)
+        /// Bit 2 - individually wipe the layer when adding it to the LayerGroup and wait for wipe completion. Ignored if PAGEBACK is active
+        /// Bit 3 - prevents a copy of layer properties being made?
+        flags: NumberSpec,
         params: BitmaskNumberArray,
     },
     #[cmd(opcode = 0xc2u8)]
