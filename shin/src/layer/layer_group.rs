@@ -3,7 +3,7 @@ use glam::{vec3, Mat4};
 use itertools::Itertools;
 use shin_core::{
     time::Ticks,
-    vm::command::types::{LayerId, LayerProperty},
+    vm::command::types::{LayerId, LayerProperty, LayerbankId, LayerbankIdOpt},
 };
 use shin_render::{
     render_pass::RenderPass,
@@ -28,8 +28,9 @@ use crate::{
 
 #[derive(Clone)]
 struct LayerItem {
-    pub layerbank_id: i32,
-    pub some_countdown: Ticks,
+    pub layerbank_id: LayerbankId,
+    // this is probably how delayed removal is implemented?
+    // pub some_countdown: Ticks,
     pub layer: UserLayer,
 }
 
@@ -56,17 +57,9 @@ pub struct LayerGroup {
 impl LayerGroup {
     // TODO: technically we need not only `UserLayer`s, but system layers sometimes too
     // Maybe I should bite the bullet and make an owning `AnyLayer` for all the types, or just use `Box<dyn Layer>`
-    pub fn from_layers(layers: Vec<UserLayer>, label: Option<String>) -> Self {
+    pub fn new(label: Option<String>) -> Self {
         Self {
-            layers: layers
-                .into_iter()
-                .map(|layer| LayerItem {
-                    // TODO: this will mean something, but not yet
-                    layerbank_id: 0,
-                    some_countdown: Ticks::from_seconds(0.0),
-                    layer,
-                })
-                .collect(),
+            layers: vec![],
             stencil_bump: 0,
             layers_to_render: vec![],
             new_drawable_state: NewDrawableLayerState::new(),
@@ -76,76 +69,75 @@ impl LayerGroup {
         }
     }
 
-    // pub fn new(resources: &GpuCommonResources) -> Self {
-    //     let render_target = RenderTarget::new(
-    //         resources,
-    //         resources.current_render_buffer_size(),
-    //         Some("LayerGroup RenderTarget"),
-    //     );
-    //
-    //     Self {
-    //         layers: HashMap::new(),
-    //         render_target,
-    //         properties: LayerProperties::new(),
-    //     }
-    // }
+    // NB: original game also accepts a `Wiper` argument which causes the layer to be wrapped in `LayerGroup::TransitionLayer`
+    // umineko uses a different transition system, so this is not implemented
+    pub fn add_layer(&mut self, layerbank_id: LayerbankId, layer: UserLayer) {
+        match self
+            .layers
+            .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
+        {
+            Ok(index) => {
+                self.layers[index].layer = layer;
+            }
+            Err(index) => {
+                self.layers.insert(
+                    index,
+                    LayerItem {
+                        layerbank_id,
+                        layer,
+                    },
+                );
+            }
+        }
+    }
 
-    // pub fn get_layer_ids(&self) -> impl Iterator<Item = LayerId> + '_ {
-    //     self.new_drawable_wrapper.as_inner().layers.keys().cloned()
-    // }
-    //
-    // pub fn add_layer(&mut self, id: LayerId, layer: UserLayer) {
-    //     self.new_drawable_wrapper
-    //         .as_inner_mut()
-    //         .layers
-    //         .insert(id, layer);
-    // }
-    //
-    // pub fn remove_layer(&mut self, id: LayerId) {
-    //     if self
-    //         .new_drawable_wrapper
-    //         .as_inner_mut()
-    //         .layers
-    //         .remove(&id)
-    //         .is_none()
-    //     {
-    //         // this warning is too noisy
-    //         // needs to be more specific to be useful
-    //         // warn!("LayerGroup::remove_layer: layer not found");
-    //     }
-    // }
-    //
-    // pub fn get_layer(&self, id: LayerId) -> Option<&UserLayer> {
-    //     self.new_drawable_wrapper.as_inner().layers.get(&id)
-    // }
-    //
-    // pub fn get_layers(&self, selection: LayerSelection) -> impl Iterator<Item = &UserLayer> {
-    //     self.new_drawable_wrapper
-    //         .as_inner()
-    //         .layers
-    //         .iter()
-    //         .filter(move |&(&id, _)| selection.contains(id))
-    //         .map(|(_, v)| v)
-    // }
-    //
-    // pub fn get_layer_mut(&mut self, id: LayerId) -> Option<&mut UserLayer> {
-    //     self.new_drawable_wrapper.as_inner_mut().layers.get_mut(&id)
-    // }
-    //
-    // pub fn get_layers_mut(
-    //     &mut self,
-    //     selection: LayerSelection,
-    // ) -> impl Iterator<Item = &mut UserLayer> {
-    //     self.new_drawable_wrapper
-    //         .as_inner_mut()
-    //         .layers
-    //         .iter_mut()
-    //         .filter(move |&(&id, _)| selection.contains(id))
-    //         .map(|(_, v)| v)
-    // }
+    pub fn remove_layer(&mut self, layerbank_id: LayerbankId, delay_time: Ticks) {
+        if delay_time != Ticks::ZERO {
+            // this is never used in umineko
+            unimplemented!("LayerGroup::remove_layer: delay_time is not implemented");
+        }
+
+        match self
+            .layers
+            .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
+        {
+            Ok(index) => {
+                self.layers.remove(index);
+            }
+            Err(_) => {
+                // layerbank does not exist, swallow the error
+            }
+        }
+    }
+
+    pub fn get_layer(&self, layerbank_id: LayerbankId) -> Option<&UserLayer> {
+        self.layers
+            .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
+            .map(|index| &self.layers[index].layer)
+            .ok()
+    }
+
+    pub fn get_layer_mut(&mut self, layerbank_id: LayerbankId) -> Option<&mut UserLayer> {
+        self.layers
+            .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
+            .map(|index| &mut self.layers[index].layer)
+            .ok()
+    }
+
+    pub fn get_used_layerbank_ids(&self) -> Vec<LayerbankId> {
+        self.layers.iter().map(|item| item.layerbank_id).collect()
+    }
+
+    pub fn has_wiper_for_layerbank(&self, _layerbank_id: LayerbankId) -> bool {
+        false
+    }
+
+    pub fn set_mask_texture(&mut self, mask_texture: Option<()>) {
+        self.mask_texture = mask_texture;
+    }
 }
 
-// TODO: actually put something there
+// TODO: actually put something in here
 struct LayerGroupNewDrawableDelegate;
 
 impl NewDrawableLayer for LayerGroupNewDrawableDelegate {
@@ -181,11 +173,13 @@ impl Updatable for LayerGroup {
             layer.layer.update(context);
         }
 
-        for layer in &mut self.layers {
-            if layer.layerbank_id < 0 {
-                todo!("Run the timer and do something with TransitionLayers")
-            }
-        }
+        // this code handles the delayed layer removal
+        // don't need it
+        // for layer in &mut self.layers {
+        //     if layer.layerbank_id < 0 {
+        //         todo!("Run the timer and do something with TransitionLayers")
+        //     }
+        // }
     }
 }
 
@@ -219,8 +213,8 @@ impl Layer for LayerGroup {
             }
         });
 
-        // TODO: there is some trickery happening to `TransitionLayer`'s inside the layers vector
-        // This needs to be figured out and implemented once the `TransitionLayer` is implemented
+        // The original implementations handles `LayerGroup::TransitionLayer` here according to `Effectable` rules
+        // This is not necessary for running umineko (it uses a different system for transition), so this is not implemented
 
         let props = self.properties();
         let mut self_transform = props.get_transform_params();
@@ -228,7 +222,8 @@ impl Layer for LayerGroup {
 
         for &index in &layers {
             self.layers[index].layer.pre_render(&self_transform);
-            // TODO: if the current layer is `Effectable` (are there any?), we need to call a special pre-render function and pass the lower layers to it
+            // NB: if the current layer is `Effectable` (like `LayerGroup::TransitionLayer`), we need to call a special pre-render function and pass the lower layers to it
+            // This is not necessary for umineko
         }
 
         self.layers_to_render.clear();
