@@ -135,6 +135,10 @@ impl LayerGroup {
     pub fn set_mask_texture(&mut self, mask_texture: Option<()>) {
         self.mask_texture = mask_texture;
     }
+
+    pub fn needs_rendering(&self) -> bool {
+        self.mask_texture.is_some() || self.layers.len() > 0
+    }
 }
 
 // TODO: actually put something in here
@@ -167,6 +171,7 @@ impl NewDrawableLayer for LayerGroupNewDrawableDelegate {
 
 impl Updatable for LayerGroup {
     fn update(&mut self, context: &UpdateContext) {
+        self.props.update(context);
         self.new_drawable_state.update(context);
 
         for layer in &mut self.layers {
@@ -227,7 +232,6 @@ impl Layer for LayerGroup {
         }
 
         self.layers_to_render.clear();
-
         let mut stencil_value = 1;
         for &index in &layers {
             self.layers_to_render.push(LayerRenderItem {

@@ -4,7 +4,7 @@ use anyhow::Context;
 use enum_map::{Enum, EnumMap};
 use glam::vec4;
 use shin_audio::AudioManager;
-use shin_core::vm::command::types::{LayerId, LayerProperty, LayerbankId};
+use shin_core::vm::command::types::{LayerId, LayerProperty, LayerbankId, PlaneId};
 use shin_input::{Action, ActionState, RawInputState};
 use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4, PassKind};
 use shin_window::{AppContext, ShinApp};
@@ -21,7 +21,7 @@ use crate::{
         render_layer, render_layers,
         render_params::TransformParams,
         user::{PictureLayer, TileLayer},
-        DrawableLayer, Layer as _, LayerGroup,
+        DrawableLayer, Layer as _, LayerGroup, PageLayer,
     },
 };
 
@@ -41,7 +41,7 @@ impl Action for AppAction {
 pub struct App {
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
-    layer_group: LayerGroup,
+    page_layer: PageLayer,
 }
 
 impl ShinApp for App {
@@ -68,11 +68,18 @@ impl ShinApp for App {
 
         let picture = asset_server.load_sync::<Picture>(picture_name).unwrap();
 
-        let mut tile_layer = TileLayer::new(
+        let mut tile_layer_bottom = TileLayer::new(
             FloatColor4::PASTEL_PINK,
             vec4(-1088.0, -612.0, 2176.0, 1224.0),
         );
-        tile_layer.properties_mut().set_layer_id(LayerId::new(1));
+        tile_layer_bottom
+            .properties_mut()
+            .set_layer_id(LayerId::new(1));
+
+        let mut tile_layer_top = TileLayer::new(
+            FloatColor4::PASTEL_GREEN,
+            vec4(-300.0, -300.0, 600.0, 600.0),
+        );
 
         let mut picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
         {
@@ -86,14 +93,23 @@ impl ShinApp for App {
                 .fast_forward_to(800.0);
         }
 
-        let mut layer_group = LayerGroup::new(None);
-        layer_group.add_layer(LayerbankId::new(1), tile_layer.into());
-        layer_group.add_layer(LayerbankId::new(0), picture_layer.into());
+        let mut page_layer = PageLayer::new(4, None);
+
+        let layer_group1 = page_layer.get_plane_mut(PlaneId::new(0));
+        layer_group1.add_layer(LayerbankId::new(1), tile_layer_bottom.into());
+        layer_group1.add_layer(LayerbankId::new(0), picture_layer.into());
+
+        let layer_group2 = page_layer.get_plane_mut(PlaneId::new(1));
+        layer_group2.add_layer(LayerbankId::new(0), tile_layer_top.into());
+        layer_group2
+            .properties_mut()
+            .property_tweener_mut(LayerProperty::MulColorAlpha)
+            .fast_forward_to(200.0);
 
         Ok(Self {
             audio_manager,
             asset_server,
-            layer_group,
+            page_layer,
         })
     }
 
@@ -115,8 +131,8 @@ impl ShinApp for App {
     fn render(&mut self, pass: &mut RenderPass) {
         let transform = TransformParams::default();
 
-        self.layer_group.pre_render(&transform);
+        self.page_layer.pre_render(&transform);
 
-        render_layer(pass, &transform, &self.layer_group, FloatColor4::BLACK, 0);
+        render_layer(pass, &transform, &self.page_layer, FloatColor4::BLACK, 0);
     }
 }

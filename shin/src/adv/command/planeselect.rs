@@ -1,4 +1,4 @@
-use shin_core::vm::command::types::PLANES_COUNT;
+use shin_core::vm::command::types::{PlaneId, PLANES_COUNT};
 
 use super::prelude::*;
 
@@ -9,7 +9,7 @@ impl StartableCommand for command::runtime::PLANESELECT {
             "invalid plane id: {}",
             self.plane_id
         );
-        state.layers.current_plane = self.plane_id as _;
+        state.layers.current_plane = PlaneId::new(self.plane_id as _);
     }
 
     fn start(
