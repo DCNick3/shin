@@ -4,7 +4,7 @@ use anyhow::Context;
 use enum_map::{Enum, EnumMap};
 use glam::vec4;
 use shin_audio::AudioManager;
-use shin_core::vm::command::types::{LayerId, LayerProperty};
+use shin_core::vm::command::types::{LayerId, LayerProperty, LayerbankId};
 use shin_input::{Action, ActionState, RawInputState};
 use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4, PassKind};
 use shin_window::{AppContext, ShinApp};
@@ -86,8 +86,9 @@ impl ShinApp for App {
                 .fast_forward_to(800.0);
         }
 
-        let layer_group =
-            LayerGroup::from_layers(vec![tile_layer.into(), picture_layer.into()], None);
+        let mut layer_group = LayerGroup::new(None);
+        layer_group.add_layer(LayerbankId::new(1), tile_layer.into());
+        layer_group.add_layer(LayerbankId::new(0), picture_layer.into());
 
         Ok(Self {
             audio_manager,
