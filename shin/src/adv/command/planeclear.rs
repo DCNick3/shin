@@ -2,7 +2,7 @@ use super::prelude::*;
 
 impl StartableCommand for command::runtime::PLANECLEAR {
     fn apply_state(&self, state: &mut VmState) {
-        let plane = &mut state.layers.planes[state.layers.current_plane as usize];
+        let plane = &mut state.layers.planes[state.layers.current_plane.raw() as usize];
         plane.layers.clear();
     }
 

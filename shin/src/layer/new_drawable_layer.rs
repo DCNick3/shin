@@ -45,7 +45,25 @@ impl NewDrawableLayerState {
         None
     }
 
-    pub fn update(&mut self, _context: &UpdateContext) {}
+    pub fn update(&mut self, _context: &UpdateContext) {
+        // TODO
+    }
+
+    pub fn is_rendered_directly<T: NewDrawableLayer>(
+        &self,
+        properties: &LayerProperties,
+        delegate: &T,
+    ) -> bool {
+        let Some(_tex) = self.get_prerendered_tex() else {
+            return true;
+        };
+
+        if delegate.needs_separate_pass(properties) {
+            return false;
+        }
+
+        todo!("check tex.force_transparent_pass")
+    }
 
     pub fn pre_render<T: NewDrawableLayer>(
         &mut self,
@@ -80,6 +98,21 @@ impl NewDrawableLayerState {
         {
             return;
         }
+    }
+
+    pub fn try_finish_indirect_render(
+        &self,
+        _properties: &LayerProperties,
+        _pass: &mut RenderPass,
+        _transform: &TransformParams,
+        _stencil_ref: u8,
+        _pass_kind: PassKind,
+    ) -> bool {
+        let Some(_tex) = self.get_prerendered_tex() else {
+            return false;
+        };
+
+        todo!("finish the indirect render")
     }
 
     pub fn render<T: NewDrawableLayer>(

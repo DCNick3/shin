@@ -296,14 +296,14 @@ impl AdvState {
         self.root_layer_group
             .screen_layer()
             .page_layer()
-            .plane(vm_state.layers.current_plane)
+            .get_plane(vm_state.layers.current_plane)
     }
 
     pub fn current_plane_layer_group_mut(&mut self, vm_state: &VmState) -> &mut LayerGroup {
         self.root_layer_group
             .screen_layer_mut()
             .page_layer_mut()
-            .plane_mut(vm_state.layers.current_plane)
+            .get_plane_mut(vm_state.layers.current_plane)
     }
 
     pub fn get_layer(&self, vm_state: &VmState, id: LayerId) -> Option<&UserLayer> {

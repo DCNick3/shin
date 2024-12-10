@@ -157,6 +157,10 @@ impl LayerbankAllocator {
             f(layer_id, layerbank_id);
         }
     }
+
+    pub fn swap_layerbanks(&mut self, plane: PlaneId, layer_1: LayerId, layer_2: LayerId) {
+        todo!()
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -267,7 +271,7 @@ impl PlaneState {
 
 #[derive(Debug, Clone)]
 pub struct LayersState {
-    pub current_plane: u32,
+    pub current_plane: PlaneId,
     pub layer_selection: Option<LayerSelection>,
     pub planes: [PlaneState; PLANES_COUNT],
 
@@ -283,7 +287,7 @@ pub const ITER_VLAYER_SMALL_VECTOR_SIZE: usize = 0x10;
 impl LayersState {
     pub fn new() -> Self {
         Self {
-            current_plane: 0,
+            current_plane: PlaneId::new(0),
             layer_selection: None,
             planes: [
                 PlaneState::new(),
@@ -301,12 +305,12 @@ impl LayersState {
     /// Get user layer by id
     #[allow(unused)]
     pub fn get_layer(&self, layer_id: LayerId) -> Option<&LayerState> {
-        self.planes[self.current_plane as usize].get_layer(layer_id)
+        self.planes[self.current_plane.raw() as usize].get_layer(layer_id)
     }
 
     /// Get user layer by id (mutable)
     pub fn get_layer_mut(&mut self, layer_id: LayerId) -> Option<&mut LayerState> {
-        self.planes[self.current_plane as usize].get_layer_mut(layer_id)
+        self.planes[self.current_plane.raw() as usize].get_layer_mut(layer_id)
     }
 
     /// Get layer by virtual id, handling the special layers & selection
@@ -324,7 +328,7 @@ impl LayersState {
             VLayerIdRepr::PlaneLayerGroup => smallvec![&self.plane_layer_group],
             VLayerIdRepr::Selected => {
                 if let Some(selection) = self.layer_selection {
-                    self.planes[self.current_plane as usize]
+                    self.planes[self.current_plane.raw() as usize]
                         .layers
                         .iter()
                         .filter(move |(id, _)| selection.contains(**id))
@@ -395,7 +399,7 @@ impl LayersState {
                 // NOTE: usually, there are not that much layers present
                 // so it's okay to do an O(N) iteration here
                 if let Some(selection) = self.layer_selection {
-                    self.planes[self.current_plane as usize]
+                    self.planes[self.current_plane.raw() as usize]
                         .layers
                         .iter_mut()
                         .filter(|&(&id, _)| selection.contains(id))
@@ -418,10 +422,10 @@ impl LayersState {
     }
 
     pub fn alloc(&mut self, layer_id: LayerId) -> &mut LayerState {
-        self.planes[self.current_plane as usize].alloc(layer_id)
+        self.planes[self.current_plane.raw() as usize].alloc(layer_id)
     }
 
     pub fn free(&mut self, layer_id: LayerId) {
-        self.planes[self.current_plane as usize].free(layer_id)
+        self.planes[self.current_plane.raw() as usize].free(layer_id)
     }
 }
