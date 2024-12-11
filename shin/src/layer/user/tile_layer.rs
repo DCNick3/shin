@@ -13,6 +13,7 @@ use shin_render::{
 
 use crate::{
     layer::{
+        new_drawable_layer::NewDrawableLayerNeedsSeparatePass,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         NewDrawableLayer, NewDrawableLayerWrapper,
     },
@@ -38,6 +39,8 @@ impl TileLayer {
         Self::from_inner(TileLayerImpl::new(color, rect))
     }
 }
+
+impl NewDrawableLayerNeedsSeparatePass for TileLayerImpl {}
 
 impl NewDrawableLayer for TileLayerImpl {
     fn render_drawable_direct(

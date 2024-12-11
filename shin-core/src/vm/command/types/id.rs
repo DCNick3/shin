@@ -4,7 +4,7 @@ pub const LAYERBANKS_COUNT: usize = 0x30;
 pub const LAYERS_COUNT: usize = 0x100;
 pub const PLANES_COUNT: usize = 4;
 
-trait ThroughUsize {
+pub trait ThroughUsize {
     fn from_usize(value: usize) -> Self;
     fn into_usize(self) -> usize;
 }

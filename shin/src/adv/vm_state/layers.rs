@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use bevy_utils::{hashbrown::hash_map::Entry, StableHashMap};
 use shin_core::{
     format::scenario::instruction_elements::UntypedNumberArray,
@@ -56,6 +54,7 @@ impl LayerRangeCache {
     }
 }
 
+#[expect(unused)] // for future stuff
 pub struct LayerbankAllocator {
     free_layerbank_ids: [LayerbankId; LAYERBANKS_COUNT],
     allocated_layerbanks: u32,
@@ -65,6 +64,7 @@ pub struct LayerbankAllocator {
     range_cache: LayerRangeCache,
 }
 
+#[expect(unused)] // for future stuff
 impl LayerbankAllocator {
     pub fn new() -> Self {
         Self {

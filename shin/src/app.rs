@@ -6,8 +6,8 @@ use glam::vec4;
 use shin_audio::AudioManager;
 use shin_core::vm::command::types::{LayerId, LayerProperty, LayerbankId, PlaneId};
 use shin_input::{Action, ActionState, RawInputState};
-use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4, PassKind};
-use shin_window::{AppContext, ShinApp};
+use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4};
+use shin_window::{AppContext, RenderContext, ShinApp};
 use tracing::debug;
 use winit::keyboard::KeyCode;
 
@@ -18,10 +18,10 @@ use crate::{
     },
     cli::Cli,
     layer::{
-        render_layer, render_layers,
+        render_layer,
         render_params::TransformParams,
         user::{PictureLayer, TileLayer},
-        DrawableLayer, Layer as _, LayerGroup, PageLayer,
+        DrawableLayer, Layer as _, PageLayer, PreRenderContext,
     },
 };
 
@@ -80,6 +80,13 @@ impl ShinApp for App {
             FloatColor4::PASTEL_GREEN,
             vec4(-300.0, -300.0, 600.0, 600.0),
         );
+        {
+            let props = tile_layer_top.properties_mut();
+            props.set_layer_id(LayerId::new(3));
+            props
+                .property_tweener_mut(LayerProperty::MulColorAlpha)
+                .fast_forward_to(200.0);
+        }
 
         let mut picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
         {
@@ -95,16 +102,12 @@ impl ShinApp for App {
 
         let mut page_layer = PageLayer::new(4, None);
 
-        let layer_group1 = page_layer.get_plane_mut(PlaneId::new(0));
-        layer_group1.add_layer(LayerbankId::new(1), tile_layer_bottom.into());
-        layer_group1.add_layer(LayerbankId::new(0), picture_layer.into());
+        let layer_group = page_layer.get_plane_mut(PlaneId::new(0));
+        layer_group.add_layer(LayerbankId::new(1), tile_layer_bottom.into());
+        layer_group.add_layer(LayerbankId::new(0), picture_layer.into());
 
-        let layer_group2 = page_layer.get_plane_mut(PlaneId::new(1));
-        layer_group2.add_layer(LayerbankId::new(0), tile_layer_top.into());
-        layer_group2
-            .properties_mut()
-            .property_tweener_mut(LayerProperty::MulColorAlpha)
-            .fast_forward_to(200.0);
+        let layer_group = page_layer.get_plane_mut(PlaneId::new(1));
+        layer_group.add_layer(LayerbankId::new(2), tile_layer_top.into());
 
         Ok(Self {
             audio_manager,
@@ -126,12 +129,37 @@ impl ShinApp for App {
         if input[AppAction::ToggleFullscreen].is_clicked {
             context.winit.toggle_fullscreen();
         }
-    }
 
-    fn render(&mut self, pass: &mut RenderPass) {
         let transform = TransformParams::default();
 
-        self.page_layer.pre_render(&transform);
+        let mut encoder =
+            context
+                .wgpu
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("App::update"),
+                });
+
+        let mut pre_render_context = PreRenderContext {
+            device: &context.wgpu.device,
+            queue: &context.wgpu.queue,
+            resize_source: &context.winit.resize_source,
+            sampler_store: &context.render.sampler_store,
+            depth_stencil: context.render.canvas_depth_stencil_buffer.get_target_view(),
+
+            pipeline_storage: &mut context.render.pipelines,
+            dynamic_buffer: &mut context.render.dynamic_buffer,
+            encoder: &mut encoder,
+        };
+
+        self.page_layer
+            .pre_render(&mut pre_render_context, &transform);
+
+        context.wgpu.queue.submit(std::iter::once(encoder.finish()));
+    }
+
+    fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
+        let transform = TransformParams::default();
 
         render_layer(pass, &transform, &self.page_layer, FloatColor4::BLACK, 0);
     }

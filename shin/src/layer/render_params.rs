@@ -1,6 +1,9 @@
 use bitflags::bitflags;
 use glam::{vec3, Mat4, Vec2, Vec3, Vec4};
-use shin_render::{shaders::types::vertices::FloatColor4, LayerBlendType, LayerFragmentShader};
+use shin_render::{
+    shaders::types::vertices::FloatColor4, shin_orthographic_projection_matrix, LayerBlendType,
+    LayerFragmentShader,
+};
 
 bitflags! {
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
@@ -60,10 +63,7 @@ impl TransformParams {
     }
 
     pub fn compute_final_transform(&self) -> Mat4 {
-        // flip the Y coordinate
-        // the game uses the D3D coordinate system (Y goes down), while wgpu uses the GL coordinate system (Y goes up)
-        Mat4::from_scale(vec3(1.0, -1.0, 1.0))
-            * Mat4::orthographic_rh_gl(-960.0, 960.0, 540.0, -540.0, -1.0, 1.0)
+        shin_orthographic_projection_matrix(-960.0, 960.0, 540.0, -540.0, -1.0, 1.0)
             * Mat4::from_translation(self.wobble_translation.extend(0.0))
             * self.transform
     }

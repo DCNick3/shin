@@ -1,29 +1,54 @@
-#[derive(Debug)]
-pub struct DefaultTextureSampler(pub wgpu::Sampler);
+use enum_iterator::Sequence;
 
-impl DefaultTextureSampler {
+#[derive(Debug)]
+pub struct TextureSamplerStore {
+    pub linear: wgpu::Sampler,
+}
+
+impl TextureSamplerStore {
     pub fn new(device: &wgpu::Device) -> Self {
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("Default sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
+        let linear = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Linear Sampler"),
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Linear,
-            lod_min_clamp: 0.0,
-            lod_max_clamp: 32.0,
-            compare: None,
-            anisotropy_clamp: 1,
-            border_color: None,
+            ..Default::default()
         });
 
-        DefaultTextureSampler(sampler)
+        Self { linear }
+    }
+
+    pub fn get(&self, sampler: TextureSampler) -> &wgpu::Sampler {
+        match sampler {
+            TextureSampler::Linear => &self.linear,
+        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
+pub enum TextureSampler {
+    Linear,
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct TextureSource<'a> {
     pub view: &'a wgpu::TextureView,
-    pub sampler: &'a wgpu::Sampler,
+    pub sampler: TextureSampler,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
+pub enum TextureTargetKind {
+    Screen,
+    RenderTexture,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct TextureTarget<'a> {
+    pub kind: TextureTargetKind,
+    pub view: &'a wgpu::TextureView,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct DepthStencilTarget<'a> {
+    pub view: &'a wgpu::TextureView,
 }

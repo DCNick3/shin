@@ -4,6 +4,7 @@ use shin_render::{
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
+        texture::{DepthStencilTarget, TextureTarget},
         vertices::{FloatColor4, PosVertex},
     },
     DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
@@ -12,10 +13,10 @@ use shin_render::{
 
 use crate::{
     layer::{
-        new_drawable_layer::NewDrawableLayerState,
+        new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        DrawableLayer, Layer, LayerGroup, NewDrawableLayer,
+        DrawableLayer, Layer, LayerGroup, NewDrawableLayer, PreRenderContext,
     },
     update::{Updatable, UpdateContext},
 };
@@ -75,14 +76,23 @@ impl PageLayer {
 
 struct PageLayerNewDrawableDelegate;
 
-impl NewDrawableLayer for PageLayerNewDrawableDelegate {
+impl NewDrawableLayerNeedsSeparatePass for PageLayerNewDrawableDelegate {
     fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
         properties.get_clip_mode() != DrawableClipMode::None
             || properties.is_fragment_shader_nontrivial()
             || properties.is_blending_nontrivial()
     }
+}
 
-    fn render_drawable_indirect(&self) {
+impl NewDrawableLayer for PageLayerNewDrawableDelegate {
+    fn render_drawable_indirect(
+        &mut self,
+        context: &mut PreRenderContext,
+        properties: &LayerProperties,
+        target: TextureTarget,
+        depth_stencil: DepthStencilTarget,
+        transform: &TransformParams,
+    ) -> PassKind {
         todo!()
     }
     fn render_drawable_direct(
@@ -115,17 +125,17 @@ impl Layer for PageLayer {
         self.stencil_bump
     }
 
-    fn pre_render(&mut self, transform: &TransformParams) {
+    fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         let props = &self.props;
         let mut self_transform = props.get_transform_params();
         self_transform.compose_with(transform, props.get_compose_flags());
 
         let mut layer_stack = Vec::new();
 
-        for index in (0..self.planes.len()) {
+        for index in 0..self.planes.len() {
             let layer_group = &mut self.planes[index];
 
-            layer_group.pre_render(&self_transform);
+            layer_group.pre_render(context, &self_transform);
             if layer_group.needs_rendering() {
                 // if a layer is rendered directly, we won't be able to see anything below it
                 if self
@@ -156,7 +166,7 @@ impl Layer for PageLayer {
         let mut delegate = self.get_new_drawable_delegate();
 
         self.new_drawable_state
-            .pre_render(&self.props, &mut delegate, &self_transform);
+            .pre_render(context, &self.props, &mut delegate, &self_transform);
     }
 
     fn render(

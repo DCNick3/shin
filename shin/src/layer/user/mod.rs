@@ -16,7 +16,9 @@ use tracing::{debug, warn};
 
 use crate::{
     asset::{bustup::Bustup, movie::Movie, picture::Picture, system::AssetServer},
-    layer::{render_params::TransformParams, DrawableLayer, Layer, LayerProperties},
+    layer::{
+        render_params::TransformParams, DrawableLayer, Layer, LayerProperties, PreRenderContext,
+    },
     update::{Updatable, UpdateContext},
 };
 
@@ -178,13 +180,13 @@ impl Layer for UserLayer {
         }
     }
 
-    fn pre_render(&mut self, transform: &TransformParams) {
+    fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         match self {
-            Self::NullLayer(layer) => layer.pre_render(transform),
-            Self::PictureLayer(layer) => layer.pre_render(transform),
-            Self::BustupLayer(layer) => layer.pre_render(transform),
-            Self::TileLayer(layer) => layer.pre_render(transform),
-            Self::MovieLayer(layer) => layer.pre_render(transform),
+            Self::NullLayer(layer) => layer.pre_render(context, transform),
+            Self::PictureLayer(layer) => layer.pre_render(context, transform),
+            Self::BustupLayer(layer) => layer.pre_render(context, transform),
+            Self::TileLayer(layer) => layer.pre_render(context, transform),
+            Self::MovieLayer(layer) => layer.pre_render(context, transform),
         }
     }
 

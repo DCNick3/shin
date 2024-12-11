@@ -130,6 +130,7 @@ pub trait Shader {
     fn set_bindings(
         device: &wgpu::Device,
         dynamic_buffer: &mut impl DynamicBufferBackend,
+        sampler_store: &TextureSamplerStore,
         bind_group_layout: &wgpu::BindGroupLayout,
         render_pass: &mut wgpu::RenderPass,
         bindings: Self::Bindings<'_>,
@@ -155,6 +156,7 @@ impl<'a, S: Shader> TypedRenderPipeline<'a, S> {
         &self,
         device: &wgpu::Device,
         dynamic_buffer: &mut impl DynamicBufferBackend,
+        sampler_store: &TextureSamplerStore,
         render_pass: &mut wgpu::RenderPass,
         bindings: S::Bindings<'_>,
         vertices: VertexSource<S::Vertex>,
@@ -163,6 +165,7 @@ impl<'a, S: Shader> TypedRenderPipeline<'a, S> {
         S::set_bindings(
             device,
             dynamic_buffer,
+            sampler_store,
             &self.context.bind_group_layout,
             render_pass,
             bindings,
@@ -184,3 +187,4 @@ mod shaders {
 }
 
 pub use shaders::*;
+use shin_render_shader_types::texture::TextureSamplerStore;

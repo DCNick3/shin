@@ -24,6 +24,7 @@ fn initial_values() -> EnumMap<LayerProperty, i32> {
 
 #[derive(Debug, Clone)]
 pub struct LayerProperties {
+    #[allow(unused)] // it's probably unused by the game too, but let's keep it
     layer_load_counter1: u32,
     layer_id: LayerId,
     properties: EnumMap<LayerProperty, Tweener>,
@@ -76,6 +77,7 @@ impl LayerProperties {
         self.layer_id = layer_id;
     }
 
+    #[expect(unused)] // for future stuff
     pub fn set_layerload_counter1(&mut self, layer_load_counter1: u32) {
         self.layer_load_counter1 = layer_load_counter1;
     }
@@ -200,8 +202,6 @@ impl LayerProperties {
     }
 
     pub fn get_drawable_params(&self) -> DrawableParams {
-        use LayerProperty::*;
-
         let color_multiplier = self.get_color_multiplier();
         let blend_type = self.get_blend_type();
         let fragment_shader = self.get_fragment_shader();

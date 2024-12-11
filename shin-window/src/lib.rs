@@ -12,6 +12,7 @@ use shin_render::{
     init::{RenderResources, WgpuInitResult, WgpuResources},
     render_pass::RenderPass,
     resize::{CanvasSize, ResizeHandle, SurfaceResizeSource, SurfaceSize, ViewportParams},
+    shaders::types::texture::{DepthStencilTarget, TextureTarget, TextureTargetKind},
 };
 use shin_tasks::Task;
 use tracing::{info, warn};
@@ -29,6 +30,11 @@ pub struct AppContext<'a, A: ShinApp> {
     pub winit: &'a mut WindowState,
     pub wgpu: &'a WgpuResources,
     pub render: &'a mut RenderResources,
+}
+
+pub struct RenderContext<'a> {
+    pub winit: &'a WindowState,
+    pub wgpu: &'a WgpuResources,
 }
 
 pub struct AppContextOwned<A: ShinApp> {
@@ -59,7 +65,7 @@ pub trait ShinApp: Sized {
     );
     // can't pass context here because `RenderPass` borrows a bunch of stuff from there
     // let's hope it won't be an issue ;)
-    fn render(&mut self, pass: &mut RenderPass);
+    fn render(&mut self, context: RenderContext, pass: &mut RenderPass);
 }
 
 #[derive_where(Clone)]
@@ -577,14 +583,22 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 let mut pass = RenderPass::new(
                     &mut render.pipelines,
                     &mut render.dynamic_buffer,
+                    &render.sampler_store,
                     &wgpu.device,
                     &mut encoder,
-                    &surface_texture.view,
-                    &render.surface_depth_stencil_buffer.get_view(),
-                    viewport,
+                    TextureTarget {
+                        kind: TextureTargetKind::Screen,
+                        view: &surface_texture.view,
+                    },
+                    DepthStencilTarget {
+                        view: &render.surface_depth_stencil_buffer.resize_and_get_view(),
+                    },
+                    Some(viewport),
                 );
 
-                app.render(&mut pass);
+                let context = RenderContext { winit, wgpu };
+
+                app.render(context, &mut pass);
 
                 drop(pass);
 

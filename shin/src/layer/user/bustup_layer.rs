@@ -6,6 +6,7 @@ use shin_render::{render_pass::RenderPass, PassKind};
 use crate::{
     asset::bustup::Bustup,
     layer::{
+        new_drawable_layer::NewDrawableLayerNeedsSeparatePass,
         render_params::{DrawableClipParams, DrawableParams, TransformParams},
         NewDrawableLayer, NewDrawableLayerWrapper,
     },
@@ -72,6 +73,8 @@ impl BustupLayer {
 //         // no internal buffers to resize
 //     }
 // }
+
+impl NewDrawableLayerNeedsSeparatePass for BustupLayerImpl {}
 
 impl NewDrawableLayer for BustupLayerImpl {
     fn render_drawable_direct(

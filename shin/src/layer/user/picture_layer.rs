@@ -14,7 +14,7 @@ use shin_render::{
 use crate::{
     asset::picture::{GpuPictureBlock, Picture},
     layer::{
-        new_drawable_layer::NewDrawableLayer,
+        new_drawable_layer::{NewDrawableLayer, NewDrawableLayerNeedsSeparatePass},
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         NewDrawableLayerWrapper,
     },
@@ -210,6 +210,8 @@ impl PictureLayer {
         Self::from_inner(PictureLayerImpl::new(picture, picture_name))
     }
 }
+
+impl NewDrawableLayerNeedsSeparatePass for PictureLayerImpl {}
 
 impl NewDrawableLayer for PictureLayerImpl {
     fn render_drawable_direct(

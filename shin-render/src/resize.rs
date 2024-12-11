@@ -145,6 +145,10 @@ pub struct ResizeHandle<Aspect> {
 }
 
 impl<Aspect: SizeAspect> ResizeHandle<Aspect> {
+    pub fn get_without_update(&self) -> Aspect {
+        self.last_known_size
+    }
+
     pub fn get(&mut self) -> Aspect {
         let size = self.inner.read().unwrap().get::<Aspect>();
         self.last_known_size = size;

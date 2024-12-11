@@ -831,7 +831,9 @@ fn codegen_set_bindings(
                         },
                         wgpu::BindGroupEntry {
                             binding: #sampler_binding,
-                            resource: wgpu::BindingResource::Sampler(bindings.#name.sampler),
+                            resource: wgpu::BindingResource::Sampler(
+                                sampler_store.get(bindings.#name.sampler)
+                            ),
                         },
                     )
                 }
@@ -845,20 +847,6 @@ fn codegen_set_bindings(
                             binding: #binding,
                             resource: wgpu::BindingResource::Buffer(#name.as_buffer_binding()),
                         },
-                        // &{
-                        //     let crate::ShaderBindGroupLayout::Uniform(layout) = &bind_group_layouts[#binding_index] else {
-                        //         unreachable!()
-                        //     };
-                        //     let buffer = dynamic_buffer.get_uniform_with_data(&bindings.#name);
-                        //     device.create_bind_group(&wgpu::BindGroupDescriptor {
-                        //         label: None,
-                        //         layout,
-                        //         entries: &[wgpu::BindGroupEntry {
-                        //             binding: 0,
-                        //             resource: wgpu::BindingResource::Buffer(buffer.as_buffer_binding()),
-                        //         }],
-                        //     })
-                        // }
                     }
                 }
             }
@@ -866,10 +854,11 @@ fn codegen_set_bindings(
         .collect::<proc_macro2::TokenStream>();
 
     quote! {
-        // #[allow(unused)]
         fn set_bindings(
             device: &wgpu::Device,
             dynamic_buffer: &mut impl crate::DynamicBufferBackend,
+            #[allow(unused)] // sampler_store may end up being unused for shaders without texture bindings
+            sampler_store: &crate::TextureSamplerStore,
             bind_group_layout: &wgpu::BindGroupLayout,
             render_pass: &mut wgpu::RenderPass,
             bindings: Self::Bindings<'_>,
