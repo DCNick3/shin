@@ -145,22 +145,6 @@ impl LayerGroup {
     }
 }
 
-struct LayerGroupNewDrawableSeparatePassDelegate {
-    has_mask: bool,
-}
-
-impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableSeparatePassDelegate {
-    fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
-        if self.has_mask {
-            return true;
-        }
-
-        properties.get_clip_mode() != DrawableClipMode::None
-            || properties.is_fragment_shader_nontrivial()
-            || properties.is_blending_nontrivial()
-    }
-}
-
 struct LayerGroupNewDrawableDelegate<'a> {
     layers: &'a [LayerItem],
     layers_to_render: Vec<LayerRenderItem>,
@@ -168,11 +152,14 @@ struct LayerGroupNewDrawableDelegate<'a> {
 }
 
 impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableDelegate<'_> {
-    fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
-        (LayerGroupNewDrawableSeparatePassDelegate {
-            has_mask: self.mask_texture.is_some(),
-        })
-        .needs_separate_pass(properties)
+    fn needs_separate_pass(&self, props: &LayerProperties) -> bool {
+        if self.mask_texture.is_some() {
+            return true;
+        }
+
+        props.get_clip_mode() != DrawableClipMode::None
+            || props.is_fragment_shader_nontrivial()
+            || props.is_blending_nontrivial()
     }
 }
 
@@ -180,7 +167,7 @@ impl NewDrawableLayer for LayerGroupNewDrawableDelegate<'_> {
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,
-        properties: &LayerProperties,
+        props: &LayerProperties,
         target: TextureTarget,
         depth_stencil: DepthStencilTarget,
         transform: &TransformParams,
@@ -196,11 +183,10 @@ impl NewDrawableLayer for LayerGroupNewDrawableDelegate<'_> {
             None,
         );
 
-        if !properties.is_visible() {
+        if !props.is_visible() {
             pass.clear(Some(UnormColor::BLACK), None, None);
         } else {
-            let mut self_transform = properties.get_transform_params();
-            self_transform.compose_with(transform, properties.get_compose_flags());
+            let self_transform = props.get_composed_transform_params(transform);
 
             if let Some(_mask) = self.mask_texture {
                 todo!()
@@ -300,8 +286,7 @@ impl Layer for LayerGroup {
         // This is not necessary for running umineko (it uses a different system for transition), so this is not implemented
 
         let props = self.properties();
-        let mut self_transform = props.get_transform_params();
-        self_transform.compose_with(transform, props.get_compose_flags());
+        let self_transform = props.get_composed_transform_params(transform);
 
         for &index in &layers {
             self.layers[index]
@@ -362,13 +347,12 @@ impl Layer for LayerGroup {
             }
         }
 
-        let properties = &self.props;
-        if !properties.is_visible() {
+        let props = &self.props;
+        if !props.is_visible() {
             return;
         }
 
-        let mut self_transform = properties.get_transform_params();
-        self_transform.compose_with(transform, properties.get_compose_flags());
+        let self_transform = props.get_composed_transform_params(transform);
 
         pass.push_debug(&format!(
             "LayerGroup[{}]/{}",

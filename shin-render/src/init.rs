@@ -112,6 +112,7 @@ impl WgpuInitResult<'static> {
             self.device.clone(),
             Some("Surface DepthStencil".to_string()),
             DEPTH_STENCIL_FORMAT,
+            wgpu::TextureUsages::RENDER_ATTACHMENT,
             surface_resize_handle,
         );
         let canvas_depth_stencil_buffer = DepthStencil::new(

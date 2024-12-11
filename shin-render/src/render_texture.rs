@@ -10,6 +10,22 @@ use crate::{
     TEXTURE_FORMAT,
 };
 
+const TEXTURE_USAGES: wgpu::TextureUsages = {
+    // not using `|` here because rust doesn't have const fn in traits
+    // see https://github.com/bitflags/bitflags/issues/399
+    let mut result = wgpu::TextureUsages::empty();
+
+    // for rendering into
+    result = result.union(wgpu::TextureUsages::RENDER_ATTACHMENT);
+    // for binding as a texture
+    result = result.union(wgpu::TextureUsages::TEXTURE_BINDING);
+    // for cloning
+    result = result.union(wgpu::TextureUsages::COPY_SRC);
+    result = result.union(wgpu::TextureUsages::COPY_DST);
+
+    result
+};
+
 #[derive(Debug)]
 pub struct RenderTexture {
     device: Arc<wgpu::Device>,
@@ -38,6 +54,7 @@ impl RenderTexture {
             device.clone(),
             Some(label.clone()),
             TEXTURE_FORMAT,
+            TEXTURE_USAGES,
             resize_handle,
         );
 
@@ -75,6 +92,7 @@ impl Clone for RenderTexture {
             self.device.clone(),
             Some(self.label.clone()),
             TEXTURE_FORMAT,
+            TEXTURE_USAGES,
             size,
             resize_handle,
         );

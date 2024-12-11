@@ -24,3 +24,10 @@ impl<'a> UpdateContext<'a> {
 pub trait Updatable {
     fn update(&mut self, context: &UpdateContext);
 }
+
+impl<T: Updatable> Updatable for Box<T> {
+    #[inline]
+    fn update(&mut self, context: &UpdateContext) {
+        (**self).update(context)
+    }
+}

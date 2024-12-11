@@ -37,27 +37,23 @@ pub struct PageLayer {
 
     new_drawable_state: NewDrawableLayerState,
     props: LayerProperties,
-    label: String,
 }
 
 impl PageLayer {
-    pub fn new(plane_count: usize, label: Option<String>) -> Self {
+    pub fn new(plane_count: usize) -> Self {
         // can't support more, the `PlaneId` type is specialized to 4 planes
         // ideally I would like to only support 4 planes, but `BustupMode` at least uses 1
         assert!(plane_count <= PLANES_COUNT);
 
-        let label = label.unwrap_or_else(|| "unnamed".to_string());
-
         Self {
             planes: (0..plane_count)
-                .map(|i| LayerGroup::new(Some(format!("{}/LayerGroup{}", label, i))))
+                .map(|i| LayerGroup::new(Some(format!("PageLayer/Plane{}", i))))
                 .collect(),
             stencil_bump: 1,
             needs_force_blending: false,
             layers_to_render: vec![],
             new_drawable_state: NewDrawableLayerState::new(),
             props: LayerProperties::new(),
-            label,
         }
     }
 
@@ -94,18 +90,17 @@ impl NewDrawableLayer for PageLayerNewDrawableDelegate<'_> {
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,
-        properties: &LayerProperties,
+        props: &LayerProperties,
         target: TextureTarget,
         depth_stencil: DepthStencilTarget,
         transform: &TransformParams,
     ) -> PassKind {
         let mut pass = context.begin_pass(target, depth_stencil);
 
-        if !properties.is_visible() {
+        if !props.is_visible() {
             pass.clear(Some(UnormColor::BLACK), None, None);
         } else {
-            let mut self_transform = properties.get_transform_params();
-            self_transform.compose_with(transform, properties.get_compose_flags());
+            let self_transform = props.get_composed_transform_params(transform);
 
             pass.clear(Some(UnormColor::BLACK), Some(0), None);
 
@@ -163,8 +158,7 @@ impl Layer for PageLayer {
 
     fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         let props = &self.props;
-        let mut self_transform = props.get_transform_params();
-        self_transform.compose_with(transform, props.get_compose_flags());
+        let self_transform = props.get_composed_transform_params(transform);
 
         let mut layer_stack = Vec::new();
 
@@ -233,12 +227,10 @@ impl Layer for PageLayer {
             return;
         }
 
-        let mut self_transform = props.get_transform_params();
-        self_transform.compose_with(transform, props.get_compose_flags());
+        let self_transform = props.get_composed_transform_params(transform);
 
         pass.push_debug(&format!(
-            "PageLayer[{}]/{}",
-            &self.label,
+            "PageLayer/{}",
             match pass_kind {
                 PassKind::Opaque => {
                     "opaque"

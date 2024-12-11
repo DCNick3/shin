@@ -31,6 +31,7 @@ impl DepthStencil {
             device.clone(),
             Some(label.clone()),
             DEPTH_STENCIL_FORMAT,
+            wgpu::TextureUsages::RENDER_ATTACHMENT,
             resize_handle,
         );
 
