@@ -112,7 +112,7 @@ impl ShinApp for App {
         layer_group.add_layer(LayerbankId::new(2), tile_layer_top.into());
 
         {
-            let tweener = layer_group
+            let tweener = page_layer
                 .properties_mut()
                 .property_tweener_mut(LayerProperty::MulColorRed);
 
