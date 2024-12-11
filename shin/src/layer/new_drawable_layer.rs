@@ -141,6 +141,9 @@ impl NewDrawableLayerState {
             && ghosting_alpha <= 0.0
             && !delegate.needs_separate_pass(properties)
         {
+            self.render_texture_target = None;
+            self.render_texture_src = None;
+            self.render_texture_prev_frame = None;
             return;
         }
 
