@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 pub use shin_render_shader_types as types;
 use shin_render_shader_types::{
     buffer::{DynamicBufferBackend, VertexSource, VertexSourceInfo},
+    texture::TextureSamplerStore,
     vertices::VertexType,
 };
 
@@ -187,4 +188,3 @@ mod shaders {
 }
 
 pub use shaders::*;
-use shin_render_shader_types::texture::TextureSamplerStore;
