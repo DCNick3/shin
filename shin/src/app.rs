@@ -8,7 +8,7 @@ use shin_core::{
     time::{Ticks, Tween},
     vm::command::types::{LayerId, LayerProperty, LayerbankId, PlaneId},
 };
-use shin_input::{Action, ActionState, RawInputState};
+use shin_input::{inputs::MouseButton, Action, ActionState, RawInputState};
 use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4};
 use shin_window::{AppContext, RenderContext, ShinApp};
 use tracing::debug;
@@ -24,7 +24,7 @@ use crate::{
         render_layer,
         render_params::TransformParams,
         user::{PictureLayer, TileLayer},
-        DrawableLayer, Layer as _, PageLayer, PreRenderContext,
+        DrawableLayer, Layer as _, PreRenderContext, ScreenLayer,
     },
     update::{Updatable, UpdateContext},
 };
@@ -32,12 +32,17 @@ use crate::{
 #[derive(Debug, Enum)]
 pub enum AppAction {
     ToggleFullscreen,
+    Act,
 }
 
 impl Action for AppAction {
     fn lower(raw_input_state: &RawInputState) -> EnumMap<Self, bool> {
         EnumMap::from_fn(|action| match action {
             AppAction::ToggleFullscreen => raw_input_state.keyboard.contains(&KeyCode::F11),
+            AppAction::Act => {
+                raw_input_state.keyboard.contains(&KeyCode::Space)
+                    || raw_input_state.mouse.buttons[MouseButton::Left]
+            }
         })
     }
 }
@@ -46,7 +51,7 @@ pub struct App {
     #[expect(unused)] // for future stuff
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
-    page_layer: PageLayer,
+    screen_layer: ScreenLayer,
 }
 
 impl ShinApp for App {
@@ -105,7 +110,9 @@ impl ShinApp for App {
                 .fast_forward_to(800.0);
         }
 
-        let mut page_layer = PageLayer::new(4, None);
+        let mut screen_layer = ScreenLayer::new(4);
+
+        let page_layer = screen_layer.page_layer_mut();
 
         let layer_group = page_layer.get_plane_mut(PlaneId::new(0));
         layer_group.add_layer(LayerbankId::new(1), tile_layer_bottom.into());
@@ -132,7 +139,7 @@ impl ShinApp for App {
         Ok(Self {
             audio_manager,
             asset_server,
-            page_layer,
+            screen_layer,
         })
     }
 
@@ -150,12 +157,22 @@ impl ShinApp for App {
             context.winit.toggle_fullscreen();
         }
 
+        if input[AppAction::Act].is_clicked {
+            self.screen_layer.pageback(false);
+            self.screen_layer
+                .page_layer_mut()
+                .properties_mut()
+                .property_tweener_mut(LayerProperty::MulColorGreen)
+                .fast_forward_to(2000.0);
+            self.screen_layer.apply_transition(None);
+        }
+
         let update_context = UpdateContext {
             delta_time: Ticks::from_duration(elapsed_time),
             asset_server: &self.asset_server,
         };
 
-        self.page_layer.update(&update_context);
+        self.screen_layer.update(&update_context);
 
         let transform = TransformParams::default();
 
@@ -179,7 +196,7 @@ impl ShinApp for App {
             encoder: &mut encoder,
         };
 
-        self.page_layer
+        self.screen_layer
             .pre_render(&mut pre_render_context, &transform);
 
         context.wgpu.queue.submit(std::iter::once(encoder.finish()));
@@ -188,6 +205,6 @@ impl ShinApp for App {
     fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
         let transform = TransformParams::default();
 
-        render_layer(pass, &transform, &self.page_layer, FloatColor4::BLACK, 0);
+        render_layer(pass, &transform, &self.screen_layer, FloatColor4::BLACK, 0);
     }
 }

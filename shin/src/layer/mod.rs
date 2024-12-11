@@ -1,3 +1,4 @@
+mod either;
 mod layer_group;
 #[expect(unused)]
 mod message_layer;
@@ -7,7 +8,6 @@ mod properties;
 pub mod render_params;
 #[expect(unused)]
 mod root_layer_group;
-#[expect(unused)]
 mod screen_layer;
 pub mod user;
 mod wobbler;
@@ -95,7 +95,12 @@ pub trait Layer: Updatable {
     fn get_stencil_bump(&self) -> u8 {
         1
     }
-    fn pre_render(&mut self, _context: &mut PreRenderContext, _transform: &TransformParams) {}
+    fn pre_render(
+        &mut self,
+        #[expect(unused)] context: &mut PreRenderContext,
+        #[expect(unused)] transform: &TransformParams,
+    ) {
+    }
     fn render(
         &self,
         pass: &mut RenderPass,
@@ -105,11 +110,49 @@ pub trait Layer: Updatable {
     );
 }
 
+impl<T: Layer> Layer for Box<T> {
+    #[inline]
+    fn get_stencil_bump(&self) -> u8 {
+        (**self).get_stencil_bump()
+    }
+
+    #[inline]
+    fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
+        (**self).pre_render(context, transform)
+    }
+
+    #[inline]
+    fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        (**self).render(pass, transform, stencil_ref, pass_kind)
+    }
+}
+
+/// A layer that has properties
+///
+/// Yes, really, this trait doesn't have anything to do with drawing.
 pub trait DrawableLayer: Layer {
     // fn init(&mut self);
     // fn set_properties(&mut self, properties: LayerProperties);
     fn properties(&self) -> &LayerProperties;
     fn properties_mut(&mut self) -> &mut LayerProperties;
+}
+
+impl<T: DrawableLayer> DrawableLayer for Box<T> {
+    #[inline]
+    fn properties(&self) -> &LayerProperties {
+        (**self).properties()
+    }
+
+    #[inline]
+    fn properties_mut(&mut self) -> &mut LayerProperties {
+        (**self).properties_mut()
+    }
 }
 
 #[derive(From)]

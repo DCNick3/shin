@@ -22,7 +22,7 @@ use crate::{
 };
 
 pub trait NewDrawableLayerNeedsSeparatePass {
-    fn needs_separate_pass(&self, _properties: &LayerProperties) -> bool {
+    fn needs_separate_pass(&self, #[expect(unused)] props: &LayerProperties) -> bool {
         false
     }
 }
@@ -32,7 +32,7 @@ pub trait NewDrawableLayer: NewDrawableLayerNeedsSeparatePass {
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,
-        properties: &LayerProperties,
+        props: &LayerProperties,
         target: TextureTarget,
         depth_stencil: DepthStencilTarget,
         transform: &TransformParams,
@@ -89,19 +89,19 @@ impl NewDrawableLayerState {
     }
 
     pub fn update(&mut self, _context: &UpdateContext) {
-        // TODO
+        // TODO: there are several float values we need to track and to update for some effects
     }
 
     pub fn is_rendered_opaquely<T: NewDrawableLayerNeedsSeparatePass>(
         &self,
-        properties: &LayerProperties,
+        props: &LayerProperties,
         delegate: &T,
     ) -> bool {
         let Some(tex) = self.get_prerendered_tex() else {
             return true;
         };
 
-        if delegate.needs_separate_pass(properties) {
+        if delegate.needs_separate_pass(props) {
             // weird! I think this is too conservative
             return false;
         }
@@ -112,24 +112,22 @@ impl NewDrawableLayerState {
     pub fn pre_render<T: NewDrawableLayer>(
         &mut self,
         context: &mut PreRenderContext,
-        properties: &LayerProperties,
+        props: &LayerProperties,
         delegate: &mut T,
         transform: &TransformParams,
     ) {
-        if !properties.is_visible() {
+        if !props.is_visible() {
             return;
         }
 
-        let blur_radius = properties.get_value(LayerProperty::BlurRadius) * 0.001;
-        let prop70 = properties.get_value(LayerProperty::Prop70) * 0.001;
-        let mosaic_size = properties.get_value(LayerProperty::MosaicSize) as i32;
-        let raster_horizontal_amplitude =
-            properties.get_value(LayerProperty::RasterHorizontalAmplitude);
-        let raster_vertical_amplitude =
-            properties.get_value(LayerProperty::RasterVerticalAmplitude);
-        let ripple_amplitude = properties.get_value(LayerProperty::RippleAmplitude);
-        let dissolve_intensity = properties.get_value(LayerProperty::DissolveIntensity) * 0.001;
-        let ghosting_alpha = properties.get_value(LayerProperty::GhostingAlpha) * 0.001;
+        let blur_radius = props.get_value(LayerProperty::BlurRadius) * 0.001;
+        let prop70 = props.get_value(LayerProperty::Prop70) * 0.001;
+        let mosaic_size = props.get_value(LayerProperty::MosaicSize) as i32;
+        let raster_horizontal_amplitude = props.get_value(LayerProperty::RasterHorizontalAmplitude);
+        let raster_vertical_amplitude = props.get_value(LayerProperty::RasterVerticalAmplitude);
+        let ripple_amplitude = props.get_value(LayerProperty::RippleAmplitude);
+        let dissolve_intensity = props.get_value(LayerProperty::DissolveIntensity) * 0.001;
+        let ghosting_alpha = props.get_value(LayerProperty::GhostingAlpha) * 0.001;
 
         if blur_radius.abs() < f32::EPSILON
             && prop70 < f32::EPSILON
@@ -139,7 +137,7 @@ impl NewDrawableLayerState {
             && ripple_amplitude.abs() < f32::EPSILON
             && dissolve_intensity <= 0.0
             && ghosting_alpha <= 0.0
-            && !delegate.needs_separate_pass(properties)
+            && !delegate.needs_separate_pass(props)
         {
             self.render_texture_target = None;
             self.render_texture_src = None;
@@ -157,7 +155,7 @@ impl NewDrawableLayerState {
         let render_texture_src = context.ensure_render_texture(&mut self.render_texture_src);
         self.target_pass = delegate.render_drawable_indirect(
             context,
-            properties,
+            props,
             render_texture_src.as_texture_target(),
             context.depth_stencil,
             transform,
@@ -192,7 +190,7 @@ impl NewDrawableLayerState {
 
     pub fn try_finish_indirect_render(
         &self,
-        properties: &LayerProperties,
+        props: &LayerProperties,
         pass: &mut RenderPass,
         transform: &TransformParams,
         stencil_ref: u8,
@@ -206,17 +204,16 @@ impl NewDrawableLayerState {
             return true;
         }
 
-        let color_multiplier = properties.get_color_multiplier().premultiply();
-        let blend_type = properties.get_blend_type();
-        let fragment_shader = properties.get_fragment_shader();
-        let fragment_shader_param = properties.get_fragment_shader_param();
+        let color_multiplier = props.get_color_multiplier().premultiply();
+        let blend_type = props.get_blend_type();
+        let fragment_shader = props.get_fragment_shader();
+        let fragment_shader_param = props.get_fragment_shader_param();
 
         // NOTE: the transform is actually used just for clipping
         // we still compute it just in case
-        let mut self_transform = properties.get_transform_params();
-        self_transform.compose_with(transform, properties.get_compose_flags());
+        let _self_transform = props.get_composed_transform_params(transform);
 
-        let clip_params = properties.get_clip_params();
+        let clip_params = props.get_clip_params();
         assert_eq!(clip_params.mode, DrawableClipMode::None);
 
         let transform = shin_orthographic_projection_matrix(0.0, 1920.0, 1080.0, 0.0, -1.0, 1.0);
@@ -277,7 +274,7 @@ impl NewDrawableLayerState {
 
     pub fn render<T: NewDrawableLayer>(
         &self,
-        properties: &LayerProperties,
+        props: &LayerProperties,
         delegate: &T,
         pass: &mut RenderPass,
         transform: &TransformParams,
@@ -285,15 +282,14 @@ impl NewDrawableLayerState {
         pass_kind: PassKind,
     ) {
         // TODO: implement the indirect drawing stuff
-        if !properties.is_visible() {
+        if !props.is_visible() {
             return;
         }
 
-        let mut self_transform = properties.get_transform_params();
-        self_transform.compose_with(transform, properties.get_compose_flags());
+        let self_transform = props.get_composed_transform_params(transform);
 
-        let drawable = properties.get_drawable_params();
-        let clip = properties.get_clip_params();
+        let drawable = props.get_drawable_params();
+        let clip = props.get_clip_params();
 
         delegate.render_drawable_direct(
             pass,

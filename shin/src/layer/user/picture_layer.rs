@@ -192,7 +192,7 @@ impl PictureLayerImpl {
             }
         ));
         for (&offset, &(ref positions, ref block)) in &self.picture.blocks {
-            pass.push_debug(&format!("block {}", offset));
+            pass.push_debug(&format!("Block[{}]", offset));
             for position in positions {
                 let transform = transform * Mat4::from_translation(position.extend(0.0));
                 render_block(block, pass, builder, params, transform);

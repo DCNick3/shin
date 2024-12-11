@@ -385,6 +385,16 @@ impl LayerProperties {
         let flags = self.get_value(LayerProperty::ComposeFlags) as i32;
         ComposeFlags::from_bits_truncate(flags)
     }
+
+    pub fn get_composed_transform_params(
+        &self,
+        parent_transform: &TransformParams,
+    ) -> TransformParams {
+        let mut transform = self.get_transform_params();
+        transform.compose_with(parent_transform, self.get_compose_flags());
+
+        transform
+    }
 }
 
 impl Updatable for LayerProperties {
