@@ -11,7 +11,7 @@ use shin_render::{
     },
     DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
-use shin_window::{AppContext, ShinApp};
+use shin_window::{AppContext, RenderContext, ShinApp};
 use winit::keyboard::KeyCode;
 
 #[derive(Enum)]
@@ -59,7 +59,7 @@ impl ShinApp for HelloApp {
         }
     }
 
-    fn render(&mut self, pass: &mut RenderPass) {
+    fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
         let vertices = &[
             PosVertex {
                 position: Vec3::new(-1.0, -1.0, 0.0),

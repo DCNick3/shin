@@ -9,7 +9,7 @@ use shin_input::{
 };
 use shin_render::render_pass::RenderPass;
 use shin_video::{mp4::Mp4, VideoPlayer};
-use shin_window::{AppContext, ShinApp};
+use shin_window::{AppContext, RenderContext, ShinApp};
 
 #[derive(Enum)]
 enum PlayAction {
@@ -76,7 +76,7 @@ impl ShinApp for PlayerExample {
             .update(Ticks::from_duration(elapsed_time), &context.wgpu.queue);
     }
 
-    fn render(&mut self, pass: &mut RenderPass) {
+    fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
         self.video_player.render(pass);
     }
 }

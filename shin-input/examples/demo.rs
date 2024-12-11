@@ -14,7 +14,7 @@ use shin_render::{
     },
     DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
-use shin_window::{AppContext, ShinApp};
+use shin_window::{AppContext, RenderContext, ShinApp};
 use tracing::info;
 use winit::keyboard::KeyCode;
 
@@ -290,7 +290,7 @@ impl ShinApp for HelloApp {
         }
     }
 
-    fn render(&mut self, pass: &mut RenderPass) {
+    fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
         if let Some(fps) = self.fps.increment_and_report() {
             info!("FPS: {}", fps);
         }
