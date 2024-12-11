@@ -5,8 +5,9 @@ use shin_render::{
         texture::{DepthStencilTarget, TextureTarget},
         vertices::{FloatColor4, UnormColor},
     },
-    PassKind,
+    PassKind, RenderRequestBuilder,
 };
+use tracing::debug;
 
 use crate::{
     layer::{
@@ -18,23 +19,26 @@ use crate::{
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         DrawableLayer, Layer, NewDrawableLayer, PreRenderContext,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
+    wiper::{AnyWiper, Wiper as _},
 };
 
 #[derive(Clone)]
 struct TransitionLayer {
     source_layer: Option<EitherLayer<Box<PageLayer>, Box<TransitionLayer>>>,
     target_layer: Option<PageLayer>,
-    wiper: Option<()>,
+    wiper: Option<AnyWiper>,
 
-    #[expect(unused)] // for wiper
     source_render_texture: Option<RenderTexture>,
-    #[expect(unused)] // for wiper
     target_render_texture: Option<RenderTexture>,
 }
 
 impl TransitionLayer {
-    pub fn new(source: Option<Box<TransitionLayer>>, target: PageLayer, wiper: Option<()>) -> Self {
+    pub fn new(
+        source: Option<Box<TransitionLayer>>,
+        target: PageLayer,
+        wiper: Option<AnyWiper>,
+    ) -> Self {
         Self {
             source_layer: source.map(EitherLayer::Right),
             target_layer: Some(target),
@@ -71,8 +75,8 @@ impl TransitionLayer {
     }
 }
 
-impl Updatable for TransitionLayer {
-    fn update(&mut self, context: &UpdateContext) {
+impl AdvUpdatable for TransitionLayer {
+    fn update(&mut self, context: &AdvUpdateContext) {
         if let Some(source_layer) = &mut self.source_layer {
             source_layer.update(context);
 
@@ -80,6 +84,7 @@ impl Updatable for TransitionLayer {
             if let EitherLayer::Right(transition_layer) = source_layer {
                 transition_layer.update(context);
                 if !transition_layer.is_transition_active() {
+                    debug!("Inner TransitionLayer has finished running, flattening hierarchy");
                     let Some(EitherLayer::Right(transition_layer)) = self.source_layer.take()
                     else {
                         unreachable!()
@@ -93,9 +98,15 @@ impl Updatable for TransitionLayer {
 
         self.get_target_layer_mut().update(context);
 
-        if let Some(_wiper) = &mut self.wiper {
-            // TODO: update the wiper; clean up stuff if it's done
-            todo!()
+        if let Some(wiper) = &mut self.wiper {
+            wiper.update(context);
+            if !wiper.is_running() {
+                debug!("Wiper has finished running, cleaning up & switching to direct rendering");
+                self.wiper = None;
+                self.source_layer = None;
+                self.source_render_texture = None;
+                self.target_render_texture = None;
+            }
         }
     }
 }
@@ -115,7 +126,49 @@ impl Layer for TransitionLayer {
             return;
         }
 
-        todo!()
+        self.source_layer
+            .as_mut()
+            .unwrap()
+            .pre_render(context, transform);
+        self.target_layer
+            .as_mut()
+            .unwrap()
+            .pre_render(context, transform);
+
+        let source_render_texture = context.ensure_render_texture(&mut self.source_render_texture);
+
+        {
+            let mut pass = context.begin_pass(
+                source_render_texture.as_texture_target(),
+                context.depth_stencil,
+            );
+            pass.clear(None, Some(0), None);
+
+            render_layer(
+                &mut pass,
+                transform,
+                self.source_layer.as_mut().unwrap(),
+                FloatColor4::BLACK,
+                0,
+            );
+        }
+
+        let target_render_texture = context.ensure_render_texture(&mut self.target_render_texture);
+        {
+            let mut pass = context.begin_pass(
+                target_render_texture.as_texture_target(),
+                context.depth_stencil,
+            );
+            pass.clear(None, Some(0), None);
+
+            render_layer(
+                &mut pass,
+                transform,
+                self.target_layer.as_mut().unwrap(),
+                FloatColor4::BLACK,
+                0,
+            );
+        }
     }
 
     fn render(
@@ -125,22 +178,34 @@ impl Layer for TransitionLayer {
         stencil_ref: u8,
         pass_kind: PassKind,
     ) {
-        if self.wiper.is_none() {
+        let Some(wiper) = &self.wiper else {
             self.get_target_layer()
                 .render(pass, transform, stencil_ref, pass_kind);
             return;
-        }
+        };
 
         if pass_kind == PassKind::Opaque {
-            todo!()
+            let render_request_builder =
+                RenderRequestBuilder::new().depth_stencil_shorthand(stencil_ref, true, false);
+
+            wiper.render(
+                pass,
+                render_request_builder,
+                self.target_render_texture
+                    .as_ref()
+                    .unwrap()
+                    .as_texture_source(),
+                self.source_render_texture
+                    .as_ref()
+                    .unwrap()
+                    .as_texture_source(),
+            );
         }
     }
 }
 
 #[derive(Clone)]
 pub struct ScreenLayer {
-    // TODO: actually this can be either ScreenLayer or TransitionLayer
-    // Maybe we can always store TransitionLayer here for simplicity?
     active_layer: TransitionLayer,
     pending_layer: Option<PageLayer>,
 
@@ -181,7 +246,6 @@ impl ScreenLayer {
         }
     }
 
-    #[expect(unused)] // for future stuff
     pub fn pageback(&mut self, immediate: bool) {
         if immediate {
             todo!()
@@ -195,8 +259,7 @@ impl ScreenLayer {
         // We do not implement `LayerGroup`-level transitions, so this is skipped
     }
 
-    #[expect(unused)] // for future stuff
-    pub fn apply_transition(&mut self, wiper: Option<()>) {
+    pub fn apply_transition(&mut self, wiper: Option<AnyWiper>) {
         let Some(pending_layer) = self.pending_layer.take() else {
             return;
         };
@@ -269,8 +332,8 @@ impl NewDrawableLayer for ScreenLayerNewDrawableDelegate<'_> {
     }
 }
 
-impl Updatable for ScreenLayer {
-    fn update(&mut self, context: &UpdateContext) {
+impl AdvUpdatable for ScreenLayer {
+    fn update(&mut self, context: &AdvUpdateContext) {
         self.props.update(context);
         self.new_drawable_state.update(context);
 

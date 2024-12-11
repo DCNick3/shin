@@ -2,7 +2,7 @@ use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
     layer::{render_params::TransformParams, DrawableLayer, Layer, PreRenderContext},
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 #[derive(Clone)]
@@ -11,9 +11,9 @@ pub enum EitherLayer<L, R> {
     Right(R),
 }
 
-impl<L: Updatable, R: Updatable> Updatable for EitherLayer<L, R> {
+impl<L: AdvUpdatable, R: AdvUpdatable> AdvUpdatable for EitherLayer<L, R> {
     #[inline]
-    fn update(&mut self, context: &UpdateContext) {
+    fn update(&mut self, context: &AdvUpdateContext) {
         match self {
             EitherLayer::Left(left) => left.update(context),
             EitherLayer::Right(right) => right.update(context),

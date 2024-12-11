@@ -18,7 +18,7 @@ use crate::{
     layer::{
         render_params::TransformParams, DrawableLayer, Layer, LayerProperties, PreRenderContext,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 #[expect(unused)]
@@ -137,8 +137,8 @@ impl UserLayer {
     }
 }
 
-impl Updatable for UserLayer {
-    fn update(&mut self, context: &UpdateContext) {
+impl AdvUpdatable for UserLayer {
+    fn update(&mut self, context: &AdvUpdateContext) {
         match self {
             Self::NullLayer(layer) => layer.update(context),
             Self::PictureLayer(layer) => layer.update(context),

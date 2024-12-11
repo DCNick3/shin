@@ -201,3 +201,29 @@ impl UniformType for MovieUniformParams {
         ],
     });
 }
+
+#[derive(ShaderType)]
+pub struct WiperDefaultUniformParams {
+    pub transform: Mat4,
+    pub alpha: Vec4,
+}
+
+impl UniformType for WiperDefaultUniformParams {
+    const SCHEMA: TypeSchema = TypeSchema::Struct(StructSchema {
+        name: "WiperDefaultUniformParams",
+        size: WiperDefaultUniformParams::METADATA.min_size.get() as u32,
+        alignment: WiperDefaultUniformParams::METADATA.alignment.get() as u32,
+        fields: &[
+            FieldSchema {
+                name: "transform",
+                ty: &<Mat4 as UniformType>::SCHEMA,
+                offset: WiperDefaultUniformParams::METADATA.extra.offsets[0] as u32,
+            },
+            FieldSchema {
+                name: "alpha",
+                ty: &<Vec4 as UniformType>::SCHEMA,
+                offset: WiperDefaultUniformParams::METADATA.extra.offsets[1] as u32,
+            },
+        ],
+    });
+}

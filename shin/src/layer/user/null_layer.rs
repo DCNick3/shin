@@ -4,7 +4,7 @@ use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
     layer::{properties::LayerProperties, render_params::TransformParams, DrawableLayer, Layer},
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 #[derive(Clone)]
@@ -20,8 +20,8 @@ impl NullLayer {
     }
 }
 
-impl Updatable for NullLayer {
-    fn update(&mut self, _ctx: &UpdateContext) {}
+impl AdvUpdatable for NullLayer {
+    fn update(&mut self, _ctx: &AdvUpdateContext) {}
 }
 
 impl Debug for NullLayer {

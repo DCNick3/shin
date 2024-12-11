@@ -4,13 +4,13 @@ use shin_render_shader_types::{
     texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget, TextureTargetKind},
     uniforms::{
         ClearUniformParams, FillUniformParams, LayerUniformParams, MovieUniformParams,
-        SpriteUniformParams,
+        SpriteUniformParams, WiperDefaultUniformParams,
     },
     vertices::{FloatColor4, PosVertex, UnormColor},
 };
 use shin_render_shaders::{
-    Clear, ClearBindings, Fill, FillBindings, Layer, LayerBindings, Movie, MovieBindings, Sprite,
-    SpriteBindings,
+    Clear, ClearBindings, Fill, FillBindings, Layer, LayerBindings, Movie, MovieBindings, Shader,
+    Sprite, SpriteBindings, WiperDefault, WiperDefaultBindings,
 };
 
 use crate::{
@@ -93,6 +93,22 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
         self.pass.pop_debug_group()
     }
 
+    fn run_impl<S: Shader>(
+        &mut self,
+        key: PipelineStorageKey,
+        bindings: S::Bindings<'_>,
+        vertices: VertexSource<S::Vertex>,
+    ) {
+        self.pipeline_storage.get::<S>(key).render(
+            self.device,
+            self.dynamic_buffer,
+            self.sampler_store,
+            &mut self.pass,
+            bindings,
+            vertices,
+        )
+    }
+
     pub fn run(&mut self, request: RenderRequest) {
         let pass = &mut self.pass;
 
@@ -116,42 +132,29 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
         pass.set_stencil_reference(stencil_reference as u32);
 
         match program {
-            RenderProgramWithArguments::Clear { vertices, color } => {
-                self.pipeline_storage.get::<Clear>(key).render(
-                    self.device,
-                    self.dynamic_buffer,
-                    self.sampler_store,
-                    pass,
-                    ClearBindings {
-                        params: &ClearUniformParams { color },
-                    },
-                    vertices,
-                );
-            }
+            RenderProgramWithArguments::Clear { vertices, color } => self.run_impl::<Clear>(
+                key,
+                ClearBindings {
+                    params: &ClearUniformParams { color },
+                },
+                vertices,
+            ),
             RenderProgramWithArguments::Fill {
                 vertices,
                 transform,
-            } => {
-                self.pipeline_storage.get::<Fill>(key).render(
-                    self.device,
-                    self.dynamic_buffer,
-                    self.sampler_store,
-                    pass,
-                    FillBindings {
-                        params: &FillUniformParams { transform },
-                    },
-                    vertices,
-                );
-            }
+            } => self.run_impl::<Fill>(
+                key,
+                FillBindings {
+                    params: &FillUniformParams { transform },
+                },
+                vertices,
+            ),
             RenderProgramWithArguments::Sprite {
                 vertices,
                 sprite,
                 transform,
-            } => self.pipeline_storage.get::<Sprite>(key).render(
-                self.device,
-                self.dynamic_buffer,
-                self.sampler_store,
-                pass,
+            } => self.run_impl::<Sprite>(
+                key,
                 SpriteBindings {
                     params: &SpriteUniformParams { transform },
                     sprite,
@@ -167,11 +170,8 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
                 transform,
                 color_multiplier,
                 fragment_shader_param,
-            } => self.pipeline_storage.get::<Layer>(key).render(
-                self.device,
-                self.dynamic_buffer,
-                self.sampler_store,
-                pass,
+            } => self.run_impl::<Layer>(
+                key,
                 LayerBindings {
                     params: &LayerUniformParams {
                         transform,
@@ -192,11 +192,8 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
                 transform,
                 color_bias,
                 color_transform,
-            } => self.pipeline_storage.get::<Movie>(key).render(
-                self.device,
-                self.dynamic_buffer,
-                self.sampler_store,
-                pass,
+            } => self.run_impl::<Movie>(
+                key,
                 MovieBindings {
                     params: &MovieUniformParams {
                         transform,
@@ -205,6 +202,22 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
                     },
                     luma: texture_luma,
                     chroma: texture_chroma,
+                },
+                vertices,
+            ),
+
+            RenderProgramWithArguments::WiperDefault {
+                vertices,
+                texture_source,
+                texture_target,
+                transform,
+                alpha,
+            } => self.run_impl::<WiperDefault>(
+                key,
+                WiperDefaultBindings {
+                    params: &WiperDefaultUniformParams { transform, alpha },
+                    source: texture_source,
+                    target: texture_target,
                 },
                 vertices,
             ),

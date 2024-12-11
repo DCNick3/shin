@@ -17,7 +17,7 @@ use crate::{
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         NewDrawableLayer, NewDrawableLayerWrapper,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 #[derive(Clone)]
@@ -134,8 +134,8 @@ impl NewDrawableLayer for TileLayerImpl {
     }
 }
 
-impl Updatable for TileLayerImpl {
-    fn update(&mut self, _ctx: &UpdateContext) {}
+impl AdvUpdatable for TileLayerImpl {
+    fn update(&mut self, _ctx: &AdvUpdateContext) {}
 }
 
 impl Debug for TileLayerImpl {

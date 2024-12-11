@@ -26,7 +26,8 @@ use crate::{
         user::{PictureLayer, TileLayer},
         DrawableLayer, Layer as _, PreRenderContext, ScreenLayer,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable as _, AdvUpdateContext},
+    wiper::DefaultWiper,
 };
 
 #[derive(Debug, Enum)]
@@ -164,12 +165,14 @@ impl ShinApp for App {
                 .properties_mut()
                 .property_tweener_mut(LayerProperty::MulColorGreen)
                 .fast_forward_to(2000.0);
-            self.screen_layer.apply_transition(None);
+            self.screen_layer
+                .apply_transition(Some(DefaultWiper::new(Ticks::from_seconds(5.0)).into()));
         }
 
-        let update_context = UpdateContext {
+        let update_context = AdvUpdateContext {
             delta_time: Ticks::from_duration(elapsed_time),
             asset_server: &self.asset_server,
+            are_animations_allowed: true,
         };
 
         self.screen_layer.update(&update_context);

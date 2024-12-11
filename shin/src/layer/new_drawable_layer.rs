@@ -18,7 +18,7 @@ use crate::{
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         DrawableLayer, Layer, LayerProperties, PreRenderContext,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 pub trait NewDrawableLayerNeedsSeparatePass {
@@ -88,7 +88,7 @@ impl NewDrawableLayerState {
         })
     }
 
-    pub fn update(&mut self, _context: &UpdateContext) {
+    pub fn update(&mut self, _context: &AdvUpdateContext) {
         // TODO: there are several float values we need to track and to update for some effects
     }
 
@@ -320,15 +320,15 @@ impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
     }
 }
 
-impl<T: Updatable> Updatable for NewDrawableLayerWrapper<T> {
-    fn update(&mut self, context: &UpdateContext) {
+impl<T: AdvUpdatable> AdvUpdatable for NewDrawableLayerWrapper<T> {
+    fn update(&mut self, context: &AdvUpdateContext) {
         self.inner_layer.update(context);
         self.state.update(context);
         self.props.update(context);
     }
 }
 
-impl<T: NewDrawableLayer + Clone + Updatable> Layer for NewDrawableLayerWrapper<T> {
+impl<T: NewDrawableLayer + Clone + AdvUpdatable> Layer for NewDrawableLayerWrapper<T> {
     fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         self.state
             .pre_render(context, &self.props, &mut self.inner_layer, transform);
@@ -352,7 +352,7 @@ impl<T: NewDrawableLayer + Clone + Updatable> Layer for NewDrawableLayerWrapper<
     }
 }
 
-impl<T: NewDrawableLayer + Clone + Updatable> DrawableLayer for NewDrawableLayerWrapper<T> {
+impl<T: NewDrawableLayer + Clone + AdvUpdatable> DrawableLayer for NewDrawableLayerWrapper<T> {
     fn properties(&self) -> &LayerProperties {
         &self.props
     }

@@ -6,6 +6,7 @@ use enum_iterator::Sequence;
 use rustc_hash::FxHashMap;
 use shin_render_shader_types::texture::TextureTargetKind;
 use shin_render_shaders::{Shader, ShaderContext, ShaderName, TypedRenderPipeline};
+use wgpu::RenderPipeline;
 
 use crate::{
     ColorBlendType, CullFace, DepthStencilPipelineState, DrawPrimitive, DEPTH_STENCIL_FORMAT,
@@ -128,14 +129,24 @@ impl PipelineStorage {
         }
     }
 
+    fn get_untyped(
+        &mut self,
+        key: PipelineStorageKey,
+        name: ShaderName,
+    ) -> (&ShaderContext, &RenderPipeline) {
+        let context = self.shader_context.get(name);
+        let pipeline = self.pipelines.entry((name, key)).or_insert_with(|| {
+            key.create_pipeline(&self.device, self.screen_texture_format, context)
+        });
+
+        (context, pipeline)
+    }
+
     // it is unfortunate that we have to take a &mut self here
     // this can lead to difficulties with borrowing
     // can introduce interior mutability if we need to
     pub fn get<S: Shader>(&mut self, key: PipelineStorageKey) -> TypedRenderPipeline<S> {
-        let context = self.shader_context.get(S::NAME);
-        let pipeline = self.pipelines.entry((S::NAME, key)).or_insert_with(|| {
-            key.create_pipeline(&self.device, self.screen_texture_format, context)
-        });
+        let (context, pipeline) = self.get_untyped(key, S::NAME);
 
         TypedRenderPipeline::new(context, pipeline)
     }

@@ -40,7 +40,7 @@ use shin_render::{
 
 use crate::{
     layer::{render_params::TransformParams, user::UserLayer},
-    update::Updatable,
+    update::AdvUpdatable,
 };
 
 pub struct PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder> {
@@ -90,7 +90,7 @@ impl PreRenderContext<'_, '_, '_, '_> {
     }
 }
 
-pub trait Layer: Updatable {
+pub trait Layer: AdvUpdatable {
     // fn fast_forward(&mut self);
     fn get_stencil_bump(&self) -> u8 {
         1
@@ -315,14 +315,14 @@ pub fn render_layer(
     pass: &mut RenderPass,
     transform: &TransformParams,
     layer: &dyn Layer,
-    color: FloatColor4,
+    background_color: FloatColor4,
     stencil_ref: u8,
 ) {
     render_layers_with_bg(
         pass,
         transform,
         &[layer],
-        Some(render_layers_default_cb(color)),
+        Some(render_layers_default_cb(background_color)),
         stencil_ref,
     );
 }

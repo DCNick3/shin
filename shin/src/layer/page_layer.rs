@@ -18,7 +18,7 @@ use crate::{
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         DrawableLayer, Layer, LayerGroup, NewDrawableLayer, PreRenderContext,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 #[derive(Clone, Copy)]
@@ -140,8 +140,8 @@ impl NewDrawableLayer for PageLayerNewDrawableDelegate<'_> {
     }
 }
 
-impl Updatable for PageLayer {
-    fn update(&mut self, context: &UpdateContext) {
+impl AdvUpdatable for PageLayer {
+    fn update(&mut self, context: &AdvUpdateContext) {
         self.props.update(context);
         self.new_drawable_state.update(context);
 

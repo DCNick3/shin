@@ -204,8 +204,27 @@ pub enum RenderProgramWithArguments<'a> {
     },
     MovieAlpha {},
 
-    Wiper {
-        kind: WiperKind,
+    WiperDefault {
+        vertices: VertexSource<'a, LayerVertex>,
+        texture_source: TextureSource<'a>,
+        texture_target: TextureSource<'a>,
+        transform: Mat4,
+        alpha: Vec4,
+    },
+    WiperMask {
+        // TODO
+    },
+    WiperWave {
+        // TODO
+    },
+    WiperRipple {
+        // TODO
+    },
+    WiperWhirl {
+        // TODO
+    },
+    WiperGlass {
+        // TODO
     },
 
     Mosaic {},
