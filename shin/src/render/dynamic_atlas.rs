@@ -142,7 +142,7 @@ impl<P: ImageProvider> DynamicAtlas<P> {
                     // First, find a place to put it
                     // no compressed textures support for now
                     assert_eq!(P::IMAGE_FORMAT.block_dimensions(), (1, 1));
-                    let block_size = P::IMAGE_FORMAT.block_size(None).unwrap();
+                    let block_size = P::IMAGE_FORMAT.block_copy_size(None).unwrap();
 
                     let allocation = {
                         let mut allocator = self.allocator.lock().unwrap();

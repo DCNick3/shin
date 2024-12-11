@@ -1,5 +1,4 @@
 use glam::vec3;
-use itertools::Itertools;
 use shin_core::{
     time::Ticks,
     vm::command::types::{LayerProperty, LayerbankId},
@@ -350,7 +349,7 @@ impl Layer for LayerGroup {
             if let Some(_mask) = &self.mask_texture {
                 // Self::render_with_mask
                 todo!();
-                return;
+                // return;
             } else {
                 self.new_drawable_state.try_finish_indirect_render(
                     &self.props,

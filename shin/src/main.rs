@@ -5,12 +5,13 @@ extern crate self as shin;
 
 use clap::Parser;
 
-mod asset;
-// mod camera;
+#[expect(unused)]
 mod adv;
 mod app;
+mod asset;
 mod audio;
 mod cli;
+#[expect(unused)]
 mod fps_counter;
 mod layer;
 mod render;

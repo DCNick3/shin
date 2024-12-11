@@ -1,5 +1,3 @@
-use std::io::Cursor;
-
 use anyhow::{Context, Result};
 use shin_audio::AudioManager;
 use shin_video::{mp4::Mp4, VideoPlayer};

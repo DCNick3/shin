@@ -1,4 +1,4 @@
-use glam::{vec3, Mat4};
+use glam::vec3;
 use shin_core::vm::command::types::{PlaneId, PLANES_COUNT};
 use shin_render::{
     render_pass::RenderPass,
@@ -10,7 +10,6 @@ use shin_render::{
     DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
     StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,
 };
-use tracing::debug;
 
 use crate::{
     layer::{

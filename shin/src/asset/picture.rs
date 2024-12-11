@@ -190,8 +190,11 @@ impl<'a> PictureBuilder for GpuPictureBuilder<'a> {
 
 /// A Picture, uploaded to GPU on demand (because doing it in the asset loading context is awkward)
 pub struct Picture {
+    #[expect(unused)] // labels are nice for debugging
     pub label: String,
+    #[expect(unused)] // for future stuff
     pub effective_width: u32,
+    #[expect(unused)] // for future stuff
     pub effective_height: u32,
     pub origin_x: i32,
     pub origin_y: i32,

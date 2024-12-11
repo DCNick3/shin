@@ -1,5 +1,4 @@
 use derivative::Derivative;
-use enum_dispatch::enum_dispatch;
 use from_variants::FromVariants;
 use glam::vec4;
 use shin_audio::AudioManager;
@@ -22,7 +21,9 @@ use crate::{
     update::{Updatable, UpdateContext},
 };
 
+#[expect(unused)]
 mod bustup_layer;
+#[expect(unused)]
 mod movie_layer;
 mod null_layer;
 mod picture_layer;
@@ -49,6 +50,7 @@ pub enum UserLayer {
 }
 
 impl UserLayer {
+    #[expect(unused)]
     pub async fn load(
         device: &wgpu::Device,
         // resources: &GpuCommonResources,

@@ -235,7 +235,7 @@ impl OverlayManager {
 
         self.prev_input = raw_input_state.clone();
 
-        self.context.begin_frame(raw_input);
+        self.context.begin_pass(raw_input);
     }
 
     /// Visit overlays and show them
@@ -286,7 +286,7 @@ impl OverlayManager {
         raw_input_state: &mut RawInputState,
     ) {
         let ctx = &self.context;
-        let full_output = self.context.end_frame();
+        let full_output = self.context.end_pass();
 
         // consume mouse events if egui wants them
         if ctx.wants_pointer_input() {

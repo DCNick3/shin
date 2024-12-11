@@ -43,6 +43,7 @@ impl Action for AppAction {
 }
 
 pub struct App {
+    #[expect(unused)] // for future stuff
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
     page_layer: PageLayer,
@@ -126,7 +127,7 @@ impl ShinApp for App {
             // tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
         }
 
-        let layer_group = page_layer.get_plane_mut(PlaneId::new(1));
+        // let layer_group = page_layer.get_plane_mut(PlaneId::new(1));
 
         Ok(Self {
             audio_manager,
