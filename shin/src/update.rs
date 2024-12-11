@@ -1,9 +1,8 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
-use enum_dispatch::enum_dispatch;
 use shin_core::time::Ticks;
 
-use crate::{asset::system::AssetServer, layer::user::UserLayer, time::Time};
+use crate::asset::system::AssetServer;
 
 pub struct UpdateContext<'a> {
     pub delta_time: Ticks,

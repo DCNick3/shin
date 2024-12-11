@@ -6,7 +6,6 @@ mod server;
 pub use self::{
     locate::locate_assets,
     server::{
-        Asset, AssetDataAccessor, AssetDataCursor, AssetIo, AssetLoadContext, AssetServer,
-        DirAssetIo, LayeredAssetIo, RomAssetIo,
+        Asset, AssetDataAccessor, AssetDataCursor, AssetLoadContext, AssetServer, LayeredAssetIo,
     },
 };

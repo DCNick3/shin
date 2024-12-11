@@ -17,6 +17,7 @@ pub struct SePlayer {
 }
 
 impl SePlayer {
+    #[expect(unused)]
     pub fn new(audio_manager: Arc<AudioManager>) -> Self {
         let mut manager = audio_manager.kira_manager().lock().unwrap();
 

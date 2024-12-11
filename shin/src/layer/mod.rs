@@ -1,10 +1,13 @@
 mod layer_group;
+#[expect(unused)]
 mod message_layer;
 mod new_drawable_layer;
 mod page_layer;
 mod properties;
 pub mod render_params;
+#[expect(unused)]
 mod root_layer_group;
+#[expect(unused)]
 mod screen_layer;
 pub mod user;
 mod wobbler;
@@ -166,7 +169,7 @@ impl<'a> AnyLayerMut<'a> {
 pub fn render_layers_default_cb(
     color: FloatColor4,
 ) -> impl Fn(&mut RenderPass, &TransformParams, u8) {
-    move |pass, transform, stencil_ref| {
+    move |pass, _transform, stencil_ref| {
         let vertices = &[
             PosVertex {
                 position: vec3(-1.0, 1.0, 0.0),
