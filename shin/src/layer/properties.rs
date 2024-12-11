@@ -13,7 +13,7 @@ use crate::{
         },
         wobbler::Wobbler,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 fn initial_values() -> EnumMap<LayerProperty, i32> {
@@ -397,12 +397,14 @@ impl LayerProperties {
     }
 }
 
-impl Updatable for LayerProperties {
-    fn update(&mut self, context: &UpdateContext) {
+impl AdvUpdatable for LayerProperties {
+    fn update(&mut self, context: &AdvUpdateContext) {
         let dt = context.delta_time;
 
-        for property in self.properties.values_mut() {
-            property.update(dt);
+        if context.are_animations_allowed {
+            for property in self.properties.values_mut() {
+                property.update(dt);
+            }
         }
 
         macro_rules! get {

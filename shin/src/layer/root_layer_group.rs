@@ -6,7 +6,7 @@ use crate::{
         properties::LayerProperties, render_params::TransformParams, screen_layer::ScreenLayer,
         DrawableLayer, Layer, MessageLayer,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 
 #[derive(Clone)]
@@ -56,11 +56,12 @@ impl RootLayerGroup {
     }
 }
 
-impl Updatable for RootLayerGroup {
-    fn update(&mut self, context: &UpdateContext) {
+impl AdvUpdatable for RootLayerGroup {
+    fn update(&mut self, context: &AdvUpdateContext) {
         self.properties.update(context);
         self.screen_layer.update(context);
-        self.message_layer.update(context);
+        todo!()
+        // self.message_layer.update(context);
     }
 }
 

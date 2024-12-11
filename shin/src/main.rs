@@ -17,6 +17,7 @@ mod layer;
 mod render;
 mod time;
 mod update;
+mod wiper;
 // mod window;
 
 fn main() {

@@ -18,7 +18,7 @@ use crate::{
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         NewDrawableLayerWrapper,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -241,8 +241,8 @@ impl NewDrawableLayer for PictureLayerImpl {
     }
 }
 
-impl Updatable for PictureLayerImpl {
-    fn update(&mut self, _ctx: &UpdateContext) {}
+impl AdvUpdatable for PictureLayerImpl {
+    fn update(&mut self, _ctx: &AdvUpdateContext) {}
 }
 
 impl Debug for PictureLayerImpl {

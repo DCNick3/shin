@@ -70,6 +70,7 @@ impl Ticks {
     }
 }
 
+// Implement it manually instead of deriving, because dividing two Ticks returns a unitless f32
 impl Div for Ticks {
     type Output = f32;
 

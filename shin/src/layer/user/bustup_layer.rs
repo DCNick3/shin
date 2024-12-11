@@ -10,7 +10,7 @@ use crate::{
         render_params::{DrawableClipParams, DrawableParams, TransformParams},
         NewDrawableLayer, NewDrawableLayerWrapper,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 
 #[derive(Clone)]
@@ -90,8 +90,8 @@ impl NewDrawableLayer for BustupLayerImpl {
     }
 }
 
-impl Updatable for BustupLayerImpl {
-    fn update(&mut self, _ctx: &UpdateContext) {}
+impl AdvUpdatable for BustupLayerImpl {
+    fn update(&mut self, _ctx: &AdvUpdateContext) {}
 }
 
 impl Debug for BustupLayerImpl {

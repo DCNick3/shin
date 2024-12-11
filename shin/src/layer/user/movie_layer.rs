@@ -8,7 +8,7 @@ use shin_video::VideoPlayer;
 use crate::{
     asset::movie::Movie,
     layer::{properties::LayerProperties, render_params::TransformParams, DrawableLayer, Layer},
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 
 pub struct MovieLayer {
@@ -82,8 +82,8 @@ impl MovieLayer {
 //     }
 // }
 
-impl Updatable for MovieLayer {
-    fn update(&mut self, ctx: &UpdateContext) {
+impl AdvUpdatable for MovieLayer {
+    fn update(&mut self, ctx: &AdvUpdateContext) {
         self.video_player.update(
             ctx.delta_time,
             todo!(), // &ctx.gpu_resources.queue

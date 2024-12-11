@@ -21,7 +21,7 @@ use crate::{
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         DrawableLayer, Layer, NewDrawableLayer, PreRenderContext, UserLayer,
     },
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext},
 };
 
 #[derive(Clone)]
@@ -233,8 +233,8 @@ impl NewDrawableLayer for LayerGroupNewDrawableDelegate<'_> {
     }
 }
 
-impl Updatable for LayerGroup {
-    fn update(&mut self, context: &UpdateContext) {
+impl AdvUpdatable for LayerGroup {
+    fn update(&mut self, context: &AdvUpdateContext) {
         self.props.update(context);
         self.new_drawable_state.update(context);
 

@@ -74,3 +74,8 @@ struct MovieUniformParams {
     color_transform: array<vec4<f32>, 3>,
 }
 
+struct WiperDefaultUniformParams {
+    transform: mat4x4<f32>,
+    alpha: vec4<f32>,
+}
+
