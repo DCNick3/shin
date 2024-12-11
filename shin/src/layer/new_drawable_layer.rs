@@ -1,20 +1,42 @@
+use glam::vec4;
 use shin_core::vm::command::types::LayerProperty;
-use shin_render::{render_pass::RenderPass, PassKind};
+use shin_render::{
+    render_pass::RenderPass,
+    render_texture::RenderTexture,
+    shaders::types::{
+        buffer::VertexSource,
+        texture::{DepthStencilTarget, TextureSource, TextureTarget},
+        vertices::LayerVertex,
+    },
+    shin_orthographic_projection_matrix, ColorBlendType, DepthStencilState, DrawPrimitive,
+    LayerShaderOutputKind, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
+    StencilFunction, StencilOperation, StencilPipelineState, StencilState,
+};
 
 use crate::{
     layer::{
-        render_params::{DrawableClipParams, DrawableParams, TransformParams},
-        DrawableLayer, Layer, LayerProperties,
+        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
+        DrawableLayer, Layer, LayerProperties, PreRenderContext,
     },
     update::{Updatable, UpdateContext},
 };
 
-pub trait NewDrawableLayer {
+pub trait NewDrawableLayerNeedsSeparatePass {
     fn needs_separate_pass(&self, _properties: &LayerProperties) -> bool {
         false
     }
+}
+
+pub trait NewDrawableLayer: NewDrawableLayerNeedsSeparatePass {
     #[expect(unused)] // it will be used. eventually.
-    fn render_drawable_indirect(&self) {
+    fn render_drawable_indirect(
+        &mut self,
+        context: &mut PreRenderContext,
+        properties: &LayerProperties,
+        target: TextureTarget,
+        depth_stencil: DepthStencilTarget,
+        transform: &TransformParams,
+    ) -> PassKind {
         // TODO: initiate a generic render pass and delegate to Self::render_drawable_direct
         todo!()
     }
@@ -30,26 +52,48 @@ pub trait NewDrawableLayer {
     );
 }
 
+#[expect(unused)] // this will be used once mask rendering in LayerGroup will be implemented
+pub struct PrerenderedDrawable<'a> {
+    render_texture: TextureSource<'a>,
+    target_pass: PassKind,
+}
+
 #[derive(Debug, Clone)]
 pub struct NewDrawableLayerState {
-    //
+    render_texture_src: Option<RenderTexture>,
+    #[expect(unused)]
+    // it's needed for any kind of effect. we just don't have them implemented yet
+    render_texture_target: Option<RenderTexture>,
+    render_texture_prev_frame: Option<RenderTexture>,
+    target_pass: PassKind,
 }
 
 impl NewDrawableLayerState {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            render_texture_src: None,
+            render_texture_target: None,
+            render_texture_prev_frame: None,
+            target_pass: PassKind::Transparent,
+        }
     }
 
-    pub fn get_prerendered_tex(&self) -> Option<()> {
-        // TODO
-        None
+    pub fn get_prerendered_tex(&self) -> Option<PrerenderedDrawable> {
+        let Some(tex) = self.render_texture_src.as_ref() else {
+            return None;
+        };
+
+        Some(PrerenderedDrawable {
+            render_texture: tex.as_texture_source(),
+            target_pass: self.target_pass,
+        })
     }
 
     pub fn update(&mut self, _context: &UpdateContext) {
         // TODO
     }
 
-    pub fn is_rendered_directly<T: NewDrawableLayer>(
+    pub fn is_rendered_directly<T: NewDrawableLayerNeedsSeparatePass>(
         &self,
         properties: &LayerProperties,
         delegate: &T,
@@ -67,9 +111,10 @@ impl NewDrawableLayerState {
 
     pub fn pre_render<T: NewDrawableLayer>(
         &mut self,
+        context: &mut PreRenderContext,
         properties: &LayerProperties,
         delegate: &mut T,
-        _transform: &TransformParams,
+        transform: &TransformParams,
     ) {
         if !properties.is_visible() {
             return;
@@ -98,21 +143,133 @@ impl NewDrawableLayerState {
         {
             return;
         }
+
+        if ghosting_alpha <= 0.0 {
+            self.render_texture_prev_frame = None;
+        } else {
+            // TODO: preserve render_texture_src as render_texture_prev_frame, while re-using render_texture_prev_frame as render_texture_src
+            todo!()
+        }
+
+        let render_texture_src = context.ensure_render_texture(&mut self.render_texture_src);
+        self.target_pass = delegate.render_drawable_indirect(
+            context,
+            properties,
+            render_texture_src.as_texture_target(),
+            context.depth_stencil,
+            transform,
+        );
+
+        if blur_radius.abs() >= f32::EPSILON {
+            todo!()
+        }
+        if prop70 >= f32::EPSILON {
+            todo!()
+        }
+        if mosaic_size > 0 {
+            todo!()
+        }
+        if raster_horizontal_amplitude.abs() >= f32::EPSILON
+            || raster_vertical_amplitude.abs() >= f32::EPSILON
+        {
+            todo!()
+        }
+        if ripple_amplitude.abs() >= f32::EPSILON {
+            todo!()
+        }
+        if dissolve_intensity > 0.0 {
+            todo!()
+        }
+        if ghosting_alpha <= 0.0 || self.render_texture_prev_frame.is_none() {
+            self.render_texture_prev_frame = None;
+        } else {
+            todo!()
+        }
     }
 
     pub fn try_finish_indirect_render(
         &self,
-        _properties: &LayerProperties,
-        _pass: &mut RenderPass,
-        _transform: &TransformParams,
-        _stencil_ref: u8,
-        _pass_kind: PassKind,
+        properties: &LayerProperties,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
     ) -> bool {
-        let Some(_tex) = self.get_prerendered_tex() else {
+        let Some(tex) = &self.render_texture_src else {
             return false;
         };
 
-        todo!("finish the indirect render")
+        if pass_kind != self.target_pass {
+            return true;
+        }
+
+        let color_multiplier = properties.get_color_multiplier().premultiply();
+        let blend_type = properties.get_blend_type();
+        let fragment_shader = properties.get_fragment_shader();
+        let fragment_shader_param = properties.get_fragment_shader_param();
+
+        // NOTE: the transform is actually used just for clipping
+        // we still compute it just in case
+        let mut self_transform = properties.get_transform_params();
+        self_transform.compose_with(transform, properties.get_compose_flags());
+
+        let clip_params = properties.get_clip_params();
+        assert_eq!(clip_params.mode, DrawableClipMode::None);
+
+        let transform = shin_orthographic_projection_matrix(0.0, 1920.0, 1080.0, 0.0, -1.0, 1.0);
+
+        let vertices = &[
+            LayerVertex {
+                coords: vec4(0.0, 0.0, 0.0, 0.0),
+            },
+            LayerVertex {
+                coords: vec4(1920.0, 0.0, 1.0, 0.0),
+            },
+            LayerVertex {
+                coords: vec4(0.0, 1080.0, 0.0, 1.0),
+            },
+            LayerVertex {
+                coords: vec4(1920.0, 1080.0, 1.0, 1.0),
+            },
+        ];
+
+        pass.run(
+            RenderRequestBuilder::new()
+                .depth_stencil(DepthStencilState {
+                    depth: Default::default(),
+                    stencil: StencilState {
+                        pipeline: StencilPipelineState {
+                            function: StencilFunction::Greater,
+                            stencil_fail_operation: StencilOperation::Keep,
+                            depth_fail_operation: StencilOperation::Keep,
+                            pass_operation: StencilOperation::Replace,
+                            ..Default::default()
+                        },
+                        stencil_reference: stencil_ref,
+                    },
+                })
+                .color_blend_type(match pass_kind {
+                    PassKind::Opaque => ColorBlendType::Opaque,
+                    PassKind::Transparent => ColorBlendType::from_premultiplied_layer(blend_type),
+                })
+                .build(
+                    RenderProgramWithArguments::Layer {
+                        output_kind: match pass_kind {
+                            PassKind::Opaque => LayerShaderOutputKind::Layer,
+                            PassKind::Transparent => LayerShaderOutputKind::LayerDiscard,
+                        },
+                        fragment_shader,
+                        vertices: VertexSource::VertexData { vertices },
+                        texture: tex.as_texture_source(),
+                        transform,
+                        color_multiplier,
+                        fragment_shader_param,
+                    },
+                    DrawPrimitive::TrianglesStrip,
+                ),
+        );
+
+        true
     }
 
     pub fn render<T: NewDrawableLayer>(
@@ -162,14 +319,6 @@ impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
             props: LayerProperties::new(),
         }
     }
-
-    pub fn as_inner(&self) -> &T {
-        &self.inner_layer
-    }
-
-    pub fn as_inner_mut(&mut self) -> &mut T {
-        &mut self.inner_layer
-    }
 }
 
 impl<T: Updatable> Updatable for NewDrawableLayerWrapper<T> {
@@ -181,9 +330,9 @@ impl<T: Updatable> Updatable for NewDrawableLayerWrapper<T> {
 }
 
 impl<T: NewDrawableLayer + Clone + Updatable> Layer for NewDrawableLayerWrapper<T> {
-    fn pre_render(&mut self, _transform: &TransformParams) {
+    fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         self.state
-            .pre_render(&self.props, &mut self.inner_layer, _transform);
+            .pre_render(context, &self.props, &mut self.inner_layer, transform);
     }
 
     fn render(

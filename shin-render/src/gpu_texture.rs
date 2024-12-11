@@ -1,5 +1,5 @@
 use dpi::PhysicalSize;
-use shin_render_shader_types::texture::TextureSource;
+use shin_render_shader_types::texture::{TextureSampler, TextureSource};
 use wgpu::{util::DeviceExt as _, TextureDimension};
 
 #[derive(Debug, Copy, Clone)]
@@ -29,8 +29,7 @@ impl TextureKind {
 pub struct GpuTexture {
     texture: wgpu::Texture,
     view: wgpu::TextureView,
-    // we are actually using the same sampler for all the textures, but it's not a big deal
-    sampler: wgpu::Sampler,
+    sampler: TextureSampler,
 }
 
 impl GpuTexture {
@@ -77,12 +76,7 @@ impl GpuTexture {
             ..wgpu::TextureViewDescriptor::default()
         });
 
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: label.map(|s| format!("{} sampler", s)).as_deref(),
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            ..wgpu::SamplerDescriptor::default()
-        });
+        let sampler = TextureSampler::Linear;
 
         Self {
             texture,
@@ -120,7 +114,7 @@ impl GpuTexture {
     ) -> Self {
         let texture = device.create_texture(&Self::make_descriptor(label, size, format, kind));
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
+        let sampler = TextureSampler::Linear;
 
         Self {
             texture,
@@ -142,7 +136,7 @@ impl GpuTexture {
     pub fn as_source(&self) -> TextureSource {
         TextureSource {
             view: &self.view,
-            sampler: &self.sampler,
+            sampler: self.sampler,
         }
     }
 }

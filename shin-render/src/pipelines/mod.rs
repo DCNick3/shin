@@ -4,14 +4,17 @@ use std::{collections::HashMap, sync::Arc};
 
 use enum_iterator::Sequence;
 use rustc_hash::FxHashMap;
+use shin_render_shader_types::texture::TextureTargetKind;
 use shin_render_shaders::{Shader, ShaderContext, ShaderName, TypedRenderPipeline};
 
-use crate::{ColorBlendType, CullFace, DepthStencilPipelineState, DrawPrimitive};
-
-pub const DEPTH_STENCIL_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24PlusStencil8;
+use crate::{
+    ColorBlendType, CullFace, DepthStencilPipelineState, DrawPrimitive, DEPTH_STENCIL_FORMAT,
+    TEXTURE_FORMAT,
+};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
 pub struct PipelineStorageKey {
+    pub target_kind: TextureTargetKind,
     pub draw_primitive: DrawPrimitive,
     pub cull_face: CullFace,
     pub blend_type: ColorBlendType,
@@ -22,10 +25,11 @@ impl PipelineStorageKey {
     fn create_pipeline(
         &self,
         device: &wgpu::Device,
-        the_texture_format: wgpu::TextureFormat,
+        screen_texture_format: wgpu::TextureFormat,
         context: &ShaderContext,
     ) -> wgpu::RenderPipeline {
         let &PipelineStorageKey {
+            target_kind,
             draw_primitive,
             cull_face,
             blend_type,
@@ -73,7 +77,10 @@ impl PipelineStorageKey {
                 entry_point: context.shader_descriptor.fragment_entry,
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: the_texture_format,
+                    format: match target_kind {
+                        TextureTargetKind::Screen => screen_texture_format,
+                        TextureTargetKind::RenderTexture => TEXTURE_FORMAT,
+                    },
                     blend: Some(blend_type.into()),
                     write_mask: blend_type.into(),
                 })],
@@ -105,17 +112,17 @@ impl ShaderContextStorage {
 
 pub struct PipelineStorage {
     device: Arc<wgpu::Device>,
-    the_texture_format: wgpu::TextureFormat,
+    screen_texture_format: wgpu::TextureFormat,
     shader_context: ShaderContextStorage,
     pipelines: FxHashMap<(ShaderName, PipelineStorageKey), wgpu::RenderPipeline>,
 }
 
 impl PipelineStorage {
-    pub fn new(device: Arc<wgpu::Device>, the_texture_format: wgpu::TextureFormat) -> Self {
+    pub fn new(device: Arc<wgpu::Device>, screen_texture_format: wgpu::TextureFormat) -> Self {
         let shader_context = ShaderContextStorage::new(&device);
         Self {
             device,
-            the_texture_format,
+            screen_texture_format,
             shader_context,
             pipelines: FxHashMap::default(),
         }
@@ -126,10 +133,9 @@ impl PipelineStorage {
     // can introduce interior mutability if we need to
     pub fn get<S: Shader>(&mut self, key: PipelineStorageKey) -> TypedRenderPipeline<S> {
         let context = self.shader_context.get(S::NAME);
-        let pipeline = self
-            .pipelines
-            .entry((S::NAME, key))
-            .or_insert_with(|| key.create_pipeline(&self.device, self.the_texture_format, context));
+        let pipeline = self.pipelines.entry((S::NAME, key)).or_insert_with(|| {
+            key.create_pipeline(&self.device, self.screen_texture_format, context)
+        });
 
         TypedRenderPipeline::new(context, pipeline)
     }

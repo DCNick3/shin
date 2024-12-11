@@ -1,27 +1,26 @@
-use bevy_utils::hashbrown::HashMap;
-use glam::{vec3, Mat4};
+use glam::vec3;
 use itertools::Itertools;
 use shin_core::{
     time::Ticks,
-    vm::command::types::{LayerId, LayerProperty, LayerbankId, LayerbankIdOpt},
+    vm::command::types::{LayerProperty, LayerbankId},
 };
 use shin_render::{
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
-        vertices::{FloatColor4, PosVertex},
+        texture::{DepthStencilTarget, TextureTarget},
+        vertices::{FloatColor4, PosVertex, UnormColor},
     },
     DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
     StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,
 };
 
 use crate::{
-    adv::LayerSelection,
     layer::{
-        new_drawable_layer::NewDrawableLayerState,
+        new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        DrawableLayer, Layer, NewDrawableLayer, NewDrawableLayerWrapper, UserLayer,
+        DrawableLayer, Layer, NewDrawableLayer, PreRenderContext, UserLayer,
     },
     update::{Updatable, UpdateContext},
 };
@@ -91,6 +90,7 @@ impl LayerGroup {
         }
     }
 
+    #[expect(unused)] // for future stuff
     pub fn remove_layer(&mut self, layerbank_id: LayerbankId, delay_time: Ticks) {
         if delay_time != Ticks::ZERO {
             // this is never used in umineko
@@ -110,6 +110,7 @@ impl LayerGroup {
         }
     }
 
+    #[expect(unused)] // for future stuff
     pub fn get_layer(&self, layerbank_id: LayerbankId) -> Option<&UserLayer> {
         self.layers
             .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
@@ -117,6 +118,7 @@ impl LayerGroup {
             .ok()
     }
 
+    #[expect(unused)] // for future stuff
     pub fn get_layer_mut(&mut self, layerbank_id: LayerbankId) -> Option<&mut UserLayer> {
         self.layers
             .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
@@ -124,14 +126,17 @@ impl LayerGroup {
             .ok()
     }
 
+    #[expect(unused)] // for future stuff
     pub fn get_used_layerbank_ids(&self) -> Vec<LayerbankId> {
         self.layers.iter().map(|item| item.layerbank_id).collect()
     }
 
+    #[expect(unused)] // for future stuff
     pub fn has_wiper_for_layerbank(&self, _layerbank_id: LayerbankId) -> bool {
         false
     }
 
+    #[expect(unused)] // for future stuff
     pub fn set_mask_texture(&mut self, mask_texture: Option<()>) {
         self.mask_texture = mask_texture;
     }
@@ -141,18 +146,83 @@ impl LayerGroup {
     }
 }
 
-// TODO: actually put something in here
-struct LayerGroupNewDrawableDelegate;
+struct LayerGroupNewDrawableSeparatePassDelegate;
 
-impl NewDrawableLayer for LayerGroupNewDrawableDelegate {
+impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableSeparatePassDelegate {
     fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
         properties.get_clip_mode() != DrawableClipMode::None
             || properties.is_fragment_shader_nontrivial()
             || properties.is_blending_nontrivial()
     }
+}
 
-    fn render_drawable_indirect(&self) {
-        todo!()
+struct LayerGroupNewDrawableDelegate<'a> {
+    layers: &'a [LayerItem],
+    layers_to_render: Vec<LayerRenderItem>,
+    mask_texture: &'a Option<()>,
+}
+
+impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableDelegate<'_> {
+    fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
+        LayerGroupNewDrawableSeparatePassDelegate.needs_separate_pass(properties)
+    }
+}
+
+impl NewDrawableLayer for LayerGroupNewDrawableDelegate<'_> {
+    fn render_drawable_indirect(
+        &mut self,
+        context: &mut PreRenderContext,
+        properties: &LayerProperties,
+        target: TextureTarget,
+        depth_stencil: DepthStencilTarget,
+        transform: &TransformParams,
+    ) -> PassKind {
+        let mut pass = RenderPass::new(
+            context.pipeline_storage,
+            context.dynamic_buffer,
+            context.sampler_store,
+            context.device,
+            context.encoder,
+            target,
+            depth_stencil,
+            None,
+        );
+
+        if !properties.is_visible() {
+            pass.clear(Some(UnormColor::BLACK), None, None);
+        } else {
+            let mut self_transform = properties.get_transform_params();
+            self_transform.compose_with(transform, properties.get_compose_flags());
+
+            if let Some(_mask) = self.mask_texture {
+                todo!()
+            } else {
+                pass.clear(Some(UnormColor::BLACK), Some(0), None);
+            }
+
+            for render_item in self.layers_to_render.iter().rev() {
+                self.layers[render_item.layer_index].layer.render(
+                    &mut pass,
+                    &self_transform,
+                    render_item.stencil_ref_relative,
+                    PassKind::Opaque,
+                );
+            }
+            for render_item in &self.layers_to_render {
+                self.layers[render_item.layer_index].layer.render(
+                    &mut pass,
+                    &self_transform,
+                    render_item.stencil_ref_relative,
+                    PassKind::Transparent,
+                );
+            }
+        }
+
+        self.layers_to_render.clear();
+
+        // it's very sus that it does that, considering you can apply alpha and stuff...
+        // but I guess that's just how planes are...
+        PassKind::Opaque
     }
 
     fn render_drawable_direct(
@@ -193,7 +263,7 @@ impl Layer for LayerGroup {
         self.stencil_bump
     }
 
-    fn pre_render(&mut self, transform: &TransformParams) {
+    fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         let mut layers = (0..self.layers.len()).into_iter().collect::<Vec<_>>();
 
         layers.sort_by(|&left, &right| {
@@ -226,15 +296,18 @@ impl Layer for LayerGroup {
         self_transform.compose_with(transform, props.get_compose_flags());
 
         for &index in &layers {
-            self.layers[index].layer.pre_render(&self_transform);
+            self.layers[index]
+                .layer
+                .pre_render(context, &self_transform);
             // NB: if the current layer is `Effectable` (like `LayerGroup::TransitionLayer`), we need to call a special pre-render function and pass the lower layers to it
             // This is not necessary for umineko
         }
 
-        self.layers_to_render.clear();
+        let mut layers_to_render = vec![];
+
         let mut stencil_value = 1;
         for &index in &layers {
-            self.layers_to_render.push(LayerRenderItem {
+            layers_to_render.push(LayerRenderItem {
                 layer_index: index,
                 stencil_ref_relative: stencil_value,
             });
@@ -244,10 +317,16 @@ impl Layer for LayerGroup {
 
         self.stencil_bump = stencil_value;
 
-        let mut delegate = LayerGroupNewDrawableDelegate;
+        let mut delegate = LayerGroupNewDrawableDelegate {
+            layers: &self.layers,
+            layers_to_render,
+            mask_texture: &self.mask_texture,
+        };
 
         self.new_drawable_state
-            .pre_render(&self.props, &mut delegate, &self_transform);
+            .pre_render(context, &self.props, &mut delegate, &self_transform);
+
+        self.layers_to_render = delegate.layers_to_render;
     }
 
     fn render(
@@ -263,8 +342,13 @@ impl Layer for LayerGroup {
                 todo!();
                 return;
             } else {
-                // NewDrawableLayer::try_finish_indirect_render
-                todo!();
+                self.new_drawable_state.try_finish_indirect_render(
+                    &self.props,
+                    pass,
+                    transform,
+                    stencil_ref,
+                    pass_kind,
+                );
                 return;
             }
         }

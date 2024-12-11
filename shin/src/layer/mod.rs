@@ -9,6 +9,8 @@ mod screen_layer;
 pub mod user;
 mod wobbler;
 
+use std::sync::Arc;
+
 use derive_more::From;
 use glam::vec3;
 pub use layer_group::LayerGroup;
@@ -19,29 +21,61 @@ pub use properties::{LayerProperties, LayerPropertiesSnapshot};
 pub use root_layer_group::RootLayerGroup;
 pub use screen_layer::ScreenLayer;
 use shin_render::{
+    dynamic_buffer::DynamicBuffer,
+    pipelines::PipelineStorage,
     render_pass::RenderPass,
+    render_texture::RenderTexture,
+    resize::SurfaceResizeSource,
     shaders::types::{
         buffer::VertexSource,
+        texture::{DepthStencilTarget, TextureSamplerStore},
         vertices::{FloatColor4, PosVertex},
     },
-    ColorBlendType, DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments,
-    RenderRequestBuilder, StencilFunction, StencilMask, StencilOperation, StencilPipelineState,
-    StencilState,
+    DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
+    StencilFunction, StencilOperation, StencilPipelineState, StencilState,
 };
 
-// need those imports for enum_dispatch to work (eww)
-use self::user::{BustupLayer, MovieLayer, NullLayer, PictureLayer, TileLayer};
 use crate::{
     layer::{render_params::TransformParams, user::UserLayer},
     update::Updatable,
 };
+
+pub struct PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder> {
+    pub device: &'immutable Arc<wgpu::Device>,
+    pub queue: &'immutable Arc<wgpu::Queue>,
+    pub resize_source: &'immutable SurfaceResizeSource,
+    pub sampler_store: &'immutable TextureSamplerStore,
+    pub depth_stencil: DepthStencilTarget<'immutable>,
+
+    pub pipeline_storage: &'pipelines mut PipelineStorage,
+    pub dynamic_buffer: &'dynbuffer mut DynamicBuffer,
+    pub encoder: &'encoder mut wgpu::CommandEncoder,
+}
+
+impl PreRenderContext<'_, '_, '_, '_> {
+    pub fn new_render_texture(&self, label: Option<String>) -> RenderTexture {
+        RenderTexture::new(
+            self.device.clone(),
+            self.queue.clone(),
+            self.resize_source.handle(),
+            label,
+        )
+    }
+
+    pub fn ensure_render_texture<'a>(
+        &self,
+        storage: &'a mut Option<RenderTexture>,
+    ) -> &'a mut RenderTexture {
+        storage.get_or_insert_with(|| self.new_render_texture(None))
+    }
+}
 
 pub trait Layer: Updatable {
     // fn fast_forward(&mut self);
     fn get_stencil_bump(&self) -> u8 {
         1
     }
-    fn pre_render(&mut self, _transform: &TransformParams) {}
+    fn pre_render(&mut self, _context: &mut PreRenderContext, _transform: &TransformParams) {}
     fn render(
         &self,
         pass: &mut RenderPass,
@@ -197,6 +231,7 @@ where
     stencil_ref
 }
 
+#[expect(unused)] // for future stuff
 pub fn render_layers(
     pass: &mut RenderPass,
     transform: &TransformParams,

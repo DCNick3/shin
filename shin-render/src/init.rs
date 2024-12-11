@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use shin_render_shader_types::buffer::BytesAddress;
+use shin_render_shader_types::{buffer::BytesAddress, texture::TextureSamplerStore};
 use tracing::{debug, info};
 use wgpu::SurfaceTarget;
 
 use crate::{
+    depth_stencil::DepthStencil,
     dynamic_buffer::DynamicBuffer,
-    pipelines::{PipelineStorage, DEPTH_STENCIL_FORMAT},
+    pipelines::PipelineStorage,
     resize::{CanvasSize, ResizeHandle, SurfaceSize},
     resizeable_texture::ResizeableTexture,
+    DEPTH_STENCIL_FORMAT,
 };
 
 #[derive(Debug)]
@@ -108,16 +110,16 @@ impl WgpuInitResult<'static> {
 
         let surface_depth_stencil_buffer = ResizeableTexture::new(
             self.device.clone(),
-            Some("Surface DepthStencil"),
+            Some("Surface DepthStencil".to_string()),
             DEPTH_STENCIL_FORMAT,
             surface_resize_handle,
         );
-        let canvas_depth_stencil_buffer = ResizeableTexture::new(
+        let canvas_depth_stencil_buffer = DepthStencil::new(
             self.device.clone(),
-            Some("Canvas DepthStencil"),
-            DEPTH_STENCIL_FORMAT,
             canvas_resize_handle,
+            Some("Canvas DepthStencil".to_string()),
         );
+        let sampler_store = TextureSamplerStore::new(&self.device);
 
         (
             WgpuResources {
@@ -130,6 +132,7 @@ impl WgpuInitResult<'static> {
                 surface: self.surface,
                 surface_depth_stencil_buffer,
                 canvas_depth_stencil_buffer,
+                sampler_store,
                 dynamic_buffer,
                 pipelines,
                 surface_texture_format: self.surface_texture_format,
@@ -266,7 +269,8 @@ pub struct RenderResources {
     // needed to initiate render passes
     // might want to move it to a separate struct
     pub surface_depth_stencil_buffer: ResizeableTexture<SurfaceSize>,
-    pub canvas_depth_stencil_buffer: ResizeableTexture<CanvasSize>,
+    pub canvas_depth_stencil_buffer: DepthStencil,
+    pub sampler_store: TextureSamplerStore,
     pub dynamic_buffer: DynamicBuffer,
     pub pipelines: PipelineStorage,
 

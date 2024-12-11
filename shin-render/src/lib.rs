@@ -3,11 +3,13 @@
 // here we create an abstraction over wgpu which makes it look more like shin's render abstraction over nvn.
 // an important departure is not using global variables, but making all the arguments explicit (helped by a builder pattern with typestates (maybe))
 
-mod dynamic_buffer;
+mod depth_stencil;
+pub mod dynamic_buffer;
 pub mod gpu_texture;
 pub mod init;
 pub mod pipelines;
 pub mod render_pass;
+pub mod render_texture;
 pub mod resize;
 pub mod resizeable_texture;
 
@@ -22,6 +24,9 @@ use shin_render_shader_types::{
 };
 pub use shin_render_shaders as shaders;
 use shin_render_shaders::ShaderName;
+
+pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
+pub const DEPTH_STENCIL_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24PlusStencil8;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PassKind {
@@ -493,6 +498,20 @@ pub struct RenderRequest<'a> {
     cull_faces: CullFace,
     primitive: DrawPrimitive,
     program: RenderProgramWithArguments<'a>,
+}
+
+pub fn shin_orthographic_projection_matrix(
+    left: f32,
+    right: f32,
+    bottom: f32,
+    top: f32,
+    near: f32,
+    far: f32,
+) -> Mat4 {
+    // flip the Y coordinate
+    // the game uses the D3D coordinate system (Y goes down), while wgpu uses the GL coordinate system (Y goes up)
+    Mat4::from_scale(vec3(1.0, -1.0, 1.0))
+        * Mat4::orthographic_rh_gl(left, right, bottom, top, near, far)
 }
 
 // /// A trait for elements that can be rendered

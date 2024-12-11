@@ -4,9 +4,10 @@ use dpi::PhysicalSize;
 
 use crate::resize::{ResizeHandle, SizeAspect};
 
+#[derive(Debug)]
 pub struct ResizeableTexture<Aspect: SizeAspect> {
     device: Arc<wgpu::Device>,
-    label: Option<String>,
+    label: String,
     texture: (wgpu::Texture, wgpu::TextureView),
     format: wgpu::TextureFormat,
     resize_handle: ResizeHandle<Aspect>,
@@ -15,12 +16,12 @@ pub struct ResizeableTexture<Aspect: SizeAspect> {
 impl<Aspect: SizeAspect> ResizeableTexture<Aspect> {
     fn create_texture(
         device: &wgpu::Device,
-        label: Option<&str>,
+        label: &str,
         format: wgpu::TextureFormat,
         size: PhysicalSize<u32>,
     ) -> (wgpu::Texture, wgpu::TextureView) {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label,
+            label: Some(label),
             size: wgpu::Extent3d {
                 width: size.width,
                 height: size.height,
@@ -35,22 +36,23 @@ impl<Aspect: SizeAspect> ResizeableTexture<Aspect> {
         });
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor {
-            label,
+            label: Some(&format!("{}/view", label)),
             ..wgpu::TextureViewDescriptor::default()
         });
 
         (texture, view)
     }
 
-    pub fn new(
+    pub fn new_with_size(
         device: Arc<wgpu::Device>,
-        label: Option<&str>,
+        label: Option<String>,
         format: wgpu::TextureFormat,
-        mut resize_handle: ResizeHandle<Aspect>,
+        size: PhysicalSize<u32>,
+        resize_handle: ResizeHandle<Aspect>,
     ) -> Self {
-        let texture = Self::create_texture(&device, label, format, resize_handle.get().into());
+        let label = label.unwrap_or_else(|| "unnamed".to_string());
 
-        let label = label.map(|s| s.to_string());
+        let texture = Self::create_texture(&device, &label, format, size);
 
         Self {
             device,
@@ -61,16 +63,35 @@ impl<Aspect: SizeAspect> ResizeableTexture<Aspect> {
         }
     }
 
-    pub fn get_view(&mut self) -> &wgpu::TextureView {
+    pub fn new(
+        device: Arc<wgpu::Device>,
+        label: Option<String>,
+        format: wgpu::TextureFormat,
+        mut resize_handle: ResizeHandle<Aspect>,
+    ) -> Self {
+        let size = resize_handle.get().into();
+
+        Self::new_with_size(device, label, format, size, resize_handle)
+    }
+
+    pub fn get_texture(&self) -> &wgpu::Texture {
+        &self.texture.0
+    }
+
+    pub fn get_view(&self) -> &wgpu::TextureView {
+        &self.texture.1
+    }
+
+    pub fn resize_and_get_view(&mut self) -> &wgpu::TextureView {
         if let Some(new_size) = self.resize_handle.update() {
-            self.texture = Self::create_texture(
-                &self.device,
-                self.label.as_deref(),
-                self.format,
-                new_size.into(),
-            );
+            self.texture =
+                Self::create_texture(&self.device, &self.label, self.format, new_size.into());
         }
 
         &self.texture.1
+    }
+
+    pub fn get_resize_handle(&self) -> ResizeHandle<Aspect> {
+        self.resize_handle.clone()
     }
 }

@@ -85,6 +85,11 @@ impl FloatColor4 {
         UnormColor::from_rgba(r, g, b, a)
     }
 
+    pub fn premultiply(self) -> Self {
+        let [r, g, b, a] = self.into_array();
+        Self::from_rgba(r * a, g * a, b * a, a)
+    }
+
     pub const RED: Self = Self::from_unorm(UnormColor::RED);
     pub const GREEN: Self = Self::from_unorm(UnormColor::GREEN);
     pub const BLUE: Self = Self::from_unorm(UnormColor::BLUE);
