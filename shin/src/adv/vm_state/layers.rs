@@ -54,7 +54,6 @@ impl LayerRangeCache {
     }
 }
 
-#[expect(unused)] // for future stuff
 pub struct LayerbankAllocator {
     free_layerbank_ids: [LayerbankId; LAYERBANKS_COUNT],
     allocated_layerbanks: u32,

@@ -146,10 +146,16 @@ impl LayerGroup {
     }
 }
 
-struct LayerGroupNewDrawableSeparatePassDelegate;
+struct LayerGroupNewDrawableSeparatePassDelegate {
+    has_mask: bool,
+}
 
 impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableSeparatePassDelegate {
     fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
+        if self.has_mask {
+            return true;
+        }
+
         properties.get_clip_mode() != DrawableClipMode::None
             || properties.is_fragment_shader_nontrivial()
             || properties.is_blending_nontrivial()
@@ -164,7 +170,10 @@ struct LayerGroupNewDrawableDelegate<'a> {
 
 impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableDelegate<'_> {
     fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
-        LayerGroupNewDrawableSeparatePassDelegate.needs_separate_pass(properties)
+        (LayerGroupNewDrawableSeparatePassDelegate {
+            has_mask: self.mask_texture.is_some(),
+        })
+        .needs_separate_pass(properties)
     }
 }
 
@@ -303,7 +312,8 @@ impl Layer for LayerGroup {
             // This is not necessary for umineko
         }
 
-        let mut layers_to_render = vec![];
+        self.layers_to_render.clear();
+        let mut layers_to_render = std::mem::replace(&mut self.layers_to_render, Vec::new());
 
         let mut stencil_value = 1;
         for &index in &layers {

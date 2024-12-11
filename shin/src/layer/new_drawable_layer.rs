@@ -61,7 +61,6 @@ pub struct PrerenderedDrawable<'a> {
 #[derive(Debug, Clone)]
 pub struct NewDrawableLayerState {
     render_texture_src: Option<RenderTexture>,
-    #[expect(unused)]
     // it's needed for any kind of effect. we just don't have them implemented yet
     render_texture_target: Option<RenderTexture>,
     render_texture_prev_frame: Option<RenderTexture>,
@@ -93,20 +92,21 @@ impl NewDrawableLayerState {
         // TODO
     }
 
-    pub fn is_rendered_directly<T: NewDrawableLayerNeedsSeparatePass>(
+    pub fn is_rendered_opaquely<T: NewDrawableLayerNeedsSeparatePass>(
         &self,
         properties: &LayerProperties,
         delegate: &T,
     ) -> bool {
-        let Some(_tex) = self.get_prerendered_tex() else {
+        let Some(tex) = self.get_prerendered_tex() else {
             return true;
         };
 
         if delegate.needs_separate_pass(properties) {
+            // weird! I think this is too conservative
             return false;
         }
 
-        todo!("check tex.force_transparent_pass")
+        tex.target_pass == PassKind::Opaque
     }
 
     pub fn pre_render<T: NewDrawableLayer>(

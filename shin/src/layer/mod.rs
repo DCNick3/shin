@@ -28,7 +28,7 @@ use shin_render::{
     resize::SurfaceResizeSource,
     shaders::types::{
         buffer::VertexSource,
-        texture::{DepthStencilTarget, TextureSamplerStore},
+        texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget},
         vertices::{FloatColor4, PosVertex},
     },
     DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
@@ -67,6 +67,23 @@ impl PreRenderContext<'_, '_, '_, '_> {
         storage: &'a mut Option<RenderTexture>,
     ) -> &'a mut RenderTexture {
         storage.get_or_insert_with(|| self.new_render_texture(None))
+    }
+
+    pub fn begin_pass(
+        &mut self,
+        target: TextureTarget,
+        depth_stencil: DepthStencilTarget,
+    ) -> RenderPass {
+        RenderPass::new(
+            self.pipeline_storage,
+            self.dynamic_buffer,
+            self.sampler_store,
+            self.device,
+            self.encoder,
+            target,
+            depth_stencil,
+            None,
+        )
     }
 }
 

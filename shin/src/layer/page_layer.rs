@@ -5,11 +5,12 @@ use shin_render::{
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureTarget},
-        vertices::{FloatColor4, PosVertex},
+        vertices::{FloatColor4, PosVertex, UnormColor},
     },
     DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
     StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,
 };
+use tracing::debug;
 
 use crate::{
     layer::{
@@ -68,15 +69,10 @@ impl PageLayer {
     pub fn get_plane_mut(&mut self, index: PlaneId) -> &mut LayerGroup {
         &mut self.planes[index.raw() as usize]
     }
-
-    fn get_new_drawable_delegate(&self) -> PageLayerNewDrawableDelegate {
-        PageLayerNewDrawableDelegate
-    }
 }
+struct PageLayerNewDrawableSeparatePassDelegate;
 
-struct PageLayerNewDrawableDelegate;
-
-impl NewDrawableLayerNeedsSeparatePass for PageLayerNewDrawableDelegate {
+impl NewDrawableLayerNeedsSeparatePass for PageLayerNewDrawableSeparatePassDelegate {
     fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
         properties.get_clip_mode() != DrawableClipMode::None
             || properties.is_fragment_shader_nontrivial()
@@ -84,7 +80,18 @@ impl NewDrawableLayerNeedsSeparatePass for PageLayerNewDrawableDelegate {
     }
 }
 
-impl NewDrawableLayer for PageLayerNewDrawableDelegate {
+struct PageLayerNewDrawableDelegate<'a> {
+    planes: &'a [LayerGroup],
+    layers_to_render: Vec<LayerRenderItem>,
+}
+
+impl NewDrawableLayerNeedsSeparatePass for PageLayerNewDrawableDelegate<'_> {
+    fn needs_separate_pass(&self, properties: &LayerProperties) -> bool {
+        PageLayerNewDrawableSeparatePassDelegate.needs_separate_pass(properties)
+    }
+}
+
+impl NewDrawableLayer for PageLayerNewDrawableDelegate<'_> {
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,
@@ -93,7 +100,37 @@ impl NewDrawableLayer for PageLayerNewDrawableDelegate {
         depth_stencil: DepthStencilTarget,
         transform: &TransformParams,
     ) -> PassKind {
-        todo!()
+        let mut pass = context.begin_pass(target, depth_stencil);
+
+        if !properties.is_visible() {
+            pass.clear(Some(UnormColor::BLACK), None, None);
+        } else {
+            let mut self_transform = properties.get_transform_params();
+            self_transform.compose_with(transform, properties.get_compose_flags());
+
+            pass.clear(Some(UnormColor::BLACK), Some(0), None);
+
+            for render_item in self.layers_to_render.iter().rev() {
+                self.planes[render_item.layer_index.raw() as usize].render(
+                    &mut pass,
+                    &self_transform,
+                    render_item.stencil_ref_relative,
+                    PassKind::Opaque,
+                );
+            }
+            for render_item in &self.layers_to_render {
+                self.planes[render_item.layer_index.raw() as usize].render(
+                    &mut pass,
+                    &self_transform,
+                    render_item.stencil_ref_relative,
+                    PassKind::Transparent,
+                );
+            }
+        }
+
+        self.layers_to_render.clear();
+
+        PassKind::Opaque
     }
     fn render_drawable_direct(
         &self,
@@ -140,7 +177,7 @@ impl Layer for PageLayer {
                 // if a layer is rendered directly, we won't be able to see anything below it
                 if self
                     .new_drawable_state
-                    .is_rendered_directly(props, &self.get_new_drawable_delegate())
+                    .is_rendered_opaquely(props, &PageLayerNewDrawableSeparatePassDelegate)
                 {
                     layer_stack.clear();
                 }
@@ -150,11 +187,12 @@ impl Layer for PageLayer {
         }
 
         self.layers_to_render.clear();
+        let mut layers_to_render = std::mem::replace(&mut self.layers_to_render, Vec::new());
         self.needs_force_blending = props.is_blending_nontrivial();
         let mut stencil_value = 1;
 
         for index in layer_stack {
-            self.layers_to_render.push(LayerRenderItem {
+            layers_to_render.push(LayerRenderItem {
                 layer_index: PlaneId::new(index as _),
                 stencil_ref_relative: stencil_value,
             });
@@ -163,10 +201,15 @@ impl Layer for PageLayer {
         }
         self.stencil_bump = stencil_value;
 
-        let mut delegate = self.get_new_drawable_delegate();
+        let mut delegate = PageLayerNewDrawableDelegate {
+            planes: &self.planes,
+            layers_to_render,
+        };
 
         self.new_drawable_state
             .pre_render(context, &self.props, &mut delegate, &self_transform);
+
+        self.layers_to_render = delegate.layers_to_render;
     }
 
     fn render(
