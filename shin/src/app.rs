@@ -4,7 +4,10 @@ use anyhow::Context;
 use enum_map::{Enum, EnumMap};
 use glam::vec4;
 use shin_audio::AudioManager;
-use shin_core::vm::command::types::{LayerId, LayerProperty, LayerbankId, PlaneId};
+use shin_core::{
+    time::{Ticks, Tween},
+    vm::command::types::{LayerId, LayerProperty, LayerbankId, PlaneId},
+};
 use shin_input::{Action, ActionState, RawInputState};
 use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4};
 use shin_window::{AppContext, RenderContext, ShinApp};
@@ -23,6 +26,7 @@ use crate::{
         user::{PictureLayer, TileLayer},
         DrawableLayer, Layer as _, PageLayer, PreRenderContext,
     },
+    update::{Updatable, UpdateContext},
 };
 
 #[derive(Debug, Enum)]
@@ -105,9 +109,24 @@ impl ShinApp for App {
         let layer_group = page_layer.get_plane_mut(PlaneId::new(0));
         layer_group.add_layer(LayerbankId::new(1), tile_layer_bottom.into());
         layer_group.add_layer(LayerbankId::new(0), picture_layer.into());
+        layer_group.add_layer(LayerbankId::new(2), tile_layer_top.into());
+
+        {
+            let tweener = layer_group
+                .properties_mut()
+                .property_tweener_mut(LayerProperty::MulColorRed);
+
+            tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(0.5)));
+            tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
+
+            // tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(1.0)));
+            // tweener.enqueue(0.0, Tween::linear(Ticks::from_seconds(1.0)));
+            // tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(1.0)));
+            // tweener.enqueue(0.0, Tween::linear(Ticks::from_seconds(1.0)));
+            // tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
+        }
 
         let layer_group = page_layer.get_plane_mut(PlaneId::new(1));
-        layer_group.add_layer(LayerbankId::new(2), tile_layer_top.into());
 
         Ok(Self {
             audio_manager,
@@ -129,6 +148,13 @@ impl ShinApp for App {
         if input[AppAction::ToggleFullscreen].is_clicked {
             context.winit.toggle_fullscreen();
         }
+
+        let update_context = UpdateContext {
+            delta_time: Ticks::from_duration(elapsed_time),
+            asset_server: &self.asset_server,
+        };
+
+        self.page_layer.update(&update_context);
 
         let transform = TransformParams::default();
 
