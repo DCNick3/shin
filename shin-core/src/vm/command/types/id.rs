@@ -48,6 +48,11 @@ impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> Id<T,
         Self::try_new(id).expect("Id::new: id out of range")
     }
 
+    /// Doesn't check that the `T` is in range (here be dragons), but is a const fn
+    pub const fn new_unchecked(id: T) -> Self {
+        Self(id)
+    }
+
     pub fn raw(self) -> T {
         self.0
     }
