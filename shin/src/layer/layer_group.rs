@@ -25,11 +25,11 @@ use crate::{
 };
 
 #[derive(Clone)]
-struct LayerItem {
+struct LayerItem<T> {
     pub layerbank_id: LayerbankId,
     // this is probably how delayed removal is implemented?
     // pub some_countdown: Ticks,
-    pub layer: UserLayer,
+    pub layer: T,
 }
 
 #[derive(Clone, Copy)]
@@ -40,8 +40,8 @@ struct LayerRenderItem {
 }
 
 #[derive(Clone)]
-pub struct LayerGroup {
-    layers: Vec<LayerItem>,
+pub struct LayerGroup<T = UserLayer> {
+    layers: Vec<LayerItem<T>>,
 
     stencil_bump: u8,
     layers_to_render: Vec<LayerRenderItem>,
@@ -52,7 +52,7 @@ pub struct LayerGroup {
     label: String,
 }
 
-impl LayerGroup {
+impl<T> LayerGroup<T> {
     // TODO: technically we need not only `UserLayer`s, but system layers sometimes too
     // Maybe I should bite the bullet and make an owning `AnyLayer` for all the types, or just use `Box<dyn Layer>`
     pub fn new(label: Option<String>) -> Self {
@@ -69,7 +69,7 @@ impl LayerGroup {
 
     // NB: original game also accepts a `Wiper` argument which causes the layer to be wrapped in `LayerGroup::TransitionLayer`
     // umineko uses a different transition system, so this is not implemented
-    pub fn add_layer(&mut self, layerbank_id: LayerbankId, layer: UserLayer) {
+    pub fn add_layer(&mut self, layerbank_id: LayerbankId, layer: T) {
         match self
             .layers
             .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
@@ -109,16 +109,14 @@ impl LayerGroup {
         }
     }
 
-    #[expect(unused)] // for future stuff
-    pub fn get_layer(&self, layerbank_id: LayerbankId) -> Option<&UserLayer> {
+    pub fn get_layer(&self, layerbank_id: LayerbankId) -> Option<&T> {
         self.layers
             .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
             .map(|index| &self.layers[index].layer)
             .ok()
     }
 
-    #[expect(unused)] // for future stuff
-    pub fn get_layer_mut(&mut self, layerbank_id: LayerbankId) -> Option<&mut UserLayer> {
+    pub fn get_layer_mut(&mut self, layerbank_id: LayerbankId) -> Option<&mut T> {
         self.layers
             .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
             .map(|index| &mut self.layers[index].layer)
@@ -145,13 +143,13 @@ impl LayerGroup {
     }
 }
 
-struct LayerGroupNewDrawableDelegate<'a> {
-    layers: &'a [LayerItem],
+struct LayerGroupNewDrawableDelegate<'a, T> {
+    layers: &'a [LayerItem<T>],
     layers_to_render: Vec<LayerRenderItem>,
     mask_texture: &'a Option<()>,
 }
 
-impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableDelegate<'_> {
+impl<T> NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableDelegate<'_, T> {
     fn needs_separate_pass(&self, props: &LayerProperties) -> bool {
         if self.mask_texture.is_some() {
             return true;
@@ -163,7 +161,10 @@ impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableDelegate<'_> {
     }
 }
 
-impl NewDrawableLayer for LayerGroupNewDrawableDelegate<'_> {
+impl<T> NewDrawableLayer for LayerGroupNewDrawableDelegate<'_, T>
+where
+    T: Layer,
+{
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,
@@ -233,7 +234,10 @@ impl NewDrawableLayer for LayerGroupNewDrawableDelegate<'_> {
     }
 }
 
-impl AdvUpdatable for LayerGroup {
+impl<T> AdvUpdatable for LayerGroup<T>
+where
+    T: AdvUpdatable,
+{
     fn update(&mut self, context: &AdvUpdateContext) {
         self.props.update(context);
         self.new_drawable_state.update(context);
@@ -252,7 +256,10 @@ impl AdvUpdatable for LayerGroup {
     }
 }
 
-impl Layer for LayerGroup {
+impl<T> Layer for LayerGroup<T>
+where
+    T: DrawableLayer,
+{
     fn get_stencil_bump(&self) -> u8 {
         self.stencil_bump
     }
@@ -441,7 +448,10 @@ impl Layer for LayerGroup {
     }
 }
 
-impl DrawableLayer for LayerGroup {
+impl<T> DrawableLayer for LayerGroup<T>
+where
+    T: DrawableLayer,
+{
     fn properties(&self) -> &LayerProperties {
         &self.props
     }

@@ -1,116 +1,54 @@
+use from_variants::FromVariants;
 use glam::Mat4;
+use shin_core::vm::command::types::LayerbankId;
 use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
     layer::{
         properties::LayerProperties, render_params::TransformParams, screen_layer::ScreenLayer,
-        DrawableLayer, Layer, MessageLayer,
+        DrawableLayer, Layer, LayerGroup, MessageLayer, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 
-#[derive(Clone)]
-pub struct RootLayerGroup {
-    screen_layer: ScreenLayer,
-    message_layer: MessageLayer,
-    // render_target: RenderTarget,
-    properties: LayerProperties,
+const OVERLAY_LAYERBANK: LayerbankId = LayerbankId::new_unchecked(0);
+const MESSAGE_LAYERBANK: LayerbankId = LayerbankId::new_unchecked(1);
+const SCREEN_LAYERBANK: LayerbankId = LayerbankId::new_unchecked(2);
+
+#[derive(Clone, FromVariants)]
+enum RootLayer {
+    // Overlay(OverlayLayer),
+    Message(MessageLayer),
+    Screen(ScreenLayer),
 }
 
-impl RootLayerGroup {
-    pub fn new(
-        // resources: &GpuCommonResources,
-        screen_layer: ScreenLayer,
-        message_layer: MessageLayer,
-    ) -> Self {
-        todo!()
-
-        // let render_target = RenderTarget::new(
-        //     resources,
-        //     resources.current_render_buffer_size(),
-        //     Some("LayerGroup RenderTarget"),
-        // );
-        //
-        // Self {
-        //     screen_layer,
-        //     message_layer,
-        //     render_target,
-        //     properties: LayerProperties::new(),
-        // }
-    }
-
-    pub fn screen_layer(&self) -> &ScreenLayer {
-        &self.screen_layer
-    }
-
-    pub fn screen_layer_mut(&mut self) -> &mut ScreenLayer {
-        &mut self.screen_layer
-    }
-
-    pub fn message_layer(&self) -> &MessageLayer {
-        &self.message_layer
-    }
-
-    pub fn message_layer_mut(&mut self) -> &mut MessageLayer {
-        &mut self.message_layer
-    }
-}
-
-impl AdvUpdatable for RootLayerGroup {
+impl AdvUpdatable for RootLayer {
     fn update(&mut self, context: &AdvUpdateContext) {
-        self.properties.update(context);
-        self.screen_layer.update(context);
-        todo!()
-        // self.message_layer.update(context);
+        match self {
+            // RootLayer::Overlay(overlay) => overlay.update(context),
+            RootLayer::Message(message) => message.update(context),
+            RootLayer::Screen(screen) => screen.update(context),
+        }
     }
 }
 
-// impl Renderable for RootLayerGroup {
-//     fn render<'enc>(
-//         &'enc self,
-//         resources: &'enc GpuCommonResources,
-//         render_pass: &mut wgpu::RenderPass<'enc>,
-//         transform: Mat4,
-//         projection: Mat4,
-//     ) {
-//         {
-//             let mut encoder = resources.start_encoder();
-//             let mut render_pass = self
-//                 .render_target
-//                 .begin_srgb_render_pass(&mut encoder, Some("RootLayerGroup RenderPass"));
-//
-//             let transform = self.properties.compute_transform(transform);
-//             let projection = self.render_target.projection_matrix();
-//
-//             render_pass.push_debug_group("ScreenLayer");
-//             self.screen_layer
-//                 .render(resources, &mut render_pass, transform, projection);
-//             render_pass.pop_debug_group();
-//
-//             render_pass.push_debug_group("MessageLayer");
-//             self.message_layer
-//                 .render(resources, &mut render_pass, transform, projection);
-//             render_pass.pop_debug_group();
-//         }
-//
-//         render_pass.push_debug_group("RootLayerGroup Render");
-//         // TODO use layer pseudo-pipeline
-//         resources.draw_sprite(
-//             render_pass,
-//             self.render_target.vertex_source(),
-//             self.render_target.bind_group(),
-//             projection,
-//         );
-//         render_pass.pop_debug_group();
-//     }
-//
-//     fn resize(&mut self, resources: &GpuCommonResources) {
-//         self.render_target
-//             .resize(resources, resources.current_render_buffer_size());
-//     }
-// }
+impl Layer for RootLayer {
+    fn get_stencil_bump(&self) -> u8 {
+        match self {
+            // RootLayer::Overlay(overlay) => overlay.get_stencil_bump(),
+            RootLayer::Message(message) => message.get_stencil_bump(),
+            RootLayer::Screen(screen) => screen.get_stencil_bump(),
+        }
+    }
 
-impl Layer for RootLayerGroup {
+    fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
+        match self {
+            // RootLayer::Overlay(overlay) => overlay.pre_render(context, transform),
+            RootLayer::Message(message) => message.pre_render(context, transform),
+            RootLayer::Screen(screen) => screen.pre_render(context, transform),
+        }
+    }
+
     fn render(
         &self,
         pass: &mut RenderPass,
@@ -118,16 +56,111 @@ impl Layer for RootLayerGroup {
         stencil_ref: u8,
         pass_kind: PassKind,
     ) {
-        todo!()
+        match self {
+            // RootLayer::Overlay(overlay) => overlay.render(pass, transform, stencil_ref, pass_kind),
+            RootLayer::Message(message) => message.render(pass, transform, stencil_ref, pass_kind),
+            RootLayer::Screen(screen) => screen.render(pass, transform, stencil_ref, pass_kind),
+        }
+    }
+}
+
+impl DrawableLayer for RootLayer {
+    fn properties(&self) -> &LayerProperties {
+        match self {
+            // RootLayer::Overlay(overlay) => overlay.properties(),
+            RootLayer::Message(message) => message.properties(),
+            RootLayer::Screen(screen) => screen.properties(),
+        }
+    }
+
+    fn properties_mut(&mut self) -> &mut LayerProperties {
+        match self {
+            // RootLayer::Overlay(overlay) => overlay.properties_mut(),
+            RootLayer::Message(message) => message.properties_mut(),
+            RootLayer::Screen(screen) => screen.properties_mut(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct RootLayerGroup {
+    inner: LayerGroup<RootLayer>,
+}
+
+impl RootLayerGroup {
+    pub fn new() -> Self {
+        let mut inner = LayerGroup::new(Some("RootLayerGroup".to_string()));
+        inner.add_layer(MESSAGE_LAYERBANK, MessageLayer::new().into());
+        inner.add_layer(SCREEN_LAYERBANK, ScreenLayer::new(4).into());
+
+        Self { inner }
+    }
+
+    pub fn screen_layer(&self) -> &ScreenLayer {
+        let Some(RootLayer::Screen(screen)) = self.inner.get_layer(SCREEN_LAYERBANK) else {
+            unreachable!();
+        };
+
+        screen
+    }
+
+    pub fn screen_layer_mut(&mut self) -> &mut ScreenLayer {
+        let Some(RootLayer::Screen(screen)) = self.inner.get_layer_mut(SCREEN_LAYERBANK) else {
+            unreachable!();
+        };
+
+        screen
+    }
+
+    pub fn message_layer(&self) -> &MessageLayer {
+        let Some(RootLayer::Message(message)) = self.inner.get_layer(MESSAGE_LAYERBANK) else {
+            unreachable!();
+        };
+
+        message
+    }
+
+    pub fn message_layer_mut(&mut self) -> &mut MessageLayer {
+        let Some(RootLayer::Message(message)) = self.inner.get_layer_mut(MESSAGE_LAYERBANK) else {
+            unreachable!();
+        };
+
+        message
+    }
+}
+
+impl AdvUpdatable for RootLayerGroup {
+    fn update(&mut self, context: &AdvUpdateContext) {
+        self.inner.update(context);
+    }
+}
+
+impl Layer for RootLayerGroup {
+    fn get_stencil_bump(&self) -> u8 {
+        self.inner.get_stencil_bump()
+    }
+
+    fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
+        self.inner.pre_render(context, transform);
+    }
+
+    fn render(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        self.inner.render(pass, transform, stencil_ref, pass_kind);
     }
 }
 
 impl DrawableLayer for RootLayerGroup {
     fn properties(&self) -> &LayerProperties {
-        &self.properties
+        self.inner.properties()
     }
 
     fn properties_mut(&mut self) -> &mut LayerProperties {
-        &mut self.properties
+        self.inner.properties_mut()
     }
 }

@@ -24,7 +24,7 @@ use crate::{
         render_layer,
         render_params::TransformParams,
         user::{PictureLayer, TileLayer},
-        DrawableLayer, Layer as _, PreRenderContext, ScreenLayer,
+        DrawableLayer, Layer as _, PreRenderContext, RootLayerGroup, ScreenLayer,
     },
     update::{AdvUpdatable as _, AdvUpdateContext},
     wiper::DefaultWiper,
@@ -52,7 +52,7 @@ pub struct App {
     #[expect(unused)] // for future stuff
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
-    screen_layer: ScreenLayer,
+    root_layer_group: RootLayerGroup,
 }
 
 impl ShinApp for App {
@@ -111,7 +111,9 @@ impl ShinApp for App {
                 .fast_forward_to(800.0);
         }
 
-        let mut screen_layer = ScreenLayer::new(4);
+        let mut root_layer_group = RootLayerGroup::new();
+
+        let screen_layer = root_layer_group.screen_layer_mut();
 
         let page_layer = screen_layer.page_layer_mut();
 
@@ -127,6 +129,8 @@ impl ShinApp for App {
 
             tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(0.5)));
             tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
+            tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(0.5)));
+            tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
 
             // tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(1.0)));
             // tweener.enqueue(0.0, Tween::linear(Ticks::from_seconds(1.0)));
@@ -140,7 +144,7 @@ impl ShinApp for App {
         Ok(Self {
             audio_manager,
             asset_server,
-            screen_layer,
+            root_layer_group,
         })
     }
 
@@ -159,14 +163,15 @@ impl ShinApp for App {
         }
 
         if input[AppAction::Act].is_clicked {
-            self.screen_layer.pageback(false);
-            self.screen_layer
+            let screen_layer = self.root_layer_group.screen_layer_mut();
+
+            screen_layer.pageback(false);
+            screen_layer
                 .page_layer_mut()
                 .properties_mut()
                 .property_tweener_mut(LayerProperty::MulColorGreen)
                 .fast_forward_to(2000.0);
-            self.screen_layer
-                .apply_transition(Some(DefaultWiper::new(Ticks::from_seconds(5.0)).into()));
+            screen_layer.apply_transition(Some(DefaultWiper::new(Ticks::from_seconds(1.0)).into()));
         }
 
         let update_context = AdvUpdateContext {
@@ -175,7 +180,7 @@ impl ShinApp for App {
             are_animations_allowed: true,
         };
 
-        self.screen_layer.update(&update_context);
+        self.root_layer_group.update(&update_context);
 
         let transform = TransformParams::default();
 
@@ -199,7 +204,7 @@ impl ShinApp for App {
             encoder: &mut encoder,
         };
 
-        self.screen_layer
+        self.root_layer_group
             .pre_render(&mut pre_render_context, &transform);
 
         context.wgpu.queue.submit(std::iter::once(encoder.finish()));
@@ -208,6 +213,12 @@ impl ShinApp for App {
     fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
         let transform = TransformParams::default();
 
-        render_layer(pass, &transform, &self.screen_layer, FloatColor4::BLACK, 0);
+        render_layer(
+            pass,
+            &transform,
+            &self.root_layer_group,
+            FloatColor4::BLACK,
+            0,
+        );
     }
 }
