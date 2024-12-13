@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use shin_core::time::Ticks;
 
-use crate::asset::system::AssetServer;
+use crate::{asset::system::AssetServer, layer::PreRenderContext};
 
-pub struct UpdateContext<'a> {
+pub struct UpdateContext<'immutable, 'pre_render, 'pipelines, 'dynbuffer, 'encoder> {
     pub delta_time: Ticks,
-    pub asset_server: &'a Arc<AssetServer>,
+    pub asset_server: &'immutable Arc<AssetServer>,
+    pub pre_render: &'pre_render mut PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder>,
 }
 
 pub struct AdvUpdateContext<'a> {
@@ -19,7 +20,7 @@ pub struct AdvUpdateContext<'a> {
 impl<'a> AdvUpdateContext<'a> {
     #[expect(unused)] // for future stuff
     pub fn from_update_context(
-        context: &'a UpdateContext<'a>,
+        context: &'a UpdateContext<'a, '_, '_, '_, '_>,
         are_animations_allowed: bool,
     ) -> Self {
         Self {
@@ -31,12 +32,12 @@ impl<'a> AdvUpdateContext<'a> {
 }
 
 pub trait Updatable {
-    fn update(&mut self, context: &UpdateContext);
+    fn update(&mut self, context: &mut UpdateContext);
 }
 
 impl<T: Updatable> Updatable for Box<T> {
     #[inline]
-    fn update(&mut self, context: &UpdateContext) {
+    fn update(&mut self, context: &mut UpdateContext) {
         (**self).update(context)
     }
 }

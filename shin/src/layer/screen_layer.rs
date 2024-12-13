@@ -246,6 +246,7 @@ impl ScreenLayer {
         }
     }
 
+    #[expect(unused)] // for future stuff
     pub fn pageback(&mut self, immediate: bool) {
         if immediate {
             todo!()
@@ -259,6 +260,7 @@ impl ScreenLayer {
         // We do not implement `LayerGroup`-level transitions, so this is skipped
     }
 
+    #[expect(unused)] // for future stuff
     pub fn apply_transition(&mut self, wiper: Option<AnyWiper>) {
         let Some(pending_layer) = self.pending_layer.take() else {
             return;

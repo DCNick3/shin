@@ -185,7 +185,7 @@ impl Messagebox {
 }
 
 impl Updatable for Messagebox {
-    fn update(&mut self, _context: &UpdateContext) {}
+    fn update(&mut self, _context: &mut UpdateContext) {}
 }
 
 // impl Renderable for Messagebox {

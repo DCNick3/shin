@@ -65,6 +65,7 @@ impl TimedWiper for DefaultWiperImpl {
 pub type DefaultWiper = TimedWiperWrapper<DefaultWiperImpl>;
 
 impl DefaultWiper {
+    #[expect(unused)] // for future stuff
     pub fn new(duration: Ticks) -> Self {
         Self::from_inner(DefaultWiperImpl, duration)
     }

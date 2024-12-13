@@ -5,8 +5,9 @@ use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
     layer::{
-        properties::LayerProperties, render_params::TransformParams, screen_layer::ScreenLayer,
-        DrawableLayer, Layer, LayerGroup, MessageLayer, PreRenderContext,
+        properties::LayerProperties, render_layer_without_bg, render_params::TransformParams,
+        screen_layer::ScreenLayer, DrawableLayer, Layer, LayerGroup, MessageLayer,
+        PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };

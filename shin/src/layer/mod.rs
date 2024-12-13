@@ -251,12 +251,14 @@ pub fn render_layers_default_cb(
     }
 }
 
+#[inline]
 pub fn render_layers_with_bg<F>(
     pass: &mut RenderPass,
     transform: &TransformParams,
     // TODO: maybe use AnyLayer here?
     layers: &[&dyn Layer],
-    render_bg_cb: Option<F>,
+    render_bg_cb: F,
+    is_render_bg_cb_noop: bool,
     mut stencil_ref: u8,
 ) -> u8
 where
@@ -270,7 +272,7 @@ where
 
     let orig_stencil_ref = stencil_ref;
 
-    if render_bg_cb.is_some() {
+    if !is_render_bg_cb_noop {
         stencil_ref += 1;
     }
 
@@ -283,15 +285,22 @@ where
         layer.render(pass, transform, stencil_ref, PassKind::Opaque);
     }
 
-    if let Some(render_bg_cb) = render_bg_cb {
-        render_bg_cb(pass, transform, orig_stencil_ref);
-    }
+    render_bg_cb(pass, transform, orig_stencil_ref);
 
     for &(layer, stencil_ref) in &render_items {
         layer.render(pass, transform, stencil_ref, PassKind::Transparent);
     }
 
     stencil_ref
+}
+
+pub fn render_layer_without_bg(
+    pass: &mut RenderPass,
+    transform: &TransformParams,
+    layers: &dyn Layer,
+    stencil_ref: u8,
+) {
+    render_layers_with_bg(pass, transform, &[layers], |_, _, _| {}, true, stencil_ref);
 }
 
 #[expect(unused)] // for future stuff
@@ -306,7 +315,8 @@ pub fn render_layers(
         pass,
         transform,
         layers,
-        Some(render_layers_default_cb(color)),
+        render_layers_default_cb(color),
+        false,
         stencil_ref,
     );
 }
@@ -322,7 +332,8 @@ pub fn render_layer(
         pass,
         transform,
         &[layer],
-        Some(render_layers_default_cb(background_color)),
+        render_layers_default_cb(background_color),
+        false,
         stencil_ref,
     );
 }

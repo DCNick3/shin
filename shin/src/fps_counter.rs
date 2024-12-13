@@ -20,7 +20,7 @@ impl FpsCounter {
 }
 
 impl Updatable for FpsCounter {
-    fn update(&mut self, context: &UpdateContext) {
+    fn update(&mut self, context: &mut UpdateContext) {
         todo!();
 
         // self.values.push_back(context.time_delta());

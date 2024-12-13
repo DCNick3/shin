@@ -2,31 +2,20 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Context;
 use enum_map::{Enum, EnumMap};
-use glam::vec4;
 use shin_audio::AudioManager;
-use shin_core::{
-    time::{Ticks, Tween},
-    vm::command::types::{LayerId, LayerProperty, LayerbankId, PlaneId},
-};
+use shin_core::time::Ticks;
 use shin_input::{inputs::MouseButton, Action, ActionState, RawInputState};
-use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4};
+use shin_render::render_pass::RenderPass;
 use shin_window::{AppContext, RenderContext, ShinApp};
 use tracing::debug;
 use winit::keyboard::KeyCode;
 
 use crate::{
-    asset::{
-        picture::Picture,
-        system::{locate_assets, AssetLoadContext, AssetServer},
-    },
+    adv::{assets::AdvAssets, Adv},
+    asset::system::{locate_assets, AssetLoadContext, AssetServer},
     cli::Cli,
-    layer::{
-        render_layer,
-        render_params::TransformParams,
-        user::{PictureLayer, TileLayer},
-        DrawableLayer, Layer as _, PreRenderContext, RootLayerGroup, ScreenLayer,
-    },
-    update::{AdvUpdatable as _, AdvUpdateContext},
+    layer::PreRenderContext,
+    update::{Updatable as _, UpdateContext},
     wiper::DefaultWiper,
 };
 
@@ -52,7 +41,7 @@ pub struct App {
     #[expect(unused)] // for future stuff
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
-    root_layer_group: RootLayerGroup,
+    adv: Adv,
 }
 
 impl ShinApp for App {
@@ -75,76 +64,79 @@ impl ShinApp for App {
             },
         ));
 
-        let picture_name = "/picture/text001.pic";
+        // TODO: do not block the game loop (?)
+        let adv_assets = shin_tasks::block_on(AdvAssets::load(&asset_server)).unwrap();
 
-        let picture = asset_server.load_sync::<Picture>(picture_name).unwrap();
+        let adv = Adv::new(audio_manager.clone(), adv_assets, 0, 42);
 
-        let mut tile_layer_bottom = TileLayer::new(
-            FloatColor4::PASTEL_PINK,
-            vec4(-1088.0, -612.0, 2176.0, 1224.0),
-        );
-        tile_layer_bottom
-            .properties_mut()
-            .set_layer_id(LayerId::new(1));
-
-        let mut tile_layer_top = TileLayer::new(
-            FloatColor4::PASTEL_GREEN,
-            vec4(-300.0, -300.0, 600.0, 600.0),
-        );
-        {
-            let props = tile_layer_top.properties_mut();
-            props.set_layer_id(LayerId::new(3));
-            props
-                .property_tweener_mut(LayerProperty::MulColorAlpha)
-                .fast_forward_to(200.0);
-        }
-
-        let mut picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
-        {
-            let props = picture_layer.properties_mut();
-            props.set_layer_id(LayerId::new(2));
-            props
-                .property_tweener_mut(LayerProperty::TranslateZ)
-                .fast_forward_to(1500.0);
-            props
-                .property_tweener_mut(LayerProperty::MulColorAlpha)
-                .fast_forward_to(800.0);
-        }
-
-        let mut root_layer_group = RootLayerGroup::new();
-
-        let screen_layer = root_layer_group.screen_layer_mut();
-
-        let page_layer = screen_layer.page_layer_mut();
-
-        let layer_group = page_layer.get_plane_mut(PlaneId::new(0));
-        layer_group.add_layer(LayerbankId::new(1), tile_layer_bottom.into());
-        layer_group.add_layer(LayerbankId::new(0), picture_layer.into());
-        layer_group.add_layer(LayerbankId::new(2), tile_layer_top.into());
-
-        {
-            let tweener = page_layer
-                .properties_mut()
-                .property_tweener_mut(LayerProperty::MulColorRed);
-
-            tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(0.5)));
-            tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
-            tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(0.5)));
-            tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
-
-            // tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(1.0)));
-            // tweener.enqueue(0.0, Tween::linear(Ticks::from_seconds(1.0)));
-            // tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(1.0)));
-            // tweener.enqueue(0.0, Tween::linear(Ticks::from_seconds(1.0)));
-            // tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
-        }
-
-        // let layer_group = page_layer.get_plane_mut(PlaneId::new(1));
+        // let picture_name = "/picture/text001.pic";
+        //
+        // let picture = asset_server.load_sync::<Picture>(picture_name).unwrap();
+        //
+        // let mut tile_layer_bottom = TileLayer::new(
+        //     FloatColor4::PASTEL_PINK,
+        //     vec4(-1088.0, -612.0, 2176.0, 1224.0),
+        // );
+        // tile_layer_bottom
+        //     .properties_mut()
+        //     .set_layer_id(LayerId::new(1));
+        //
+        // let mut tile_layer_top = TileLayer::new(
+        //     FloatColor4::PASTEL_GREEN,
+        //     vec4(-300.0, -300.0, 600.0, 600.0),
+        // );
+        // {
+        //     let props = tile_layer_top.properties_mut();
+        //     props.set_layer_id(LayerId::new(3));
+        //     props
+        //         .property_tweener_mut(LayerProperty::MulColorAlpha)
+        //         .fast_forward_to(200.0);
+        // }
+        //
+        // let mut picture_layer = PictureLayer::new(picture, Some(picture_name.to_string()));
+        // {
+        //     let props = picture_layer.properties_mut();
+        //     props.set_layer_id(LayerId::new(2));
+        //     props
+        //         .property_tweener_mut(LayerProperty::TranslateZ)
+        //         .fast_forward_to(1500.0);
+        //     props
+        //         .property_tweener_mut(LayerProperty::MulColorAlpha)
+        //         .fast_forward_to(800.0);
+        // }
+        //
+        // let mut root_layer_group = RootLayerGroup::new();
+        //
+        // let screen_layer = root_layer_group.screen_layer_mut();
+        //
+        // let page_layer = screen_layer.page_layer_mut();
+        //
+        // let layer_group = page_layer.get_plane_mut(PlaneId::new(0));
+        // layer_group.add_layer(LayerbankId::new(1), tile_layer_bottom.into());
+        // layer_group.add_layer(LayerbankId::new(0), picture_layer.into());
+        // layer_group.add_layer(LayerbankId::new(2), tile_layer_top.into());
+        //
+        // {
+        //     let tweener = page_layer
+        //         .properties_mut()
+        //         .property_tweener_mut(LayerProperty::MulColorRed);
+        //
+        //     tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(0.5)));
+        //     tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
+        //     tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(0.5)));
+        //     tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
+        //
+        //     // tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(1.0)));
+        //     // tweener.enqueue(0.0, Tween::linear(Ticks::from_seconds(1.0)));
+        //     // tweener.enqueue(2000.0, Tween::linear(Ticks::from_seconds(1.0)));
+        //     // tweener.enqueue(0.0, Tween::linear(Ticks::from_seconds(1.0)));
+        //     // tweener.enqueue(1000.0, Tween::linear(Ticks::from_seconds(0.5)));
+        // }
 
         Ok(Self {
             audio_manager,
             asset_server,
-            root_layer_group,
+            adv,
         })
     }
 
@@ -162,27 +154,17 @@ impl ShinApp for App {
             context.winit.toggle_fullscreen();
         }
 
-        if input[AppAction::Act].is_clicked {
-            let screen_layer = self.root_layer_group.screen_layer_mut();
-
-            screen_layer.pageback(false);
-            screen_layer
-                .page_layer_mut()
-                .properties_mut()
-                .property_tweener_mut(LayerProperty::MulColorGreen)
-                .fast_forward_to(2000.0);
-            screen_layer.apply_transition(Some(DefaultWiper::new(Ticks::from_seconds(1.0)).into()));
-        }
-
-        let update_context = AdvUpdateContext {
-            delta_time: Ticks::from_duration(elapsed_time),
-            asset_server: &self.asset_server,
-            are_animations_allowed: true,
-        };
-
-        self.root_layer_group.update(&update_context);
-
-        let transform = TransformParams::default();
+        // if input[AppAction::Act].is_clicked {
+        //     let screen_layer = self.root_layer_group.screen_layer_mut();
+        //
+        //     screen_layer.pageback(false);
+        //     screen_layer
+        //         .page_layer_mut()
+        //         .properties_mut()
+        //         .property_tweener_mut(LayerProperty::MulColorGreen)
+        //         .fast_forward_to(2000.0);
+        //     screen_layer.apply_transition(Some(DefaultWiper::new(Ticks::from_seconds(1.0)).into()));
+        // }
 
         let mut encoder =
             context
@@ -204,21 +186,53 @@ impl ShinApp for App {
             encoder: &mut encoder,
         };
 
-        self.root_layer_group
-            .pre_render(&mut pre_render_context, &transform);
+        let mut update_context = UpdateContext {
+            delta_time: Ticks::from_duration(elapsed_time),
+            asset_server: &self.asset_server,
+            pre_render: &mut pre_render_context,
+        };
+
+        self.adv.update(&mut update_context);
+
+        // let update_context = AdvUpdateContext {
+        //     delta_time: Ticks::from_duration(elapsed_time),
+        //     asset_server: &self.asset_server,
+        //     are_animations_allowed: true,
+        // };
+        //
+        // self.root_layer_group.update(&update_context);
+        //
+        // let transform = TransformParams::default();
+        //
+        // let mut encoder =
+        //     context
+        //         .wgpu
+        //         .device
+        //         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        //             label: Some("App::update"),
+        //         });
+        //
+        // let mut pre_render_context = PreRenderContext {
+        //     device: &context.wgpu.device,
+        //     queue: &context.wgpu.queue,
+        //     resize_source: &context.winit.resize_source,
+        //     sampler_store: &context.render.sampler_store,
+        //     depth_stencil: context.render.canvas_depth_stencil_buffer.get_target_view(),
+        //
+        //     pipeline_storage: &mut context.render.pipelines,
+        //     dynamic_buffer: &mut context.render.dynamic_buffer,
+        //     encoder: &mut encoder,
+        // };
+        //
+        // self.root_layer_group
+        //     .pre_render(&mut pre_render_context, &transform);
 
         context.wgpu.queue.submit(std::iter::once(encoder.finish()));
     }
 
     fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
-        let transform = TransformParams::default();
+        self.adv.render(pass);
 
-        render_layer(
-            pass,
-            &transform,
-            &self.root_layer_group,
-            FloatColor4::BLACK,
-            0,
-        );
+        // render_layer(pass, &transform, &self.adv, FloatColor4::BLACK, 0);
     }
 }

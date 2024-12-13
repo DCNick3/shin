@@ -73,6 +73,7 @@ impl LayerProperties {
         self.layer_id
     }
 
+    #[expect(unused)] // for future stuff
     pub fn set_layer_id(&mut self, layer_id: LayerId) {
         self.layer_id = layer_id;
     }
