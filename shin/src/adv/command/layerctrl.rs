@@ -1,19 +1,54 @@
 use shin_core::time::{Easing, Tween};
 
 use super::prelude::*;
+use crate::{adv::vm_state::layers::LayerOperationTargetList, layer::LayerProperties};
 
 impl StartableCommand for command::runtime::LAYERCTRL {
-    fn apply_state(&self, state: &mut VmState) {
+    type StateInfo = LayerOperationTargetList;
+    fn apply_state(&self, state: &mut VmState) -> LayerOperationTargetList {
+        let layers = &mut state.layers;
         let (target_value, _time, _flags, _easing_param, ..) = self.params;
 
-        state
-            .layers
-            .get_vlayer_mut(self.layer_id)
-            .for_each(|layer| {
-                layer
+        let mut affected_layers = Default::default();
+
+        match self.layer_id.repr() {
+            VLayerIdRepr::RootLayerGroup => {
+                layers.root_layer_group.get_property(self.property_id);
+            }
+            VLayerIdRepr::ScreenLayer => {
+                layers.screen_layer.get_property(self.property_id);
+            }
+            VLayerIdRepr::PageLayer => {
+                layers.page_layer.get_property(self.property_id);
+            }
+            VLayerIdRepr::PlaneLayerGroup => {
+                layers.plane_layergroups[layers.current_plane]
                     .properties
-                    .set_property(self.property_id, target_value);
-            });
+                    .get_property(self.property_id);
+            }
+            VLayerIdRepr::Selected => {
+                affected_layers = layers.layerbank_allocator.layers_in_range(
+                    layers.current_plane,
+                    layers.layer_selection.from,
+                    layers.layer_selection.to,
+                )
+            }
+            VLayerIdRepr::Layer(layer_id) => {
+                affected_layers = layers.layerbank_allocator.layers_in_range(
+                    layers.current_plane,
+                    layer_id,
+                    layer_id,
+                )
+            }
+        }
+
+        for &target in &affected_layers {
+            layers.layerbanks[target.layerbank]
+                .properties
+                .set_property(self.property_id, target_value);
+        }
+
+        affected_layers
     }
 
     fn start(
@@ -21,9 +56,12 @@ impl StartableCommand for command::runtime::LAYERCTRL {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
+        affected_layers: LayerOperationTargetList,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         let (target_value, duration, flags, easing_param, ..) = self.params;
+
+        // TODO: create a ¿back layer group? if it doesn't exist yet
 
         if flags.unused_1() != 0 || flags.unused_2() != 0 || flags.unused_3() != 0 {
             panic!("LAYERCTRL: unused flags are set: {:?}", flags);
@@ -40,7 +78,7 @@ impl StartableCommand for command::runtime::LAYERCTRL {
             panic!("LAYERCTRL: both ff_to_current and ff_to_target flags are set");
         }
         if flags.prohibit_fast_forward() {
-            warn!("LAYERCTRL: prohibit_fast_forwward is set, but not supported");
+            warn!("LAYERCTRL: prohibit_fast_forward is set, but not supported");
         }
         if flags.ignore_wait() {
             warn!("LAYERCTRL: ignore_wait is set, but not supported");
@@ -57,10 +95,8 @@ impl StartableCommand for command::runtime::LAYERCTRL {
         };
 
         let mut changed = false;
-        adv_state.get_vlayer_mut(vm_state, self.layer_id).for_each(|mut layer| {
-            let tweener = layer
-                .properties_mut()
-                .property_tweener_mut(self.property_id);
+        let mut apply_to_properties = |properties: &mut LayerProperties| {
+            let tweener = properties.property_tweener_mut(self.property_id);
 
             let from_value = tweener.target_value();
             let to_value = target_value as f32;
@@ -89,7 +125,37 @@ impl StartableCommand for command::runtime::LAYERCTRL {
             }
 
             tweener.enqueue(target_value as f32, Tween { duration, easing })
-        });
+        };
+
+        match self.layer_id.repr() {
+            VLayerIdRepr::RootLayerGroup => {
+                apply_to_properties(adv_state.root_layer_group_mut().properties_mut());
+            }
+            VLayerIdRepr::ScreenLayer => {
+                apply_to_properties(adv_state.screen_layer_mut().properties_mut());
+            }
+            VLayerIdRepr::PageLayer => {
+                apply_to_properties(adv_state.page_layer_mut().properties_mut());
+            }
+            VLayerIdRepr::PlaneLayerGroup => {
+                apply_to_properties(
+                    adv_state
+                        .plane_layer_group_mut(vm_state.layers.current_plane)
+                        .properties_mut(),
+                );
+            }
+            VLayerIdRepr::Selected | VLayerIdRepr::Layer(_) => {
+                for &target in &affected_layers {
+                    apply_to_properties(
+                        adv_state
+                            .plane_layer_group_mut(vm_state.layers.current_plane)
+                            .get_layer_mut(target.layerbank)
+                            .expect("BUG: layerbank not found")
+                            .properties_mut(),
+                    );
+                }
+            }
+        }
 
         if !self.property_id.is_implemented() && changed {
             warn!(

@@ -2852,6 +2852,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash32"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47d60b12902ba28e2730cd37e95b8c9223af2808df9e902d4df49588d1470606"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2899,6 +2908,16 @@ dependencies = [
  "thiserror",
  "widestring",
  "winapi",
+]
+
+[[package]]
+name = "heapless"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bfb9eb618601c89945a70e254898da93b13be0388091d42117462b265bb3fad"
+dependencies = [
+ "hash32",
+ "stable_deref_trait",
 ]
 
 [[package]]
@@ -5474,6 +5493,7 @@ dependencies = [
  "from_variants",
  "futures",
  "glam 0.28.0",
+ "heapless",
  "image",
  "itertools 0.13.0",
  "kira",
@@ -5490,7 +5510,7 @@ dependencies = [
  "shin-tasks",
  "shin-video",
  "shin-window",
- "smallvec 1.9.0",
+ "smallvec 2.0.0-alpha.8",
  "strum",
  "tracing",
  "tracing-subscriber",
@@ -5576,7 +5596,7 @@ dependencies = [
  "shin-derive",
  "shin-primitives",
  "shin-tasks",
- "smallvec 1.9.0",
+ "smallvec 2.0.0-alpha.8",
  "smartstring",
  "snafu",
  "strum",
@@ -5837,14 +5857,15 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.9.0"
-source = "git+https://github.com/servo/rust-smallvec.git?rev=98b49e4d974c20f6d44a0804071074f267be0d88#98b49e4d974c20f6d44a0804071074f267be0d88"
-
-[[package]]
-name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+
+[[package]]
+name = "smallvec"
+version = "2.0.0-alpha.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "abfdb29d53c8bdb1b13f07f3b8895ba7efef32412fb23f57246f238ed586d369"
 
 [[package]]
 name = "smartstring"
@@ -5987,6 +6008,12 @@ checksum = "eda41003dc44290527a59b13432d4a0379379fa074b70174882adfbdfd917844"
 dependencies = [
  "bitflags 2.6.0",
 ]
+
+[[package]]
+name = "stable_deref_trait"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "static_assertions"

@@ -4,8 +4,8 @@ pub mod types;
 
 use shin_derive::Command;
 use types::{
-    AudioWaitStatus, LayerCtrlFlags, LayerId, LayerProperty, LayerType, MaskFlags, MessageboxStyle,
-    Pan, VLayerId, Volume,
+    AudioWaitStatus, LayerCtrlFlags, LayerId, LayerLoadFlags, LayerProperty, LayerType, MaskFlags,
+    MessageboxStyle, Pan, VLayerId, Volume,
 };
 
 use crate::{
@@ -258,19 +258,13 @@ pub enum Command {
     LAYERLOAD {
         layer_id: NumberSpec<VLayerId>,
         layer_type: NumberSpec<LayerType>,
-        /// Flags modifying LAYERLOAD behavior. Unused in umi
-        ///
-        /// Bit 0 - prevents setting some flag in ADV
-        /// Bit 1 - keep previous layer parameters (requires the loaded layer to be the same type and params)
-        /// Bit 2 - individually wipe the layer when adding it to the LayerGroup and wait for wipe completion. Ignored if PAGEBACK is active
-        /// Bit 3 - prevents a copy of layer properties being made?
-        flags: NumberSpec,
+        flags: NumberSpec<LayerLoadFlags>,
         params: BitmaskNumberArray,
     },
     #[cmd(opcode = 0xc2u8)]
     LAYERUNLOAD {
         layer_id: NumberSpec<VLayerId>,
-        delay_time: NumberSpec,
+        delay_time: NumberSpec<Ticks>,
     },
     /// Change layer property, possibly through a transition.
     #[cmd(opcode = 0xc3u8)]

@@ -15,7 +15,7 @@ use shin_core::{
     vm::{
         breakpoint::BreakpointObserver,
         command::{
-            types::{LayerId, VLayerId, VLayerIdRepr, PLANES_COUNT},
+            types::{LayerId, PlaneId, VLayerId, VLayerIdRepr, PLANES_COUNT},
             CommandResult,
         },
         Scripter,
@@ -34,8 +34,8 @@ use crate::{
     audio::{BgmPlayer, SePlayer},
     layer::{
         render_layer_without_bg, render_params::TransformParams, user::UserLayer, AnyLayer,
-        AnyLayerMut, Layer as _, LayerGroup, MessageLayer, PreRenderContext, RootLayerGroup,
-        ScreenLayer,
+        AnyLayerMut, Layer as _, LayerGroup, MessageLayer, PageLayer, PreRenderContext,
+        RootLayerGroup, ScreenLayer,
     },
     render::overlay::{OverlayCollector, OverlayVisitable},
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
@@ -172,12 +172,11 @@ impl Updatable for Adv {
                 self.scripter.run(result).expect("scripter run failed")
             };
 
-            runtime_command.apply_state(&mut self.vm_state);
-
-            match runtime_command.start(
+            match command::apply_command_state_and_start(
+                runtime_command,
                 context,
                 &self.scenario,
-                &self.vm_state,
+                &mut self.vm_state,
                 &mut self.adv_state,
             ) {
                 CommandStartResult::Continue(r) => result = r,
@@ -290,130 +289,30 @@ impl AdvState {
         }
     }
 
-    pub fn current_plane_layer_group(&self, vm_state: &VmState) -> &LayerGroup {
+    pub fn root_layer_group_mut(&mut self) -> &mut RootLayerGroup {
+        &mut self.root_layer_group
+    }
+
+    pub fn screen_layer_mut(&mut self) -> &mut ScreenLayer {
+        self.root_layer_group.screen_layer_mut()
+    }
+
+    pub fn page_layer_mut(&mut self) -> &mut PageLayer {
+        self.root_layer_group.screen_layer_mut().page_layer_mut()
+    }
+
+    pub fn plane_layer_group(&self, plane: PlaneId) -> &LayerGroup {
         self.root_layer_group
             .screen_layer()
             .page_layer()
-            .get_plane(vm_state.layers.current_plane)
+            .get_plane(plane)
     }
 
-    pub fn current_plane_layer_group_mut(&mut self, vm_state: &VmState) -> &mut LayerGroup {
+    pub fn plane_layer_group_mut(&mut self, plane: PlaneId) -> &mut LayerGroup {
         self.root_layer_group
             .screen_layer_mut()
             .page_layer_mut()
-            .get_plane_mut(vm_state.layers.current_plane)
-    }
-
-    pub fn get_layer(&self, vm_state: &VmState, id: LayerId) -> Option<&UserLayer> {
-        todo!()
-
-        // let layer = self.current_plane_layer_group(vm_state).get_layer(id);
-        // if let Some(layer) = layer {
-        //     Some(layer)
-        // } else {
-        //     None
-        // }
-    }
-
-    pub fn get_layer_mut(&mut self, vm_state: &VmState, id: LayerId) -> Option<&mut UserLayer> {
-        todo!()
-
-        // let layer = self
-        //     .current_plane_layer_group_mut(vm_state)
-        //     .get_layer_mut(id);
-        // if let Some(layer) = layer {
-        //     Some(layer)
-        // } else {
-        //     None
-        // }
-    }
-
-    #[allow(unused)]
-    pub fn get_vlayer(&self, vm_state: &VmState, id: VLayerId) -> impl Iterator<Item = AnyLayer> {
-        // I could implement a special iterator for this, but it's not really worth it IMO
-        // small vector will save A LOT of complexity
-        let result: SmallVec<AnyLayer, { ITER_VLAYER_SMALL_VECTOR_SIZE }> = match id.repr() {
-            VLayerIdRepr::RootLayerGroup => smallvec![(&self.root_layer_group).into()],
-            VLayerIdRepr::ScreenLayer => smallvec![self.root_layer_group.screen_layer().into()],
-            VLayerIdRepr::PageLayer => {
-                smallvec![self.root_layer_group.screen_layer().page_layer().into()]
-            }
-            VLayerIdRepr::PlaneLayerGroup => {
-                smallvec![self.current_plane_layer_group(vm_state).into()]
-            }
-            VLayerIdRepr::Selected => {
-                if let Some(selection) = vm_state.layers.layer_selection {
-                    todo!()
-                    // self.current_plane_layer_group(vm_state)
-                    //     .get_layers(selection)
-                    //     .map(|v| v.into())
-                    //     .collect::<SmallVec<AnyLayer, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
-                } else {
-                    warn!("AdvState::iter_vlayer: no layer selected");
-                    smallvec![]
-                }
-            }
-            VLayerIdRepr::Layer(l) => {
-                let layer = self.get_layer(vm_state, l);
-                if let Some(layer) = layer {
-                    smallvec![layer.into()]
-                } else {
-                    warn!("AdvState::iter_vlayer: layer not found: {:?}", l);
-                    smallvec![]
-                }
-            }
-        };
-
-        result.into_iter()
-    }
-
-    pub fn get_vlayer_mut(
-        &mut self,
-        vm_state: &VmState,
-        id: VLayerId,
-    ) -> impl Iterator<Item = AnyLayerMut> {
-        let result: SmallVec<AnyLayerMut, { ITER_VLAYER_SMALL_VECTOR_SIZE }> = match id.repr() {
-            VLayerIdRepr::RootLayerGroup => smallvec![(&mut self.root_layer_group).into()],
-            VLayerIdRepr::ScreenLayer => smallvec![self.root_layer_group.screen_layer_mut().into()],
-            VLayerIdRepr::PageLayer => {
-                smallvec![self
-                    .root_layer_group
-                    .screen_layer_mut()
-                    .page_layer_mut()
-                    .into()]
-            }
-            VLayerIdRepr::PlaneLayerGroup => {
-                smallvec![self
-                    .root_layer_group
-                    .screen_layer_mut()
-                    .page_layer_mut()
-                    .get_plane_mut(vm_state.layers.current_plane)
-                    .into()]
-            }
-            VLayerIdRepr::Selected => {
-                if let Some(selection) = vm_state.layers.layer_selection {
-                    todo!()
-                    // self.current_plane_layer_group_mut(vm_state)
-                    //     .get_layers_mut(selection)
-                    //     .map(|v| v.into())
-                    //     .collect::<SmallVec<AnyLayerMut, { ITER_VLAYER_SMALL_VECTOR_SIZE }>>()
-                } else {
-                    warn!("AdvState::get_vlayer_mut: no layer selected");
-                    smallvec![]
-                }
-            }
-            VLayerIdRepr::Layer(l) => {
-                let layer = self.get_layer_mut(vm_state, l);
-                if let Some(layer) = layer {
-                    smallvec![layer.into()]
-                } else {
-                    warn!("AdvState::get_vlayer_mut: layer not found: {:?}", l);
-                    smallvec![]
-                }
-            }
-        };
-
-        result.into_iter()
+            .get_plane_mut(plane)
     }
 
     pub fn render(&self, pass: &mut RenderPass) {

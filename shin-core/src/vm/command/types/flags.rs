@@ -64,3 +64,27 @@ impl FromNumber for AudioWaitStatus {
         AudioWaitStatus::from_bits(number).expect("Invalid AudioWaitStatus")
     }
 }
+
+bitflags! {
+    /// Flags modifying LAYERLOAD behavior. Unused in umi
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
+    pub struct LayerLoadFlags: i32 {
+        /// Prevents setting some flag in ADV
+        const DONT_BLOCK_ANIMATIONS = 1;
+        /// Keep previous layer parameters
+        const KEEP_PREVIOUS_PROPERTIES = 2;
+        /// Individually wipe the layer when adding it to the LayerGroup and wait for wipe completion. Ignored if PAGEBACK is active
+        const AUTO_WIPE = 4;
+        /// Makes the layer share the `Properties` instance with the previous layer while doing `LayerGroup`-level transition
+        // We are definitely not implementing that
+        // 1. Umineko doesn't use it, along with the whole `LayerGroup`-level transition system
+        // 2. We don't have reference counting on everything, so this will be disruptive
+        const SHARE_PROPS_DURING_WIPE = 8;
+    }
+}
+
+impl FromNumber for LayerLoadFlags {
+    fn from_number(number: i32) -> Self {
+        LayerLoadFlags::from_bits(number).expect("Invalid LayerLoadFlags")
+    }
+}

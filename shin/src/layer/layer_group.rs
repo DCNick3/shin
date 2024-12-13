@@ -90,23 +90,16 @@ impl<T> LayerGroup<T> {
     }
 
     #[expect(unused)] // for future stuff
-    pub fn remove_layer(&mut self, layerbank_id: LayerbankId, delay_time: Ticks) {
+    pub fn remove_layer(&mut self, layerbank_id: LayerbankId, delay_time: Ticks) -> Option<T> {
         if delay_time != Ticks::ZERO {
             // this is never used in umineko
             unimplemented!("LayerGroup::remove_layer: delay_time is not implemented");
         }
 
-        match self
-            .layers
+        self.layers
             .binary_search_by_key(&layerbank_id, |item| item.layerbank_id)
-        {
-            Ok(index) => {
-                self.layers.remove(index);
-            }
-            Err(_) => {
-                // layerbank does not exist, swallow the error
-            }
-        }
+            .map(|index| self.layers.remove(index).layer)
+            .ok()
     }
 
     pub fn get_layer(&self, layerbank_id: LayerbankId) -> Option<&T> {
@@ -128,6 +121,10 @@ impl<T> LayerGroup<T> {
         self.layers.iter().map(|item| item.layerbank_id).collect()
     }
 
+    pub fn clear_layers(&mut self) {
+        self.layers.clear();
+    }
+
     #[expect(unused)] // for future stuff
     pub fn has_wiper_for_layerbank(&self, _layerbank_id: LayerbankId) -> bool {
         false
@@ -136,6 +133,10 @@ impl<T> LayerGroup<T> {
     #[expect(unused)] // for future stuff
     pub fn set_mask_texture(&mut self, mask_texture: Option<()>) {
         self.mask_texture = mask_texture;
+    }
+
+    pub fn clear_mask_texture(&mut self) {
+        self.mask_texture = None;
     }
 
     pub fn needs_rendering(&self) -> bool {

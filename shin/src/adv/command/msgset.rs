@@ -8,6 +8,7 @@ pub struct MSGSET {
 }
 
 impl StartableCommand for command::runtime::MSGSET {
+    type StateInfo = ();
     fn apply_state(&self, state: &mut VmState) {
         // TODO: think about async messages (those where you would use MSGWAIT)
         state.messagebox_state.text = Some(self.text.clone());
@@ -19,6 +20,7 @@ impl StartableCommand for command::runtime::MSGSET {
         context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
+        _state_info: (),
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         adv_state
