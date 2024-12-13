@@ -22,6 +22,7 @@ use shin_core::{
     },
 };
 use shin_input::{inputs::MouseButton, Action, ActionState};
+use shin_render::render_pass::RenderPass;
 use smallvec::{smallvec, SmallVec};
 use tracing::{debug, warn};
 use vm_state::layers::ITER_VLAYER_SMALL_VECTOR_SIZE;
@@ -32,11 +33,12 @@ use crate::{
     adv::assets::AdvAssets,
     audio::{BgmPlayer, SePlayer},
     layer::{
-        user::UserLayer, AnyLayer, AnyLayerMut, LayerGroup, MessageLayer, RootLayerGroup,
+        render_layer_without_bg, render_params::TransformParams, user::UserLayer, AnyLayer,
+        AnyLayerMut, Layer as _, LayerGroup, MessageLayer, PreRenderContext, RootLayerGroup,
         ScreenLayer,
     },
     render::overlay::{OverlayCollector, OverlayVisitable},
-    update::{Updatable, UpdateContext},
+    update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 
 /// Actions available in all ADV contexts
@@ -83,7 +85,6 @@ pub struct Adv {
 
 impl Adv {
     pub fn new(
-        // resources: &GpuCommonResources,
         audio_manager: Arc<AudioManager>,
         assets: AdvAssets,
         init_val: i32,
@@ -92,29 +93,31 @@ impl Adv {
         let scenario = assets.scenario.clone();
         let scripter = Scripter::new(&scenario, init_val, random_seed);
         let vm_state = VmState::new();
-        // let adv_state = AdvState::new(resources, audio_manager, assets);
+        let adv_state = AdvState::new(audio_manager, assets);
 
-        todo!()
-
-        // Self {
-        //     scenario,
-        //     scripter,
-        //     vm_state,
-        //     adv_state,
-        //     // action_state: ActionState::new(),
-        //     current_command: None,
-        //     fast_forward_to_bp: None,
-        // }
+        Self {
+            scenario,
+            scripter,
+            vm_state,
+            adv_state,
+            current_command: None,
+            fast_forward_to_bp: None,
+        }
     }
 
     pub fn fast_forward_to(&mut self, addr: CodeAddress) {
         assert!(self.fast_forward_to_bp.is_none());
         self.fast_forward_to_bp = Some(self.scripter.add_breakpoint(addr).into());
     }
+
+    // TODO: impl Scene for Adv
+    pub fn render(&self, pass: &mut RenderPass) {
+        self.adv_state.render(pass);
+    }
 }
 
 impl Updatable for Adv {
-    fn update(&mut self, context: &UpdateContext) {
+    fn update(&mut self, context: &mut UpdateContext) {
         // self.action_state.update(context.raw_input_state);
 
         let fast_forward_button_held = false;
@@ -265,31 +268,26 @@ impl Updatable for Adv {
 //     }
 // }
 
+/// Contains all the state of the ADV system NOT pertaining to the VM
+///
+/// This is the object the VM manipulates
 pub struct AdvState {
     pub root_layer_group: RootLayerGroup,
     pub audio_manager: Arc<AudioManager>,
     pub bgm_player: BgmPlayer,
     pub se_player: SePlayer,
+    pub allow_running_animations: bool,
 }
 
 impl AdvState {
-    pub fn new(
-        // resources: &GpuCommonResources,
-        audio_manager: Arc<AudioManager>,
-        assets: AdvAssets,
-    ) -> Self {
-        todo!()
-
-        // Self {
-        //     root_layer_group: RootLayerGroup::new(
-        //         // resources,
-        //         ScreenLayer::new(resources),
-        //         MessageLayer::new(resources, assets.fonts, assets.messagebox_textures),
-        //     ),
-        //     audio_manager: audio_manager.clone(),
-        //     bgm_player: BgmPlayer::new(audio_manager.clone()),
-        //     se_player: SePlayer::new(audio_manager),
-        // }
+    pub fn new(audio_manager: Arc<AudioManager>, _assets: AdvAssets) -> Self {
+        Self {
+            root_layer_group: RootLayerGroup::new(),
+            audio_manager: audio_manager.clone(),
+            bgm_player: BgmPlayer::new(audio_manager.clone()),
+            se_player: SePlayer::new(audio_manager),
+            allow_running_animations: true,
+        }
     }
 
     pub fn current_plane_layer_group(&self, vm_state: &VmState) -> &LayerGroup {
@@ -378,12 +376,19 @@ impl AdvState {
             VLayerIdRepr::RootLayerGroup => smallvec![(&mut self.root_layer_group).into()],
             VLayerIdRepr::ScreenLayer => smallvec![self.root_layer_group.screen_layer_mut().into()],
             VLayerIdRepr::PageLayer => {
-                warn!("Returning ScreenLayer for PageLayer");
-                smallvec![self.root_layer_group.screen_layer_mut().into()]
+                smallvec![self
+                    .root_layer_group
+                    .screen_layer_mut()
+                    .page_layer_mut()
+                    .into()]
             }
             VLayerIdRepr::PlaneLayerGroup => {
-                warn!("Returning ScreenLayer for PlaneLayerGroup");
-                smallvec![self.root_layer_group.screen_layer_mut().into()]
+                smallvec![self
+                    .root_layer_group
+                    .screen_layer_mut()
+                    .page_layer_mut()
+                    .get_plane_mut(vm_state.layers.current_plane)
+                    .into()]
             }
             VLayerIdRepr::Selected => {
                 if let Some(selection) = vm_state.layers.layer_selection {
@@ -410,29 +415,25 @@ impl AdvState {
 
         result.into_iter()
     }
-}
 
-// TODO: this could be derived...
-impl Updatable for AdvState {
-    fn update(&mut self, _context: &UpdateContext) {
-        todo!()
-        // self.root_layer_group.update(context);
+    pub fn render(&self, pass: &mut RenderPass) {
+        render_layer_without_bg(pass, &TransformParams::default(), &self.root_layer_group, 0)
     }
 }
 
-// impl Renderable for AdvState {
-//     fn render<'enc>(
-//         &'enc self,
-//         resources: &'enc GpuCommonResources,
-//         render_pass: &mut wgpu::RenderPass<'enc>,
-//         transform: Mat4,
-//         projection: Mat4,
-//     ) {
-//         self.root_layer_group
-//             .render(resources, render_pass, transform, projection);
-//     }
-//
-//     fn resize(&mut self, resources: &GpuCommonResources) {
-//         self.root_layer_group.resize(resources);
-//     }
-// }
+impl Updatable for AdvState {
+    fn update(&mut self, context: &mut UpdateContext) {
+        let adv_update_context = AdvUpdateContext {
+            delta_time: context.delta_time,
+            asset_server: context.asset_server,
+            are_animations_allowed: self.allow_running_animations,
+        };
+
+        self.root_layer_group.update(&adv_update_context);
+
+        let transform = TransformParams::default();
+
+        self.root_layer_group
+            .pre_render(context.pre_render, &transform);
+    }
+}

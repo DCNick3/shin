@@ -10,7 +10,7 @@ use crate::asset::{asset_paths, system::AssetServer};
 #[derive(Clone)]
 pub struct AdvAssets {
     pub scenario: Arc<Scenario>,
-    pub fonts: AdvFonts,
+    // pub fonts: AdvFonts,
     // pub messagebox_textures: Arc<MessageboxTextures>,
 }
 
@@ -25,13 +25,13 @@ impl AdvAssets {
     pub async fn load(asset_server: &AssetServer) -> Result<Self> {
         let result = try_join!(
             asset_server.load(asset_paths::SCENARIO),
-            AdvFonts::load(asset_server),
+            // AdvFonts::load(asset_server),
             // asset_server.load(asset_paths::MSGTEX),
         )?;
 
         Ok(Self {
             scenario: result.0,
-            fonts: result.1,
+            // fonts: result.1,
             // messagebox_textures: result.2,
         })
     }

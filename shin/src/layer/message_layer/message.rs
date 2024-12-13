@@ -337,7 +337,7 @@ impl Message {
 }
 
 impl Updatable for Message {
-    fn update(&mut self, context: &UpdateContext) {
+    fn update(&mut self, context: &mut UpdateContext) {
         if let Some(block) = self.current_block() {
             if !block.completed(self.time) {
                 self.time += context.delta_time;
