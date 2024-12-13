@@ -3,6 +3,7 @@ use shin_core::time::Tween;
 use super::prelude::*;
 
 impl StartableCommand for command::runtime::SESTOPALL {
+    type StateInfo = ();
     fn apply_state(&self, state: &mut VmState) {
         state.audio.se.iter_mut().for_each(|v| *v = None);
     }
@@ -12,6 +13,7 @@ impl StartableCommand for command::runtime::SESTOPALL {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
+        _state_info: (),
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         adv_state

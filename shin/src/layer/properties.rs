@@ -439,13 +439,13 @@ impl AdvUpdatable for LayerProperties {
 /// Stores only target property values.
 /// Used to implement save/load (to quickly restore the state of the scene).
 #[derive(Debug, Clone)]
-pub struct LayerPropertiesSnapshot {
+pub struct LayerPropertiesState {
     // The game can actually only set integer values
     // hence the the use of i32 instead of f32
     properties: EnumMap<LayerProperty, i32>,
 }
 
-impl LayerPropertiesSnapshot {
+impl LayerPropertiesState {
     pub fn new() -> Self {
         Self {
             properties: initial_values(),

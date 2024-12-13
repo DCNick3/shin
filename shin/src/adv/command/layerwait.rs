@@ -12,6 +12,7 @@ pub struct LAYERWAIT {
 }
 
 impl StartableCommand for command::runtime::LAYERWAIT {
+    type StateInfo = ();
     fn apply_state(&self, _state: &mut VmState) {
         // the does not exist in the VmState, no need to wait
     }
@@ -21,6 +22,7 @@ impl StartableCommand for command::runtime::LAYERWAIT {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
+        _state_info: (),
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
         Yield(
@@ -43,22 +45,24 @@ impl UpdatableCommand for LAYERWAIT {
         adv_state: &mut AdvState,
         is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        if adv_state
-            .get_vlayer_mut(vm_state, self.layer_id)
-            .all(|mut l| {
-                self.properties.iter().all(|&prop_id| {
-                    let prop = l.properties_mut().property_tweener_mut(prop_id);
-                    if is_fast_forwarding {
-                        prop.fast_forward();
-                    }
-                    prop.is_idle()
-                })
-            })
-        {
-            Some(self.token.take().unwrap().finish())
-        } else {
-            None
-        }
+        todo!()
+
+        // if adv_state
+        //     .get_vlayer_mut(vm_state, self.layer_id)
+        //     .all(|mut l| {
+        //         self.properties.iter().all(|&prop_id| {
+        //             let prop = l.properties_mut().property_tweener_mut(prop_id);
+        //             if is_fast_forwarding {
+        //                 prop.fast_forward();
+        //             }
+        //             prop.is_idle()
+        //         })
+        //     })
+        // {
+        //     Some(self.token.take().unwrap().finish())
+        // } else {
+        //     None
+        // }
     }
 }
 

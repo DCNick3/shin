@@ -22,6 +22,7 @@ anyhow = { workspace = true }
 async-trait = "0.1.81"
 futures = "0.3.30"
 smallvec = { workspace = true }
+heapless = { workspace = true }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 arrayvec = "0.7.4"

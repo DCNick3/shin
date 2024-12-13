@@ -6,6 +6,7 @@ use super::prelude::*;
 use crate::adv::vm_state::audio::SeState;
 
 impl StartableCommand for command::runtime::SEPLAY {
+    type StateInfo = ();
     fn apply_state(&self, state: &mut VmState) {
         state.audio.se[self.se_slot as usize] = self.no_repeat.not().then_some(SeState {
             se_id: self.se_data_id,
@@ -20,6 +21,7 @@ impl StartableCommand for command::runtime::SEPLAY {
         context: &UpdateContext,
         scenario: &Arc<Scenario>,
         _vm_state: &VmState,
+        _state_info: (),
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         if self.play_speed != 1000 {

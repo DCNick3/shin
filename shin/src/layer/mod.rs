@@ -20,7 +20,7 @@ pub use layer_group::LayerGroup;
 pub use message_layer::MessageLayer;
 pub use new_drawable_layer::{NewDrawableLayer, NewDrawableLayerWrapper};
 pub use page_layer::PageLayer;
-pub use properties::{LayerProperties, LayerPropertiesSnapshot};
+pub use properties::{LayerProperties, LayerPropertiesState};
 pub use root_layer_group::RootLayerGroup;
 pub use screen_layer::ScreenLayer;
 use shin_render::{

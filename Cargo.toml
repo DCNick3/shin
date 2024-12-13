@@ -26,7 +26,8 @@ dpi = "0.1.1"
 # beta version for GATs
 enum-map = "3.0.0-beta.1"
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
-smallvec = { git = "https://github.com/servo/rust-smallvec.git", rev = "98b49e4d974c20f6d44a0804071074f267be0d88" }
+smallvec = "2.0.0-alpha.8"
+heapless = "0.8.0"
 wgpu = "22.1.0"
 kira = { version = "0.9.3", default-features = false }
 winit = "0.30.5"

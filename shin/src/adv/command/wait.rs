@@ -11,6 +11,7 @@ pub struct WAIT {
 }
 
 impl StartableCommand for command::runtime::WAIT {
+    type StateInfo = ();
     fn apply_state(&self, _state: &mut VmState) {
         // nothing to do
     }
@@ -20,6 +21,7 @@ impl StartableCommand for command::runtime::WAIT {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
+        _state_info: (),
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
         assert!(!self.allow_interrupt);

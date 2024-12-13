@@ -4,7 +4,7 @@ mod flags;
 mod id;
 mod property;
 
-pub use flags::{AudioWaitStatus, LayerCtrlFlags, MaskFlags};
+pub use flags::{AudioWaitStatus, LayerCtrlFlags, LayerLoadFlags, MaskFlags};
 pub use id::{
     LayerId, LayerIdOpt, LayerbankId, LayerbankIdOpt, PlaneId, PlaneIdOpt, VLayerId, VLayerIdRepr,
     LAYERBANKS_COUNT, LAYERS_COUNT, PLANES_COUNT,

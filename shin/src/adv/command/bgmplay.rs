@@ -6,6 +6,7 @@ use super::prelude::*;
 use crate::adv::vm_state::audio::BgmState;
 
 impl StartableCommand for command::runtime::BGMPLAY {
+    type StateInfo = ();
     fn apply_state(&self, state: &mut VmState) {
         state.audio.bgm = self.no_repeat.not().then_some(BgmState {
             bgm_id: self.bgm_data_id,
@@ -18,6 +19,7 @@ impl StartableCommand for command::runtime::BGMPLAY {
         context: &UpdateContext,
         scenario: &Arc<Scenario>,
         _vm_state: &VmState,
+        _state_info: (),
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
         let bgm_info @ BgmInfoItem {

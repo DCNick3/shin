@@ -12,6 +12,7 @@ pub struct MOVIEWAIT {
 }
 
 impl StartableCommand for command::runtime::MOVIEWAIT {
+    type StateInfo = ();
     fn apply_state(&self, _state: &mut VmState) {}
 
     fn start(
@@ -19,24 +20,27 @@ impl StartableCommand for command::runtime::MOVIEWAIT {
         _context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
+        _state_info: (),
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        match adv_state.get_layer(vm_state, self.layer_id) {
-            Some(UserLayer::MovieLayer(_)) => {
-                assert_eq!(self.target_status, 2, "MOVIEWAIT: unknown target status");
-                Yield(
-                    MOVIEWAIT {
-                        token: Some(self.token),
-                        layer_id: self.layer_id,
-                    }
-                    .into(),
-                )
-            }
-            _ => {
-                warn!("MOVIEWAIT: layer is not a movie layer");
-                self.token.finish().into()
-            }
-        }
+        todo!()
+
+        // match adv_state.get_layer(vm_state, self.layer_id) {
+        //     Some(UserLayer::MovieLayer(_)) => {
+        //         assert_eq!(self.target_status, 2, "MOVIEWAIT: unknown target status");
+        //         Yield(
+        //             MOVIEWAIT {
+        //                 token: Some(self.token),
+        //                 layer_id: self.layer_id,
+        //             }
+        //             .into(),
+        //         )
+        //     }
+        //     _ => {
+        //         warn!("MOVIEWAIT: layer is not a movie layer");
+        //         self.token.finish().into()
+        //     }
+        // }
     }
 }
 
@@ -49,16 +53,18 @@ impl UpdatableCommand for MOVIEWAIT {
         adv_state: &mut AdvState,
         _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        let UserLayer::MovieLayer(layer) = adv_state.get_layer(vm_state, self.layer_id).unwrap()
-        else {
-            unreachable!()
-        };
-        let finished = layer.is_finished();
-        if finished {
-            Some(self.token.take().unwrap().finish())
-        } else {
-            None
-        }
+        todo!()
+
+        // let UserLayer::MovieLayer(layer) = adv_state.get_layer(vm_state, self.layer_id).unwrap()
+        // else {
+        //     unreachable!()
+        // };
+        // let finished = layer.is_finished();
+        // if finished {
+        //     Some(self.token.take().unwrap().finish())
+        // } else {
+        //     None
+        // }
     }
 }
 

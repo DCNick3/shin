@@ -71,6 +71,20 @@ impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> Id<T,
     }
 }
 
+impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> enum_map::Enum
+    for Id<T, SENTINEL>
+{
+    type Array<V> = [V; SENTINEL];
+
+    fn from_usize(value: usize) -> Self {
+        Self(ThroughUsize::from_usize(value))
+    }
+
+    fn into_usize(self) -> usize {
+        ThroughUsize::into_usize(self.0)
+    }
+}
+
 impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> IdOpt<T, SENTINEL> {
     pub fn none() -> Self {
         Self(T::from_usize(SENTINEL))
@@ -78,6 +92,13 @@ impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> IdOpt
 
     pub fn some(id: Id<T, SENTINEL>) -> Self {
         Self(id.0)
+    }
+
+    pub fn from_option(option: Option<Id<T, SENTINEL>>) -> Self {
+        match option {
+            Some(id) => Self::some(id),
+            None => Self::none(),
+        }
     }
 
     pub fn into_option(self) -> Option<Id<T, SENTINEL>> {
@@ -114,10 +135,15 @@ pub struct VLayerId(i32);
 
 #[derive(Debug)]
 pub enum VLayerIdRepr {
+    /// -1 - root layer group
     RootLayerGroup,
+    /// -2 - screen layer
     ScreenLayer,
+    /// -3 - page layer
     PageLayer,
+    /// -4 - plane layer group
     PlaneLayerGroup,
+    /// -5 - all selected layers
     Selected,
     Layer(LayerId),
 }
