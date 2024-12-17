@@ -360,7 +360,7 @@ pub struct OverlayCollector<'a, 'top_left, 'ctx> {
     storage: &'a mut OverlayStateStorage,
 }
 
-impl<'a, 'top_left, 'ctx> OverlayCollector<'a, 'top_left, 'ctx> {
+impl OverlayCollector<'_, '_, '_> {
     pub fn overlay(&mut self, name: &str, content: impl FnOnce(&Context, &mut Ui), default: bool) {
         let state = self
             .storage

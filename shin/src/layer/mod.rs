@@ -164,7 +164,7 @@ pub enum AnyLayer<'a> {
     LayerGroup(&'a LayerGroup),
 }
 
-impl<'a> AnyLayer<'a> {
+impl AnyLayer<'_> {
     #[allow(unused)]
     pub fn properties(&self) -> &LayerProperties {
         match self {
@@ -186,8 +186,8 @@ pub enum AnyLayerMut<'a> {
     LayerGroup(&'a mut LayerGroup),
 }
 
-impl<'a> AnyLayerMut<'a> {
-    #[allow(unused)]
+impl AnyLayerMut<'_> {
+    #[expect(unused)]
     pub fn properties(&self) -> &LayerProperties {
         match self {
             Self::UserLayer(layer) => layer.properties(),
@@ -198,6 +198,7 @@ impl<'a> AnyLayerMut<'a> {
         }
     }
 
+    #[expect(unused)]
     pub fn properties_mut(&mut self) -> &mut LayerProperties {
         match self {
             Self::UserLayer(layer) => layer.properties_mut(),

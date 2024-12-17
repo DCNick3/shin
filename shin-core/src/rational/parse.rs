@@ -125,6 +125,7 @@ mod tests {
         assert_eq!("-42.123".parse(), Ok(Rational(-42_123)));
     }
 
+    #[expect(clippy::inconsistent_digit_grouping)]
     #[test]
     fn parse_big() {
         assert_eq!("2147483.647".parse(), Ok(Rational(2147483_647)));

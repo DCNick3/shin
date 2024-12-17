@@ -20,7 +20,7 @@ pub fn assert_enc_dec_pair<
 /// Checks whether the encodable type encodes to the expected value.
 pub fn assert_enc<T: Debug + for<'a> BinWrite<Args<'a> = ()>>(decoded: &T, encoded: &str) {
     let mut encoded_actual = NoSeek::new(Vec::new());
-    T::write_le(&decoded, &mut encoded_actual).expect("failed to encode");
+    T::write_le(decoded, &mut encoded_actual).expect("failed to encode");
     assert_eq!(
         hex::encode(encoded_actual.into_inner()),
         encoded,

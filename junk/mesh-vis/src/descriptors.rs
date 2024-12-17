@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy)]
 pub enum VertexFieldType {
+    #[expect(unused)]
     Float,
     Vector2,
     Vector3,
@@ -136,6 +137,7 @@ pub struct VertexFieldDescriptor {
 pub struct VertexDescriptor {
     pub name: &'static str,
     pub fields: &'static [VertexFieldDescriptor],
+    #[expect(unused)]
     pub position_visualizations: &'static [&'static str],
 }
 

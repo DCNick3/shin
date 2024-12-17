@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 cfg-if = "1.0.0"
 
-#[features]
+[lints]
+workspace = true

@@ -22,9 +22,9 @@ pub enum Error {
     UnknownColorspace,
     /// Error while parsing the file/frame header.
     // TODO(Kagami): Better granularity of parse errors.
-    ParseError(ParseError),
+    Parse(ParseError),
     /// Error while reading/writing the file.
-    IoError(io::Error),
+    Io(io::Error),
     /// Out of memory (limits exceeded).
     OutOfMemory,
 }
@@ -34,8 +34,8 @@ impl std::error::Error for Error {
         match *self {
             Error::EndOfFile => None,
             Error::UnknownColorspace => None,
-            Error::ParseError(ref err) => Some(err),
-            Error::IoError(ref err) => Some(err),
+            Error::Parse(ref err) => Some(err),
+            Error::Io(ref err) => Some(err),
             Error::OutOfMemory => None,
         }
     }
@@ -46,8 +46,8 @@ impl fmt::Display for Error {
         match *self {
             Error::EndOfFile => write!(f, "End of file"),
             Error::UnknownColorspace => write!(f, "Bad input parameters provided"),
-            Error::ParseError(ref err) => err.fmt(f),
-            Error::IoError(ref err) => err.fmt(f),
+            Error::Parse(ref err) => err.fmt(f),
+            Error::Io(ref err) => err.fmt(f),
             Error::OutOfMemory => write!(f, "Out of memory (limits exceeded)"),
         }
     }
@@ -100,7 +100,7 @@ impl fmt::Debug for ParseError {
 
 macro_rules! parse_error {
     ($p:expr) => {
-        return Err(Error::ParseError($p))
+        return Err(Error::Parse($p))
     };
 }
 
@@ -108,20 +108,20 @@ impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
         match err.kind() {
             io::ErrorKind::UnexpectedEof => Error::EndOfFile,
-            _ => Error::IoError(err),
+            _ => Error::Io(err),
         }
     }
 }
 
 impl From<num::ParseIntError> for Error {
     fn from(_: num::ParseIntError) -> Error {
-        Error::ParseError(ParseError::Int)
+        Error::Parse(ParseError::Int)
     }
 }
 
 impl From<str::Utf8Error> for Error {
     fn from(_: str::Utf8Error) -> Error {
-        Error::ParseError(ParseError::Utf8)
+        Error::Parse(ParseError::Utf8)
     }
 }
 
@@ -168,10 +168,10 @@ impl fmt::Display for Ratio {
 /// From libavformat/yuv4mpegenc.c:
 ///
 /// > yuv4mpeg can only handle yuv444p, yuv422p, yuv420p, yuv411p and gray8
-/// pixel formats. And using 'strict -1' also yuv444p9, yuv422p9, yuv420p9,
-/// yuv444p10, yuv422p10, yuv420p10, yuv444p12, yuv422p12, yuv420p12,
-/// yuv444p14, yuv422p14, yuv420p14, yuv444p16, yuv422p16, yuv420p16, gray9,
-/// gray10, gray12 and gray16 pixel formats.
+/// > pixel formats. And using 'strict -1' also yuv444p9, yuv422p9, yuv420p9,
+/// > yuv444p10, yuv422p10, yuv420p10, yuv444p12, yuv422p12, yuv420p12,
+/// > yuv444p14, yuv422p14, yuv420p14, yuv444p16, yuv422p16, yuv420p16, gray9,
+/// > gray10, gray12 and gray16 pixel formats.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Colorspace {

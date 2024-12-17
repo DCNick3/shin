@@ -299,7 +299,7 @@ fn fill_path(path: &tiny_skia_path::Path, fill: egui::Color32) -> egui::Shape {
         }
     }
     assert!(
-        matches!(iter.next(), None),
+        iter.next().is_none(),
         "ClosePath can only be the last segment"
     );
 
@@ -340,7 +340,7 @@ fn stroke_path(path: &tiny_skia_path::Path, width: f32, color: egui::Color32) ->
         }
     }
     assert!(
-        matches!(iter.next(), None),
+        iter.next().is_none(),
         "ClosePath can only be the last segment"
     );
 

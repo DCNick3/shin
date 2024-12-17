@@ -209,7 +209,7 @@ impl UpdatableCommand for LAYERLOAD {
                     layer.clone()
                 };
 
-                if let UserLayer::BustupLayer(layer) = &mut layer {
+                if let UserLayer::Bustup(layer) = &mut layer {
                     // TODO: connect the BustupLayer to the lipsync machinery
                 }
 

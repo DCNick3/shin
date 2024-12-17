@@ -236,7 +236,7 @@ pub fn resolve_item_defs(db: &dyn Db, def_map: &UnresolvedItems) -> ResolvedItem
                     )
                     .emit(self.db);
 
-                    return (DefValue::Value(Err(LowerError)), None);
+                    (DefValue::Value(Err(LowerError)), None)
                 }
                 NodeState::Visited(result) => result.clone(),
             }

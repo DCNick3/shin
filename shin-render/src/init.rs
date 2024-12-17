@@ -201,14 +201,12 @@ pub async fn init_wgpu<'window>(
         .context("Failed to create wgpu device")?;
 
     // we DON'T want sRGB-correctness, as the original game doesn't have it
-    let surface_texture_format = surface
+    let surface_texture_format = *surface
         .get_capabilities(&adapter)
         .formats
         .iter()
-        .filter(|f| !f.is_srgb())
-        .next()
-        .unwrap()
-        .clone();
+        .find(|f| !f.is_srgb())
+        .unwrap();
 
     debug!(
         "Picked {:?} as the surface texture format",

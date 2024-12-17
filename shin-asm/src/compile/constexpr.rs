@@ -88,7 +88,7 @@ fn evaluate(ctx: &mut EvaluateContext, expr: hir::ExprId) -> LowerResult<Constex
             ctx.error(type_mismatch(Either::Left(expr), "int or float", "string"))
         }
         Expr::NameRef(ref name) => match ctx.context[name] {
-            ConstexprContextValue::Value(ref value, _) => value.clone(),
+            ConstexprContextValue::Value(ref value, _) => *value,
             ConstexprContextValue::Block(location) => ctx.error(
                 type_mismatch(Either::Left(expr), "int or float", "code reference")
                     .with_additional_label(

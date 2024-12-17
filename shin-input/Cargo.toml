@@ -23,3 +23,6 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 dpi = { workspace = true }
 spin_sleep_util = "0.1.1"
 anyhow = { workspace = true }
+
+[lints]
+workspace = true

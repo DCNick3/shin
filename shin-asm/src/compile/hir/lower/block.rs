@@ -75,10 +75,7 @@ impl LoweredBlock {
             diagnostics,
             code_address_collector: &mut code_address_collector,
         };
-        let ctx = FromHirBlockCtx {
-            resolve_ctx: &resolve_ctx,
-            block: &block,
-        };
+        let ctx = FromHirBlockCtx { resolve_ctx, block };
 
         for (instr, _) in block.instructions.iter() {
             instructions.push(super::instruction::instruction_from_hir(

@@ -89,7 +89,6 @@ impl<T> LayerGroup<T> {
         }
     }
 
-    #[expect(unused)] // for future stuff
     pub fn remove_layer(&mut self, layerbank_id: LayerbankId, delay_time: Ticks) -> Option<T> {
         if delay_time != Ticks::ZERO {
             // this is never used in umineko
@@ -139,6 +138,7 @@ impl<T> LayerGroup<T> {
         self.mask_texture = None;
     }
 
+    #[allow(clippy::len_zero)]
     pub fn needs_rendering(&self) -> bool {
         self.mask_texture.is_some() || self.layers.len() > 0
     }
@@ -266,7 +266,7 @@ where
     }
 
     fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
-        let mut layers = (0..self.layers.len()).into_iter().collect::<Vec<_>>();
+        let mut layers = (0..self.layers.len()).collect::<Vec<_>>();
 
         layers.sort_by(|&left, &right| {
             let get_values = |index: usize| {
@@ -305,7 +305,7 @@ where
         }
 
         self.layers_to_render.clear();
-        let mut layers_to_render = std::mem::replace(&mut self.layers_to_render, Vec::new());
+        let mut layers_to_render = std::mem::take(&mut self.layers_to_render);
 
         let mut stencil_value = 1;
         for &index in &layers {

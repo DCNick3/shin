@@ -88,6 +88,7 @@ impl VertexView {
         VertexView { field_values }
     }
 
+    #[expect(unused)]
     pub fn primitive_values(&self) -> impl Iterator<Item = VertexPrimitiveValue> + '_ {
         self.field_values.iter().copied().flatten()
     }

@@ -131,7 +131,7 @@ where
         let pos = writer.stream_position()?;
         let len = L::try_from(self.0.len()).map_err(|_| binrw::Error::AssertFail {
             pos,
-            message: format!("Failed to convert list length to the encoded representation. This is probably due to the list being too long."),
+            message: "Failed to convert list length to the encoded representation. This is probably due to the list being too long.".to_string(),
         })?;
 
         len.write_options(writer, endian, ())?;

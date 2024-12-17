@@ -49,8 +49,8 @@ impl ShaderDescriptor {
     pub fn create_shader_context(&self, device: &wgpu::Device) -> ShaderContext {
         let mut entries = Vec::new();
         for bind_group in self.bind_groups.iter() {
-            match bind_group {
-                &ShaderBindingGroupDescriptor::Texture {
+            match *bind_group {
+                ShaderBindingGroupDescriptor::Texture {
                     texture_binding,
                     sampler_binding,
                 } => {
@@ -73,7 +73,7 @@ impl ShaderDescriptor {
                         count: None,
                     });
                 }
-                &ShaderBindingGroupDescriptor::Uniform { binding, size } => {
+                ShaderBindingGroupDescriptor::Uniform { binding, size } => {
                     entries.push(wgpu::BindGroupLayoutEntry {
                         binding,
                         visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -162,7 +162,7 @@ impl<'a, S: Shader> TypedRenderPipeline<'a, S> {
         bindings: S::Bindings<'_>,
         vertices: VertexSource<S::Vertex>,
     ) {
-        render_pass.set_pipeline(&self.pipeline);
+        render_pass.set_pipeline(self.pipeline);
         S::set_bindings(
             device,
             dynamic_buffer,

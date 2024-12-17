@@ -89,7 +89,7 @@ impl Eq for Ticks {}
 
 impl PartialOrd for Ticks {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        FloatOrd(self.0).partial_cmp(&FloatOrd(other.0))
+        Some(self.cmp(other))
     }
 }
 

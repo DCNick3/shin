@@ -22,3 +22,6 @@ synstructure = "0.13.1"
 
 [dev-dependencies]
 prettyplease = "0.2.20"
+
+[lints]
+workspace = true

@@ -532,7 +532,7 @@ impl Cursor<'_> {
                 // might have stuff after the ., and if it does, it needs to start
                 // with a number
                 self.bump();
-                if self.first().is_digit(10) {
+                if self.first().is_ascii_digit() {
                     self.eat_decimal_digits();
                 }
                 RATIONAL_NUMBER

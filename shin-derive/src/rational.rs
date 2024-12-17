@@ -32,7 +32,6 @@ impl Rational {
             return Err(());
         }
 
-        let integer = integer;
         let fraction = fraction as u32;
 
         let value = integer * Self::DENOM as u32 + fraction;

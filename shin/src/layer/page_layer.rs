@@ -180,7 +180,7 @@ impl Layer for PageLayer {
         }
 
         self.layers_to_render.clear();
-        let mut layers_to_render = std::mem::replace(&mut self.layers_to_render, Vec::new());
+        let mut layers_to_render = std::mem::take(&mut self.layers_to_render);
         self.needs_force_blending = props.is_blending_nontrivial();
         let mut stencil_value = 1;
 

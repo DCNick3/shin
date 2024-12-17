@@ -16,7 +16,6 @@ use crate::{
     cli::Cli,
     layer::PreRenderContext,
     update::{Updatable as _, UpdateContext},
-    wiper::DefaultWiper,
 };
 
 #[derive(Debug, Enum)]

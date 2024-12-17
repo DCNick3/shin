@@ -83,7 +83,7 @@ pub fn main(msk_path: String) {
         ),
     );
     let white_svg = make_svg(
-        &white_vertices,
+        white_vertices,
         "green",
         (
             0.0,
@@ -93,7 +93,7 @@ pub fn main(msk_path: String) {
         ),
     );
     let transparent_svg = make_svg(
-        &transparent_vertices,
+        transparent_vertices,
         "blue",
         (
             0.0,

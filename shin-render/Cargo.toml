@@ -52,3 +52,6 @@ console_error_panic_hook = "0.1.6"
 tracing-wasm = { version = "0.2.1" }
 web-sys = { version = "0.3.70", features = ["Document"] }
 
+[lints]
+workspace = true
+

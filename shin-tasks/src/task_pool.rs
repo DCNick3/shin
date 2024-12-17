@@ -1,3 +1,5 @@
+#![allow(clippy::needless_lifetimes)]
+
 use std::{
     future::Future,
     marker::PhantomData,
@@ -111,7 +113,7 @@ pub struct TaskPool {
 
 impl TaskPool {
     thread_local! {
-        static LOCAL_EXECUTOR: async_executor::LocalExecutor<'static> = async_executor::LocalExecutor::new();
+        static LOCAL_EXECUTOR: async_executor::LocalExecutor<'static> = const { async_executor::LocalExecutor::new() };
         static THREAD_EXECUTOR: ThreadExecutor<'static> = ThreadExecutor::new();
     }
 

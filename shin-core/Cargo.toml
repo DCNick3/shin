@@ -53,3 +53,6 @@ indexmap = "2.7.0"
 hex = "0.4.3"
 insta = "1.39.0"
 rand = "0.8.5"
+
+[lints]
+workspace = true

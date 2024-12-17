@@ -9,7 +9,7 @@ fn format(format: &str, arguments: &[i32]) -> String {
     let mut result = String::new();
     let mut arguments = arguments.iter();
 
-    let mut iter = format.split(|c| c == '%');
+    let mut iter = format.split('%');
     if let Some(begin) = iter.next() {
         result.push_str(begin);
     }

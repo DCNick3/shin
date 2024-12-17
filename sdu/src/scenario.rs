@@ -217,7 +217,7 @@ fn dump_info(path: PathBuf, output_filename: Option<PathBuf>) -> Result<()> {
         )?;
     }
     writeln!(output, "Voice Mappings:")?;
-    for (_, mapping) in tables.voice_mapping_info.iter().enumerate() {
+    for mapping in tables.voice_mapping_info.iter() {
         writeln!(
             output,
             "  {:?}: {:?}",

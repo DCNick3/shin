@@ -37,7 +37,7 @@ impl BinRead for StringArray {
             // the end of array is marked by an additional null terminator
             // which we treat as an empty string
             // this is fiiiine
-            if s.len() == 0 {
+            if s.is_empty() {
                 break;
             }
 

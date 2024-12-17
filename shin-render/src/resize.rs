@@ -21,9 +21,9 @@ impl From<PhysicalSize<u32>> for SurfaceSize {
     }
 }
 
-impl Into<PhysicalSize<u32>> for SurfaceSize {
-    fn into(self) -> PhysicalSize<u32> {
-        PhysicalSize::new(self.width, self.height)
+impl From<SurfaceSize> for PhysicalSize<u32> {
+    fn from(val: SurfaceSize) -> Self {
+        PhysicalSize::new(val.width, val.height)
     }
 }
 
@@ -48,9 +48,9 @@ impl From<PhysicalSize<u32>> for CanvasSize {
     }
 }
 
-impl Into<PhysicalSize<u32>> for CanvasSize {
-    fn into(self) -> PhysicalSize<u32> {
-        PhysicalSize::new(self.width, self.height)
+impl From<CanvasSize> for PhysicalSize<u32> {
+    fn from(val: CanvasSize) -> Self {
+        PhysicalSize::new(val.width, val.height)
     }
 }
 

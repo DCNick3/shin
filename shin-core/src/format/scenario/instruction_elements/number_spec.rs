@@ -167,7 +167,7 @@ pub struct NumberSpec<T = i32>(UntypedNumberSpec, PhantomData<T>);
 
 impl<T> Clone for NumberSpec<T> {
     fn clone(&self) -> Self {
-        Self(self.0, PhantomData)
+        *self
     }
 }
 impl<T> Copy for NumberSpec<T> {}

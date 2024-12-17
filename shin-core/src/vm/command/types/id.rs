@@ -14,6 +14,7 @@ impl ThroughUsize for u8 {
         value.try_into().unwrap()
     }
 
+    #[expect(clippy::unnecessary_fallible_conversions)]
     fn into_usize(self) -> usize {
         self.try_into().unwrap()
     }
@@ -24,6 +25,7 @@ impl ThroughUsize for u16 {
         value.try_into().unwrap()
     }
 
+    #[expect(clippy::unnecessary_fallible_conversions)]
     fn into_usize(self) -> usize {
         self.try_into().unwrap()
     }

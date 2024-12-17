@@ -89,7 +89,8 @@ impl ActionData60Fps {
     // unfortunately, it won't work well with any tick rate different from 60/s
     // TODO: maybe we should guess when display is running at close to 60Hz and use this algorithm?
     // this will prevent time aliasing that the dynamic algo is prone to
-    #[allow(unused)]
+    #[expect(unused)]
+    #[expect(clippy::bool_comparison)]
     pub fn update(&mut self, current_state: bool) -> ActionState {
         let is_held = current_state;
         let is_clicked = self.previous_state == false && current_state == true;

@@ -38,19 +38,18 @@ pub use self::{
 #[derivative(Debug)]
 pub enum UserLayer {
     #[derivative(Debug = "transparent")]
-    NullLayer(NullLayer),
+    Null(NullLayer),
     #[derivative(Debug = "transparent")]
-    PictureLayer(PictureLayer),
+    Picture(PictureLayer),
     #[derivative(Debug = "transparent")]
-    BustupLayer(BustupLayer),
+    Bustup(BustupLayer),
     #[derivative(Debug = "transparent")]
-    TileLayer(TileLayer),
+    Tile(TileLayer),
     #[derivative(Debug = "transparent")]
-    MovieLayer(MovieLayer),
+    Movie(MovieLayer),
 }
 
 impl UserLayer {
-    #[expect(unused)]
     pub async fn load(
         device: &wgpu::Device,
         // resources: &GpuCommonResources,
@@ -140,11 +139,11 @@ impl UserLayer {
 impl AdvUpdatable for UserLayer {
     fn update(&mut self, context: &AdvUpdateContext) {
         match self {
-            Self::NullLayer(layer) => layer.update(context),
-            Self::PictureLayer(layer) => layer.update(context),
-            Self::BustupLayer(layer) => layer.update(context),
-            Self::TileLayer(layer) => layer.update(context),
-            Self::MovieLayer(layer) => layer.update(context),
+            Self::Null(layer) => layer.update(context),
+            Self::Picture(layer) => layer.update(context),
+            Self::Bustup(layer) => layer.update(context),
+            Self::Tile(layer) => layer.update(context),
+            Self::Movie(layer) => layer.update(context),
         }
     }
 }
@@ -152,21 +151,21 @@ impl AdvUpdatable for UserLayer {
 impl DrawableLayer for UserLayer {
     fn properties(&self) -> &LayerProperties {
         match self {
-            Self::NullLayer(layer) => layer.properties(),
-            Self::PictureLayer(layer) => layer.properties(),
-            Self::BustupLayer(layer) => layer.properties(),
-            Self::TileLayer(layer) => layer.properties(),
-            Self::MovieLayer(layer) => layer.properties(),
+            Self::Null(layer) => layer.properties(),
+            Self::Picture(layer) => layer.properties(),
+            Self::Bustup(layer) => layer.properties(),
+            Self::Tile(layer) => layer.properties(),
+            Self::Movie(layer) => layer.properties(),
         }
     }
 
     fn properties_mut(&mut self) -> &mut LayerProperties {
         match self {
-            Self::NullLayer(layer) => layer.properties_mut(),
-            Self::PictureLayer(layer) => layer.properties_mut(),
-            Self::BustupLayer(layer) => layer.properties_mut(),
-            Self::TileLayer(layer) => layer.properties_mut(),
-            Self::MovieLayer(layer) => layer.properties_mut(),
+            Self::Null(layer) => layer.properties_mut(),
+            Self::Picture(layer) => layer.properties_mut(),
+            Self::Bustup(layer) => layer.properties_mut(),
+            Self::Tile(layer) => layer.properties_mut(),
+            Self::Movie(layer) => layer.properties_mut(),
         }
     }
 }
@@ -174,21 +173,21 @@ impl DrawableLayer for UserLayer {
 impl Layer for UserLayer {
     fn get_stencil_bump(&self) -> u8 {
         match self {
-            Self::NullLayer(layer) => layer.get_stencil_bump(),
-            Self::PictureLayer(layer) => layer.get_stencil_bump(),
-            Self::BustupLayer(layer) => layer.get_stencil_bump(),
-            Self::TileLayer(layer) => layer.get_stencil_bump(),
-            Self::MovieLayer(layer) => layer.get_stencil_bump(),
+            Self::Null(layer) => layer.get_stencil_bump(),
+            Self::Picture(layer) => layer.get_stencil_bump(),
+            Self::Bustup(layer) => layer.get_stencil_bump(),
+            Self::Tile(layer) => layer.get_stencil_bump(),
+            Self::Movie(layer) => layer.get_stencil_bump(),
         }
     }
 
     fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         match self {
-            Self::NullLayer(layer) => layer.pre_render(context, transform),
-            Self::PictureLayer(layer) => layer.pre_render(context, transform),
-            Self::BustupLayer(layer) => layer.pre_render(context, transform),
-            Self::TileLayer(layer) => layer.pre_render(context, transform),
-            Self::MovieLayer(layer) => layer.pre_render(context, transform),
+            Self::Null(layer) => layer.pre_render(context, transform),
+            Self::Picture(layer) => layer.pre_render(context, transform),
+            Self::Bustup(layer) => layer.pre_render(context, transform),
+            Self::Tile(layer) => layer.pre_render(context, transform),
+            Self::Movie(layer) => layer.pre_render(context, transform),
         }
     }
 
@@ -200,11 +199,11 @@ impl Layer for UserLayer {
         pass_kind: PassKind,
     ) {
         match self {
-            Self::NullLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
-            Self::PictureLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
-            Self::BustupLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
-            Self::TileLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
-            Self::MovieLayer(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::Null(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::Picture(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::Bustup(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::Tile(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
+            Self::Movie(layer) => layer.render(pass, transform, stencil_ref, pass_kind),
         }
     }
 }

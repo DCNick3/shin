@@ -18,3 +18,13 @@ float-ord = "0.3.2"
 iced_aw = "0.11.0"
 
 hex = "0.4.3"
+
+[lints]
+workspace = true
+
+[package.metadata.release]
+release = false
+publish = false
+
+[package.metadata.dist]
+dist = false
