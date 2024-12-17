@@ -2,26 +2,31 @@
 //!
 //! The BUP format is re-using the machinery from the picture format, but it has some additions on top.
 //!
-//! The character sprite is composed of three layers:
+//! The character sprite is composed of up to five layers:
 //! - the base image, which is the character's body
-//! - the expression, which displays the character's facial expression
-//! - the mouth, which displays the character's mouth
+//! - the expression common face, which displays the character's facial expression, potentially shared with other expressions
+//! - the expression face, which displays the character's facial expression for the emotion
+//! - the mouth, which displays the character's mouth, animated for lipsync
+//! - the eyes, which display the character's eyes for the blinking animation
 //!
 //! The layers are separate because one base image can have multiple facial expressions layered on top, using storage more efficiently.
 //!
-//! The mouth is also separate because it is usually animated, storing multiple versions with varying openness.
+//! All of the layers besides the base image are optional, used as the encoder sees to be more efficient.
 
-use std::collections::HashMap;
+mod builder;
+pub mod default_builder;
 
 use anyhow::{bail, Result};
 use binrw::{BinRead, BinWrite};
-use bitvec::bitbox;
-use image::RgbaImage;
+use indexmap::IndexMap;
 use shin_tasks::ParallelSlice;
 
+pub use self::builder::{
+    BustupBlockPromise, BustupBlockPromiseToken, BustupBuilder, BustupExpressionSkeleton,
+    BustupSkeleton,
+};
 use crate::format::{
-    picture::{read_picture_block, PicBlock},
-    text::ZeroString,
+    bustup::builder::BustupBlockPromisesOwner, picture::read_picture_block, text::ZeroString,
 };
 
 #[derive(BinRead, BinWrite, Debug)]
@@ -31,100 +36,177 @@ use crate::format::{
 struct BustupHeader {
     version: u32,
     file_size: u32,
-    // origin?
-    origin_x: u16,
-    origin_y: u16,
-    viewport_width: u16,
-    viewport_height: u16,
+    // offset 12
+    origin_x: i16,
+    origin_y: i16,
+    effective_width: u16,
+    effective_height: u16,
+    /// always seems to be 0x1, meaning unknown
     f_14: u32,
-    f_18: u32,
+
+    bustup_id: u32,
+    /// always seems to be 0x0, meaning unknown, probably related to the base block descriptors
     f_1c: u32,
-    f_20: u32,
-    f_24: u32,
+    base_block_descriptors_offset: u32,
+    base_block_descriptors_size: u32,
+
+    /// always seems to be 0x0, meaning unknown, probably related to the expression descriptors
     f_28: u32,
-    f_2c: u32,
-    f_30: u32,
-
-    #[brw(align_before = 0x10)]
-    base_chunks_count: u32,
-    #[br(count = base_chunks_count)]
-    base_chunks: Vec<BustupChunkDesc>,
-
-    #[brw(align_before = 0x10)]
-    expression_count: u32,
-    #[br(count = expression_count)]
-    expressions: Vec<BustupExpressionDesc>,
+    expression_descriptors_offset: u32,
+    expression_descriptors_size: u32,
 }
 
-impl BustupHeader {
-    pub fn iter_additional_chunk_descs(&self) -> impl Iterator<Item = &BustupChunkDesc> {
-        self.expressions
-            .iter()
-            .flat_map(|c| std::iter::once(&c.face).chain(c.mouth_chunks.iter()))
+#[derive(BinRead, BinWrite, Debug)]
+#[br(little)]
+struct BaseBlockDescriptors {
+    count: u32,
+    #[br(count = count)]
+    descriptors: Vec<BustupBlockDesc>,
+}
+
+#[derive(BinRead, BinWrite, Debug)]
+#[br(little)]
+struct ExpressionDescriptors {
+    count: u32,
+    #[br(count = count)]
+    descriptors: Vec<BustupExpressionDesc>,
+}
+
+impl ExpressionDescriptors {
+    pub fn iter_additional_block_descs(&self) -> impl Iterator<Item = &BustupBlockDesc> {
+        self.descriptors.iter().flat_map(|c| {
+            std::iter::once(&c.face1)
+                .chain(std::iter::once(&c.face2))
+                .chain(c.mouth_blocks.iter())
+                .chain(c.eye_blocks.iter())
+        })
     }
 }
 
 #[derive(BinRead, BinWrite, Debug, Clone, Copy, PartialEq)]
-struct BustupChunkDesc {
+struct BustupBlockDesc {
     offset: u32,
     size: u32,
-    chunk_id: u32,
+    block_id: u32,
+}
+
+impl BustupBlockDesc {
+    pub fn is_null(&self) -> bool {
+        self.offset == 0
+    }
 }
 
 #[derive(BinRead, BinWrite, Debug)]
-#[br(assert(f_4 == 0 && f_8 == 0 && f_c == 0, "Expected f_4, f_8, f_c to be 0"))]
 struct BustupExpressionDesc {
     header_length: u32,
-    f_4: u32,
-    f_8: u32,
-    f_c: u32,
-    face: BustupChunkDesc,
-    mount_chunk_count: u32,
+    // as far as I can tell from looking at files of sakahari, face1 can be sometimes shared between multiple emotions, hence the separation
+    // I really doubt that it's actually saving anything, and it's not used in umineko, but it doesn't hurt that much to implement it
+    face1: BustupBlockDesc,
+    face2: BustupBlockDesc,
+    mouth_block_count: u16,
+    eye_block_count: u16,
 
     expression_name: ZeroString,
 
     #[brw(align_before = 0x4)]
-    #[br(count = mount_chunk_count)]
-    mouth_chunks: Vec<BustupChunkDesc>,
+    #[br(count = mouth_block_count)]
+    mouth_blocks: Vec<BustupBlockDesc>,
+
+    // eye textures with various stages of blinking
+    // used to make bustup sprites look more lively by making them blink at random intervals
+    // not used by umineko
+    #[brw(align_before = 0x4)]
+    #[br(count = eye_block_count)]
+    eye_blocks: Vec<BustupBlockDesc>,
 }
 
-// TODO: do we want to support non-composited bustups, like we do in pictures?
-pub struct Bustup {
-    pub base_image: RgbaImage,
-    pub origin: (u16, u16),
-    pub expressions: HashMap<String, BustupExpression>,
+pub fn dump_header<R: std::io::Read + std::io::Seek>(
+    reader: &mut R,
+    prefix: &str,
+) -> Result<String> {
+    let header = BustupHeader::read(reader)?;
+
+    let s = format!(
+        "{}{:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}",
+        prefix,
+        header.origin_x,
+        header.origin_y,
+        header.effective_width,
+        header.effective_height,
+        header.f_14,
+        header.bustup_id,
+        header.f_1c,
+        header.base_block_descriptors_offset,
+        header.base_block_descriptors_size,
+        header.f_28,
+        header.expression_descriptors_offset,
+        header.expression_descriptors_size,
+    );
+
+    Ok(s)
 }
 
-pub struct BustupExpression {
-    pub face_chunk: PicBlock,
-    pub mouth_chunks: Vec<PicBlock>,
-}
+pub fn dump_expression_descriptors<R: std::io::Read + std::io::Seek>(
+    reader: &mut R,
+    prefix: &str,
+) -> Result<String> {
+    let header = BustupHeader::read(reader)?;
+    reader.seek(std::io::SeekFrom::Start(
+        header.expression_descriptors_offset as u64,
+    ))?;
 
-fn cleanup_unused_areas(chunk: &mut PicBlock) {
-    let mut bitbox = bitbox![0u32; chunk.data.width() as usize * chunk.data.height() as usize];
-    let coord_to_index = |x: u32, y: u32| (y * chunk.data.width() + x) as usize;
-    for vertex in chunk
-        .opaque_rects
-        .iter()
-        .chain(chunk.transparent_rects.iter())
-    {
-        let clamp_y = |y: u16| std::cmp::min(y, chunk.data.height() as u16 - 1);
-        let clamp_x = |x: u16| std::cmp::min(x, chunk.data.width() as u16 - 1);
-        for y in vertex.from_y.saturating_sub(0)..clamp_y(vertex.to_y) {
-            for x in vertex.from_x.saturating_sub(0)..clamp_x(vertex.to_x) {
-                bitbox.set(coord_to_index(x as u32, y as u32), true);
-            }
-        }
+    let descriptors = ExpressionDescriptors::read(reader)?;
+
+    let mut result = String::new();
+
+    for (i, descriptor) in (0..).zip(descriptors.descriptors) {
+        result.push_str(&format!(
+            "{}{}, {:#x}, {:#x}, {:#x}, {:#x}, {:?}\n",
+            prefix,
+            i,
+            descriptor.face1.block_id,
+            descriptor.face2.block_id,
+            descriptor.mouth_block_count,
+            descriptor.mouth_block_count,
+            descriptor.expression_name.0
+        ));
     }
 
-    for (pixel, mask) in chunk.data.pixels_mut().zip(bitbox) {
-        if !mask {
-            *pixel = image::Rgba([0, 0, 0, 0]);
-        }
-    }
+    Ok(result)
 }
 
-pub fn read_bustup(source: &[u8]) -> Result<Bustup> {
+// TODO: maybe create a reader wrapper that will actually limit the read size instead of just checking in the end?
+fn with_offset_and_size<
+    R: std::io::Read + std::io::Seek,
+    F: FnOnce(&mut R) -> Result<T, E>,
+    T,
+    E: Into<anyhow::Error> + Send,
+>(
+    reader: &mut R,
+    offset: u32,
+    length: u32,
+    f: F,
+) -> Result<T> {
+    let before = reader.stream_position()?;
+    reader.seek(std::io::SeekFrom::Start(offset as u64))?;
+
+    let result = f(reader).map_err(|e| e.into())?;
+
+    let after = reader.stream_position()?;
+    if after - offset as u64 != length as u64 {
+        bail!(
+            "Expected to read {} bytes, but read {} bytes",
+            length,
+            after - before
+        );
+    }
+
+    reader.seek(std::io::SeekFrom::Start(before))?;
+
+    Ok(result)
+}
+
+pub fn read_bustup<B: BustupBuilder>(source: &[u8], builder_args: B::Args) -> Result<B::Output> {
     let mut source = std::io::Cursor::new(source);
     let source = &mut source;
 
@@ -134,88 +216,118 @@ pub fn read_bustup(source: &[u8]) -> Result<Bustup> {
         bail!("File size mismatch");
     }
 
-    let mut base_chunks = HashMap::new();
-    for chunk in header.base_chunks.iter() {
-        let e = base_chunks.entry(chunk.chunk_id).or_insert(*chunk);
-        assert_eq!(
-            e, chunk,
-            "Two chunks have the same ID, but different contents"
-        );
+    let base_block_descriptors = with_offset_and_size(
+        source,
+        header.base_block_descriptors_offset,
+        header.base_block_descriptors_size,
+        BaseBlockDescriptors::read,
+    )?;
+
+    let expression_descriptors = with_offset_and_size(
+        source,
+        header.expression_descriptors_offset,
+        header.expression_descriptors_size,
+        ExpressionDescriptors::read,
+    )?;
+
+    // collect all the non-null blocks
+    let mut block_descriptors = Vec::new();
+    for &desc in base_block_descriptors.descriptors.iter() {
+        if !desc.is_null() {
+            block_descriptors.push(desc);
+        }
     }
-    let base_chunks = base_chunks.into_iter().collect::<Vec<_>>();
-
-    let mut additional_chunks = HashMap::new();
-    for chunk in header.iter_additional_chunk_descs() {
-        let e = additional_chunks.entry(chunk.chunk_id).or_insert(*chunk);
-        assert_eq!(
-            e, chunk,
-            "Two chunks have the same ID, but different contents"
-        );
-    }
-    let additional_chunks = additional_chunks.into_iter().collect::<Vec<_>>();
-
-    // TODO: actually, collecting all of these is not the most efficient in terms of memory...
-    // It might be better to first collect the "base" chunks into the base picture (the same way it's done in picture)
-    // and then we can start reading the expressions and their mouths.
-
-    let mut base_image =
-        RgbaImage::new(header.viewport_width as u32, header.viewport_height as u32);
-
-    fn par_decode_chunks(
-        chunks: Vec<(u32, BustupChunkDesc)>,
-        source: &[u8],
-    ) -> Vec<Result<(u32, PicBlock)>> {
-        chunks.par_chunk_map(
-            shin_tasks::AsyncComputeTaskPool::get(),
-            1,
-            |chunk| -> Result<_> {
-                let &[(id, desc)] = chunk else { unreachable!() };
-                let data = &source[desc.offset as usize..(desc.offset + desc.size) as usize];
-                let mut chunk = read_picture_block(data)?;
-                cleanup_unused_areas(&mut chunk);
-                Ok((id, chunk))
-            },
-        )
+    for &desc in expression_descriptors.iter_additional_block_descs() {
+        if !desc.is_null() {
+            block_descriptors.push(desc);
+        }
     }
 
-    par_decode_chunks(base_chunks, source.get_ref())
-        .into_iter()
-        .try_for_each(|res| -> Result<()> {
-            let (_, chunk) = res?;
+    let owner = BustupBlockPromisesOwner::new(block_descriptors.len());
+    let mut issuer = owner.bind(block_descriptors.iter().map(|d| d.block_id));
 
-            image::imageops::overlay(
-                &mut base_image,
-                &chunk.data,
-                chunk.offset_x as i64,
-                chunk.offset_y as i64,
+    // build the skeleton
+    let skeleton = {
+        let base_blocks = base_block_descriptors
+            .descriptors
+            .iter()
+            .map(|d| issuer.visit(d))
+            .collect();
+
+        let mut expressions = IndexMap::new();
+        for expression in expression_descriptors.descriptors.iter() {
+            let face1 = issuer.visit_opt(&expression.face1);
+            let face2 = issuer.visit_opt(&expression.face2);
+            let mouth_blocks = expression
+                .mouth_blocks
+                .iter()
+                .map(|d| issuer.visit(d))
+                .collect();
+            let eye_blocks = expression
+                .eye_blocks
+                .iter()
+                .map(|d| issuer.visit(d))
+                .collect();
+
+            expressions.insert(
+                expression.expression_name.0.clone(),
+                BustupExpressionSkeleton {
+                    face1,
+                    face2,
+                    mouth_blocks,
+                    eye_blocks,
+                },
             );
-            Ok(())
-        })?;
+        }
 
-    let additional_chunks = par_decode_chunks(additional_chunks, source.get_ref())
-        .into_iter()
-        .collect::<Result<HashMap<_, _>>>()?;
+        BustupSkeleton {
+            origin_x: header.origin_x,
+            origin_y: header.origin_y,
+            effective_width: header.effective_width,
+            effective_height: header.effective_height,
+            bustup_id: header.bustup_id,
+            base_blocks,
+            expressions,
+        }
+    };
 
-    Ok(Bustup {
-        base_image,
-        origin: (header.origin_x, header.origin_y),
-        expressions: header
-            .expressions
-            .into_iter()
-            .map(|e| {
-                let name = e.expression_name.0;
+    // let the builder decide which blocks to decode. if they are not interested in a certain block, they should drop the promise
+    let skeleton = B::new(&builder_args, skeleton);
 
-                let expression = BustupExpression {
-                    face_chunk: additional_chunks[&e.face.chunk_id].clone(),
-                    mouth_chunks: e
-                        .mouth_chunks
-                        .into_iter()
-                        .map(|c| additional_chunks[&c.chunk_id].clone())
-                        .collect(),
-                };
+    let required_blocks = (0..)
+        .zip(&block_descriptors)
+        .zip(&owner.counters)
+        .filter(|&(_, c)| *c.borrow() > 0)
+        .map(|((index, &desc), _)| (index, desc))
+        .collect::<Vec<_>>();
 
-                (name, expression)
-            })
-            .collect(),
-    })
+    // TODO: we can do this without spawning a task per block, par_map_chunks will probably be a little bit more efficient
+    let decoded_blocks =
+        required_blocks.par_map(shin_tasks::AsyncComputeTaskPool::get(), |&(index, desc)| {
+            let data = &source.get_ref()[desc.offset as usize..(desc.offset + desc.size) as usize];
+            read_picture_block(data)
+                .and_then(|block| B::new_block(&builder_args, block))
+                .map(|block| (index, block))
+        });
+
+    // prepare an array of `Option<PictureBlock>` for easier access by index by the promise
+    let mut blocks_array = {
+        let mut blocks_array = Vec::with_capacity(block_descriptors.len());
+        // can't use vec![init; count] syntax here because it requires Clone
+        for _ in 0..block_descriptors.len() {
+            blocks_array.push(None);
+        }
+        for result in decoded_blocks {
+            let (index, block) = result?;
+            blocks_array[index] = Some(block);
+        }
+        blocks_array
+    };
+    let token = BustupBlockPromiseToken {
+        decoded_blocks: &mut blocks_array,
+    };
+
+    let output = B::build(skeleton, token)?;
+
+    Ok(output)
 }
