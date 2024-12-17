@@ -1,3 +1,5 @@
+#![expect(clippy::derivable_impls)] // want to be explicit
+
 //! Rendering framework for the shin engine.
 
 // here we create an abstraction over wgpu which makes it look more like shin's render abstraction over nvn.

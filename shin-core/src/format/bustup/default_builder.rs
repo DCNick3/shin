@@ -33,7 +33,7 @@ impl BustupBuilder for DefaultBustupBuilder {
             skeleton.effective_height as u32,
         );
 
-        let mut lower_block = |block: BustupBlockPromise| block.get(&token).clone();
+        let lower_block = |block: BustupBlockPromise| block.get(&token).clone();
 
         for block in skeleton.base_blocks {
             let block = lower_block(block);
@@ -48,18 +48,14 @@ impl BustupBuilder for DefaultBustupBuilder {
 
         let mut expressions = IndexMap::new();
         for (name, expression) in skeleton.expressions {
-            let face1 = expression.face1.map(&mut lower_block);
-            let face2 = expression.face2.map(&mut lower_block);
+            let face1 = expression.face1.map(lower_block);
+            let face2 = expression.face2.map(lower_block);
             let mouths = expression
                 .mouth_blocks
                 .into_iter()
-                .map(&mut lower_block)
+                .map(lower_block)
                 .collect();
-            let eyes = expression
-                .eye_blocks
-                .into_iter()
-                .map(&mut lower_block)
-                .collect();
+            let eyes = expression.eye_blocks.into_iter().map(lower_block).collect();
 
             expressions.insert(
                 name,

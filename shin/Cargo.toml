@@ -77,6 +77,9 @@ bitflags = "2.6.0"
 default = []
 gstreamer-video = ["shin-video/gstreamer"]
 
+[lints]
+workspace = true
+
 [package.metadata.release]
 # this crate is not ready for publishing yet
 # (it has git dependencies)

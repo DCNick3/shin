@@ -13,6 +13,7 @@ use crate::syntax::{
     SyntaxNode, SyntaxToken, T,
 };
 
+/// `SourceFile` represents a parse tree for a single Rust file.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AstNode)]
 #[ast(kind = SOURCE_FILE)]
 pub struct SourceFile {

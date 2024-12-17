@@ -28,3 +28,6 @@ dpi = { workspace = true }
 glam = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 spin_sleep_util = "0.1.1"
+
+[lints]
+workspace = true

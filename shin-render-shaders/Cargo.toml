@@ -31,3 +31,6 @@ prettyplease = "0.2.22"
 
 itertools = "0.13.0"
 indexmap = "2.6.0"
+
+[lints]
+workspace = true

@@ -1,3 +1,5 @@
+#![allow(clippy::needless_lifetimes)]
+
 use std::{
     marker::PhantomData,
     thread::{self, ThreadId},
@@ -78,7 +80,7 @@ impl<'task> ThreadExecutor<'task> {
         if thread::current().id() == self.thread_id {
             return Some(ThreadExecutorTicker {
                 executor: &self.executor,
-                _marker: PhantomData::default(),
+                _marker: PhantomData,
             });
         }
         None

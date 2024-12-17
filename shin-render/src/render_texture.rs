@@ -69,7 +69,7 @@ impl RenderTexture {
 
     pub fn as_texture_source(&self) -> TextureSource {
         TextureSource {
-            view: &self.inner_texture.get_view(),
+            view: self.inner_texture.get_view(),
             sampler: self.sampler,
         }
     }
@@ -77,7 +77,7 @@ impl RenderTexture {
     pub fn as_texture_target(&mut self) -> TextureTarget {
         TextureTarget {
             kind: TextureTargetKind::RenderTexture,
-            view: &self.inner_texture.resize_and_get_view(),
+            view: self.inner_texture.resize_and_get_view(),
         }
     }
 }
@@ -111,7 +111,7 @@ impl Clone for RenderTexture {
                 aspect: wgpu::TextureAspect::All,
             },
             wgpu::ImageCopyTexture {
-                texture: &new_texture.get_texture(),
+                texture: new_texture.get_texture(),
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,

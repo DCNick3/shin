@@ -106,13 +106,12 @@ impl Parse<SourceFile> {
         use std::fmt::Write;
         let mut buf = format!("{:#?}", self.tree().syntax());
         for err in self.errors.iter() {
-            write!(buf, "error {:?}: {:?}\n", err.range(), err).unwrap();
+            writeln!(buf, "error {:?}: {:?}", err.range(), err).unwrap();
         }
         buf
     }
 }
 
-/// `SourceFile` represents a parse tree for a single Rust file.
 // pub use self::ast::SourceFile;
 
 impl SourceFile {

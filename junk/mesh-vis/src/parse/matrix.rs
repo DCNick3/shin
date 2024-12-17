@@ -121,6 +121,7 @@ fn matrix_view<Message: 'static>(matrix: Matrix) -> Column<'static, Message> {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DecompositionOrder {
     #[default]
@@ -323,9 +324,8 @@ impl MatrixParseState {
         // 3x3 matrix is the rare case, so detect it by length  only exactly
         let (matrix, result) = if floats.len() == 9 {
             let mut floats_array = [0.0; 9];
-            for i in 0..std::cmp::min(floats.len(), floats_array.len()) {
-                floats_array[i] = floats[i];
-            }
+            let size = std::cmp::min(floats.len(), floats_array.len());
+            floats_array[..size].copy_from_slice(&floats[..size]);
 
             let matrix = Mat3::from_cols_array(&floats_array);
             let result = if floats.len() == floats_array.len() {
@@ -337,9 +337,8 @@ impl MatrixParseState {
             (Matrix::Mat3(matrix), result)
         } else {
             let mut floats_array = [0.0; 16];
-            for i in 0..std::cmp::min(floats.len(), floats_array.len()) {
-                floats_array[i] = floats[i];
-            }
+            let size = std::cmp::min(floats.len(), floats_array.len());
+            floats_array[..size].copy_from_slice(&floats[..size]);
 
             let matrix = Mat4::from_cols_array(&floats_array);
             let result = if floats.len() == floats_array.len() {

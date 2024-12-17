@@ -224,7 +224,7 @@ pub fn resolve_global_registers(
                     )
                     .emit(self.db);
 
-                    return None;
+                    None
                 }
                 NodeState::Visited(result) => result,
             }

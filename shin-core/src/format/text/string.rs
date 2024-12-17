@@ -173,7 +173,7 @@ impl<L: StringLengthDesc, F: StringFixup> BinWrite for SJisString<L, F> {
         write_sjis_string(&fixed_up, writer)?;
 
         // write the null terminator
-        let _ = 0u8.write_options(writer, endian, ())?;
+        0u8.write_options(writer, endian, ())?;
 
         Ok(())
     }

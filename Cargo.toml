@@ -70,6 +70,15 @@ inherits = "release"
 debug = false
 lto = "thin"
 
+[workspace.lints.clippy]
+bool_comparison = "allow"
+bool_assert_comparison = "allow"
+new_without_default = "allow"
+let_and_return = "allow"
+too_many_arguments = "allow"
+type_complexity = "allow"
+useless_format = "allow"
+
 [workspace.metadata.release]
 shared-version = true
 publish = false # can't publish yet because of enum-map git dep

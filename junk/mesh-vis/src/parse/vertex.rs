@@ -34,7 +34,7 @@ impl VertexParseState {
 
         let vertices = valid_prefix
             .chunks_exact(vertex_len)
-            .map(|v| VertexView::new(v, &descriptor.fields))
+            .map(|v| VertexView::new(v, descriptor.fields))
             .collect();
 
         let result = if valid_prefix_len == raw_floats.len() {

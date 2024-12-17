@@ -30,7 +30,7 @@ pub fn instruction_from_hir(
     let builder = commands::commands(builder);
     let router = builder.build();
 
-    return router.handle_instr(collectors, ctx, name, instr);
+    router.handle_instr(collectors, ctx, name, instr)
 }
 
 #[cfg(test)]

@@ -25,3 +25,6 @@ futures-channel = "0.3"
 
 [dev-dependencies]
 instant = { version = "0.1", features = ["wasm-bindgen"] }
+
+[lints]
+workspace = true

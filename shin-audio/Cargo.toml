@@ -19,3 +19,6 @@ tracing = "0.1.40"
 kira = { workspace = true, features = ["cpal"] }
 ringbuf = "0.4.1"
 
+[lints]
+workspace = true
+

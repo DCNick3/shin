@@ -60,9 +60,9 @@ impl Bustup {
 
 impl Asset for Bustup {
     async fn load(_context: &AssetLoadContext, data: AssetDataAccessor) -> Result<Self> {
-        let bustup = shin_core::format::bustup::read_bustup(&data.read_all().await)?;
-
-        let origin = vec2(bustup.origin.0 as f32, bustup.origin.1 as f32);
+        // let bustup = shin_core::format::bustup::read_bustup(&data.read_all().await)?;
+        //
+        // let origin = vec2(bustup.origin.0 as f32, bustup.origin.1 as f32);
 
         todo!()
 

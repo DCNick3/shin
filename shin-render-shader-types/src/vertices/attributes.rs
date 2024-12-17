@@ -45,6 +45,7 @@ pub struct FloatColor4 {
 
 impl FloatColor4 {
     /// Creates a new [`FloatColor4`] from an integer of form `0xARGB` (4 bits per channel).
+    #[expect(clippy::identity_op)]
     pub fn from_4bpp_property(value: i32) -> Self {
         let alpha = ((value & 0xf000) >> 12) as f32 / 0xf as f32;
         let red = ((value & 0x0f00) >> 8) as f32 / 0xf as f32;

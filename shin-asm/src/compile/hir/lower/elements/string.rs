@@ -31,7 +31,7 @@ mod tests {
         check_from_hir_ok(
             // TODO: support & test string escapes
             r#"HELLO "biba", "BoBa", """#,
-            &["biba", "BoBa", ""].map(|s| U16FixupString::new(s)),
+            &["biba", "BoBa", ""].map(U16FixupString::new),
         );
     }
 }

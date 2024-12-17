@@ -148,7 +148,7 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
         let size = self.size.get();
 
         wgpu::BufferBinding {
-            buffer: &self.ownership.get(),
+            buffer: self.ownership.get(),
             offset,
             size: Some(wgpu::BufferSize::new(size).unwrap()),
         }
@@ -180,7 +180,7 @@ impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
     }
 }
 
-impl<'a, T: ArrayBufferType> BufferRef<'a, T> {
+impl<T: ArrayBufferType> BufferRef<'_, T> {
     pub fn count(&self) -> u32 {
         (self.size.get() as usize / size_of::<T::Element>()) as u32
     }
@@ -204,7 +204,6 @@ impl<T: BufferType> SharedBuffer<T> {
         let ownership = self.ownership.clone();
 
         let offset = self.offset + start;
-        let size = size;
 
         assert!((self.offset..self.offset + self.size).contains(&offset));
         assert!((self.offset..self.offset + self.size).contains(&(offset + size)));
@@ -306,7 +305,7 @@ pub enum VertexSourceInfo {
     VertexAndIndexBuffer { index_count: u32 },
 }
 
-impl<'a, T: VertexType> VertexSource<'a, T> {
+impl<T: VertexType> VertexSource<'_, T> {
     pub fn info(&self) -> VertexSourceInfo {
         match self {
             VertexSource::VertexBuffer {

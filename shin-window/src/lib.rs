@@ -151,25 +151,22 @@ impl WindowState {
         if window.fullscreen().is_some() {
             info!("Exiting fullscreen mode");
             window.set_fullscreen(None);
-        } else {
-            if let Some(monitor) = window.current_monitor() {
-                if let Some(video_mode) = monitor.video_modes().next() {
-                    info!(
-                        "Attempting to enter exclusive fullscreen mode {}",
-                        video_mode
-                    );
-                    window.set_fullscreen(Some(winit::window::Fullscreen::Exclusive(video_mode)));
-                }
-                if window.fullscreen().is_none() {
-                    info!(
-                        "Attempting to enter non-exclusive fullscreen mode on {}",
-                        monitor
-                            .name()
-                            .unwrap_or_else(|| "unknown monitor".to_string())
-                    );
-                    window
-                        .set_fullscreen(Some(winit::window::Fullscreen::Borderless(Some(monitor))));
-                }
+        } else if let Some(monitor) = window.current_monitor() {
+            if let Some(video_mode) = monitor.video_modes().next() {
+                info!(
+                    "Attempting to enter exclusive fullscreen mode {}",
+                    video_mode
+                );
+                window.set_fullscreen(Some(winit::window::Fullscreen::Exclusive(video_mode)));
+            }
+            if window.fullscreen().is_none() {
+                info!(
+                    "Attempting to enter non-exclusive fullscreen mode on {}",
+                    monitor
+                        .name()
+                        .unwrap_or_else(|| "unknown monitor".to_string())
+                );
+                window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(Some(monitor))));
             }
         }
     }
@@ -471,7 +468,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
 
                 app.custom_event(
                     AppContext {
-                        event_loop: &event_loop,
+                        event_loop,
                         event_loop_proxy,
                         wgpu,
                         winit,
@@ -564,7 +561,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
 
                 app.update(
                     AppContext {
-                        event_loop: &event_loop,
+                        event_loop,
                         event_loop_proxy,
                         winit,
                         wgpu,
@@ -591,7 +588,7 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                         view: &surface_texture.view,
                     },
                     DepthStencilTarget {
-                        view: &render.surface_depth_stencil_buffer.resize_and_get_view(),
+                        view: render.surface_depth_stencil_buffer.resize_and_get_view(),
                     },
                     Some(viewport),
                 );

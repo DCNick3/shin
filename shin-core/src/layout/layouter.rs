@@ -110,7 +110,7 @@ pub struct LayoutParams<'a> {
     pub mode: LayoutingMode,
 }
 
-impl<'a> LayoutParams<'a> {
+impl LayoutParams<'_> {
     fn glyph_size(&self, font_size: f32, codepoint: u16) -> GlyphSize {
         let line_height = self.base_font_height * font_size;
         let scale = line_height / self.font.get_line_height() as f32;
@@ -143,7 +143,7 @@ struct Layouter<'a> {
     time: Ticks,
 }
 
-impl<'a> Layouter<'a> {
+impl Layouter<'_> {
     fn on_char(&mut self, c: char) {
         assert!((c as u32) < 0x10000);
         let codepoint = c as u16;
@@ -458,13 +458,10 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
     let mut actions_builder = ActionsBuilder::new();
 
     let layout_mode = layouter.params.mode;
-    match layout_mode {
-        LayoutingMode::MessageText => {
-            // Character names are 0.9 font size in message boxes, and displayed instantly
-            layouter.state.instant = true;
-            layouter.state.font_size = 0.9;
-        }
-        _ => {}
+    if let LayoutingMode::MessageText = layout_mode {
+        // Character names are 0.9 font size in message boxes, and displayed instantly
+        layouter.state.instant = true;
+        layouter.state.font_size = 0.9;
     }
 
     // NOTE: the first line is always the character name, even if the message box does not show it

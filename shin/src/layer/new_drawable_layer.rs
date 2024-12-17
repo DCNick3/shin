@@ -78,9 +78,7 @@ impl NewDrawableLayerState {
     }
 
     pub fn get_prerendered_tex(&self) -> Option<PrerenderedDrawable> {
-        let Some(tex) = self.render_texture_src.as_ref() else {
-            return None;
-        };
+        let tex = self.render_texture_src.as_ref()?;
 
         Some(PrerenderedDrawable {
             render_texture: tex.as_texture_source(),

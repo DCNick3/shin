@@ -47,3 +47,6 @@ pretty-hex = "0.4.1"
 
 [build-dependencies]
 build-deps = "0.1.4"
+
+[lints]
+workspace = true

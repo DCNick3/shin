@@ -99,7 +99,7 @@ impl GenCtx {
 
     fn gen_array(&mut self, schema: &ArraySchema) -> Handle<Type> {
         let ty = match schema.ty {
-            TypeSchema::Primitive(prim) => self.primitives.get(&prim).unwrap().clone(),
+            TypeSchema::Primitive(prim) => *self.primitives.get(prim).unwrap(),
             TypeSchema::Struct(_schema) => {
                 todo!("Structs in arrays??? Who would need such complexity?????")
                 // self.gen_struct(schema)
@@ -132,7 +132,7 @@ impl GenCtx {
         }) = self.known_structs.get(schema.name)
         {
             assert_eq!(existing_schema, schema);
-            return handle.clone();
+            return *handle;
         };
 
         let members = schema
@@ -140,12 +140,12 @@ impl GenCtx {
             .iter()
             .map(|f| {
                 let ty = match f.ty {
-                    TypeSchema::Primitive(prim) => self.primitives.get(&prim).unwrap().clone(),
+                    TypeSchema::Primitive(prim) => *self.primitives.get(prim).unwrap(),
                     TypeSchema::Struct(_schema) => {
                         todo!("Structs in structs??? Who would need such complexity?????")
                         // self.gen_struct(schema)
                     }
-                    TypeSchema::Array(array) => self.gen_array(&array),
+                    TypeSchema::Array(array) => self.gen_array(array),
                 };
 
                 naga::StructMember {
@@ -169,7 +169,7 @@ impl GenCtx {
         self.known_structs.insert(
             schema.name.to_string(),
             KnownStructInfo {
-                schema: schema.clone(),
+                schema: *schema,
                 handle,
                 fully_qualified_rust_name: fully_qualified_rust_name.to_string(),
             },
@@ -209,7 +209,7 @@ impl GenCtx {
                     name
                 ),
             };
-            let ty = self.primitives.get(&ty).unwrap().clone();
+            let ty = *self.primitives.get(&ty).unwrap();
             let member_layout = self.layouter[ty];
 
             offset = member_layout.alignment.round_up(offset);
@@ -259,7 +259,7 @@ impl GenCtx {
         let fully_qualified_rust_name = std::any::type_name::<T>();
 
         match T::SCHEMA {
-            TypeSchema::Primitive(prim) => self.primitives.get(&prim).unwrap().clone(),
+            TypeSchema::Primitive(prim) => *self.primitives.get(&prim).unwrap(),
             TypeSchema::Struct(schema) => self.gen_struct(&schema, fully_qualified_rust_name),
             TypeSchema::Array(array) => self.gen_array(&array),
         }
@@ -533,7 +533,7 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                         assert_eq!(entry_point.function.arguments.len(), 1);
                         let argument = &entry_point.function.arguments[0];
                         assert_eq!(argument.binding, None);
-                        let type_name = module.types[argument.ty.clone()].name.clone().unwrap();
+                        let type_name = module.types[argument.ty].name.clone().unwrap();
                         let type_name = type_name.strip_suffix(&types_suffix).unwrap();
 
                         vertex_type_name =
@@ -567,6 +567,7 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                 assert_eq!(binding.group, 0);
 
                 let ty = &module.types[var.ty];
+                #[expect(clippy::bool_assert_comparison)]
                 match &ty.inner {
                     &naga::TypeInner::Image {
                         dim,
@@ -698,12 +699,12 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
             // eprintln!("bindings_unified: {:?}", bindings_unified);
 
             // sort by binding number, so just for nicer output
-            bindings_unified.sort_by_cached_key(|_, v| match v {
-                &ShaderBindingGroupDescriptor::Texture {
+            bindings_unified.sort_by_cached_key(|_, v| match *v {
+                ShaderBindingGroupDescriptor::Texture {
                     texture_binding,
                     sampler_binding,
                 } => std::cmp::min(texture_binding, sampler_binding),
-                &ShaderBindingGroupDescriptor::Uniform { binding, .. } => binding,
+                ShaderBindingGroupDescriptor::Uniform { binding, .. } => binding,
             });
 
             let descriptor = ShaderDescriptor {
@@ -882,7 +883,7 @@ fn codegen_shader(shader: &ShaderWithDescriptor) -> proc_macro2::TokenStream {
     let shader_ty_name = quote::format_ident!("{}", pascal_case_name);
     let bindings_ty_name = quote::format_ident!("{}Bindings", pascal_case_name);
 
-    let shader_descriptor = codegen_shader_descriptor(&shader);
+    let shader_descriptor = codegen_shader_descriptor(shader);
 
     let bindings = codegen_bindings(&bindings_ty_name, &shader.descriptor.bind_groups);
     let vertex = shader

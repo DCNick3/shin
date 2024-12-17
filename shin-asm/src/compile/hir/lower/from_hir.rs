@@ -114,7 +114,7 @@ pub struct FromHirCollectors<'d, 'di, 'cac> {
     pub code_address_collector: &'cac mut CodeAddressCollector,
 }
 
-impl<'d, 'di, 'cac> FromHirCollectors<'d, 'di, 'cac> {
+impl FromHirCollectors<'_, '_, '_> {
     #[inline]
     pub fn emit_diagnostic<T>(&mut self, location: HirId, message: String) -> LowerResult<T> {
         self.diagnostics.emit(location, message);
@@ -152,7 +152,7 @@ pub struct FromHirBlockCtx<'r, 'db, 'b> {
     pub block: &'b HirBlockBody,
 }
 
-impl<'r, 'db, 'b> FromHirBlockCtx<'r, 'db, 'b> {
+impl FromHirBlockCtx<'_, '_, '_> {
     #[inline]
     pub fn resolve_register(&self, register: &ast::RegisterIdentKind) -> Option<Register> {
         self.resolve_ctx.resolve_register(register)

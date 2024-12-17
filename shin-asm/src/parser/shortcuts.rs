@@ -10,7 +10,7 @@ pub enum StrStep<'a> {
     Error { msg: &'a str, pos: usize },
 }
 
-impl<'a> LexedStr<'a> {
+impl LexedStr<'_> {
     pub fn to_input(&self) -> Input {
         let mut res = Input::default();
         for i in 0..self.len() {

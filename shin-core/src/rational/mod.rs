@@ -5,6 +5,17 @@ mod ops;
 mod parse;
 mod str;
 
+#[derive(Debug)]
+pub struct RationalOutOfRange;
+
+impl std::fmt::Display for RationalOutOfRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "provided parts of a rational number are out of range")
+    }
+}
+
+impl std::error::Error for RationalOutOfRange {}
+
 /// Implements a fixed-point decimal number with 3 digits of precision.
 ///
 /// This type is commonly used for fractional numbers in shin.
@@ -35,17 +46,20 @@ impl Rational {
         self.0
     }
 
-    pub fn try_from_parts(sign: Sign, integer: u32, fraction: u16) -> Result<Self, ()> {
+    pub fn try_from_parts(
+        sign: Sign,
+        integer: u32,
+        fraction: u16,
+    ) -> Result<Self, RationalOutOfRange> {
         let (max_int, max_frac) = match sign {
             Sign::Positive => (2147483, 647),
             Sign::Negative => (2147483, 648),
         };
 
         if integer > max_int || integer == max_int && fraction > max_frac {
-            return Err(());
+            return Err(RationalOutOfRange);
         }
 
-        let integer = integer;
         let fraction = fraction as u32;
 
         let value = integer * Self::DENOM as u32 + fraction;

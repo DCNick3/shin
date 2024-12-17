@@ -20,3 +20,6 @@ bytemuck = { workspace = true, features = ["derive"] }
 encase = { workspace = true, features = ["glam"] }
 
 enum-iterator = { workspace = true }
+
+[lints]
+workspace = true

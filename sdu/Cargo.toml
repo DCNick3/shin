@@ -26,3 +26,7 @@ hound = "3.5.1"
 ron = "0.8.1"
 
 ogg = "0.9.1"
+
+[lints]
+workspace = true
+

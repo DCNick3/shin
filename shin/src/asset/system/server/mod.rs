@@ -146,7 +146,7 @@ impl AssetIo {
         let rom = File::open(rom_path)
             .context("Opening ROM file")
             .and_then(|rom| StatelessFile::new(rom).context("Creating stateless file"))
-            .and_then(|rom| RomReader::new(rom))
+            .and_then(RomReader::new)
             .with_context(|| format!("Failed to open {:?}, cannot use as asset ROM", rom_path))?;
 
         Ok(AssetIo::RomFile(RomAssetIo::new(

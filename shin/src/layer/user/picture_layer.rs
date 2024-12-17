@@ -191,7 +191,7 @@ impl PictureLayerImpl {
                 PictureBlockPassKind::OpaqueAndTransparent => "opaque_and_transparent",
             }
         ));
-        for (&offset, &(ref positions, ref block)) in &self.picture.blocks {
+        for (&offset, (positions, block)) in &self.picture.blocks {
             pass.push_debug(&format!("Block[{}]", offset));
             for position in positions {
                 let transform = transform * Mat4::from_translation(position.extend(0.0));

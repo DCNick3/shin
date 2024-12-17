@@ -117,7 +117,7 @@ impl<'t> Parser<'t> {
             return EOF;
         }
         self.do_bump(kind);
-        return kind;
+        kind
     }
 
     // /// Advances the parser by one token, remapping its kind.
