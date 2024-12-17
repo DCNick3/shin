@@ -3240,9 +3240,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.6.0"
+version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "707907fe3c25f5424cce2cb7e1cbcafee6bdbe735ca90ef77c29e84591e5b9da"
+checksum = "62f822373a4fe84d4bb149bf54e584a7f4abec90e072ed49cda0edea5b95471f"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.1",
@@ -3398,6 +3398,7 @@ dependencies = [
  "owo-colors 3.5.0",
  "regex",
  "shin-core",
+ "walkdir",
 ]
 
 [[package]]
@@ -3835,7 +3836,7 @@ dependencies = [
  "bitflags 2.6.0",
  "codespan-reporting",
  "hexf-parse",
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "log",
  "num-traits",
  "rustc-hash 1.1.0",
@@ -3857,7 +3858,7 @@ dependencies = [
  "cfg_aliases 0.1.1",
  "codespan-reporting",
  "hexf-parse",
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "log",
  "pp-rs",
  "rustc-hash 1.1.0",
@@ -3876,7 +3877,7 @@ dependencies = [
  "bit-set 0.5.3",
  "codespan-reporting",
  "data-encoding",
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "naga 22.1.0",
  "once_cell",
  "regex",
@@ -4720,7 +4721,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42cf17e9a1800f5f396bc67d193dc9411b59012a5876445ef450d449881e1016"
 dependencies = [
  "base64 0.22.1",
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "quick-xml 0.32.0",
  "serde",
  "time",
@@ -5572,6 +5573,7 @@ dependencies = [
  "glam 0.28.0",
  "hex",
  "image",
+ "indexmap 2.7.0",
  "insta",
  "itertools 0.13.0",
  "num-derive",
@@ -5615,7 +5617,7 @@ dependencies = [
  "enum-map",
  "gilrs",
  "glam 0.28.0",
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "itertools 0.13.0",
  "petitset",
  "shin-render",
@@ -5684,7 +5686,7 @@ dependencies = [
  "bytemuck",
  "enum-iterator",
  "heck 0.5.0",
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "itertools 0.13.0",
  "naga 22.1.0",
  "naga_oil",
@@ -6498,7 +6500,7 @@ version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a8534fd7f78b5405e860340ad6575217ce99f38d4d5c8f2442cb5ecb50090e1"
 dependencies = [
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "toml_datetime",
  "winnow 0.5.40",
 ]
@@ -6509,7 +6511,7 @@ version = "0.22.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "278f3d518e152219c994ce877758516bca5e118eaed6996192a774fb9fbf0788"
 dependencies = [
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -7210,7 +7212,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cfg_aliases 0.1.1",
  "codespan-reporting",
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "log",
  "naga 0.19.2",
  "once_cell",
@@ -7236,7 +7238,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cfg_aliases 0.1.1",
  "document-features",
- "indexmap 2.6.0",
+ "indexmap 2.7.0",
  "log",
  "naga 22.1.0",
  "once_cell",

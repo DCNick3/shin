@@ -94,8 +94,7 @@ struct PicBlockHeader {
     offset_y: u16,
     width: u16,
     height: u16,
-    compressed_size: u16,
-    unknown_bool: u16,
+    compressed_size: u32,
 }
 
 impl PicBlockHeader {
@@ -535,6 +534,7 @@ pub fn read_picture<B: PictureBuilder>(source: &[u8], builder_args: B::Args) -> 
     blocks
         .into_iter()
         .collect::<Vec<_>>()
+        // TODO: we can do this without spawning a task per block, par_map_chunks will probably be a little bit more efficient
         .par_map(
             shin_tasks::AsyncComputeTaskPool::get(),
             |&(data_offset, (ref pos, data))| (data_offset, pos.clone(), read_picture_block(data)),

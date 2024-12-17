@@ -20,7 +20,9 @@ use itertools::Itertools;
 use rom::{rom_command, RomCommand};
 use savedata::{savedata_command, SavedataCommand};
 use scenario::{scenario_command, ScenarioCommand};
-use shin_core::format::{audio::AudioSource, picture::SimpleMergedPicture};
+use shin_core::format::{
+    audio::AudioSource, bustup::default_builder::DefaultBustupBuilder, picture::SimpleMergedPicture,
+};
 use tracing_subscriber::EnvFilter;
 
 #[derive(clap::Parser, Debug)]
@@ -292,7 +294,8 @@ fn bustup_command(command: BustupCommand) -> Result<()> {
             use std::fmt::Write;
 
             let bustup = std::fs::read(bustup_path)?;
-            let bustup = shin_core::format::bustup::read_bustup(&bustup)?;
+            let bustup =
+                shin_core::format::bustup::read_bustup::<DefaultBustupBuilder>(&bustup, ())?;
 
             std::fs::create_dir_all(&output_path)?;
 
@@ -300,16 +303,23 @@ fn bustup_command(command: BustupCommand) -> Result<()> {
             writeln!(metadata, "expressions:")?;
             for (expression_name, expression) in bustup.expressions.iter().sorted_by_key(|v| v.0) {
                 writeln!(metadata, "  \"{}\":", expression_name.replace('\"', "\\\""))?;
-                writeln!(
-                    metadata,
-                    "    face_pos: {:?}",
-                    (
-                        expression.face_chunk.offset_x,
-                        expression.face_chunk.offset_y
-                    )
-                )?;
+                if let Some(face1) = &expression.face1 {
+                    writeln!(
+                        metadata,
+                        "    face1_pos: {:?}",
+                        (face1.offset_x, face1.offset_y)
+                    )?;
+                }
+                if let Some(face2) = &expression.face2 {
+                    writeln!(
+                        metadata,
+                        "    face2_pos: {:?}",
+                        (face2.offset_x, face2.offset_y)
+                    )?;
+                }
+
                 writeln!(metadata, "    mouths:")?;
-                for (i, mouth) in expression.mouth_chunks.iter().enumerate() {
+                for (i, mouth) in expression.mouths.iter().enumerate() {
                     writeln!(
                         metadata,
                         "      {}: {:?}",
@@ -317,24 +327,38 @@ fn bustup_command(command: BustupCommand) -> Result<()> {
                         (mouth.offset_x, mouth.offset_y)
                     )?;
                 }
+                writeln!(metadata, "    eyes:")?;
+                for (i, eye) in expression.eyes.iter().enumerate() {
+                    writeln!(metadata, "      {}: {:?}", i, (eye.offset_x, eye.offset_y))?;
+                }
             }
             std::fs::write(output_path.join("metadata.txt"), metadata)?;
 
             bustup.base_image.save(output_path.join("base.png"))?;
 
             for (expression_name, expression) in bustup.expressions.iter() {
-                if !expression.face_chunk.is_empty() {
-                    expression
-                        .face_chunk
+                if let Some(face1) = &expression.face1 {
+                    face1
                         .data
-                        .save(output_path.join(format!("{}_face.png", expression_name)))?;
+                        .save(output_path.join(format!("{}_face1.png", expression_name)))?;
+                }
+                if let Some(face2) = &expression.face2 {
+                    face2
+                        .data
+                        .save(output_path.join(format!("{}_face2.png", expression_name)))?;
                 }
 
-                for (i, mouth) in expression.mouth_chunks.iter().enumerate() {
+                for (i, mouth) in expression.mouths.iter().enumerate() {
                     if !mouth.is_empty() {
                         mouth.data.save(
                             output_path.join(format!("{}_mouth_{}.png", expression_name, i)),
                         )?;
+                    }
+                }
+                for (i, eye) in expression.eyes.iter().enumerate() {
+                    if !eye.is_empty() {
+                        eye.data
+                            .save(output_path.join(format!("{}_eye_{}.png", expression_name, i)))?;
                     }
                 }
             }
