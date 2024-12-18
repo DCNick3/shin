@@ -2,7 +2,10 @@ use std::cell::RefCell;
 
 use indexmap::IndexMap;
 
-use crate::format::{bustup::BustupBlockDesc, picture::PicBlock};
+use crate::format::{
+    bustup::{BustupBlockDesc, BustupBlockId, BustupId},
+    picture::PicBlock,
+};
 
 pub(super) struct BustupBlockPromisesOwner {
     pub counters: Vec<RefCell<u32>>,
@@ -15,7 +18,10 @@ impl BustupBlockPromisesOwner {
         }
     }
 
-    pub fn bind(&self, block_ids: impl Iterator<Item = u32>) -> BustupBlockPromisesIssuer {
+    pub fn bind(
+        &self,
+        block_ids: impl Iterator<Item = BustupBlockId>,
+    ) -> BustupBlockPromisesIssuer {
         let promises = (0..)
             .zip(self.counters.iter())
             .zip(block_ids)
@@ -62,10 +68,14 @@ impl<'a> BustupBlockPromisesIssuer<'a> {
 pub struct BustupBlockPromise<'a> {
     index: u32,
     count: &'a RefCell<u32>,
-    block_id: u32,
+    block_id: BustupBlockId,
 }
 
 impl BustupBlockPromise<'_> {
+    pub fn get_id(&self) -> BustupBlockId {
+        self.block_id
+    }
+
     pub fn get<'a, T>(self, token: &'a BustupBlockPromiseToken<'a, T>) -> &'a T {
         token.decoded_blocks[self.index as usize]
             .as_ref()
@@ -105,7 +115,7 @@ pub struct BustupSkeleton<'a> {
     pub origin_y: i16,
     pub effective_width: u16,
     pub effective_height: u16,
-    pub bustup_id: u32,
+    pub bustup_id: BustupId,
 
     pub base_blocks: Vec<BustupBlockPromise<'a>>,
     pub expressions: IndexMap<String, BustupExpressionSkeleton<'a>>,
@@ -125,9 +135,14 @@ pub trait BustupBuilder {
 
     fn new<'a>(args: &Self::Args, skeleton: BustupSkeleton<'a>) -> Self::Skeleton<'a>;
 
-    fn new_block(args: &Self::Args, block: PicBlock) -> anyhow::Result<Self::BlockType>;
+    fn new_block(
+        args: &Self::Args,
+        data_offset: u32,
+        block: PicBlock,
+    ) -> anyhow::Result<Self::BlockType>;
 
     fn build(
+        args: &Self::Args,
         skeleton: Self::Skeleton<'_>,
         token: BustupBlockPromiseToken<Self::BlockType>,
     ) -> anyhow::Result<Self::Output>;

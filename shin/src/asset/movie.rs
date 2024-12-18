@@ -10,7 +10,9 @@ pub struct Movie {
 }
 
 impl Asset for Movie {
-    async fn load(_context: &AssetLoadContext, data: AssetDataAccessor) -> Result<Self> {
+    type Args = ();
+
+    async fn load(_context: &AssetLoadContext, _args: (), data: AssetDataAccessor) -> Result<Self> {
         let cursor = data.cursor();
         let mp4 = Mp4::new(cursor).context("Reading Mp4")?;
         Ok(Self { mp4 })

@@ -3,7 +3,9 @@ use image::RgbaImage;
 use indexmap::IndexMap;
 
 use crate::format::{
-    bustup::{BustupBlockPromise, BustupBlockPromiseToken, BustupBuilder, BustupSkeleton},
+    bustup::{
+        BustupBlockPromise, BustupBlockPromiseToken, BustupBuilder, BustupId, BustupSkeleton,
+    },
     picture::PicBlock,
 };
 
@@ -19,12 +21,17 @@ impl BustupBuilder for DefaultBustupBuilder {
         skeleton
     }
 
-    fn new_block(_args: &Self::Args, mut block: PicBlock) -> anyhow::Result<Self::BlockType> {
+    fn new_block(
+        _args: &Self::Args,
+        _data_offset: u32,
+        mut block: PicBlock,
+    ) -> anyhow::Result<Self::BlockType> {
         cleanup_unused_areas(&mut block);
         Ok(block)
     }
 
     fn build(
+        _args: &Self::Args,
         skeleton: Self::Skeleton<'_>,
         token: BustupBlockPromiseToken<PicBlock>,
     ) -> anyhow::Result<Self::Output> {
@@ -80,7 +87,7 @@ impl BustupBuilder for DefaultBustupBuilder {
 pub struct Bustup {
     pub base_image: RgbaImage,
     pub origin: (i16, i16),
-    pub bustup_id: u32,
+    pub bustup_id: BustupId,
     pub expressions: IndexMap<String, BustupExpression>,
 }
 

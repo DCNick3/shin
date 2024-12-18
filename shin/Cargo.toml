@@ -21,13 +21,21 @@ shin-window = { path = "../shin-window" }
 anyhow = { workspace = true }
 async-trait = "0.1.81"
 futures = "0.3.30"
+
+# various non-allocating/SSO containers
+# TODO: consolidate
 smallvec = { workspace = true }
 heapless = { workspace = true }
+petitset = "0.2.1"
+arrayvec = "0.7.4"
+
+indexmap = "2.7.0"
+
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-arrayvec = "0.7.4"
+
 bytes = { workspace = true }
-cfg-if = "1.0.0"
+
 clap = { version = "4.5.9", features = ["derive"] }
 clap-num = "1.1.1"
 dirs-next = "2.0.0"
@@ -48,7 +56,7 @@ image = { workspace = true, default-features = false }
 # Theese part of bevy does not depend on ECS or the reflection, so it's not a big problem to use them
 bevy_utils = { workspace = true }
 
-# just one more derive macros and rust will be perfect
+# just one more macro crate and rust will be perfect
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 enum-map = { workspace = true }
@@ -59,10 +67,10 @@ anymap = "1.0.0-beta.2"
 derivative = "2.2.0"
 serde = "1.0.204"
 from_variants = "1.0.2"
+cfg-if = "1.0.0"
 
 itertools = { workspace = true }
 once_cell = "1.19.0"
-petitset = "0.2.1"
 
 egui = { workspace = true }
 egui-wgpu = { workspace = true }
