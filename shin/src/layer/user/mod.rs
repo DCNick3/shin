@@ -14,7 +14,12 @@ use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4
 use tracing::{debug, warn};
 
 use crate::{
-    asset::{bustup::Bustup, movie::Movie, picture::Picture, system::AssetServer},
+    asset::{
+        bustup::{Bustup, BustupArgs, CharacterId},
+        movie::Movie,
+        picture::Picture,
+        system::AssetServer,
+    },
     layer::{
         render_params::TransformParams, DrawableLayer, Layer, LayerProperties, PreRenderContext,
     },
@@ -98,7 +103,15 @@ impl UserLayer {
                     bup_id, name, emotion, lipsync_character_id
                 );
                 let bup = asset_server
-                    .load::<Bustup, _>(bup_info.path())
+                    .load_with_args::<Bustup, _>(
+                        bup_info.path(),
+                        BustupArgs {
+                            expression: emotion.to_string(),
+                            // TODO: do this conversion on info load
+                            character_id: CharacterId::new(*lipsync_character_id as i32),
+                            disable_animations: false,
+                        },
+                    )
                     .await
                     .expect("Failed to load bustup");
 

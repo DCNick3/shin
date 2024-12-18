@@ -5,14 +5,15 @@ use std::{
     fmt::Debug,
     fs::File,
     future::Future,
+    hash::Hash,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     sync::{Arc, RwLock, Weak},
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use bevy_utils::HashMap;
 use derive_more::From;
+use indexmap::IndexMap;
 use shin_core::{
     format::rom::{RomFileReader, RomReader},
     primitives::stateless_reader::StatelessFile,
@@ -26,20 +27,23 @@ pub use self::{
 };
 
 pub trait Asset: Send + Sync + Sized + 'static {
+    type Args: Clone + Hash + Eq + Debug + Send + Sync + 'static;
+
     /// Load an asset from the provided data accessor.
     ///
     /// The future returned by this function will be spawned on the IO task pool.
     /// CPU-intensive work should be offloaded to the compute task pool.
     fn load(
         context: &AssetLoadContext,
+        args: Self::Args,
         data: AssetDataAccessor,
     ) -> impl Future<Output = Result<Self>> + Send;
 }
 
-struct AssetMap<T: Asset>(HashMap<String, Weak<T>>);
+struct AssetMap<T: Asset>(IndexMap<(String, T::Args), Weak<T>>);
 
 impl<T: Asset> Deref for AssetMap<T> {
-    type Target = HashMap<String, Weak<T>>;
+    type Target = IndexMap<(String, T::Args), Weak<T>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -66,11 +70,24 @@ impl AssetServer {
         }
     }
 
-    pub async fn load<T: Asset, P: AsRef<str>>(&self, path: P) -> Result<Arc<T>> {
+    pub async fn load<T: Asset, P: AsRef<str>>(&self, path: P) -> Result<Arc<T>>
+    where
+        T::Args: Default,
+    {
+        self.load_with_args(path, T::Args::default()).await
+    }
+
+    pub async fn load_with_args<T: Asset, P: AsRef<str>>(
+        &self,
+        path: P,
+        args: T::Args,
+    ) -> Result<Arc<T>> {
         let path = path.as_ref();
 
+        let asset_map_key = (path.to_string(), args.clone());
+
         if let Some(loaded) = self.loaded_assets.read().unwrap().get::<AssetMap<T>>() {
-            if let Some(asset) = loaded.get(path) {
+            if let Some(asset) = loaded.get(&asset_map_key) {
                 if let Some(asset) = asset.upgrade() {
                     debug!("Loaded asset from cache: {}", path);
                     return Ok(asset);
@@ -91,7 +108,7 @@ impl AssetServer {
         // spawn tasks on IO task pool because they can be blocking
         // they should take care off-load CPU-intensive work to the compute task pool
         let asset = IoTaskPool::get()
-            .spawn(async move { T::load(&context, data).await })
+            .spawn(async move { T::load(&context, args, data).await })
             .await
             .with_context(|| format!("Loading asset {:?}", path))?;
         let asset = Arc::new(asset);
@@ -100,8 +117,8 @@ impl AssetServer {
             .write()
             .unwrap()
             .entry::<AssetMap<T>>()
-            .or_insert_with(|| AssetMap(HashMap::default()))
-            .insert(path.to_string(), Arc::downgrade(&asset));
+            .or_insert_with(|| AssetMap(IndexMap::default()))
+            .insert(asset_map_key, Arc::downgrade(&asset));
 
         Ok(asset)
     }
@@ -110,7 +127,10 @@ impl AssetServer {
     /// Though it might cause lockups if the loading is not blazing fast (tm).
     ///
     /// Ideally I want to get rid of all uses of this function
-    pub fn load_sync<T: Asset>(&self, path: impl AsRef<str>) -> Result<Arc<T>> {
+    pub fn load_sync<T: Asset>(&self, path: impl AsRef<str>) -> Result<Arc<T>>
+    where
+        T::Args: Default,
+    {
         shin_tasks::block_on(self.load(path))
     }
 }

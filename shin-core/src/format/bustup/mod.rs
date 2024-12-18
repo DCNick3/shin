@@ -29,6 +29,48 @@ use crate::format::{
     bustup::builder::BustupBlockPromisesOwner, picture::read_picture_block, text::ZeroString,
 };
 
+#[derive(Copy, Clone, Hash, PartialEq, Eq, BinRead, BinWrite)]
+pub struct BustupBlockId(u32);
+
+impl BustupBlockId {
+    pub fn new(id: u32) -> Self {
+        Self(id)
+    }
+}
+
+impl std::fmt::Debug for BustupBlockId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "BustupBlockId({:08x})", self.0)
+    }
+}
+
+impl std::fmt::Display for BustupBlockId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "BupBlk{:08x}", self.0)
+    }
+}
+
+#[derive(Copy, Clone, Hash, PartialEq, Eq, BinRead, BinWrite)]
+pub struct BustupId(u32);
+
+impl BustupId {
+    pub fn new(id: u32) -> Self {
+        Self(id)
+    }
+}
+
+impl std::fmt::Debug for BustupId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "BustupId({:08x})", self.0)
+    }
+}
+
+impl std::fmt::Display for BustupId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Bup{:08x}", self.0)
+    }
+}
+
 #[derive(BinRead, BinWrite, Debug)]
 #[br(little, magic = b"BUP4")]
 #[br(assert(version == 4))]
@@ -44,7 +86,7 @@ struct BustupHeader {
     /// always seems to be 0x1, meaning unknown
     f_14: u32,
 
-    bustup_id: u32,
+    bustup_id: BustupId,
     /// always seems to be 0x0, meaning unknown, probably related to the base block descriptors
     f_1c: u32,
     base_block_descriptors_offset: u32,
@@ -54,6 +96,15 @@ struct BustupHeader {
     f_28: u32,
     expression_descriptors_offset: u32,
     expression_descriptors_size: u32,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct BustupHeaderInfo {
+    pub origin_x: i16,
+    pub origin_y: i16,
+    pub effective_width: u16,
+    pub effective_height: u16,
+    pub bustup_id: BustupId,
 }
 
 #[derive(BinRead, BinWrite, Debug)]
@@ -87,7 +138,7 @@ impl ExpressionDescriptors {
 struct BustupBlockDesc {
     offset: u32,
     size: u32,
-    block_id: u32,
+    block_id: BustupBlockId,
 }
 
 impl BustupBlockDesc {
@@ -127,7 +178,7 @@ pub fn dump_header<R: std::io::Read + std::io::Seek>(
     let header = BustupHeader::read(reader)?;
 
     let s = format!(
-        "{}{:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}",
+        "{}{:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}, {:#x}",
         prefix,
         header.origin_x,
         header.origin_y,
@@ -161,7 +212,7 @@ pub fn dump_expression_descriptors<R: std::io::Read + std::io::Seek>(
 
     for (i, descriptor) in (0..).zip(descriptors.descriptors) {
         result.push_str(&format!(
-            "{}{}, {:#x}, {:#x}, {:#x}, {:#x}, {:?}\n",
+            "{}{}, {}, {}, {:#x}, {:#x}, {:?}\n",
             prefix,
             i,
             descriptor.face1.block_id,
@@ -173,6 +224,23 @@ pub fn dump_expression_descriptors<R: std::io::Read + std::io::Seek>(
     }
 
     Ok(result)
+}
+
+pub fn read_bustup_header(source: &[u8]) -> Result<BustupHeaderInfo> {
+    let mut source = std::io::Cursor::new(source);
+    let header: BustupHeader = BinRead::read(&mut source)?;
+
+    if header.file_size != source.get_ref().len() as u32 {
+        bail!("File size mismatch");
+    }
+
+    Ok(BustupHeaderInfo {
+        origin_x: header.origin_x,
+        origin_y: header.origin_y,
+        effective_width: header.effective_width,
+        effective_height: header.effective_height,
+        bustup_id: header.bustup_id,
+    })
 }
 
 // TODO: maybe create a reader wrapper that will actually limit the read size instead of just checking in the end?
@@ -306,7 +374,7 @@ pub fn read_bustup<B: BustupBuilder>(source: &[u8], builder_args: B::Args) -> Re
         required_blocks.par_map(shin_tasks::AsyncComputeTaskPool::get(), |&(index, desc)| {
             let data = &source.get_ref()[desc.offset as usize..(desc.offset + desc.size) as usize];
             read_picture_block(data)
-                .and_then(|block| B::new_block(&builder_args, block))
+                .and_then(|block| B::new_block(&builder_args, desc.offset, block))
                 .map(|block| (index, block))
         });
 
@@ -327,7 +395,7 @@ pub fn read_bustup<B: BustupBuilder>(source: &[u8], builder_args: B::Args) -> Re
         decoded_blocks: &mut blocks_array,
     };
 
-    let output = B::build(skeleton, token)?;
+    let output = B::build(&builder_args, skeleton, token)?;
 
     Ok(output)
 }

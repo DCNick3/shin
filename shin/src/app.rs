@@ -60,6 +60,7 @@ impl ShinApp for App {
             AssetLoadContext {
                 wgpu_device: context.wgpu.device.clone(),
                 wgpu_queue: context.wgpu.queue.clone(),
+                bustup_cache: crate::asset::bustup::BlockCache::new(),
             },
         ));
 

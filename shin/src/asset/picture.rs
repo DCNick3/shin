@@ -202,7 +202,9 @@ pub struct Picture {
 }
 
 impl Asset for Picture {
-    async fn load(context: &AssetLoadContext, data: AssetDataAccessor) -> Result<Self> {
+    type Args = ();
+
+    async fn load(context: &AssetLoadContext, _args: (), data: AssetDataAccessor) -> Result<Self> {
         let data = data.read_all().await;
 
         // extract the picture id before the call to read_picture

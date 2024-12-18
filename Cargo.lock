@@ -5496,6 +5496,7 @@ dependencies = [
  "glam 0.28.0",
  "heapless",
  "image",
+ "indexmap 2.7.0",
  "itertools 0.13.0",
  "kira",
  "num-derive",

@@ -18,7 +18,9 @@ pub trait TextureArchive: Sync + Send + 'static {
 }
 
 impl<T: TextureArchive> Asset for T {
-    async fn load(_context: &AssetLoadContext, data: AssetDataAccessor) -> Result<Self> {
+    type Args = ();
+
+    async fn load(_context: &AssetLoadContext, _args: (), data: AssetDataAccessor) -> Result<Self> {
         let archive =
             shin_core::format::texture_archive::read_texture_archive(&data.read_all().await)?;
 
