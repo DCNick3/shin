@@ -286,7 +286,10 @@ where
             if (left_position - right_position).abs() < f32::EPSILON {
                 left_id.cmp(&right_id)
             } else {
-                left_position.partial_cmp(&right_position).unwrap()
+                left_position
+                    .partial_cmp(&right_position)
+                    .unwrap()
+                    .reverse()
             }
         });
 

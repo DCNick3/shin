@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use shin_render_shader_types::{buffer::BytesAddress, texture::TextureSamplerStore};
 use tracing::{debug, info};
-use wgpu::SurfaceTarget;
+use wgpu::{InstanceFlags, SurfaceTarget};
 
 use crate::{
     depth_stencil::DepthStencil,
@@ -152,6 +152,7 @@ pub async fn init_wgpu<'window>(
     let backends = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all());
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends,
+        flags: InstanceFlags::debugging(),
         ..Default::default()
     });
     let surface = instance

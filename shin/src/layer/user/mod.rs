@@ -115,7 +115,7 @@ impl UserLayer {
                     .await
                     .expect("Failed to load bustup");
 
-                BustupLayer::new(bup, Some(name.to_string()), emotion.as_str()).into()
+                BustupLayer::new(bup, Some(name.to_string())).into()
             }
             LayerType::Movie => {
                 let (movie_id, _volume, _flags, ..) = params;

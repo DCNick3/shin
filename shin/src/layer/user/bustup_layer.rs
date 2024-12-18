@@ -1,14 +1,19 @@
 use std::{fmt::Debug, sync::Arc};
 
-use glam::Mat4;
-use shin_render::{render_pass::RenderPass, PassKind};
+use glam::{vec3, Mat4, Vec3};
+use shin_render::{
+    render_pass::RenderPass,
+    shaders::types::texture::{DepthStencilTarget, TextureTarget},
+    PassKind, RenderRequestBuilder,
+};
 
 use crate::{
     asset::bustup::Bustup,
     layer::{
         new_drawable_layer::NewDrawableLayerNeedsSeparatePass,
-        render_params::{DrawableClipParams, DrawableParams, TransformParams},
-        NewDrawableLayer, NewDrawableLayerWrapper,
+        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
+        user::picture_layer::{PictureBlockParams, PictureBlockPassKind},
+        LayerProperties, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
@@ -16,67 +21,116 @@ use crate::{
 #[derive(Clone)]
 pub struct BustupLayerImpl {
     bustup: Arc<Bustup>,
-    bustup_name: Option<String>,
-    emotion: String,
+    label: String,
+    mouth_state: u32,
+    eyes_state: u32,
+}
+
+impl BustupLayerImpl {
+    pub fn new(bustup: Arc<Bustup>, bustup_name: Option<String>) -> Self {
+        Self {
+            bustup,
+            label: bustup_name.unwrap_or_else(|| "unnamed".to_string()),
+            mouth_state: 0,
+            eyes_state: 0,
+        }
+    }
+
+    fn render_impl(
+        &self,
+        pass: &mut RenderPass,
+        builder: RenderRequestBuilder,
+        params: PictureBlockParams,
+        transform: Mat4,
+    ) {
+        let translation = Mat4::from_translation(vec3(
+            -self.bustup.origin_x as f32,
+            -self.bustup.origin_y as f32,
+            0.0,
+        ));
+        // NOTE: this scale is a ¿device-specific? scale (which is 1.0 on switch)
+        let scale = Mat4::from_scale(Vec3::ONE);
+
+        let transform = transform * scale * translation;
+
+        pass.push_debug(&format!(
+            "BustupLayer[{}]/{}",
+            &self.label,
+            match params.pass_kind {
+                PictureBlockPassKind::OpaqueOnly => "opaque",
+                PictureBlockPassKind::TransparentOnly => "transparent",
+                PictureBlockPassKind::OpaqueAndTransparent => "opaque_and_transparent",
+            }
+        ));
+
+        pass.push_debug("Base");
+        for block in &self.bustup.base_blocks {
+            super::picture_layer::render_block(block, pass, builder, params, transform);
+        }
+        pass.pop_debug();
+
+        if let Some(block) = &self.bustup.face1 {
+            pass.push_debug("Face1");
+            super::picture_layer::render_block(block, pass, builder, params, transform);
+            pass.pop_debug();
+        }
+
+        if let Some(block) = &self.bustup.face2 {
+            pass.push_debug("Face2");
+            super::picture_layer::render_block(block, pass, builder, params, transform);
+            pass.pop_debug();
+        }
+
+        if !self.bustup.mouth_blocks.is_empty() {
+            pass.push_debug("Mouth");
+            super::picture_layer::render_block(
+                &self.bustup.mouth_blocks[self.mouth_state as usize],
+                pass,
+                builder,
+                params,
+                transform,
+            );
+            pass.pop_debug();
+        }
+
+        if !self.bustup.eye_blocks.is_empty() {
+            pass.push_debug("Eyes");
+            super::picture_layer::render_block(
+                &self.bustup.eye_blocks[self.eyes_state as usize],
+                pass,
+                builder,
+                params,
+                transform,
+            );
+            pass.pop_debug();
+        }
+
+        pass.pop_debug();
+    }
 }
 
 pub type BustupLayer = NewDrawableLayerWrapper<BustupLayerImpl>;
 
 impl BustupLayer {
-    pub fn new(bustup: Arc<Bustup>, bustup_name: Option<String>, emotion: &str) -> Self {
-        // ensure the picture is loaded to gpu
-        todo!();
-        // bustup.base_gpu_image(resources);
-
-        Self::from_inner(BustupLayerImpl {
-            bustup,
-            bustup_name,
-            emotion: emotion.to_owned(),
-        })
+    pub fn new(picture: Arc<Bustup>, picture_name: Option<String>) -> Self {
+        Self::from_inner(BustupLayerImpl::new(picture, picture_name))
     }
 }
-
-// impl Renderable for BustupLayer {
-//     fn render<'enc>(
-//         &'enc self,
-//         resources: &'enc GpuCommonResources,
-//         render_pass: &mut wgpu::RenderPass<'enc>,
-//         transform: Mat4,
-//         projection: Mat4,
-//     ) {
-//         let transform = self.properties.compute_transform(transform);
-//         let total_transform = projection * transform;
-//
-//         let mut draw_image = |image: &'enc GpuImage| {
-//             // TODO: there should be a generic function to render a layer (from texture?)
-//             resources.draw_sprite(
-//                 render_pass,
-//                 image.vertex_source(),
-//                 image.bind_group(),
-//                 total_transform,
-//             );
-//         };
-//
-//         let base_gpu_image = self.bustup.base_gpu_image(resources);
-//         draw_image(base_gpu_image);
-//
-//         if let Some(emotion_gpu_image) = self.bustup.face_gpu_image(resources, &self.emotion) {
-//             draw_image(emotion_gpu_image);
-//         }
-//
-//         if let Some(mouth_gpu_image) = self.bustup.mouth_gpu_image(resources, &self.emotion, 0.0) {
-//             draw_image(mouth_gpu_image);
-//         }
-//     }
-//
-//     fn resize(&mut self, _resources: &GpuCommonResources) {
-//         // no internal buffers to resize
-//     }
-// }
 
 impl NewDrawableLayerNeedsSeparatePass for BustupLayerImpl {}
 
 impl NewDrawableLayer for BustupLayerImpl {
+    fn render_drawable_indirect(
+        &mut self,
+        context: &mut PreRenderContext,
+        props: &LayerProperties,
+        target: TextureTarget,
+        depth_stencil: DepthStencilTarget,
+        transform: &TransformParams,
+    ) -> PassKind {
+        todo!()
+    }
+
     fn render_drawable_direct(
         &self,
         pass: &mut RenderPass,
@@ -86,7 +140,21 @@ impl NewDrawableLayer for BustupLayerImpl {
         stencil_ref: u8,
         pass_kind: PassKind,
     ) {
-        todo!()
+        let Some(params) = PictureBlockParams::setup(pass_kind, drawable) else {
+            return;
+        };
+
+        assert_eq!(
+            clip.mode,
+            DrawableClipMode::None,
+            "Clipping effect is not implemented"
+        );
+
+        let builder =
+            RenderRequestBuilder::new().depth_stencil_shorthand(stencil_ref, false, false);
+        let transform = transform.compute_final_transform();
+
+        self.render_impl(pass, builder, params, transform);
     }
 }
 
@@ -96,14 +164,6 @@ impl AdvUpdatable for BustupLayerImpl {
 
 impl Debug for BustupLayerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("BustupLayer")
-            .field(
-                &self
-                    .bustup_name
-                    .as_ref()
-                    .map_or("<unnamed>", |v| v.as_str()),
-            )
-            .field(&self.emotion)
-            .finish()
+        f.debug_tuple("BustupLayer").field(&self.label).finish()
     }
 }

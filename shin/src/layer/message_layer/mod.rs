@@ -51,7 +51,7 @@ impl MessageLayer {
     }
 
     pub fn set_message(&mut self, context: &UpdateContext, text: &str) {
-        todo!()
+        // todo!()
 
         // self.messagebox.set_visible(true);
         //
@@ -85,7 +85,8 @@ impl MessageLayer {
     }
 
     pub fn is_finished(&self) -> bool {
-        todo!()
+        false
+        // todo!()
         // self.message
         //     .as_ref()
         //     .map(|m| m.is_complete())
