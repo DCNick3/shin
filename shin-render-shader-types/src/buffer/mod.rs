@@ -156,21 +156,27 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
 }
 
 impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
-    pub fn as_sliced_buffer_ref(&self, offset: BytesAddress, size: BytesAddress) -> BufferRef<T> {
+    pub fn as_sliced_buffer_ref(&self, offset: usize, size: usize) -> BufferRef<T> {
+        let element_size = size_of::<T::Element>();
+
+        // convert array offset and size into bytes
+        let offset = BytesAddress::from_usize(offset * element_size);
+        let size = BytesAddress::from_usize(size * element_size);
+
         // check if we are within the bounds of the buffer
         assert!((BytesAddress::ZERO..self.size).contains(&offset));
-        assert!((BytesAddress::ZERO..self.size).contains(&(offset + size)));
+        assert!((BytesAddress::ZERO..=self.size).contains(&(offset + size)));
 
         let new_offset = self.offset + offset;
 
         let slice = self
             .ownership
             .get()
-            .slice(new_offset.get()..(new_offset + self.size).get());
+            .slice(new_offset.get()..(new_offset + size).get());
 
         BufferRef {
             slice,
-            size: self.size,
+            size,
             phantom: PhantomData,
         }
     }

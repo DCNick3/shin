@@ -4,7 +4,8 @@ use glam::{Mat4, Vec3, Vec4};
 use shin_render::{
     render_pass::RenderPass,
     shaders::types::{
-        buffer::{BytesAddress, VertexSource},
+        buffer::VertexSource,
+        texture::{DepthStencilTarget, TextureTarget},
         vertices::FloatColor4,
     },
     ColorBlendType, DrawPrimitive, LayerBlendType, LayerFragmentShader, LayerShaderOutputKind,
@@ -16,7 +17,7 @@ use crate::{
     layer::{
         new_drawable_layer::{NewDrawableLayer, NewDrawableLayerNeedsSeparatePass},
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        NewDrawableLayerWrapper,
+        LayerProperties, NewDrawableLayerWrapper, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -33,11 +34,11 @@ pub enum PictureBlockPassKind {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PictureBlockParams {
-    pass_kind: PictureBlockPassKind,
-    color_multiplier: FloatColor4,
-    blend_type: LayerBlendType,
-    fragment_shader: LayerFragmentShader,
-    fragment_shader_param: Vec4,
+    pub pass_kind: PictureBlockPassKind,
+    pub color_multiplier: FloatColor4,
+    pub blend_type: LayerBlendType,
+    pub fragment_shader: LayerFragmentShader,
+    pub fragment_shader_param: Vec4,
 }
 
 impl PictureBlockParams {
@@ -120,13 +121,11 @@ pub fn render_block(
         return;
     }
 
-    let vertices = block.vertex_buffer.as_sliced_buffer_ref(
-        BytesAddress::from_usize(offset * GpuPictureBlock::VERTICES_PER_RECT),
-        BytesAddress::from_usize(count * GpuPictureBlock::VERTICES_PER_RECT),
-    );
+    // NOTE: we don't need to slice the vertex buffer, only the index buffer
+    let vertices = block.vertex_buffer.as_buffer_ref();
     let indices = block.index_buffer.as_sliced_buffer_ref(
-        BytesAddress::from_usize(offset * GpuPictureBlock::INDICES_PER_RECT),
-        BytesAddress::from_usize(count * GpuPictureBlock::INDICES_PER_RECT),
+        offset * GpuPictureBlock::INDICES_PER_RECT,
+        count * GpuPictureBlock::INDICES_PER_RECT,
     );
     let vertices = VertexSource::VertexAndIndexBuffer { vertices, indices };
 
@@ -214,6 +213,17 @@ impl PictureLayer {
 impl NewDrawableLayerNeedsSeparatePass for PictureLayerImpl {}
 
 impl NewDrawableLayer for PictureLayerImpl {
+    fn render_drawable_indirect(
+        &mut self,
+        context: &mut PreRenderContext,
+        props: &LayerProperties,
+        target: TextureTarget,
+        depth_stencil: DepthStencilTarget,
+        transform: &TransformParams,
+    ) -> PassKind {
+        todo!()
+    }
+
     fn render_drawable_direct(
         &self,
         pass: &mut RenderPass,
