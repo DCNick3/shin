@@ -181,14 +181,14 @@ impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
         }
     }
 
-    pub fn count(&self) -> u32 {
-        (self.size.get() as usize / size_of::<T::Element>()) as u32
+    pub fn count(&self) -> usize {
+        self.size.get() as usize / size_of::<T::Element>()
     }
 }
 
 impl<T: ArrayBufferType> BufferRef<'_, T> {
-    pub fn count(&self) -> u32 {
-        (self.size.get() as usize / size_of::<T::Element>()) as u32
+    pub fn count(&self) -> usize {
+        self.size.get() as usize / size_of::<T::Element>()
     }
 }
 
@@ -317,13 +317,13 @@ impl<T: VertexType> VertexSource<'_, T> {
             VertexSource::VertexBuffer {
                 vertices: vertex_buffer,
             } => VertexSourceInfo::VertexBuffer {
-                vertex_count: vertex_buffer.count(),
+                vertex_count: vertex_buffer.count() as u32,
             },
             VertexSource::VertexAndIndexBuffer {
                 vertices: _,
                 indices: index_buffer,
             } => VertexSourceInfo::VertexAndIndexBuffer {
-                index_count: index_buffer.count(),
+                index_count: index_buffer.count() as u32,
             },
             VertexSource::VertexData {
                 vertices: vertex_data,
