@@ -47,9 +47,8 @@ pub enum MessageboxType {
 
 #[derive(FromPrimitive, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Hash)]
 pub enum MessageTextLayout {
-    Left = 0,
-    /// I _think_ this is the same as Left
-    Layout1 = 1,
+    Justify = 0,
+    Left = 1,
     Center = 2,
     Right = 3,
 }
@@ -64,7 +63,7 @@ impl Default for MessageboxStyle {
     fn default() -> Self {
         Self {
             messagebox_type: MessageboxType::Neutral,
-            text_layout: MessageTextLayout::Left,
+            text_layout: MessageTextLayout::Justify,
         }
     }
 }

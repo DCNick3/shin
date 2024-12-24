@@ -98,7 +98,7 @@ fn test_layouter(path: PathBuf, init_val: i32) -> Result<()> {
         let command = vm.run(result)?;
 
         if let RuntimeCommand::MSGSET(msgset) = &command {
-            let layouter = shin_core::layout::LayouterParser::new(&msgset.text);
+            let layouter = shin_core::layout::MessageTextParser::new(&msgset.text);
             let commands = layouter.collect::<Vec<_>>();
             println!("{:?}", commands);
         }
@@ -128,13 +128,13 @@ fn char_frequency(path: PathBuf, init_val: i32, top_k: usize) -> Result<()> {
         let command = vm.run(result)?;
 
         if let RuntimeCommand::MSGSET(msgset) = &command {
-            let layouter = shin_core::layout::LayouterParser::new(&msgset.text);
+            let layouter = shin_core::layout::MessageTextParser::new(&msgset.text);
             for command in layouter {
                 match command {
                     shin_core::layout::ParsedCommand::Char(c) => {
                         counter[&c] += 1;
                     }
-                    shin_core::layout::ParsedCommand::Furigana(text) => {
+                    shin_core::layout::ParsedCommand::RubiContent(text) => {
                         counter.update(text.chars());
                     }
                     _ => {}

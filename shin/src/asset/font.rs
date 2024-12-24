@@ -1,11 +1,11 @@
 use std::io::Cursor;
 
 use anyhow::Context;
-use shin_core::format::font::{read_lazy_font, LazyFont};
+use shin_core::format::font::{read_lazy_font, FontLazy};
 
 use crate::asset::system::{Asset, AssetDataAccessor, AssetLoadContext};
 
-impl Asset for LazyFont {
+impl Asset for FontLazy {
     type Args = ();
 
     async fn load(

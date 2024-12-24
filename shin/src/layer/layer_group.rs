@@ -1,5 +1,6 @@
 use glam::vec3;
 use shin_core::{
+    primitives::color::{FloatColor4, UnormColor},
     time::Ticks,
     vm::command::types::{LayerProperty, LayerbankId},
 };
@@ -8,7 +9,7 @@ use shin_render::{
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureTarget},
-        vertices::{FloatColor4, PosVertex, UnormColor},
+        vertices::PosVertex,
     },
     DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
     StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,

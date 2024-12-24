@@ -1,4 +1,5 @@
 use glam::vec3;
+use shin_core::primitives::color::{FloatColor4, UnormColor};
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget, TextureTargetKind},
@@ -6,7 +7,7 @@ use shin_render_shader_types::{
         ClearUniformParams, FillUniformParams, LayerUniformParams, MovieUniformParams,
         SpriteUniformParams, WiperDefaultUniformParams,
     },
-    vertices::{FloatColor4, PosVertex, UnormColor},
+    vertices::PosVertex,
 };
 use shin_render_shaders::{
     Clear, ClearBindings, Fill, FillBindings, Layer, LayerBindings, Movie, MovieBindings, Shader,

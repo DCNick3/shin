@@ -1,11 +1,14 @@
 use glam::vec3;
-use shin_core::vm::command::types::{PlaneId, PLANES_COUNT};
+use shin_core::{
+    primitives::color::{FloatColor4, UnormColor},
+    vm::command::types::{PlaneId, PLANES_COUNT},
+};
 use shin_render::{
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureTarget},
-        vertices::{FloatColor4, PosVertex, UnormColor},
+        vertices::PosVertex,
     },
     DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
     StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,

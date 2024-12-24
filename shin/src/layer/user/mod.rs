@@ -8,9 +8,10 @@ use shin_core::{
         instruction_elements::UntypedNumberArray,
         Scenario,
     },
+    primitives::color::FloatColor4,
     vm::command::types::LayerType,
 };
-use shin_render::{render_pass::RenderPass, shaders::types::vertices::FloatColor4, PassKind};
+use shin_render::{render_pass::RenderPass, PassKind};
 use tracing::{debug, warn};
 
 use crate::{

@@ -1,9 +1,7 @@
 use bitflags::bitflags;
 use glam::{vec3, Mat4, Vec2, Vec3, Vec4};
-use shin_render::{
-    shaders::types::vertices::FloatColor4, shin_orthographic_projection_matrix, LayerBlendType,
-    LayerFragmentShader,
-};
+use shin_core::primitives::color::FloatColor4;
+use shin_render::{shin_orthographic_projection_matrix, LayerBlendType, LayerFragmentShader};
 
 bitflags! {
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]

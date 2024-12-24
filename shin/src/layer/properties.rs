@@ -1,10 +1,11 @@
 use enum_map::{enum_map, EnumMap};
 use glam::{vec2, vec3, vec4, Mat4, Vec2, Vec4};
 use shin_core::{
+    primitives::color::FloatColor4,
     time::{Ticks, Tweener},
     vm::command::types::{LayerId, LayerProperty},
 };
-use shin_render::{shaders::types::vertices::FloatColor4, LayerBlendType, LayerFragmentShader};
+use shin_render::{LayerBlendType, LayerFragmentShader};
 
 use crate::{
     layer::{
