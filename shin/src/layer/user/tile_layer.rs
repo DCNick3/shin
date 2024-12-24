@@ -1,12 +1,10 @@
 use std::fmt::Debug;
 
 use glam::{vec3, Vec4};
+use shin_core::primitives::color::FloatColor4;
 use shin_render::{
     render_pass::RenderPass,
-    shaders::types::{
-        buffer::VertexSource,
-        vertices::{FloatColor4, PosColVertex},
-    },
+    shaders::types::{buffer::VertexSource, vertices::PosColVertex},
     ColorBlendType, DrawPrimitive, LayerBlendType, PassKind, RenderProgramWithArguments,
     RenderRequestBuilder,
 };

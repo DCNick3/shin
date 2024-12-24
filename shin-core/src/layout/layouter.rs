@@ -5,8 +5,8 @@ use glam::{vec2, Vec2, Vec3};
 use tracing::warn;
 
 use crate::{
-    format::font::{GlyphTrait, LazyFont},
-    layout::parser::{LayouterParser, ParsedCommand},
+    format::font::{FontLazy, GlyphTrait},
+    layout::parser::{MessageTextParser, ParsedCommand},
     time::Ticks,
     vm::command::types::MessageTextLayout,
 };
@@ -98,7 +98,7 @@ pub enum LayoutingMode {
 
 #[derive(Copy, Clone)]
 pub struct LayoutParams<'a> {
-    pub font: &'a LazyFont,
+    pub font: &'a FontLazy,
     pub layout_width: f32,
     pub character_name_layout_width: f32,
     pub base_font_height: f32,
@@ -133,7 +133,7 @@ impl LayoutParams<'_> {
 }
 
 struct Layouter<'a> {
-    parser: Peekable<LayouterParser<'a>>,
+    parser: Peekable<MessageTextParser<'a>>,
     params: LayoutParams<'a>,
     state: LayouterState,
     /// Layouted chars, grouped by line
@@ -211,7 +211,7 @@ impl Layouter<'_> {
         // if we are not the last line, we haven't overflowed yet
         let should_stretch = !last_line
             && self.params.layout_width > width
-            && self.params.text_layout == MessageTextLayout::Left
+            && self.params.text_layout == MessageTextLayout::Justify
             && self.params.layout_width - width < self.params.layout_width * 0.05;
 
         let fit_scale = if !last_line {
@@ -232,8 +232,8 @@ impl Layouter<'_> {
         // TODO: handle special cases for brackets
 
         let x_offset = match self.params.text_layout {
+            MessageTextLayout::Justify => 0.0,
             MessageTextLayout::Left => 0.0,
-            MessageTextLayout::Layout1 => 0.0,
             MessageTextLayout::Center => (self.params.layout_width - width) / 2.0,
             MessageTextLayout::Right => self.params.layout_width - width,
         };
@@ -445,7 +445,7 @@ pub struct LayoutedMessage {
 
 pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
     let mut layouter = Layouter {
-        parser: LayouterParser::new(text).peekable(),
+        parser: MessageTextParser::new(text).peekable(),
         params,
         state: params.default_state,
         chars: Vec::new(),
@@ -484,21 +484,23 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                 ParsedCommand::DisableLipsync => {
                     actions_builder.action(layouter.time, ActionType::SetLipSync(false))
                 }
-                ParsedCommand::Furigana(_) => warn!("Furigana layout command is not implemented"),
-                ParsedCommand::FuriganaStart => {
+                ParsedCommand::RubiContent(_) => {
+                    warn!("Furigana layout command is not implemented")
+                }
+                ParsedCommand::RubiBaseStart => {
                     warn!("FuriganaStart layout command is not implemented")
                 }
-                ParsedCommand::FuriganaEnd => {
+                ParsedCommand::RubiBaseEnd => {
                     warn!("FuriganaEnd layout command is not implemented")
                 }
-                ParsedCommand::SetFade(fade) => layouter.state.fade = fade,
+                ParsedCommand::SetFade(fade) => todo!(), // layouter.state.fade = fade,
                 ParsedCommand::SetColor(color) => {
-                    layouter.state.text_color = color.unwrap_or(Vec3::new(1.0, 1.0, 1.0))
+                    layouter.state.text_color = todo!(); // color.unwrap_or(Vec3::new(1.0, 1.0, 1.0))
                 }
                 ParsedCommand::NoFinalClickWait => block_builder.no_final_wait(),
                 ParsedCommand::ClickWait => block_builder.click_wait(&mut layouter.time),
                 ParsedCommand::VoiceVolume(volume) => {
-                    actions_builder.action(layouter.time, ActionType::VoiceVolume(volume))
+                    actions_builder.action(layouter.time, ActionType::VoiceVolume(todo!()))
                 }
                 ParsedCommand::Newline => {
                     // If character_name is true, finalise the character name part. Then set
@@ -515,20 +517,21 @@ pub fn layout_text(params: LayoutParams, text: &str) -> LayoutedMessage {
                         layouter.on_newline(true);
                     }
                 }
-                ParsedCommand::TextSpeed(speed) => layouter.state.text_draw_speed = speed,
-                ParsedCommand::SimultaneousStart => todo!(),
+                ParsedCommand::TextSpeed(speed) => layouter.state.text_draw_speed = todo!(), // speed,
+                ParsedCommand::StartParallel => todo!(),
                 ParsedCommand::Voice(filename) => {
                     actions_builder.action(layouter.time, ActionType::Voice(filename))
                 }
-                ParsedCommand::Wait(time) => layouter.time += time,
+                ParsedCommand::Wait(time) => layouter.time += todo!(), // time,
+                ParsedCommand::VoiceSync(_) => todo!(),
                 ParsedCommand::Sync => block_builder.sync(&mut layouter.time),
-                ParsedCommand::FontSize(size) => {
+                ParsedCommand::FontScale(size) => {
                     // Font size changes in the character name are completely ignored
                     if !character_name {
-                        layouter.state.font_size = size;
+                        layouter.state.font_size = todo!(); // size;
                     }
                 }
-                ParsedCommand::Signal => {
+                ParsedCommand::CompleteSection => {
                     actions_builder.action(layouter.time, ActionType::SignalSection)
                 }
                 ParsedCommand::InstantTextStart => todo!(),
@@ -596,7 +599,7 @@ mod tests {
             base_font_height: 50.0,
             furigana_font_height: 20.0,
             font_horizontal_base_scale: 0.9697,
-            text_layout: MessageTextLayout::Left,
+            text_layout: MessageTextLayout::Justify,
             default_state: LayouterState::default(),
             has_character_name: true,
             mode: LayoutingMode::MessageText,

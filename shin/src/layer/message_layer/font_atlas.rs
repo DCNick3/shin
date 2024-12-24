@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use shin_core::format::font::{GlyphId, GlyphMipLevel, GlyphTrait, LazyFont};
+use shin_core::format::font::{FontLazy, GlyphId, GlyphMipLevel, GlyphTrait};
 use shin_render::shaders::types::texture::TextureSource;
 use strum::IntoEnumIterator;
 use wgpu::TextureFormat;
@@ -12,7 +12,7 @@ use crate::render::{
 };
 
 struct FontImageProvider {
-    font: Arc<LazyFont>,
+    font: Arc<FontLazy>,
 }
 
 impl ImageProvider for FontImageProvider {
@@ -46,7 +46,7 @@ const COMMON_CHARACTERS: &str =
     "…\u{3000}、。「」あいうえおかがきくけこさしじすせそただちっつてでとどなにねのはひまめもゃやよらりるれろわをんー亞人代右宮戦真里\u{f8f0}！？";
 
 impl FontAtlas {
-    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, font: Arc<LazyFont>) -> Self {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, font: Arc<FontLazy>) -> Self {
         let provider = FontImageProvider { font };
         let atlas = DynamicAtlas::new(device, provider, TEXTURE_SIZE, Some("FontAtlas"));
 
@@ -59,7 +59,7 @@ impl FontAtlas {
         Self { atlas }
     }
 
-    pub fn get_font(&self) -> &LazyFont {
+    pub fn get_font(&self) -> &FontLazy {
         &self.atlas.provider().font
     }
 

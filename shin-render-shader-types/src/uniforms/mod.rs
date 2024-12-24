@@ -2,11 +2,11 @@ pub mod metadata;
 
 use encase::ShaderType;
 use glam::{Mat4, Vec4};
+use shin_primitives::color::FloatColor4;
 
 pub use crate::uniforms::metadata::UniformType;
-use crate::{
-    uniforms::metadata::{ArraySchema, FieldSchema, PrimitiveType, StructSchema, TypeSchema},
-    vertices::FloatColor4,
+use crate::uniforms::metadata::{
+    ArraySchema, FieldSchema, PrimitiveType, StructSchema, TypeSchema,
 };
 
 macro_rules! impl_primitive {

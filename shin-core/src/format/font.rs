@@ -101,6 +101,20 @@ impl From<GlyphHeader> for GlyphInfo {
     }
 }
 
+impl BinRead for GlyphInfo {
+    type Args<'a> = ();
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        endian: Endian,
+        _: Self::Args<'_>,
+    ) -> BinResult<Self> {
+        let header = GlyphHeader::read_options(reader, endian, ())?;
+
+        Ok(header.into())
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, EnumIter)]
 pub enum GlyphMipLevel {
     Level0 = 0,
@@ -258,6 +272,11 @@ impl GlyphTrait for LazyGlyph {
         self.info
     }
 }
+impl GlyphTrait for GlyphInfo {
+    fn get_info(&self) -> GlyphInfo {
+        *self
+    }
+}
 
 pub struct Font<G: GlyphTrait = Glyph> {
     /// Distance between the baseline and the top of the font
@@ -268,7 +287,8 @@ pub struct Font<G: GlyphTrait = Glyph> {
     glyphs: HashMap<GlyphId, G>,
 }
 
-pub type LazyFont = Font<LazyGlyph>;
+pub type FontLazy = Font<LazyGlyph>;
+pub type FontInfo = Font<GlyphInfo>;
 
 impl<G: GlyphTrait> Font<G> {
     /// Get the sum of the ascent and descent, giving the total height of the font
@@ -290,6 +310,10 @@ impl<G: GlyphTrait> Font<G> {
         self.glyphs
             .get(&self.characters[character as usize])
             .unwrap()
+    }
+
+    pub fn try_get_glyph_for_character(&self, character: u16) -> Option<&G> {
+        self.glyphs.get(&self.characters[character as usize])
     }
 
     pub fn get_glyph(&self, glyph_id: GlyphId) -> Option<&G> {
@@ -392,6 +416,10 @@ pub fn read_font<R: Read + Seek>(reader: &mut R) -> BinResult<Font> {
     Font::read_le(reader)
 }
 
-pub fn read_lazy_font<R: Read + Seek>(reader: &mut R) -> BinResult<LazyFont> {
+pub fn read_lazy_font<R: Read + Seek>(reader: &mut R) -> BinResult<FontLazy> {
+    Font::read_le(reader)
+}
+
+pub fn read_font_metrics<R: Read + Seek>(reader: &mut R) -> BinResult<FontInfo> {
     Font::read_le(reader)
 }

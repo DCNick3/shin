@@ -17,12 +17,11 @@ pub mod resizeable_texture;
 
 use enum_iterator::Sequence;
 use glam::{vec3, vec4, Mat4, Vec3, Vec4};
+use shin_core::primitives::color::FloatColor4;
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::TextureSource,
-    vertices::{
-        FloatColor4, LayerVertex, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex,
-    },
+    vertices::{LayerVertex, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex},
 };
 pub use shin_render_shaders as shaders;
 use shin_render_shaders::ShaderName;

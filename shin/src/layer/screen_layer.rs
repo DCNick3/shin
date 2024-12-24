@@ -1,10 +1,8 @@
+use shin_core::primitives::color::{FloatColor4, UnormColor};
 use shin_render::{
     render_pass::RenderPass,
     render_texture::RenderTexture,
-    shaders::types::{
-        texture::{DepthStencilTarget, TextureTarget},
-        vertices::{FloatColor4, UnormColor},
-    },
+    shaders::types::texture::{DepthStencilTarget, TextureTarget},
     PassKind, RenderRequestBuilder,
 };
 use tracing::debug;

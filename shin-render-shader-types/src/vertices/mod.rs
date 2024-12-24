@@ -2,8 +2,9 @@ mod attributes;
 
 use bytemuck::NoUninit;
 use glam::{Vec2, Vec3, Vec4};
+use shin_primitives::color::UnormColor;
 
-pub use self::attributes::{FloatColor4, UnormColor, VertexAttribute};
+pub use self::attributes::VertexAttribute;
 
 // TODO: replace vector types with custom types that do not require any alignment besides 4 bytes
 // Then we'll be able to build without enabling `glam`'s `scalar-math` feature

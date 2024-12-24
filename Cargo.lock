@@ -691,9 +691,9 @@ checksum = "64fa3c856b712db6612c019f14756e64e4bcea13337a6b33b696333a9eaa2d06"
 
 [[package]]
 name = "bytemuck"
-version = "1.18.0"
+version = "1.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94bbb0ad554ad961ddc5da507a12a29b14e4ae5bda06b19f575a3e6079d2e2ae"
+checksum = "ef657dfab802224e671f5818e9a4935f9b1957ed18e58292690cc39e7a4092a3"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -5621,6 +5621,7 @@ dependencies = [
  "indexmap 2.7.0",
  "itertools 0.13.0",
  "petitset",
+ "shin-primitives",
  "shin-render",
  "shin-tasks",
  "shin-window",
@@ -5634,7 +5635,10 @@ dependencies = [
 name = "shin-primitives"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "cfg-if",
+ "encase",
+ "glam 0.28.0",
 ]
 
 [[package]]
@@ -5677,6 +5681,7 @@ dependencies = [
  "enum-iterator",
  "glam 0.28.0",
  "shin-derive",
+ "shin-primitives",
  "wgpu 22.1.0",
 ]
 
@@ -5762,6 +5767,7 @@ dependencies = [
  "enum-map",
  "glam 0.28.0",
  "shin-input",
+ "shin-primitives",
  "shin-render",
  "shin-tasks",
  "spin_sleep_util",

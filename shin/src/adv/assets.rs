@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use futures::try_join;
-use shin_core::format::{font::LazyFont, scenario::Scenario};
+use shin_core::format::{font::FontLazy, scenario::Scenario};
 
 use crate::asset::{asset_paths, system::AssetServer};
 
@@ -16,9 +16,9 @@ pub struct AdvAssets {
 
 #[derive(Clone)]
 pub struct AdvFonts {
-    pub system_font: Arc<LazyFont>,
-    pub medium_font: Arc<LazyFont>,
-    pub bold_font: Arc<LazyFont>,
+    pub system_font: Arc<FontLazy>,
+    pub medium_font: Arc<FontLazy>,
+    pub bold_font: Arc<FontLazy>,
 }
 
 impl AdvAssets {

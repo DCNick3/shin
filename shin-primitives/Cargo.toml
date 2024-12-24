@@ -5,6 +5,12 @@ edition = "2021"
 
 [dependencies]
 cfg-if = "1.0.0"
+bytemuck = { workspace = true, features = ["derive"] }
+glam = { workspace = true }
+encase = { workspace = true, optional = true }
+
+[features]
+encase = ["dep:encase"]
 
 [lints]
 workspace = true

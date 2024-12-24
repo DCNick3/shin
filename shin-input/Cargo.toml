@@ -15,6 +15,7 @@ gilrs = "0.11.0"
 indexmap = "2.6.0"
 
 [dev-dependencies]
+shin-primitives = { path = "../shin-primitives" }
 shin-render = { path = "../shin-render" }
 shin-window = { path = "../shin-window" }
 shin-tasks = { path = "../shin-tasks" }

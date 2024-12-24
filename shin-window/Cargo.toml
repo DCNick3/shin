@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+shin-primitives = { path = "../shin-primitives" }
 shin-tasks = { path = "../shin-tasks" }
 shin-input = { path = "../shin-input" }
 shin-render = { path = "../shin-render" }

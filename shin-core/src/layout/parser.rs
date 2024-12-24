@@ -1,6 +1,6 @@
-use glam::Vec3;
+use tracing::warn;
 
-use crate::time::Ticks;
+use crate::layout::text_layouter::TextLayouter;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParsedCommand {
@@ -11,37 +11,39 @@ pub enum ParsedCommand {
     /// @-
     DisableLipsync,
     /// @b
-    Furigana(String),
+    RubiContent(String),
     /// @<
-    FuriganaStart,
+    RubiBaseStart,
     /// @>
-    FuriganaEnd,
+    RubiBaseEnd,
     /// @a
-    SetFade(f32),
+    SetFade(i32),
     /// @c
-    SetColor(Option<Vec3>),
+    SetColor(i32),
     /// @e
     NoFinalClickWait,
     /// @k
     ClickWait,
     /// @o
-    VoiceVolume(f32),
+    VoiceVolume(i32),
     /// @r
     Newline,
     /// @s
-    TextSpeed(f32),
+    TextSpeed(i32),
     /// @t
-    SimultaneousStart,
+    StartParallel,
     /// @v
     Voice(String),
     /// @w
-    Wait(Ticks),
+    Wait(i32),
+    /// @x
+    VoiceSync(i32),
     /// @y
     Sync,
     /// @z
-    FontSize(f32),
+    FontScale(i32),
     /// @|
-    Signal,
+    CompleteSection,
     /// @[
     InstantTextStart,
     /// @]
@@ -52,111 +54,153 @@ pub enum ParsedCommand {
     BoldTextEnd,
 }
 
-pub struct LayouterParser<'a> {
+pub struct MessageTextParser<'a> {
     message: &'a str,
 }
 
-impl<'a> LayouterParser<'a> {
+impl<'a> MessageTextParser<'a> {
     pub fn new(message: &'a str) -> Self {
         Self { message }
     }
 
-    fn read_argument(&mut self) -> &'a str {
-        let end = self
-            .message
-            .find('.')
-            .expect("Could not find the end of the argument");
+    pub fn parse_into<L: TextLayouter>(self, layouter: &mut L) {
+        layouter.on_message_start();
+
+        for command in self {
+            match command {
+                ParsedCommand::Char(codepoint) => layouter.on_char(codepoint),
+                ParsedCommand::EnableLipsync => layouter.on_lipsync_enabled(),
+                ParsedCommand::DisableLipsync => layouter.on_lipsync_disabled(),
+                ParsedCommand::RubiContent(text) => layouter.on_rubi_content(text),
+                ParsedCommand::RubiBaseStart => layouter.on_rubi_base_start(),
+                ParsedCommand::RubiBaseEnd => layouter.on_rubi_base_end(),
+                ParsedCommand::SetFade(fade) => layouter.on_set_fade(fade),
+                ParsedCommand::SetColor(color) => layouter.on_set_color(color),
+                ParsedCommand::NoFinalClickWait => layouter.on_auto_click(),
+                ParsedCommand::ClickWait => layouter.on_click_wait(),
+                ParsedCommand::VoiceVolume(volume) => layouter.on_set_voice_volume(volume),
+                ParsedCommand::Newline => layouter.on_newline(),
+                ParsedCommand::TextSpeed(speed) => layouter.on_set_draw_speed(speed),
+                ParsedCommand::StartParallel => layouter.on_start_parallel(),
+                ParsedCommand::Voice(voice) => layouter.on_voice(voice),
+                ParsedCommand::Wait(wait) => layouter.on_wait(wait),
+                ParsedCommand::VoiceSync(target_instant) => layouter.on_voice_sync(target_instant),
+                ParsedCommand::Sync => layouter.on_sync(),
+                ParsedCommand::FontScale(scale) => layouter.on_set_font_scale(scale),
+                ParsedCommand::CompleteSection => layouter.on_section(),
+                ParsedCommand::InstantTextStart => layouter.on_instant_start(),
+                ParsedCommand::InstantTextEnd => layouter.on_instant_end(),
+                ParsedCommand::BoldTextStart => layouter.on_bold_start(),
+                ParsedCommand::BoldTextEnd => layouter.on_bold_end(),
+            }
+        }
+
+        layouter.on_message_end();
+    }
+
+    fn read_string_argument(&mut self) -> String {
+        let Some(end) = self.message.find('.') else {
+            return "".to_string();
+        };
         let argument = &self.message[..end];
         self.message = &self.message[end + 1..];
-        argument
+
+        // NOTE: the original MessageTextParser applies a fixup to the returned string argument
+        // we have already applied the fixup when decoding the message though, so this should not be necessary
+        // TODO: We __might__ want to move the fixup decoding to the same place the game does it, potentially saving some debugging time later...
+
+        argument.to_string()
     }
 
-    fn read_float_argument(&mut self, min: u32, max: u32, scale: f32) -> f32 {
-        let argument = self.read_argument();
-        let value = argument.parse::<u32>().expect("Could not parse argument");
-        let value = value.clamp(min.min(max), max.max(min));
-        // if min max are backwards - reverse the value
-        let value = if min > max { max - value } else { value };
-        value as f32 / scale
-    }
+    fn read_int_argument(&mut self) -> i32 {
+        let Some(end) = self.message.find('.') else {
+            return -1;
+        };
+        let mut argument = self.message[..end].chars();
+        self.message = &self.message[end + 1..];
 
-    fn read_color_argument(&mut self) -> Option<Vec3> {
-        let argument = self.read_argument();
-        if argument.is_empty() {
-            None
+        let Some(head_char) = argument.next() else {
+            return -1;
+        };
+
+        if head_char == '$' {
+            let mut accumulator = 0;
+            for c in argument {
+                accumulator = accumulator * 16 + c.to_digit(16).unwrap_or(0);
+            }
+
+            accumulator as i32
         } else {
-            let mut chars = argument.chars();
-            let r = chars.next().unwrap().to_digit(10).unwrap() as f32 / 9.0;
-            let g = chars.next().unwrap().to_digit(10).unwrap() as f32 / 9.0;
-            let b = chars.next().unwrap().to_digit(10).unwrap() as f32 / 9.0;
-            assert!(chars.next().is_none());
-            Some(Vec3::new(r, g, b))
+            let mut accumulator = head_char.to_digit(10).unwrap_or(0);
+            for c in argument {
+                accumulator = accumulator * 10 + c.to_digit(10).unwrap_or(0);
+            }
+
+            accumulator as i32
         }
     }
 }
 
-impl Iterator for LayouterParser<'_> {
+impl Iterator for MessageTextParser<'_> {
     type Item = ParsedCommand;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // TODO: make this parsing fallible
-
-        if self.message.is_empty() {
-            return None;
-        }
-
         let mut chars = self.message.chars();
-        let first_char = chars.next().unwrap();
+        let first_char = chars.next()?;
 
         if first_char != '@' {
             self.message = chars.as_str();
             return Some(ParsedCommand::Char(first_char));
         }
 
-        let second_char = chars.next().unwrap();
+        let Some(second_char) = chars.next() else {
+            // trailing `@` without a command is treated as-if the line has ended, without emitting anything
+            return None;
+        };
         self.message = chars.as_str();
 
         Some(match second_char {
             '+' => ParsedCommand::EnableLipsync,
             '-' => ParsedCommand::DisableLipsync,
-            'b' => ParsedCommand::Furigana(self.read_argument().to_owned()),
-            '<' => ParsedCommand::FuriganaStart,
-            '>' => ParsedCommand::FuriganaEnd,
-            'a' => ParsedCommand::SetFade(self.read_float_argument(0, u32::MAX, 1000.0)),
-            'c' => ParsedCommand::SetColor(self.read_color_argument()),
+            'b' => ParsedCommand::RubiContent(self.read_string_argument()),
+            '<' => ParsedCommand::RubiBaseStart,
+            '>' => ParsedCommand::RubiBaseEnd,
+            'a' => ParsedCommand::SetFade(self.read_int_argument()),
+            'c' => ParsedCommand::SetColor(self.read_int_argument()),
             'e' => ParsedCommand::NoFinalClickWait,
             'k' => ParsedCommand::ClickWait,
-            'o' => ParsedCommand::VoiceVolume(self.read_float_argument(0, 100, 100.0)),
+            'o' => ParsedCommand::VoiceVolume(self.read_int_argument()),
             'r' => ParsedCommand::Newline,
-            's' => ParsedCommand::TextSpeed(self.read_float_argument(100, 0, 40000.0)),
-            't' => ParsedCommand::SimultaneousStart,
-            'v' => ParsedCommand::Voice(self.read_argument().to_owned()),
-            'w' => ParsedCommand::Wait(Ticks::from_f32(self.read_float_argument(
-                0,
-                u32::MAX,
-                1000.0,
-            ))),
+            's' => ParsedCommand::TextSpeed(self.read_int_argument()),
+            't' => ParsedCommand::StartParallel,
+            'v' => ParsedCommand::Voice(self.read_string_argument().to_owned()),
+            'w' => ParsedCommand::Wait(self.read_int_argument()),
+            'x' => ParsedCommand::VoiceSync(self.read_int_argument()),
             'y' => ParsedCommand::Sync,
-            'z' => ParsedCommand::FontSize(self.read_float_argument(10, 200, 100.0)),
-            '|' => ParsedCommand::Signal,
+            'z' => ParsedCommand::FontScale(self.read_int_argument()),
+            '|' => ParsedCommand::CompleteSection,
             '[' => ParsedCommand::InstantTextStart,
             ']' => ParsedCommand::InstantTextEnd,
             '{' => ParsedCommand::BoldTextStart,
             '}' => ParsedCommand::BoldTextEnd,
-            'U' => todo!("@U layouter command parsing"),
-            _ => panic!("Unknown layouter command: {}", second_char),
+            // NB: the original engine does not do any validation here. We have to if we want to continue using the char type
+            'U' => ParsedCommand::Char(
+                char::from_u32(self.read_int_argument() as u32).expect("Invalid char code"),
+            ),
+            c => {
+                warn!("Unknown layouter command: {}", c);
+                ParsedCommand::Char(c)
+            }
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use glam::vec3;
-
     use super::*;
 
     fn parse(message: &str) -> Vec<ParsedCommand> {
-        LayouterParser::new(message).collect()
+        MessageTextParser::new(message).collect()
     }
 
     #[test]
@@ -184,11 +228,11 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                ParsedCommand::Furigana("かな".to_owned()),
-                ParsedCommand::FuriganaStart,
+                ParsedCommand::RubiContent("かな".to_owned()),
+                ParsedCommand::RubiBaseStart,
                 ParsedCommand::Char('漢'),
                 ParsedCommand::Char('字'),
-                ParsedCommand::FuriganaEnd,
+                ParsedCommand::RubiBaseEnd,
             ]
         );
     }
@@ -201,14 +245,14 @@ mod tests {
         assert_eq!(
             commands,
             vec![
-                ParsedCommand::SetColor(Some(vec3(1.0, 4.0 / 9.0, 0.0))),
+                ParsedCommand::SetColor(940),
                 ParsedCommand::Newline,
                 ParsedCommand::Char('H'),
                 ParsedCommand::Char('e'),
                 ParsedCommand::Char('l'),
                 ParsedCommand::Char('l'),
                 ParsedCommand::Char('o'),
-                ParsedCommand::SetColor(None),
+                ParsedCommand::SetColor(-1),
             ]
         );
     }
@@ -226,7 +270,7 @@ mod tests {
                 ParsedCommand::Char('l'),
                 ParsedCommand::Char('l'),
                 ParsedCommand::Char('o'),
-                ParsedCommand::Wait(Ticks::from_f32(0.4)),
+                ParsedCommand::Wait(400),
                 ParsedCommand::Newline,
                 ParsedCommand::Char('W'),
                 ParsedCommand::Char('o'),
@@ -238,7 +282,44 @@ mod tests {
     }
 
     #[test]
+    fn test_unfinished_command() {
+        let message = "Hello@r@";
+        let commands = parse(message);
+
+        assert_eq!(
+            commands,
+            vec![
+                ParsedCommand::Char('H'),
+                ParsedCommand::Char('e'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('o'),
+                ParsedCommand::Newline,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_unknown_command() {
+        let message = "Hello@!";
+        let commands = parse(message);
+
+        assert_eq!(
+            commands,
+            vec![
+                ParsedCommand::Char('H'),
+                ParsedCommand::Char('e'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('l'),
+                ParsedCommand::Char('o'),
+                ParsedCommand::Char('!'),
+            ]
+        );
+    }
+
+    #[test]
     fn test_real1() {
+        // TODO: why is this not fixed up again?
         let message = "@r@v00/awase6042_o.@|@y｢｢@c900.@[謹啓､謹ﾝで申ｼ上げﾙ｡@k@v00/awase6043_o.どﾁﾗﾓ破ﾗﾚﾃｲﾅｲﾓﾉﾄ知ﾘ給ｴ@]@c.｣｣";
         let commands = parse(message);
 
@@ -247,11 +328,11 @@ mod tests {
             vec![
                 ParsedCommand::Newline,
                 ParsedCommand::Voice("00/awase6042_o".to_owned()),
-                ParsedCommand::Signal,
+                ParsedCommand::CompleteSection,
                 ParsedCommand::Sync,
                 ParsedCommand::Char('｢'),
                 ParsedCommand::Char('｢'),
-                ParsedCommand::SetColor(Some(vec3(1.0, 0.0, 0.0))),
+                ParsedCommand::SetColor(900),
                 ParsedCommand::InstantTextStart,
                 ParsedCommand::Char('謹'),
                 ParsedCommand::Char('啓'),
@@ -286,9 +367,89 @@ mod tests {
                 ParsedCommand::Char('給'),
                 ParsedCommand::Char('ｴ'),
                 ParsedCommand::InstantTextEnd,
-                ParsedCommand::SetColor(None),
+                ParsedCommand::SetColor(-1),
                 ParsedCommand::Char('｣'),
                 ParsedCommand::Char('｣'),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_real2() {
+        let message = "めぐみん@r@vMGM_00310.「いえ、紅魔族の辞書に反省の文字は……@x324.@|@yああーっ！　ごめんなさい、ごめんなさい！　その怪しい手の動きはやめてください！」";
+        let commands = parse(message);
+
+        assert_eq!(
+            commands,
+            vec![
+                ParsedCommand::Char('め'),
+                ParsedCommand::Char('ぐ'),
+                ParsedCommand::Char('み'),
+                ParsedCommand::Char('ん'),
+                ParsedCommand::Newline,
+                ParsedCommand::Voice("MGM_00310".to_owned()),
+                ParsedCommand::Char('「'),
+                ParsedCommand::Char('い'),
+                ParsedCommand::Char('え'),
+                ParsedCommand::Char('、'),
+                ParsedCommand::Char('紅'),
+                ParsedCommand::Char('魔'),
+                ParsedCommand::Char('族'),
+                ParsedCommand::Char('の'),
+                ParsedCommand::Char('辞'),
+                ParsedCommand::Char('書'),
+                ParsedCommand::Char('に'),
+                ParsedCommand::Char('反'),
+                ParsedCommand::Char('省'),
+                ParsedCommand::Char('の'),
+                ParsedCommand::Char('文'),
+                ParsedCommand::Char('字'),
+                ParsedCommand::Char('は'),
+                ParsedCommand::Char('…'),
+                ParsedCommand::Char('…'),
+                ParsedCommand::VoiceSync(324),
+                ParsedCommand::CompleteSection,
+                ParsedCommand::Sync,
+                ParsedCommand::Char('あ'),
+                ParsedCommand::Char('あ'),
+                ParsedCommand::Char('ー'),
+                ParsedCommand::Char('っ'),
+                ParsedCommand::Char('！'),
+                ParsedCommand::Char('　'),
+                ParsedCommand::Char('ご'),
+                ParsedCommand::Char('め'),
+                ParsedCommand::Char('ん'),
+                ParsedCommand::Char('な'),
+                ParsedCommand::Char('さ'),
+                ParsedCommand::Char('い'),
+                ParsedCommand::Char('、'),
+                ParsedCommand::Char('ご'),
+                ParsedCommand::Char('め'),
+                ParsedCommand::Char('ん'),
+                ParsedCommand::Char('な'),
+                ParsedCommand::Char('さ'),
+                ParsedCommand::Char('い'),
+                ParsedCommand::Char('！'),
+                ParsedCommand::Char('　'),
+                ParsedCommand::Char('そ'),
+                ParsedCommand::Char('の'),
+                ParsedCommand::Char('怪'),
+                ParsedCommand::Char('し'),
+                ParsedCommand::Char('い'),
+                ParsedCommand::Char('手'),
+                ParsedCommand::Char('の'),
+                ParsedCommand::Char('動'),
+                ParsedCommand::Char('き'),
+                ParsedCommand::Char('は'),
+                ParsedCommand::Char('や'),
+                ParsedCommand::Char('め'),
+                ParsedCommand::Char('て'),
+                ParsedCommand::Char('く'),
+                ParsedCommand::Char('だ'),
+                ParsedCommand::Char('さ'),
+                ParsedCommand::Char('い'),
+                ParsedCommand::Char('！'),
+                ParsedCommand::Char('」'),
             ]
         );
     }

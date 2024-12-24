@@ -63,7 +63,7 @@ impl Message {
             base_font_height: 50.0,
             furigana_font_height: 20.0,
             font_horizontal_base_scale: 0.9697,
-            text_layout: MessageTextLayout::Left,
+            text_layout: MessageTextLayout::Justify,
             default_state: Default::default(),
             has_character_name: true,
             mode: LayoutingMode::MessageText,

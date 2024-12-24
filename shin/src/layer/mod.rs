@@ -23,6 +23,7 @@ pub use page_layer::PageLayer;
 pub use properties::{LayerProperties, LayerPropertiesState};
 pub use root_layer_group::RootLayerGroup;
 pub use screen_layer::ScreenLayer;
+use shin_core::primitives::color::FloatColor4;
 use shin_render::{
     dynamic_buffer::DynamicBuffer,
     pipelines::PipelineStorage,
@@ -32,7 +33,7 @@ use shin_render::{
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget},
-        vertices::{FloatColor4, PosVertex},
+        vertices::PosVertex,
     },
     DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
     StencilFunction, StencilOperation, StencilPipelineState, StencilState,

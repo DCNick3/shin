@@ -1,12 +1,12 @@
 use std::{fmt::Debug, sync::Arc};
 
 use glam::{Mat4, Vec3, Vec4};
+use shin_core::primitives::color::FloatColor4;
 use shin_render::{
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureTarget},
-        vertices::FloatColor4,
     },
     ColorBlendType, DrawPrimitive, LayerBlendType, LayerFragmentShader, LayerShaderOutputKind,
     PassKind, RenderProgramWithArguments, RenderRequestBuilder,

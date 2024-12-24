@@ -6,12 +6,10 @@ use shin_input::{
     inputs::{GamepadButton, VirtualGamepadButton},
     Action, ActionState, RawInputState,
 };
+use shin_primitives::color::UnormColor;
 use shin_render::{
     render_pass::RenderPass,
-    shaders::types::{
-        buffer::VertexSource,
-        vertices::{PosColVertex, UnormColor},
-    },
+    shaders::types::{buffer::VertexSource, vertices::PosColVertex},
     DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_window::{AppContext, RenderContext, ShinApp};

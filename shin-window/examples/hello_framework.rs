@@ -3,11 +3,12 @@ use std::time::Duration;
 use enum_map::{enum_map, Enum, EnumMap};
 use glam::{Mat4, Vec3};
 use shin_input::{inputs::GamepadButton, Action, ActionState, RawInputState};
+use shin_primitives::color::{FloatColor4, UnormColor};
 use shin_render::{
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
-        vertices::{FloatColor4, PosColVertex, PosVertex, UnormColor},
+        vertices::{PosColVertex, PosVertex},
     },
     DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
