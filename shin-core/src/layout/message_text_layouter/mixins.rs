@@ -113,8 +113,9 @@ impl<Font: FontMetrics> MessageTextLayouterMixin<Font> for MessageLayerLayouterM
                 }
 
                 layouter.font_scale = layouter.default_font_scale;
-                layouter.position.y -=
-                    layouter.params.line_height3 + layouter.params.rubi_size - 20.0;
+                layouter.position.y = ((layouter.position.y - layouter.params.rubi_size)
+                    - layouter.params.line_height3)
+                    + 20.0;
                 layouter.is_inside_instant_text = false;
                 layouter.params.always_leave_space_for_rubi = old_leave_space_for_rubi;
             }

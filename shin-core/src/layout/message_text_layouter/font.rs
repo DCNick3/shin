@@ -24,6 +24,20 @@ impl<T: FontMetrics> FontMetrics for Arc<T> {
     }
 }
 
+impl<T: FontMetrics> FontMetrics for &T {
+    fn get_ascent(&self) -> u32 {
+        (**self).get_ascent()
+    }
+
+    fn get_descent(&self) -> u32 {
+        (**self).get_descent()
+    }
+
+    fn get_glyph_info(&self, codepoint: char) -> Option<GlyphInfo> {
+        (**self).get_glyph_info(codepoint)
+    }
+}
+
 impl<G: GlyphTrait> FontMetrics for Font<G> {
     fn get_ascent(&self) -> u32 {
         Font::get_ascent(self) as u32

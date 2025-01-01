@@ -133,7 +133,6 @@ pub struct MessageTextLayouterImpl<Font> {
     pub sync_counter: u32,
 
     pub size: Vec2,
-    pub messagebox_type: MessageboxType,
 }
 
 impl<Font> MessageTextLayouterImpl<Font> {
@@ -182,7 +181,6 @@ impl<Font> MessageTextLayouterImpl<Font> {
             section_counter: 0,
             sync_counter: 0,
             size: Default::default(),
-            messagebox_type: MessageboxType::Neutral,
         }
     }
 }
@@ -327,11 +325,15 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
         let mut new_char_indices = Vec::with_capacity(new_commands_to_finalize);
         for (i, cmd) in self
             .commands
-            .iter_mut()
+            .iter()
             .enumerate()
             .skip(self.finalized_command_count)
         {
-            if let Command::Char(_) = cmd {
+            if let Command::Char(c) = cmd {
+                // rubi characters do not participate in the newline logic
+                if c.is_rubi {
+                    continue;
+                }
                 new_char_indices.push(i);
             }
         }
@@ -370,8 +372,6 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
         }
 
         if self.params.perform_soft_breaks {
-            let layout_width = self.params.layout_width;
-
             // this is so spaghetti...
             while !new_char_indices.is_empty() {
                 let mut valid_line_end = new_char_indices.len();
@@ -380,7 +380,12 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
                     let Command::Char(char) = &self.commands[cmd_idx] else {
                         unreachable!()
                     };
-                    if char.position.x >= layout_width || char.right_border() > layout_width * 1.05
+                    // NB: the layout width can change during `finalize_up_to` calls due to mixins
+                    // need to specifically take the current value
+                    let layout_width = self.params.layout_width;
+                    if char.position.x >= layout_width
+                        || char.right_border() > layout_width + layout_width * 0.05
+                    // NB: x * 1.05 != x + x * 0.05, blame IEEE floats
                     {
                         // need to insert a soft line break
                         char_it = if valid_line_end != new_char_indices.len() {
@@ -705,7 +710,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
         let base_width = self.position.x - self.rubi_start_x;
         let base_time = self.current_time - self.rubi_start_time;
 
-        if rubi_width < base_width {
+        if rubi_width <= base_width {
             // rubi text is smaller
             reflow(
                 rubi_commands.iter_mut(),
@@ -723,8 +728,8 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
             );
 
             // reflect the changes in position and time
-            self.position.x += rubi_width - base_width;
-            self.current_time += rubi_time - base_time;
+            self.position.x = self.rubi_start_x + rubi_width;
+            self.current_time = self.rubi_start_time + rubi_time;
         }
 
         // append the rubi commands to the main list
@@ -779,8 +784,9 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
         }
 
         if char_count == 0 {
-            line_height = self.params.text_size;
+            line_height = self.params.text_size * self.font_scale;
             if self.params.always_leave_space_for_rubi {
+                // NB: rubi height is not scaled
                 rubi_height = self.params.rubi_size;
             }
         }
@@ -797,14 +803,25 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
         let ascent = self.font_normal.get_ascent() as f32;
         let descent = self.font_normal.get_descent() as f32;
 
-        let ascent_scaled = line_height / (ascent + descent) * ascent;
+        let ascent_scaled = if char_count == 0 {
+            // baseline calculation seems wrong if there are no characters
+            // weird...
+            self.params.text_size
+        } else {
+            line_height
+        } / (ascent + descent)
+            * ascent;
         let rubi_ascent_scaled = rubi_height / (ascent + descent) * ascent;
 
         if char_count > 0 {
-            if max_width > layout_width {
+            if max_width >= layout_width {
                 // light overflow (the code in `on_newline` we won't allow more than 5%)
                 // squish the line to fit
                 let squish = layout_width / max_width;
+                // eprintln!(
+                //     "Squishing line to fit: {} -> {}; squish={}",
+                //     max_width, layout_width, squish
+                // );
                 for cmd in new_commands.iter_mut() {
                     if let Command::Char(char) = cmd {
                         char.position.x *= squish;
@@ -819,6 +836,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
                 && self.params.text_alignment == MessageTextLayout::Justify
                 && layout_width - max_width < layout_width * 0.05
             {
+                // eprintln!("Justifying line to fit: {} -> {}", max_width, layout_width);
                 // justify the non-last line characters if requested
                 for cmd in new_commands.iter_mut() {
                     if let Command::Char(char) = cmd {
@@ -903,7 +921,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
 }
 
 // Rust doesn't have 1:1 correspondence to inheritance with virtual methods, so we use the next best thing: mixins.
-// This works because the inheritance hierarchy is only 2 classes high. This approach is not scalable to deeper hierarchies.
+// This works because the inheritance hierarchy is only 2 classes high. This approach is not scalable to deeper hierarchies as-is.
 pub trait MessageTextLayouterMixin<Font> {
     fn on_char(&mut self, layouter: &mut MessageTextLayouterImpl<Font>, codepoint: char);
     fn on_newline(&mut self, layouter: &mut MessageTextLayouterImpl<Font>);
@@ -1086,7 +1104,7 @@ mod tests {
         vm::command::types::{MessageTextLayout, MessageboxType},
     };
 
-    fn make_snapshot(
+    pub fn make_snapshot(
         text_alignment: MessageTextLayout,
         messagebox_type: MessageboxType,
         text: &str,
@@ -1097,8 +1115,8 @@ mod tests {
             shin_core::format::font::read_font_metrics(&mut font).unwrap()
         }
 
-        let normal = read_font("../shin/assets/data/newrodin-medium.fnt");
-        let bold = read_font("../shin/assets/data/newrodin-bold.fnt");
+        let normal = read_font("test_assets/newrodin-medium.fnt");
+        let bold = read_font("test_assets/newrodin-bold.fnt");
 
         // layout params used by the MessageLayer
         let layout_params = LayoutParams {
@@ -1199,4 +1217,67 @@ mod tests {
 
         assert_debug_snapshot!("ep1_novel_centered", snapshot);
     }
+
+    #[test]
+    fn snapshot_ep1_narrator1() {
+        // this tests a non-novel message without a character name
+        let snapshot = make_snapshot(
+            MessageTextLayout::Justify,
+            MessageboxType::Ushiromiya,
+            "@r聴診器を外しながら、年輩の医師は溜め息を漏らす。",
+        );
+
+        assert_debug_snapshot!("ep1_narrator1", snapshot);
+    }
+
+    #[test]
+    fn snapshot_ep1_kinzo2() {
+        // tests the correct implementation of multiline quoted text
+        let snapshot = make_snapshot(
+            MessageTextLayout::Justify,
+            MessageboxType::Ushiromiya,
+            "右代宮\u{3000}金蔵@r@v01/11500003.「忠告の気持ちだけはありがたくいただいておく。@k@v01/11500004.我が友よ。@k@v01/11500005.………源次。@k@v01/11500006.もう一杯頼む。@k@v01/11500007.心持ち薄めでな。@k@v01/11500008.南條の顔も立ててやれ」",
+        );
+
+        assert_debug_snapshot!("ep1_kinzo2", snapshot);
+    }
+
+    #[test]
+    fn snapshot_ep1_battler1() {
+        // tests the correct handling of prohibition rules in combination with rubi text
+        let snapshot = make_snapshot(
+            MessageTextLayout::Justify,
+            MessageboxType::Ushiromiya,
+            "右代宮\u{3000}戦人@r@v10/10100014.「こんだけ@bた.@<立@>っ@bぱ.@<端@>がありゃー俺の発育は充分っすから～！@k\u{3000}@v10/10100015.むしろちょいと身長縮めた方が服が探しやすいくらい！」",
+        );
+
+        assert_debug_snapshot!("ep1_battler1", snapshot);
+    }
+
+    #[test]
+    fn snapshot_ep1_narrator2() {
+        // tests the correctness of time reflowing when rubi and base texts have equal width
+        let snapshot = make_snapshot(
+            MessageTextLayout::Justify,
+            MessageboxType::Ushiromiya,
+            "@r@bねこぐるま.@<猫車@>のひとつしかない車輪が小石でも噛んだのでバランスを崩してしまったのだろう。",
+        );
+
+        assert_debug_snapshot!("ep1_narrator2", snapshot);
+    }
+
+    #[test]
+    fn snapshot_ep1_kinzo3() {
+        // tests correctness of squish/justify selection when max_width = layout_width
+        let snapshot = make_snapshot(
+            MessageTextLayout::Justify,
+            MessageboxType::Ushiromiya,
+            "右代宮\u{3000}金蔵@r@v01/11500136.「留弗夫の間抜けは女遊びばかりッ！！@k\u{3000}@v01/11500137.楼座はどこの馬の骨ともわからん男の赤ん坊など生みおって！！@k\u{3000}@v01/11500138.朱志香は無能で無学だ！！@k\u{3000}@v01/11500139.譲治には男としての器がない！@k\u{3000}@v01/11500140.戦人は右代宮家の栄誉を自ら捨ておった愚か者だッ！！@k\u{3000}@v01/11500141.真里亞など見るのも汚らわしいッ！！」",
+        );
+
+        assert_debug_snapshot!("ep1_kinzo3", snapshot);
+    }
 }
+
+#[cfg(test)]
+mod test_dump;
