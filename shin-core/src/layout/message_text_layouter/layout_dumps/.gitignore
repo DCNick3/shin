@@ -1,3 +1,0 @@
-# large binary files used for testing the layouter
-# TODO: maybe put all the assets needed for tests in a single directory?
-*.cbor

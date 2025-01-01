@@ -1,14 +1,15 @@
-use std::{
-    fs::File,
-    io::{BufReader, ErrorKind, Read},
-};
+//! Test on full-chapter layout dumps
+//!
+//! These are less fine-grained, but much more comprehensive.
+//!
+//! To ease debugging of a dump-based test failed, it's easier to extract the failing message and make a snapshot test for it.
 
-use glam::Vec2;
+use std::io::{BufReader, ErrorKind, Read};
+
 use minicbor::Decode;
 use num_traits::FromPrimitive as _;
 
 use crate::{
-    format::font::FontInfo,
     layout::{
         message_text_layouter::{
             commands::Command, LayoutParams, LineInfo, MessageLayerLayouter,
@@ -35,71 +36,7 @@ struct Entry {
     snapshot: String,
 }
 
-struct Fonts {
-    bold_font: FontInfo,
-    normal_font: FontInfo,
-}
-
-fn read_fonts() -> Fonts {
-    fn read_font(path: &str) -> FontInfo {
-        let font = File::open(path).unwrap();
-        let mut font = BufReader::new(font);
-        shin_core::format::font::read_font_metrics(&mut font).unwrap()
-    }
-
-    let normal = read_font("test_assets/newrodin-medium.fnt");
-    let bold = read_font("test_assets/newrodin-bold.fnt");
-
-    Fonts {
-        bold_font: bold,
-        normal_font: normal,
-    }
-}
-
-fn make_snapshot(
-    fonts: &Fonts,
-    text_alignment: MessageTextLayout,
-    messagebox_type: MessageboxType,
-    text: &str,
-) -> (Vec<Command>, Vec<LineInfo>, Vec2) {
-    let normal = &fonts.normal_font;
-    let bold = &fonts.bold_font;
-
-    // layout params used by the MessageLayer
-    let layout_params = LayoutParams {
-        layout_width: 1500.0,
-        text_alignment,
-        line_spacing: 0.0,
-        another_line_height: 0.0,
-        line_height3: 4.0,
-        rubi_size: 20.0,
-        text_size: 50.0,
-        base_font_horizontal_scale: 0.9697,
-        follow_kinsoku_shori_rules: true,
-        always_leave_space_for_rubi: true,
-        perform_soft_breaks: true,
-    };
-    let defaults = MessageTextLayouterDefaults {
-        color: 999,
-        draw_speed: 80,
-        fade: 200,
-    };
-
-    let mut layouter =
-        MessageLayerLayouter::new(normal, bold, messagebox_type, layout_params, defaults);
-    let parser = MessageTextParser::new(text);
-    parser.parse_into(&mut layouter);
-
-    (
-        layouter.layouter.commands,
-        layouter.layouter.lines,
-        layouter.layouter.size,
-    )
-}
-
 fn check_layout_dump(path: &str) {
-    let fonts = read_fonts();
-
     let mut decoder = lz4_flex::frame::FrameDecoder::new(std::fs::File::open(path).unwrap());
     let mut buf = vec![];
 
@@ -136,7 +73,7 @@ fn check_layout_dump(path: &str) {
         let messagebox_style = MessageboxType::from_u32(messagebox_style).unwrap();
         let text_alignment = MessageTextLayout::from_u32(text_alignment).unwrap();
 
-        let snapshot = make_snapshot(&fonts, text_alignment, messagebox_style, &message);
+        let snapshot = super::make_snapshot(text_alignment, messagebox_style, &message);
         let snapshot = format!("{:#?}", snapshot);
 
         if snapshot == expected_snapshot {
@@ -184,7 +121,7 @@ fn check_layout_dump(path: &str) {
 }
 
 #[test]
-fn layout_dump_ep1() {
+fn ep1() {
     let path = "test_assets/layout_dumps/ep1.cbor";
     check_layout_dump(path);
 }
