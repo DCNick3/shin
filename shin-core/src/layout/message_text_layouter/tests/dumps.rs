@@ -96,6 +96,10 @@ fn check_layout_dump(path: &str) {
                     "Snapshot mismatch for message_id = {}: {:?}",
                     message_id, message
                 );
+                println!(
+                    "messagebox_style={:?}, text_alignment={:?}",
+                    messagebox_style, text_alignment
+                );
                 println!("Ground truth: {:?}", expected_snapshot);
                 println!("{}", diff);
                 println!()
@@ -123,5 +127,23 @@ fn check_layout_dump(path: &str) {
 #[test]
 fn ep1() {
     let path = "test_assets/layout_dumps/ep1.cbor";
+    check_layout_dump(path);
+}
+
+#[test]
+fn ep2() {
+    let path = "test_assets/layout_dumps/ep2.cbor";
+    check_layout_dump(path);
+}
+
+#[test]
+fn ep3() {
+    let path = "test_assets/layout_dumps/ep3.cbor";
+    check_layout_dump(path);
+}
+
+#[test]
+fn ep4() {
+    let path = "test_assets/layout_dumps/ep4.cbor";
     check_layout_dump(path);
 }

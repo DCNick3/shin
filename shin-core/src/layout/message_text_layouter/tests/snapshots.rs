@@ -124,3 +124,15 @@ fn snapshot_ep1_kinzo3() {
 
     assert_debug_snapshot!("ep1_kinzo3", snapshot);
 }
+
+#[test]
+fn snapshot_ep2_narrator1() {
+    // tests for correct classification of space for line prohibition rules
+    let snapshot = make_snapshot(
+        MessageTextLayout::Justify,
+        MessageboxType::Ushiromiya,
+        "@rそしてそこには英語で、@r“Happy HALLOWEEN for MARIA.”と記されていた。",
+    );
+
+    assert_debug_snapshot!("ep2_narrator1", snapshot);
+}

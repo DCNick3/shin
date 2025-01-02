@@ -243,7 +243,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
     }
 
     pub fn on_char(&mut self, codepoint: char) {
-        const SHOULD_NOT_START_A_LINE: CharSet<57> = CharSet::new(")>]―’”‥…─♪、。々〉》」』】〕〟ぁぃぅぇぉっゃゅょゎんゝゞァィゥ ェォッャュョヮヵヶ・ーヽヾ！）：；？｝～");
+        const SHOULD_NOT_START_A_LINE: CharSet<56> = CharSet::new(")>]―’”‥…─♪、。々〉》」』】〕〟ぁぃぅぇぉっゃゅょゎんゝゞァィゥェォッャュョヮヵヶ・ーヽヾ！）：；？｝～");
         const SHOULD_NOT_END_A_LINE: CharSet<14> = CharSet::new("(<[‘“〈《「『【〔〝（｛");
 
         let mut cant_be_at_line_start = SHOULD_NOT_START_A_LINE.contains(codepoint);
