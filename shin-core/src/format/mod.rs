@@ -12,6 +12,7 @@ pub mod mask;
 pub mod picture;
 pub mod save;
 pub mod scenario;
+pub mod sysse;
 pub mod texture_archive;
 
 #[cfg(test)]
