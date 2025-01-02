@@ -1,11 +1,7 @@
 mod dumps;
 mod snapshots;
 
-use std::{
-    fs::File,
-    io::BufReader,
-    sync::{LazyLock, OnceLock},
-};
+use std::{fs::File, io::BufReader, sync::LazyLock};
 
 use glam::Vec2;
 
@@ -35,6 +31,7 @@ pub fn read_fonts() -> TestFonts {
 
     let normal = read_font("test_assets/newrodin-medium.fnt");
     let bold = read_font("test_assets/newrodin-bold.fnt");
+    // let system = read_font("test_assets/system.fnt");
 
     TestFonts {
         bold_font: bold,
@@ -57,9 +54,9 @@ pub fn make_snapshot(
     let layout_params = LayoutParams {
         layout_width: 1500.0,
         text_alignment,
-        line_spacing: 0.0,
-        another_line_height: 0.0,
-        line_height3: 4.0,
+        line_padding_above: 0.0,
+        line_padding_below: 0.0,
+        line_padding_between: 4.0,
         rubi_size: 20.0,
         text_size: 50.0,
         base_font_horizontal_scale: 0.9697,

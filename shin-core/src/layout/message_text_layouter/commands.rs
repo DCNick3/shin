@@ -1,11 +1,19 @@
 use glam::Vec2;
 use shin_primitives::color::UnormColor;
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum CharFontType {
+    Regular,
+    Bold,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Char {
     pub time: f32,
     pub line_index: usize,
-    // TODO: font
+    // NB: unlike the original engine, we do not store a pointer to the font here
+    // This lets the layouter to return pure snapshottable data
+    pub font: CharFontType,
     pub codepoint: char,
     pub is_rubi: bool,
     pub cant_be_at_line_start: bool,

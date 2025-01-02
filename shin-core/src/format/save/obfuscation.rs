@@ -3,7 +3,7 @@
 
 use anyhow::{bail, Result};
 
-use super::crc32::crc32;
+use crate::crc32::crc32;
 
 fn chunks_transform(data: &mut [u8], key: u32, transform: impl Fn(&mut [u8; 4], &mut u32)) {
     let mut current_key = key;

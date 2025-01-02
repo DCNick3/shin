@@ -8,7 +8,8 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
-mod crc32;
+use crate::crc32;
+
 mod obfuscation;
 
 type Endian = bitbuffer::BigEndian;
