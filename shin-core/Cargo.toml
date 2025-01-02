@@ -49,6 +49,8 @@ num-integer = "0.1.46"
 chrono = { version = "0.4.38", features = ["serde"] }
 indexmap = "2.7.0"
 
+array-util = "1.0.2"
+
 [dev-dependencies]
 hex = "0.4.3"
 insta = "1.39.0"

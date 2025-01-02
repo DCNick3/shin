@@ -30,6 +30,9 @@ impl AudioBuffer {
     pub fn push(&mut self, frame: Sample) {
         self.data.push(frame);
     }
+    pub fn extend(&mut self, frames: impl IntoIterator<Item = Sample>) {
+        self.data.extend(frames);
+    }
 }
 
 /// Stores an [`AudioBuffer`] and a position in it

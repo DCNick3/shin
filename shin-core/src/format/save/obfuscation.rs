@@ -2,20 +2,25 @@
 //! (it's just a bunch of XORs, actually)
 
 use anyhow::{bail, Result};
+use array_util::SliceExt;
 
 use crate::crc32::crc32;
 
 fn chunks_transform(data: &mut [u8], key: u32, transform: impl Fn(&mut [u8; 4], &mut u32)) {
     let mut current_key = key;
 
-    // I REALLY want array_chunks to be stable...
-    for chunk_data in data.chunks_mut(4) {
-        let chunk_data_len = chunk_data.len();
-        let mut chunk = [0; 4];
+    let (chunks, rest) = data.as_chunks_mut_ext::<4>();
+    for chunk in chunks {
+        transform(chunk, &mut current_key);
+    }
 
-        chunk[..chunk_data_len].copy_from_slice(chunk_data);
-        transform(&mut chunk, &mut current_key);
-        chunk_data.copy_from_slice(&chunk[..chunk_data_len]);
+    if !rest.is_empty() {
+        let rest_data_len = rest.len();
+        let mut padded_rest = [0; 4];
+
+        padded_rest[..rest_data_len].copy_from_slice(rest);
+        transform(&mut padded_rest, &mut current_key);
+        rest.copy_from_slice(&padded_rest[..rest_data_len]);
     }
 }
 

@@ -6,7 +6,11 @@ mod rom;
 mod savedata;
 mod scenario;
 
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter},
+    path::PathBuf,
+};
 
 use anyhow::{Context, Result};
 use assembler::{assembler_command, AssemblerCommand};
@@ -17,7 +21,9 @@ use itertools::Itertools;
 use rom::{rom_command, RomCommand};
 use savedata::{savedata_command, SavedataCommand};
 use scenario::{scenario_command, ScenarioCommand};
-use shin_core::format::{bustup::default_builder::DefaultBustupBuilder, picture::SimpleMergedPicture};
+use shin_core::format::{
+    audio::AudioSource, bustup::default_builder::DefaultBustupBuilder, picture::SimpleMergedPicture,
+};
 use tracing_subscriber::EnvFilter;
 
 #[derive(clap::Parser, Debug)]
@@ -62,6 +68,9 @@ enum SduAction {
     /// Operations on the WIP assembler
     #[clap(subcommand, alias("asm"))]
     Assembler(AssemblerCommand),
+    /// Operations on SYSSE.bin files
+    #[clap(subcommand)]
+    Sysse(SysseCommand),
 }
 
 #[derive(clap::Args, Debug)]
@@ -140,6 +149,17 @@ enum AudioCommand {
         /// Path to the NXA file
         audio_path: PathBuf,
         /// Path to the output OPUS file
+        output_path: PathBuf,
+    },
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum SysseCommand {
+    /// Convert a SYSSE.bin file into a bunch of WAV files (one per system sound effect)
+    Decode {
+        /// Path to the SYSSE.bin file
+        sysse_path: PathBuf,
+        /// Path to the output directory
         output_path: PathBuf,
     },
 }
@@ -398,6 +418,51 @@ fn texture_archive_command(command: TextureArchiveCommand) -> Result<()> {
     }
 }
 
+fn sysse_command(command: SysseCommand) -> Result<()> {
+    match command {
+        SysseCommand::Decode {
+            sysse_path,
+            output_path,
+        } => {
+            use hound::WavSpec;
+
+            let sysse = std::fs::read(sysse_path).context("Reading input file")?;
+            let sysse = shin_core::format::sysse::read_sys_se(&sysse).context("Reading SYSSE")?;
+
+            std::fs::create_dir_all(&output_path)?;
+
+            for (name, sound) in sysse.sounds {
+                let sample_rate = sound.sample_rate();
+
+                let writer = File::create(output_path.join(format!("{}.wav", name)))
+                    .context("Creating output file")?;
+                let writer = BufWriter::new(writer);
+                let mut writer = hound::WavWriter::new(
+                    writer,
+                    WavSpec {
+                        channels: 2, // TODO: maybe it would be nice to expose mono/stereo in the shin-core API
+                        sample_rate,
+                        bits_per_sample: 32,
+                        sample_format: hound::SampleFormat::Float,
+                    },
+                )
+                .context("Creating WAV writer")?;
+
+                let mut audio_source = AudioSource::new(sound.decode());
+
+                while let Some((left, right)) = audio_source.read_sample() {
+                    writer.write_sample(left).context("Writing sample")?;
+                    writer.write_sample(right).context("Writing sample")?;
+                }
+
+                writer.finalize().context("Finalizing the WAV file")?;
+            }
+
+            Ok(())
+        }
+    }
+}
+
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -418,5 +483,6 @@ fn main() -> Result<()> {
         SduAction::Audio(cmd) => audio::audio_command(cmd),
         SduAction::Savedata(cmd) => savedata_command(cmd),
         SduAction::Assembler(cmd) => assembler_command(cmd),
+        SduAction::Sysse(cmd) => sysse_command(cmd),
     }
 }
