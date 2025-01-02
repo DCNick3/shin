@@ -1,2 +1,2 @@
 *.fnt
-layout_dumps/*.cbor
+layout_dumps/*.cbor.zst

@@ -283,6 +283,8 @@ pub struct Font<G: GlyphTrait = Glyph> {
     ascent: u16,
     /// Distance between the baseline and the bottom of the font
     descent: u16,
+    /// Used as a font identifier for glyph caching
+    character_table_crc: u32,
     characters: Box<[GlyphId; 0x10000]>,
     glyphs: HashMap<GlyphId, G>,
 }
@@ -304,6 +306,10 @@ impl<G: GlyphTrait> Font<G> {
     /// Get the distance between the baseline and the bottom of the font
     pub fn get_ascent(&self) -> u16 {
         self.ascent
+    }
+
+    pub fn get_character_table_crc(&self) -> u32 {
+        self.character_table_crc
     }
 
     pub fn get_glyph_for_character(&self, character: u16) -> &G {
@@ -383,6 +389,9 @@ impl<G: GlyphTrait> BinRead for Font<G> {
             *c = u32::read_options(reader, endian, ())?;
         }
 
+        let character_table_bytes = bytemuck::cast_slice::<_, u8>(character_table.as_ref());
+        let character_table_crc = crate::crc32::crc32(character_table_bytes, 0);
+
         let mut known_glyph_offsets = HashMap::new();
         let mut characters = box_array![GlyphId(0); 0x10000];
         let mut glyphs = HashMap::new();
@@ -406,6 +415,7 @@ impl<G: GlyphTrait> BinRead for Font<G> {
         Ok(Font {
             ascent: header.ascent,
             descent: header.descent,
+            character_table_crc,
             characters,
             glyphs,
         })

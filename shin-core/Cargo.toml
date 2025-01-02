@@ -54,7 +54,7 @@ hex = "0.4.3"
 insta = "1.39.0"
 similar-asserts = "1.6.0"
 rand = "0.8.5"
-lz4_flex = "0.11.3"
+zstd = "0.13.2"
 minicbor = { version = "0.25.1", features = ["derive", "std"] }
 
 [lints]

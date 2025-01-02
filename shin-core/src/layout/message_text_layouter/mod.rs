@@ -10,7 +10,7 @@ use itertools::Itertools;
 use shin_primitives::{char_set::CharSet, color::UnormColor};
 
 use crate::{
-    layout::text_layouter::TextLayouter,
+    layout::{message_text_layouter::commands::CharFontType, text_layouter::TextLayouter},
     vm::command::types::{MessageTextLayout, MessageboxType},
 };
 
@@ -18,10 +18,11 @@ use crate::{
 pub struct LineInfo {
     pub width: f32,
     pub y_position: f32,
-    /// Distance from `y_position` to the `y_position` of the next line (minus `height3`)
-    pub line_advance: f32,
+    /// Distance from `y_position` to the bottom of the line. The next line then starts at `y_position + line_advance + line_padding_between`
+    pub line_height: f32,
     /// Distance from `y_position` to the baseline of the base text
-    pub total_height: f32,
+    pub baseline_ascent: f32,
+    /// Height of the rubi text in this line (if any)
     pub rubi_height: f32,
 }
 
@@ -29,13 +30,12 @@ pub struct LayoutParams {
     pub layout_width: f32,
     pub text_alignment: MessageTextLayout,
 
-    // this is a mess..
     /// Space before the line
-    pub line_spacing: f32,
+    pub line_padding_above: f32,
     /// Space below the line
-    pub another_line_height: f32,
-    /// Space between the lines (?)
-    pub line_height3: f32,
+    pub line_padding_below: f32,
+    /// Space between the lines
+    pub line_padding_between: f32,
 
     pub rubi_size: f32,
     pub text_size: f32,
@@ -50,9 +50,9 @@ impl Default for LayoutParams {
         Self {
             layout_width: 640.0,
             text_alignment: MessageTextLayout::Justify,
-            line_spacing: 0.0,
-            another_line_height: 0.0,
-            line_height3: 0.0,
+            line_padding_above: 0.0,
+            line_padding_below: 0.0,
+            line_padding_between: 0.0,
             rubi_size: 0.0,
             text_size: 20.0,
             base_font_horizontal_scale: 1.0,
@@ -254,10 +254,10 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
             cant_be_at_line_end = false;
         }
 
-        let font = if self.is_bold {
-            &self.font_bold
+        let (font, font_type) = if self.is_bold {
+            (&self.font_bold, CharFontType::Bold)
         } else {
-            &self.font_normal
+            (&self.font_normal, CharFontType::Regular)
         };
 
         // TODO: what to do when a nonexistent codepoint is encountered?
@@ -278,6 +278,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
         let mut cmd = Char {
             time: self.current_time,
             line_index: 0,
+            font: font_type,
             codepoint,
             is_rubi: false,
             cant_be_at_line_start,
@@ -644,7 +645,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
             .collect::<Vec<_>>();
         let mut rubi_commands = Vec::with_capacity(self.rubi_text.chars().count());
 
-        let font = &self.font_normal;
+        let (font, font_type) = (&self.font_normal, CharFontType::Regular);
 
         // first, lay out rubi commands "normally"
         let scale = self.params.rubi_size / (font.get_ascent() + font.get_descent()) as f32;
@@ -660,6 +661,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
             let cmd = Char {
                 time: self.rubi_start_time + rubi_time,
                 line_index: 0,
+                font: font_type,
                 codepoint,
                 is_rubi: true,
                 cant_be_at_line_start: false,
@@ -686,7 +688,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
         // now, check whether the base text or rubi text is wider and reflow the smaller one to match
         #[inline]
         fn reflow<'a>(
-            mut iter: impl ExactSizeIterator<Item = &'a mut Char>,
+            iter: impl ExactSizeIterator<Item = &'a mut Char>,
             extra_width: f32,
             extra_time: f32,
         ) {
@@ -859,7 +861,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
             for cmd in new_commands.iter_mut() {
                 if let Command::Char(char) = cmd {
                     char.position.x += x_offset;
-                    char.position.y += self.params.line_spacing;
+                    char.position.y += self.params.line_padding_above;
                     char.position.y += if char.is_rubi {
                         rubi_ascent_scaled
                     } else {
@@ -873,22 +875,21 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
             cmd.set_line_index(self.lines.len());
         }
 
+        let line_advance = self.params.line_padding_above
+            + rubi_height
+            + line_height
+            + self.params.line_padding_below;
+
         self.lines.push(LineInfo {
             width: line_width,
             y_position: self.position.y,
-            line_advance: self.params.line_spacing
-                + rubi_height
-                + line_height
-                + self.params.another_line_height,
-            total_height: self.params.line_spacing + rubi_height + ascent_scaled,
+            line_height: line_advance,
+            baseline_ascent: self.params.line_padding_above + rubi_height + ascent_scaled,
             rubi_height,
         });
 
         self.size.x = self.size.x.max(line_width);
-
-        let line_advance =
-            self.params.line_spacing + rubi_height + line_height + self.params.another_line_height;
-        let line_advance_final = line_advance + self.params.line_height3;
+        let line_advance_final = line_advance + self.params.line_padding_between;
 
         self.size.y = self.position.y + line_advance;
 

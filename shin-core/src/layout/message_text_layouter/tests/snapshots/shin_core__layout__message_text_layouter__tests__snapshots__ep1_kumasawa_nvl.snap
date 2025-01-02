@@ -1,6 +1,5 @@
 ---
-source: shin-core/src/layout/message_text_layouter/mod.rs
-assertion_line: 1162
+source: shin-core/src/layout/message_text_layouter/tests/snapshots.rs
 expression: snapshot
 ---
 (
@@ -19,6 +18,7 @@ expression: snapshot
             Char {
                 time: 0.0,
                 line_index: 0,
+                font: Regular,
                 codepoint: '…',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -42,6 +42,7 @@ expression: snapshot
             Char {
                 time: 0.025000075,
                 line_index: 0,
+                font: Regular,
                 codepoint: '…',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -65,6 +66,7 @@ expression: snapshot
             Char {
                 time: 0.05000015,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'お',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -88,6 +90,7 @@ expression: snapshot
             Char {
                 time: 0.07500023,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'い',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -111,6 +114,7 @@ expression: snapshot
             Char {
                 time: 0.1000003,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'た',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -134,6 +138,7 @@ expression: snapshot
             Char {
                 time: 0.12500037,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'わ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -157,6 +162,7 @@ expression: snapshot
             Char {
                 time: 0.15000045,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'し',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -180,6 +186,7 @@ expression: snapshot
             Char {
                 time: 0.17500053,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'や',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -203,6 +210,7 @@ expression: snapshot
             Char {
                 time: 0.20000061,
                 line_index: 0,
+                font: Regular,
                 codepoint: '、',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -226,6 +234,7 @@ expression: snapshot
             Char {
                 time: 0.2750007,
                 line_index: 0,
+                font: Regular,
                 codepoint: '紗',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -249,6 +258,7 @@ expression: snapshot
             Char {
                 time: 0.30000076,
                 line_index: 0,
+                font: Regular,
                 codepoint: '音',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -272,6 +282,7 @@ expression: snapshot
             Char {
                 time: 0.32500082,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'さ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -295,6 +306,7 @@ expression: snapshot
             Char {
                 time: 0.3500009,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'ん',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -318,6 +330,7 @@ expression: snapshot
             Char {
                 time: 0.37500095,
                 line_index: 0,
+                font: Regular,
                 codepoint: '、',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -341,6 +354,7 @@ expression: snapshot
             Char {
                 time: 0.450001,
                 line_index: 0,
+                font: Regular,
                 codepoint: '嘉',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -364,6 +378,7 @@ expression: snapshot
             Char {
                 time: 0.47500107,
                 line_index: 0,
+                font: Regular,
                 codepoint: '音',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -387,6 +402,7 @@ expression: snapshot
             Char {
                 time: 0.50000113,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'さ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -410,6 +426,7 @@ expression: snapshot
             Char {
                 time: 0.5250012,
                 line_index: 0,
+                font: Regular,
                 codepoint: 'ん',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -433,6 +450,7 @@ expression: snapshot
             Char {
                 time: 0.5500013,
                 line_index: 0,
+                font: Regular,
                 codepoint: '…',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -456,6 +474,7 @@ expression: snapshot
             Char {
                 time: 0.5750014,
                 line_index: 0,
+                font: Regular,
                 codepoint: '。',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -497,6 +516,7 @@ expression: snapshot
             Char {
                 time: 0.70100147,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'あ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -520,6 +540,7 @@ expression: snapshot
             Char {
                 time: 0.72600156,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'の',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -543,6 +564,7 @@ expression: snapshot
             Char {
                 time: 0.75100166,
                 line_index: 1,
+                font: Regular,
                 codepoint: '二',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -566,6 +588,7 @@ expression: snapshot
             Char {
                 time: 0.77600175,
                 line_index: 1,
+                font: Regular,
                 codepoint: '人',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -589,6 +612,7 @@ expression: snapshot
             Char {
                 time: 0.80100185,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'が',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -612,6 +636,7 @@ expression: snapshot
             Char {
                 time: 0.82600194,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'い',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -635,6 +660,7 @@ expression: snapshot
             Char {
                 time: 0.85100204,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'じ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -658,6 +684,7 @@ expression: snapshot
             Char {
                 time: 0.87600213,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'め',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -681,6 +708,7 @@ expression: snapshot
             Char {
                 time: 0.9010022,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'ら',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -704,6 +732,7 @@ expression: snapshot
             Char {
                 time: 0.9260023,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'れ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -727,6 +756,7 @@ expression: snapshot
             Char {
                 time: 0.9510024,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'る',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -750,6 +780,7 @@ expression: snapshot
             Char {
                 time: 0.9760025,
                 line_index: 1,
+                font: Regular,
                 codepoint: '理',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -773,6 +804,7 @@ expression: snapshot
             Char {
                 time: 1.0010026,
                 line_index: 1,
+                font: Regular,
                 codepoint: '由',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -796,6 +828,7 @@ expression: snapshot
             Char {
                 time: 1.0260026,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'は',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -819,6 +852,7 @@ expression: snapshot
             Char {
                 time: 1.0510027,
                 line_index: 1,
+                font: Regular,
                 codepoint: '何',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -842,6 +876,7 @@ expression: snapshot
             Char {
                 time: 1.0760028,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'も',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -865,6 +900,7 @@ expression: snapshot
             Char {
                 time: 1.1010029,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'な',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -888,6 +924,7 @@ expression: snapshot
             Char {
                 time: 1.126003,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'い',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -911,6 +948,7 @@ expression: snapshot
             Char {
                 time: 1.1510031,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'の',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -934,6 +972,7 @@ expression: snapshot
             Char {
                 time: 1.1760032,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'で',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -957,6 +996,7 @@ expression: snapshot
             Char {
                 time: 1.2010033,
                 line_index: 1,
+                font: Regular,
                 codepoint: 'す',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -980,6 +1020,7 @@ expression: snapshot
             Char {
                 time: 1.2260034,
                 line_index: 1,
+                font: Regular,
                 codepoint: '。',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -1021,6 +1062,7 @@ expression: snapshot
             Char {
                 time: 1.3520036,
                 line_index: 2,
+                font: Regular,
                 codepoint: '…',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1044,6 +1086,7 @@ expression: snapshot
             Char {
                 time: 1.3770037,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'し',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1067,6 +1110,7 @@ expression: snapshot
             Char {
                 time: 1.4020038,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'か',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1090,6 +1134,7 @@ expression: snapshot
             Char {
                 time: 1.4270039,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'し',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1113,6 +1158,7 @@ expression: snapshot
             Char {
                 time: 1.452004,
                 line_index: 2,
+                font: Regular,
                 codepoint: '、',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -1136,6 +1182,7 @@ expression: snapshot
             Char {
                 time: 1.527004,
                 line_index: 2,
+                font: Regular,
                 codepoint: '郷',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1159,6 +1206,7 @@ expression: snapshot
             Char {
                 time: 1.5520041,
                 line_index: 2,
+                font: Regular,
                 codepoint: '田',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1182,6 +1230,7 @@ expression: snapshot
             Char {
                 time: 1.5770042,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'さ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1205,6 +1254,7 @@ expression: snapshot
             Char {
                 time: 1.6020043,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'ん',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -1228,6 +1278,7 @@ expression: snapshot
             Char {
                 time: 1.6270044,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'に',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1251,6 +1302,7 @@ expression: snapshot
             Char {
                 time: 1.6520045,
                 line_index: 2,
+                font: Regular,
                 codepoint: '嫌',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1274,6 +1326,7 @@ expression: snapshot
             Char {
                 time: 1.6770046,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'わ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1297,6 +1350,7 @@ expression: snapshot
             Char {
                 time: 1.7020047,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'れ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1320,6 +1374,7 @@ expression: snapshot
             Char {
                 time: 1.7270048,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'て',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1343,6 +1398,7 @@ expression: snapshot
             Char {
                 time: 1.7520049,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'い',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1366,6 +1422,7 @@ expression: snapshot
             Char {
                 time: 1.777005,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'る',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1389,6 +1446,7 @@ expression: snapshot
             Char {
                 time: 1.802005,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'の',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1412,6 +1470,7 @@ expression: snapshot
             Char {
                 time: 1.8270051,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'は',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1435,6 +1494,7 @@ expression: snapshot
             Char {
                 time: 1.8520052,
                 line_index: 2,
+                font: Regular,
                 codepoint: '紛',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1458,6 +1518,7 @@ expression: snapshot
             Char {
                 time: 1.8770053,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'れ',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1481,6 +1542,7 @@ expression: snapshot
             Char {
                 time: 1.9020054,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'も',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1504,6 +1566,7 @@ expression: snapshot
             Char {
                 time: 1.9270055,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'な',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1527,6 +1590,7 @@ expression: snapshot
             Char {
                 time: 1.9520056,
                 line_index: 2,
+                font: Regular,
                 codepoint: 'い',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1550,6 +1614,7 @@ expression: snapshot
             Char {
                 time: 1.9770057,
                 line_index: 2,
+                font: Regular,
                 codepoint: '事',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1573,6 +1638,7 @@ expression: snapshot
             Char {
                 time: 2.0020058,
                 line_index: 2,
+                font: Regular,
                 codepoint: '実',
                 is_rubi: false,
                 cant_be_at_line_start: false,
@@ -1596,6 +1662,7 @@ expression: snapshot
             Char {
                 time: 2.027006,
                 line_index: 2,
+                font: Regular,
                 codepoint: '…',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -1619,6 +1686,7 @@ expression: snapshot
             Char {
                 time: 2.052006,
                 line_index: 2,
+                font: Regular,
                 codepoint: '。',
                 is_rubi: false,
                 cant_be_at_line_start: true,
@@ -1651,22 +1719,22 @@ expression: snapshot
         LineInfo {
             width: 1000.0028,
             y_position: 0.0,
-            line_advance: 70.0,
-            total_height: 60.625,
+            line_height: 70.0,
+            baseline_ascent: 60.625,
             rubi_height: 20.0,
         },
         LineInfo {
             width: 1100.003,
             y_position: 74.0,
-            line_advance: 70.0,
-            total_height: 60.625,
+            line_height: 70.0,
+            baseline_ascent: 60.625,
             rubi_height: 20.0,
         },
         LineInfo {
             width: 1350.0037,
             y_position: 148.0,
-            line_advance: 70.0,
-            total_height: 60.625,
+            line_height: 70.0,
+            baseline_ascent: 60.625,
             rubi_height: 20.0,
         },
     ],
