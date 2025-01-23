@@ -81,7 +81,7 @@ pub enum Command {
         /// If the message is not waited, [MSGWAIT](Command::MSGWAIT) can be called to synchronize with parts the message
         auto_wait: U8Bool,
         text: U16FixupString,
-    }, // TODO: this string needs a fixup (see ShinDataUtil's OpcodeDefinitions.NeedsStringFixup)
+    },
     /// Waits for message to reach the specified section
     ///
     /// -1 means wait for the message to finish fully
