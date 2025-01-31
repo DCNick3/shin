@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use shin_render_shader_types::texture::{
-    TextureSampler, TextureSource, TextureTarget, TextureTargetKind,
+use shin_render_shader_types::{
+    texture::{TextureSampler, TextureSource, TextureTarget, TextureTargetKind},
+    RenderClone, RenderCloneCtx,
 };
 
 use crate::{
@@ -28,11 +29,7 @@ const TEXTURE_USAGES: wgpu::TextureUsages = {
 
 #[derive(Debug)]
 pub struct RenderTexture {
-    device: Arc<wgpu::Device>,
-    queue: Arc<wgpu::Queue>,
     inner_texture: ResizeableTexture<CanvasSize>,
-    // an idea: maybe we should store a sampler enum instead of actual object?
-    // we would almost 100% only need a linear filtering sampler, and maaaybe a nearest one
     sampler: TextureSampler,
     label: String,
 }
@@ -40,7 +37,6 @@ pub struct RenderTexture {
 impl RenderTexture {
     pub fn new(
         device: Arc<wgpu::Device>,
-        queue: Arc<wgpu::Queue>,
         resize_handle: ResizeHandle<CanvasSize>,
         label: Option<String>,
     ) -> Self {
@@ -51,7 +47,7 @@ impl RenderTexture {
             .unwrap_or_else(|| "unnamed".to_string());
 
         let inner_texture = ResizeableTexture::new(
-            device.clone(),
+            device,
             Some(label.clone()),
             TEXTURE_FORMAT,
             TEXTURE_USAGES,
@@ -59,8 +55,6 @@ impl RenderTexture {
         );
 
         Self {
-            device,
-            queue,
             inner_texture,
             sampler,
             label,
@@ -82,14 +76,14 @@ impl RenderTexture {
     }
 }
 
-impl Clone for RenderTexture {
-    fn clone(&self) -> Self {
+impl RenderClone for RenderTexture {
+    fn render_clone(&self, ctx: &mut RenderCloneCtx) -> Self {
         let resize_handle = self.inner_texture.get_resize_handle();
 
         let size = resize_handle.get_without_update().into();
 
         let new_texture = ResizeableTexture::new_with_size(
-            self.device.clone(),
+            ctx.device.clone(),
             Some(self.label.clone()),
             TEXTURE_FORMAT,
             TEXTURE_USAGES,
@@ -97,13 +91,7 @@ impl Clone for RenderTexture {
             resize_handle,
         );
 
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("RenderTexture::clone"),
-            });
-
-        encoder.copy_texture_to_texture(
+        ctx.encoder.copy_texture_to_texture(
             wgpu::ImageCopyTexture {
                 texture: self.inner_texture.get_texture(),
                 mip_level: 0,
@@ -123,11 +111,7 @@ impl Clone for RenderTexture {
             },
         );
 
-        self.queue.submit(std::iter::once(encoder.finish()));
-
         Self {
-            device: self.device.clone(),
-            queue: self.queue.clone(),
             inner_texture: new_texture,
             sampler: self.sampler,
             label: self.label.clone(),

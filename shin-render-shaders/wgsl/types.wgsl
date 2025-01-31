@@ -60,6 +60,12 @@ struct FontUniformParams {
     color2_: vec4<f32>,
 }
 
+struct FontBorderUniformParams {
+    transform: mat4x4<f32>,
+    dist: array<vec4<f32>, 4>,
+    color: vec4<f32>,
+}
+
 struct LayerUniformParams {
     transform: mat4x4<f32>,
     color: vec4<f32>,

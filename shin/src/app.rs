@@ -12,7 +12,7 @@ use winit::keyboard::KeyCode;
 
 use crate::{
     adv::{assets::AdvAssets, Adv},
-    asset::system::{locate_assets, AssetLoadContext, AssetServer},
+    asset::system::{cache::AssetCache, locate_assets, AssetLoadContext, AssetServer},
     cli::Cli,
     layer::PreRenderContext,
     update::{Updatable as _, UpdateContext},
@@ -60,7 +60,7 @@ impl ShinApp for App {
             AssetLoadContext {
                 wgpu_device: context.wgpu.device.clone(),
                 wgpu_queue: context.wgpu.queue.clone(),
-                bustup_cache: crate::asset::bustup::BlockCache::new(),
+                bustup_cache: AssetCache::new(),
             },
         ));
 
@@ -187,7 +187,7 @@ impl ShinApp for App {
         };
 
         let mut update_context = UpdateContext {
-            delta_time: Ticks::from_duration(elapsed_time),
+            delta_ticks: Ticks::from_duration(elapsed_time),
             asset_server: &self.asset_server,
             pre_render: &mut pre_render_context,
         };

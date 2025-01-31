@@ -51,11 +51,13 @@ bitflags! {
     /// Used in [BGMWAIT](super::super::runtime::BGMWAIT), [SEWAIT](super::super::runtime::SEWAIT) and [VOICEWAIT](super::super::runtime::VOICEWAIT) commands
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct AudioWaitStatus: i32 {
-        const PLAYING = 1;
-        const STOPPED = 2;
-        const VOLUME_TWEENER_IDLE = 4;
-        const PANNING_TWEENER_IDLE = 8;
-        const PLAY_SPEED_TWEENER_IDLE = 16;
+        // Not sure about this name tbh...
+        // I _think_ it's set while the sound is still fading in
+        const FADING = 1;
+        const PLAYING = 2;
+        const VOLUME_TWEENING = 4;
+        const PANNING_TWEENING = 8;
+        const PLAY_SPEED_TWEENING = 16;
     }
 }
 

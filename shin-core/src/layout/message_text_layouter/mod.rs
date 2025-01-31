@@ -10,7 +10,10 @@ use itertools::Itertools;
 use shin_primitives::{char_set::CharSet, color::UnormColor};
 
 use crate::{
-    layout::{message_text_layouter::commands::CharFontType, text_layouter::TextLayouter},
+    layout::{
+        message_text_layouter::commands::CharFontType, text_layouter::TextLayouter,
+        MessageTextParser,
+    },
     vm::command::types::{MessageTextLayout, MessageboxType},
 };
 
@@ -18,7 +21,7 @@ use crate::{
 pub struct LineInfo {
     pub width: f32,
     pub y_position: f32,
-    /// Distance from `y_position` to the bottom of the line. The next line then starts at `y_position + line_advance + line_padding_between`
+    /// Distance from `y_position` to the bottom of the line. The next line then starts at `y_position + line_height + line_padding_between`
     pub line_height: f32,
     /// Distance from `y_position` to the baseline of the base text
     pub baseline_ascent: f32,
@@ -551,7 +554,7 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
             filename: voice_path,
             volume: self.voice_volume,
             lipsync_enabled: self.lipsync_enabled,
-            time_to_first_sync: 0,
+            segment_duration: 0,
         };
 
         self.current_time = cmd.time;
@@ -566,20 +569,22 @@ impl<Font: FontMetrics> MessageTextLayouterImpl<Font> {
     pub fn on_voice_sync(&mut self, target_instant: i32) {
         self.on_rubi_base_end();
 
+        let target_instant = target_instant.try_into().unwrap();
+
         let cmd = VoiceSync {
             time: self.get_block_end_time(),
             line_index: 0,
-            target_instant,
-            time_to_next_sync: 0,
+            segment_start: target_instant,
+            segment_duration: 0,
         };
 
         if self.last_voice_or_voicesync_index < self.commands.len() {
             match &mut self.commands[self.last_voice_or_voicesync_index] {
                 Command::Voice(voice) => {
-                    voice.time_to_first_sync = target_instant;
+                    voice.segment_duration = target_instant;
                 }
                 Command::VoiceSync(sync) => {
-                    sync.time_to_next_sync = target_instant - sync.target_instant;
+                    sync.segment_duration = target_instant - sync.segment_start;
                 }
                 _ => {}
             }
@@ -938,6 +943,22 @@ pub trait MessageTextLayouterMixin<Font> {
 pub struct MessageTextLayouterWithMixin<Font, M> {
     layouter: MessageTextLayouterImpl<Font>,
     mixin: M,
+}
+
+impl<Font: FontMetrics, M: MessageTextLayouterMixin<Font>> MessageTextLayouterWithMixin<Font, M> {
+    pub fn parse(mut self, message: &str) -> (Vec<Command>, Vec<LineInfo>, Vec2) {
+        MessageTextParser::new(message).parse_into(&mut self);
+
+        self.finish()
+    }
+
+    pub fn finish(self) -> (Vec<Command>, Vec<LineInfo>, Vec2) {
+        (
+            self.layouter.commands,
+            self.layouter.lines,
+            self.layouter.size,
+        )
+    }
 }
 
 impl<Font: FontMetrics, M: MessageTextLayouterMixin<Font>> TextLayouter

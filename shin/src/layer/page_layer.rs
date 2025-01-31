@@ -3,6 +3,7 @@ use shin_core::{
     primitives::color::{FloatColor4, UnormColor},
     vm::command::types::{PlaneId, PLANES_COUNT},
 };
+use shin_derive::RenderClone;
 use shin_render::{
     render_pass::RenderPass,
     shaders::types::{
@@ -30,14 +31,16 @@ struct LayerRenderItem {
     pub stencil_ref_relative: u8,
 }
 
-#[derive(Clone)]
+#[derive(RenderClone)]
 pub struct PageLayer {
+    #[render_clone(needs_render)]
     planes: Vec<LayerGroup>,
 
     stencil_bump: u8,
     needs_force_blending: bool,
     layers_to_render: Vec<LayerRenderItem>,
 
+    #[render_clone(needs_render)]
     new_drawable_state: NewDrawableLayerState,
     props: LayerProperties,
 }

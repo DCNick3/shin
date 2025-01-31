@@ -3,7 +3,10 @@ use std::{fmt::Debug, sync::Arc};
 use glam::{vec3, Mat4, Vec3};
 use shin_render::{
     render_pass::RenderPass,
-    shaders::types::texture::{DepthStencilTarget, TextureTarget},
+    shaders::types::{
+        texture::{DepthStencilTarget, TextureTarget},
+        RenderClone,
+    },
     PassKind, RenderRequestBuilder,
 };
 
@@ -18,7 +21,7 @@ use crate::{
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 
-#[derive(Clone)]
+#[derive(Clone, RenderClone)]
 pub struct BustupLayerImpl {
     bustup: Arc<Bustup>,
     label: String,

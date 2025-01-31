@@ -95,8 +95,8 @@ impl UniformType for SpriteUniformParams {
 #[derive(ShaderType)]
 pub struct FontUniformParams {
     pub transform: Mat4,
-    pub color1: Vec4,
-    pub color2: Vec4,
+    pub color1: FloatColor4,
+    pub color2: FloatColor4,
 }
 
 impl UniformType for FontUniformParams {
@@ -112,13 +112,47 @@ impl UniformType for FontUniformParams {
             },
             FieldSchema {
                 name: "color1",
-                ty: &<Vec4 as UniformType>::SCHEMA,
+                ty: &<FloatColor4 as UniformType>::SCHEMA,
                 offset: FontUniformParams::METADATA.extra.offsets[1] as u32,
             },
             FieldSchema {
                 name: "color2",
-                ty: &<Vec4 as UniformType>::SCHEMA,
+                ty: &<FloatColor4 as UniformType>::SCHEMA,
                 offset: FontUniformParams::METADATA.extra.offsets[2] as u32,
+            },
+        ],
+    });
+}
+
+#[derive(ShaderType)]
+pub struct FontBorderUniformParams {
+    pub transform: Mat4,
+    // can't pass [Vec2; 8] due to alignment requirements,
+    // so distances are packed pairwise
+    pub dist: [Vec4; 4],
+    pub color: FloatColor4,
+}
+
+impl UniformType for FontBorderUniformParams {
+    const SCHEMA: TypeSchema = TypeSchema::Struct(StructSchema {
+        name: "FontBorderUniformParams",
+        size: FontBorderUniformParams::METADATA.min_size.get() as u32,
+        alignment: FontBorderUniformParams::METADATA.alignment.get() as u32,
+        fields: &[
+            FieldSchema {
+                name: "transform",
+                ty: &<Mat4 as UniformType>::SCHEMA,
+                offset: FontBorderUniformParams::METADATA.extra.offsets[0] as u32,
+            },
+            FieldSchema {
+                name: "dist",
+                ty: &<[Vec4; 4] as UniformType>::SCHEMA,
+                offset: FontBorderUniformParams::METADATA.extra.offsets[1] as u32,
+            },
+            FieldSchema {
+                name: "color",
+                ty: &<FloatColor4 as UniformType>::SCHEMA,
+                offset: FontBorderUniformParams::METADATA.extra.offsets[2] as u32,
             },
         ],
     });

@@ -7,6 +7,7 @@ use shin_render::{
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureTarget},
+        RenderClone,
     },
     ColorBlendType, DrawPrimitive, LayerBlendType, LayerFragmentShader, LayerShaderOutputKind,
     PassKind, RenderProgramWithArguments, RenderRequestBuilder,
@@ -150,7 +151,7 @@ pub fn render_block(
     ));
 }
 
-#[derive(Clone)]
+#[derive(Clone, RenderClone)]
 pub struct PictureLayerImpl {
     picture: Arc<Picture>,
     label: String,

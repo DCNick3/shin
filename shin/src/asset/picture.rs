@@ -87,7 +87,7 @@ impl GpuPictureBlock {
             Some(&format!("{}/index", label)),
         );
 
-        let texture = GpuTexture::new_static_from_image(
+        let texture = GpuTexture::new_static_from_rgba_image(
             context.wgpu_device,
             context.wgpu_queue,
             Some(label),

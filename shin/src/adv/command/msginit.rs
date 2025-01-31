@@ -12,12 +12,14 @@ impl StartableCommand for command::runtime::MSGINIT {
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _state_info: (),
-        adv_state: &mut AdvState,
+        _adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        adv_state
-            .root_layer_group
-            .message_layer_mut()
-            .set_style(self.messagebox_style);
         self.token.finish().into()
+
+        // adv_state
+        //     .root_layer_group
+        //     .message_layer_mut()
+        //     .set_style(self.messagebox_style);
+        // self.token.finish().into()
     }
 }

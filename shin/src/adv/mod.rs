@@ -12,6 +12,7 @@ use itertools::Itertools;
 use shin_audio::AudioManager;
 use shin_core::{
     format::scenario::{instruction_elements::CodeAddress, Scenario},
+    primitives::color::UnormColor,
     vm::{
         breakpoint::BreakpointObserver,
         command::{
@@ -31,11 +32,11 @@ use winit::keyboard::KeyCode;
 
 use crate::{
     adv::assets::AdvAssets,
-    audio::{BgmPlayer, SePlayer},
+    audio::{BgmPlayer, SePlayer, VoicePlayer},
     layer::{
-        render_layer_without_bg, render_params::TransformParams, user::UserLayer, AnyLayer,
-        AnyLayerMut, Layer as _, LayerGroup, MessageLayer, PageLayer, PreRenderContext,
-        RootLayerGroup, ScreenLayer,
+        message_layer::MessageLayer, render_layer_without_bg, render_params::TransformParams,
+        user::UserLayer, AnyLayer, AnyLayerMut, Layer as _, LayerGroup, PageLayer,
+        PreRenderContext, RootLayerGroup, ScreenLayer,
     },
     render::overlay::{OverlayCollector, OverlayVisitable},
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
@@ -279,9 +280,12 @@ pub struct AdvState {
 }
 
 impl AdvState {
-    pub fn new(audio_manager: Arc<AudioManager>, _assets: AdvAssets) -> Self {
+    pub fn new(audio_manager: Arc<AudioManager>, assets: AdvAssets) -> Self {
         Self {
-            root_layer_group: RootLayerGroup::new(),
+            root_layer_group: RootLayerGroup::new(
+                assets.fonts.clone(),
+                VoicePlayer::new(audio_manager.clone()),
+            ),
             audio_manager: audio_manager.clone(),
             bgm_player: BgmPlayer::new(audio_manager.clone()),
             se_player: SePlayer::new(audio_manager),
@@ -316,6 +320,7 @@ impl AdvState {
     }
 
     pub fn render(&self, pass: &mut RenderPass) {
+        pass.clear(Some(UnormColor::BLACK), Some(0), Some(1.0));
         render_layer_without_bg(pass, &TransformParams::default(), &self.root_layer_group, 0)
     }
 }
@@ -323,7 +328,7 @@ impl AdvState {
 impl Updatable for AdvState {
     fn update(&mut self, context: &mut UpdateContext) {
         let adv_update_context = AdvUpdateContext {
-            delta_time: context.delta_time,
+            delta_ticks: context.delta_ticks,
             asset_server: context.asset_server,
             are_animations_allowed: self.allow_running_animations,
         };

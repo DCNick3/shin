@@ -1,5 +1,6 @@
 //! Contains functionality pertaining to the asset system itself.
 
+pub mod cache;
 mod locate;
 mod server;
 

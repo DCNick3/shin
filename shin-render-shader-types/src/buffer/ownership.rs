@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use crate::{RenderClone, RenderCloneCtx};
+
 pub trait BufferOwnership {
     fn new(buffer: wgpu::Buffer) -> Self;
     fn get(&self) -> &wgpu::Buffer;
@@ -8,7 +10,7 @@ pub trait BufferOwnership {
 #[derive(Debug)]
 pub struct Owned(wgpu::Buffer);
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Shared(Arc<wgpu::Buffer>);
 
 #[derive(Debug)]
@@ -27,6 +29,12 @@ impl BufferOwnership for Owned {
     }
 }
 
+impl RenderClone for Owned {
+    fn render_clone(&self, ctx: &mut RenderCloneCtx) -> Self {
+        Self(self.0.render_clone(ctx))
+    }
+}
+
 impl BufferOwnership for Shared {
     fn new(buffer: wgpu::Buffer) -> Self {
         Self(Arc::new(buffer))
@@ -34,6 +42,12 @@ impl BufferOwnership for Shared {
 
     fn get(&self) -> &wgpu::Buffer {
         &self.0
+    }
+}
+
+impl RenderClone for Shared {
+    fn render_clone(&self, _: &mut RenderCloneCtx) -> Self {
+        self.clone()
     }
 }
 
@@ -46,6 +60,15 @@ impl BufferOwnership for AnyOwnership {
         match self {
             AnyOwnership::Owned(owned) => owned.get(),
             AnyOwnership::Shared(shared) => shared.get(),
+        }
+    }
+}
+
+impl RenderClone for AnyOwnership {
+    fn render_clone(&self, ctx: &mut RenderCloneCtx) -> Self {
+        match self {
+            AnyOwnership::Owned(o) => AnyOwnership::Owned(o.render_clone(ctx)),
+            AnyOwnership::Shared(s) => AnyOwnership::Shared(s.render_clone(ctx)),
         }
     }
 }

@@ -399,7 +399,7 @@ impl LayerProperties {
 
 impl AdvUpdatable for LayerProperties {
     fn update(&mut self, context: &AdvUpdateContext) {
-        let dt = context.delta_time;
+        let dt = context.delta_ticks;
 
         if context.are_animations_allowed {
             for property in self.properties.values_mut() {

@@ -4,7 +4,7 @@ use super::prelude::*;
 
 pub struct MSGWAIT {
     token: Option<command::token::MSGWAIT>,
-    section_num: i32,
+    signal_num: i32,
 }
 
 impl StartableCommand for command::runtime::MSGWAIT {
@@ -24,7 +24,7 @@ impl StartableCommand for command::runtime::MSGWAIT {
         Yield(
             MSGWAIT {
                 token: Some(self.token),
-                section_num: self.section_num,
+                signal_num: self.signal_num,
             }
             .into(),
         )
@@ -42,23 +42,16 @@ impl UpdatableCommand for MSGWAIT {
     ) -> Option<CommandResult> {
         let message_layer = adv_state.root_layer_group.message_layer();
 
-        let finished = if self.section_num == -1 {
-            // wait for the whole message to complete
-            message_layer.is_finished()
-        } else {
-            message_layer.is_section_finished(self.section_num as u32)
-        };
-
-        if finished {
-            Some(self.token.take().unwrap().finish())
-        } else {
+        if message_layer.is_waiting(self.signal_num) {
             None
+        } else {
+            Some(self.token.take().unwrap().finish())
         }
     }
 }
 
 impl Debug for MSGWAIT {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("MSGWAIT").field(&self.section_num).finish()
+        f.debug_tuple("MSGWAIT").field(&self.signal_num).finish()
     }
 }

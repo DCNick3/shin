@@ -3,35 +3,36 @@ use std::sync::Arc;
 use anyhow::Result;
 use futures::try_join;
 use shin_core::format::{font::FontLazy, scenario::Scenario};
+use shin_derive::RenderClone;
 
-use crate::asset::{asset_paths, system::AssetServer};
+use crate::asset::{asset_paths, font::GpuFontLazy, system::AssetServer};
 
 // TODO: this can be done with a macro
 #[derive(Clone)]
 pub struct AdvAssets {
     pub scenario: Arc<Scenario>,
-    // pub fonts: AdvFonts,
+    pub fonts: AdvFonts,
     // pub messagebox_textures: Arc<MessageboxTextures>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, RenderClone)]
 pub struct AdvFonts {
-    pub system_font: Arc<FontLazy>,
-    pub medium_font: Arc<FontLazy>,
-    pub bold_font: Arc<FontLazy>,
+    pub system_font: Arc<GpuFontLazy>,
+    pub medium_font: Arc<GpuFontLazy>,
+    pub bold_font: Arc<GpuFontLazy>,
 }
 
 impl AdvAssets {
     pub async fn load(asset_server: &AssetServer) -> Result<Self> {
         let result = try_join!(
             asset_server.load(asset_paths::SCENARIO),
-            // AdvFonts::load(asset_server),
+            AdvFonts::load(asset_server),
             // asset_server.load(asset_paths::MSGTEX),
         )?;
 
         Ok(Self {
             scenario: result.0,
-            // fonts: result.1,
+            fonts: result.1,
             // messagebox_textures: result.2,
         })
     }

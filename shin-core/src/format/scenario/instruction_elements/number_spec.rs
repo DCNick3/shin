@@ -162,7 +162,7 @@ impl BinWrite for UntypedNumberSpec {
     }
 }
 
-#[derive(BinRead)]
+#[derive(BinRead, BinWrite)]
 pub struct NumberSpec<T = i32>(UntypedNumberSpec, PhantomData<T>);
 
 impl<T> Clone for NumberSpec<T> {
@@ -198,21 +198,6 @@ impl NumberSpec {
     #[inline]
     pub const fn register(register: Register) -> Self {
         Self::new(UntypedNumberSpec::Register(register))
-    }
-}
-
-// See https://github.com/jam1garner/binrw/pull/230
-impl<T> BinWrite for NumberSpec<T> {
-    type Args<'a> = ();
-
-    #[inline]
-    fn write_options<W: io::Write + Seek>(
-        &self,
-        writer: &mut W,
-        endian: Endian,
-        args: Self::Args<'_>,
-    ) -> BinResult<()> {
-        self.0.write_options(writer, endian, args)
     }
 }
 

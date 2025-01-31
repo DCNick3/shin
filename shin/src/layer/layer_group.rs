@@ -4,6 +4,7 @@ use shin_core::{
     time::Ticks,
     vm::command::types::{LayerProperty, LayerbankId},
 };
+use shin_derive::RenderClone;
 use shin_render::{
     render_pass::RenderPass,
     shaders::types::{
@@ -25,11 +26,12 @@ use crate::{
     update::{AdvUpdatable, AdvUpdateContext},
 };
 
-#[derive(Clone)]
+#[derive(Clone, RenderClone)]
 struct LayerItem<T> {
     pub layerbank_id: LayerbankId,
     // this is probably how delayed removal is implemented?
     // pub some_countdown: Ticks,
+    #[render_clone(needs_render)]
     pub layer: T,
 }
 
@@ -40,13 +42,15 @@ struct LayerRenderItem {
     pub stencil_ref_relative: u8,
 }
 
-#[derive(Clone)]
+#[derive(RenderClone)]
 pub struct LayerGroup<T = UserLayer> {
+    #[render_clone(needs_render)]
     layers: Vec<LayerItem<T>>,
 
     stencil_bump: u8,
     layers_to_render: Vec<LayerRenderItem>,
 
+    #[render_clone(needs_render)]
     new_drawable_state: NewDrawableLayerState,
     mask_texture: Option<()>, // Option<GpuMaskTexture>,
     props: LayerProperties,
@@ -274,7 +278,7 @@ where
                 let layer = &self.layers[index];
                 let prop = layer.layer.properties();
 
-                let id = prop.get_layer_id();
+                let id = layer.layerbank_id;
                 let render_position = prop.get_value(LayerProperty::RenderPosition);
 
                 (render_position, id)
@@ -285,7 +289,7 @@ where
 
             // if positions are close, compare by id
             if (left_position - right_position).abs() < f32::EPSILON {
-                left_id.cmp(&right_id)
+                left_id.cmp(&right_id).reverse()
             } else {
                 left_position
                     .partial_cmp(&right_position)

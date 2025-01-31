@@ -7,6 +7,7 @@ use shin_render::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureSource, TextureTarget},
         vertices::LayerVertex,
+        RenderClone,
     },
     shin_orthographic_projection_matrix, ColorBlendType, DepthStencilState, DrawPrimitive,
     LayerShaderOutputKind, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
@@ -58,11 +59,14 @@ pub struct PrerenderedDrawable<'a> {
     target_pass: PassKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, RenderClone)]
 pub struct NewDrawableLayerState {
+    #[render_clone(needs_render)]
     render_texture_src: Option<RenderTexture>,
     // it's needed for any kind of effect. we just don't have them implemented yet
+    #[render_clone(needs_render)]
     render_texture_target: Option<RenderTexture>,
+    #[render_clone(needs_render)]
     render_texture_prev_frame: Option<RenderTexture>,
     target_pass: PassKind,
 }
@@ -301,9 +305,11 @@ impl NewDrawableLayerState {
 }
 
 // packages NewDrawableLayerState and LayerProperties to implement simple NewDrawable-based layers
-#[derive(Debug, Clone)]
+#[derive(Debug, RenderClone)]
 pub struct NewDrawableLayerWrapper<T> {
+    #[render_clone(needs_render)]
     inner_layer: T,
+    #[render_clone(needs_render)]
     state: NewDrawableLayerState,
     props: LayerProperties,
 }

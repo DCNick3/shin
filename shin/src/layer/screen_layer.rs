@@ -2,7 +2,10 @@ use shin_core::primitives::color::{FloatColor4, UnormColor};
 use shin_render::{
     render_pass::RenderPass,
     render_texture::RenderTexture,
-    shaders::types::texture::{DepthStencilTarget, TextureTarget},
+    shaders::types::{
+        texture::{DepthStencilTarget, TextureTarget},
+        RenderClone,
+    },
     PassKind, RenderRequestBuilder,
 };
 use tracing::debug;
@@ -21,13 +24,18 @@ use crate::{
     wiper::{AnyWiper, Wiper as _},
 };
 
-#[derive(Clone)]
+#[derive(RenderClone)]
 struct TransitionLayer {
+    #[render_clone(needs_render)]
     source_layer: Option<EitherLayer<Box<PageLayer>, Box<TransitionLayer>>>,
+    #[render_clone(needs_render)]
     target_layer: Option<PageLayer>,
+    #[render_clone(needs_render)]
     wiper: Option<AnyWiper>,
 
+    #[render_clone(needs_render)]
     source_render_texture: Option<RenderTexture>,
+    #[render_clone(needs_render)]
     target_render_texture: Option<RenderTexture>,
 }
 
@@ -202,14 +210,16 @@ impl Layer for TransitionLayer {
     }
 }
 
-#[derive(Clone)]
+#[derive(RenderClone)]
 pub struct ScreenLayer {
+    #[render_clone(needs_render)]
     active_layer: TransitionLayer,
+    #[render_clone(needs_render)]
     pending_layer: Option<PageLayer>,
 
-    #[expect(unused)] // for future stuff
     plane_count: usize,
 
+    #[render_clone(needs_render)]
     new_drawable_state: NewDrawableLayerState,
     props: LayerProperties,
 }
@@ -250,9 +260,12 @@ impl ScreenLayer {
             todo!()
         }
 
-        let new_pending_layer = self.active_layer.clone().into_target_layer();
+        todo!()
 
-        self.pending_layer = Some(new_pending_layer);
+        // TODO: we need to wire in the args for render_clone
+        // let new_pending_layer = self.active_layer.render_clone().into_target_layer();
+
+        // self.pending_layer = Some(new_pending_layer);
 
         // NB: the original engine iterates over plane `LayerGroup`s and calls `LayerGroup::stop_transition` on them
         // We do not implement `LayerGroup`-level transitions, so this is skipped

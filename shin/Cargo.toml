@@ -81,6 +81,8 @@ usvg = "0.36.0"
 kira = { workspace = true }
 bitflags = "2.6.0"
 
+drop_bomb = "0.1.5"
+
 [features]
 default = []
 gstreamer-video = ["shin-video/gstreamer"]

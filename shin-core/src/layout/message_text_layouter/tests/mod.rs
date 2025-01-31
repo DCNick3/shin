@@ -75,9 +75,5 @@ pub fn make_snapshot(
     let parser = MessageTextParser::new(text);
     parser.parse_into(&mut layouter);
 
-    (
-        layouter.layouter.commands,
-        layouter.layouter.lines,
-        layouter.layouter.size,
-    )
+    layouter.finish()
 }

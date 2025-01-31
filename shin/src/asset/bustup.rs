@@ -1,5 +1,3 @@
-mod cache;
-
 use std::{
     marker::PhantomData,
     sync::{Arc, Mutex, Weak},
@@ -12,17 +10,23 @@ use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
 use shin_core::format::{
     bustup::{
-        BustupBlockPromise, BustupBlockPromiseToken, BustupBuilder, BustupId, BustupSkeleton,
+        BustupBlockId, BustupBlockPromise, BustupBlockPromiseToken, BustupBuilder, BustupId,
+        BustupSkeleton,
     },
     picture::PicBlock,
 };
 
-pub use self::cache::BlockCache;
 use crate::asset::{
-    bustup::cache::{BlockCacheLoadHandle, BlockCacheLoaderHandle, BlockCacheResult},
     picture::{GpuPictureBlock, GpuTextureBuilderContext},
-    system::{Asset, AssetDataAccessor, AssetLoadContext},
+    system::{
+        cache::{AssetCache, CacheLoadHandle, CacheLoaderHandle, CacheLookupResult},
+        Asset, AssetDataAccessor, AssetLoadContext,
+    },
 };
+
+type BlockCache = AssetCache<BustupBlockId, GpuPictureBlock>;
+type BlockCacheLoadHandle = CacheLoadHandle<GpuPictureBlock>;
+type BlockCacheLoaderHandle = CacheLoaderHandle<BustupBlockId, GpuPictureBlock>;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct CharacterId(i32);
@@ -81,11 +85,11 @@ pub struct Bustup {
 }
 
 impl<'a> GpuBustupBlockPromise<'a> {
-    pub fn new(cache: &cache::BlockCache, promise: BustupBlockPromise<'a>) -> Self {
-        match cache.get(promise.get_id()) {
-            BlockCacheResult::Loaded(block) => Self::Loaded(block),
-            BlockCacheResult::Loading(load_handle) => Self::Loading(load_handle),
-            BlockCacheResult::LoadRequired(loader_handle) => {
+    pub fn new(cache: &BlockCache, promise: BustupBlockPromise<'a>) -> Self {
+        match cache.lookup(promise.get_id()) {
+            CacheLookupResult::Loaded(block) => Self::Loaded(block),
+            CacheLookupResult::Loading(load_handle) => Self::Loading(load_handle),
+            CacheLookupResult::LoadRequired(loader_handle) => {
                 Self::LoadRequired(loader_handle, promise)
             }
         }
@@ -93,7 +97,7 @@ impl<'a> GpuBustupBlockPromise<'a> {
 
     pub fn materialize(
         self,
-        cache: &cache::BlockCache,
+        cache: &BlockCache,
         token: &BustupBlockPromiseToken<Arc<GpuPictureBlock>>,
     ) -> Arc<GpuPictureBlock> {
         match self {

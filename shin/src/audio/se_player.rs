@@ -117,7 +117,7 @@ impl SePlayer {
         if let Some(handle) = self.se_slots[slot].as_ref() {
             handle.get_wait_status()
         } else {
-            AudioWaitStatus::STOPPED
+            AudioWaitStatus::empty()
         }
     }
 }

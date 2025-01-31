@@ -16,7 +16,7 @@ pub mod resize;
 pub mod resizeable_texture;
 
 use enum_iterator::Sequence;
-use glam::{vec3, vec4, Mat4, Vec3, Vec4};
+use glam::{vec3, vec4, Mat4, Vec2, Vec3, Vec4};
 use shin_core::primitives::color::FloatColor4;
 use shin_render_shader_types::{
     buffer::VertexSource,
@@ -137,16 +137,16 @@ pub enum RenderProgramWithArguments<'a> {
     },
     Font {
         vertices: VertexSource<'a, TextVertex>,
-        texture: TextureSource<'a>,
+        glyph: TextureSource<'a>,
         transform: Mat4,
         color1: FloatColor4,
         color2: FloatColor4,
     },
     FontBorder {
         vertices: VertexSource<'a, TextVertex>,
-        texture: TextureSource<'a>,
+        glyph: TextureSource<'a>,
         transform: Mat4,
-        distances: [Vec4; 4],
+        distances: [Vec2; 8],
         color: FloatColor4,
     },
     Button {

@@ -3,6 +3,7 @@ use std::fmt::{Debug, Formatter};
 use shin_core::vm::command::types::{
     LayerId, LayerLoadFlags, LayerType, PlaneId, LAYERBANKS_COUNT,
 };
+use shin_render::shaders::types::{RenderClone, RenderCloneCtx};
 use shin_tasks::{AsyncComputeTaskPool, Task};
 use tracing::error;
 
@@ -178,7 +179,7 @@ impl StartableCommand for command::runtime::LAYERLOAD {
 impl UpdatableCommand for LAYERLOAD {
     fn update(
         &mut self,
-        _context: &UpdateContext,
+        context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         adv_state: &mut AdvState,
@@ -206,7 +207,13 @@ impl UpdatableCommand for LAYERLOAD {
                 let mut layer = if info.already_the_same {
                     previous_layer.unwrap()
                 } else {
-                    layer.clone()
+                    let mut ctx = RenderCloneCtx::new(&context.pre_render.device);
+
+                    let res = layer.render_clone(&mut ctx);
+
+                    ctx.finish(&context.pre_render.queue);
+
+                    res
                 };
 
                 if let UserLayer::Bustup(layer) = &mut layer {

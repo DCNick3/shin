@@ -4,6 +4,7 @@
 mod ast;
 mod command;
 mod rational;
+mod render_clone;
 pub(crate) mod sanitization;
 mod syntax_kind;
 mod texture_archive;
@@ -16,6 +17,7 @@ use synstructure::macros::DeriveInput;
 use crate::{
     ast::{impl_ast, AstKind},
     command::impl_command,
+    render_clone::impl_render_clone,
     syntax_kind::{impl_syntax_kind, SyntaxKindInput},
     texture_archive::impl_texture_archive,
     vertex::impl_vertex,
@@ -138,6 +140,23 @@ pub fn derive_ast_token(input: TokenStream) -> TokenStream {
 pub fn rat(input: TokenStream) -> TokenStream {
     match syn::parse::<syn::Lit>(input) {
         Ok(p) => rational::impl_rational(p).into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+/// Generates an `RenderClone` impl for a struct or enum.
+///
+/// By default, it relies on [`Clone`] implementation of the fields.
+///
+/// Fields that cannot be cloned without GPU context need to be annotated with `#[render_clone(needs_render)]`.
+/// This will rely on their `RenderClone` implementation instead
+#[proc_macro_derive(RenderClone, attributes(render_clone))]
+pub fn derive_render_clone(input: TokenStream) -> TokenStream {
+    match synstructure::macros::parse::<DeriveInput>(input) {
+        Ok(p) => match synstructure::Structure::try_new(&p) {
+            Ok(s) => synstructure::MacroResult::into_stream(impl_render_clone(s)),
+            Err(e) => e.to_compile_error().into(),
+        },
         Err(e) => e.to_compile_error().into(),
     }
 }

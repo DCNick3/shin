@@ -7,7 +7,7 @@ use crate::vm::{IntoRuntimeForm, VmCtx};
 /// Message ID - a 24-bit integer
 ///
 /// It is used to check whether a message was seen before.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct MessageId(pub u32);
 
 impl BinRead for MessageId {

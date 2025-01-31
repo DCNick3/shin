@@ -44,7 +44,7 @@ impl UpdatableCommand for WAIT {
         _adv_state: &mut AdvState,
         is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        self.waiting_left -= context.delta_time;
+        self.waiting_left -= context.delta_ticks;
         // TODO: short circuit the wait for now
         if self.waiting_left <= Ticks::ZERO || is_fast_forwarding {
             debug!("WAIT: done");

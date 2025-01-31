@@ -1,6 +1,6 @@
 use dpi::PhysicalSize;
 use shin_render_shader_types::texture::{TextureSampler, TextureSource};
-use wgpu::{util::DeviceExt as _, TextureDimension};
+use wgpu::TextureDimension;
 
 #[derive(Debug, Copy, Clone)]
 pub enum TextureKind {
@@ -38,6 +38,7 @@ impl GpuTexture {
         size: PhysicalSize<u32>,
         format: wgpu::TextureFormat,
         kind: TextureKind,
+        mip_levels: u32,
     ) -> wgpu::TextureDescriptor {
         wgpu::TextureDescriptor {
             label,
@@ -46,7 +47,7 @@ impl GpuTexture {
                 height: size.height,
                 depth_or_array_layers: 1,
             },
-            mip_level_count: 1,
+            mip_level_count: mip_levels,
             sample_count: 1,
             dimension: TextureDimension::D2,
             format,
@@ -61,15 +62,51 @@ impl GpuTexture {
         label: Option<&str>,
         size: PhysicalSize<u32>,
         format: wgpu::TextureFormat,
-        order: wgpu::util::TextureDataOrder,
         data: &[u8],
     ) -> Self {
-        let texture = device.create_texture_with_data(
-            queue,
-            &Self::make_descriptor(label, size, format, TextureKind::Static),
-            order,
-            data,
-        );
+        Self::new_static_with_mip_data(device, queue, label, size, format, &[data])
+    }
+
+    pub fn new_static_with_mip_data(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        label: Option<&str>,
+        size: PhysicalSize<u32>,
+        format: wgpu::TextureFormat,
+        data: &[&[u8]],
+    ) -> Self {
+        let mip_levels = data.len() as u32;
+        let mut desc = Self::make_descriptor(label, size, format, TextureKind::Static, mip_levels);
+        // Implicitly add the COPY_DST usage
+        desc.usage |= wgpu::TextureUsages::COPY_DST;
+        let texture = device.create_texture(&desc);
+
+        assert_eq!(desc.format.block_dimensions(), (1, 1));
+        assert_eq!(desc.array_layer_count(), 1);
+        let bpp = desc.format.block_copy_size(None).unwrap();
+
+        for (mip_level, &mip_data) in (0..).zip(data) {
+            let mip_size = desc.mip_level_size(mip_level).unwrap();
+            assert_eq!(mip_size.depth_or_array_layers, 1);
+
+            let bytes_per_row = mip_size.width * bpp;
+
+            queue.write_texture(
+                wgpu::ImageCopyTexture {
+                    texture: &texture,
+                    mip_level,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                mip_data,
+                wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: Some(bytes_per_row),
+                    rows_per_image: Some(mip_size.height),
+                },
+                mip_size,
+            );
+        }
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor {
             label: label.map(|s| format!("{} view", s)).as_deref(),
@@ -85,7 +122,7 @@ impl GpuTexture {
         }
     }
 
-    pub fn new_static_from_image(
+    pub fn new_static_from_rgba_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         label: Option<&str>,
@@ -100,9 +137,27 @@ impl GpuTexture {
             label,
             image.dimensions().into(),
             format,
-            wgpu::util::TextureDataOrder::LayerMajor,
             image.as_ref(),
         )
+    }
+
+    pub fn new_static_from_gray_mipped_image(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        label: Option<&str>,
+        mip_levels: &[&image::GrayImage],
+    ) -> Self {
+        // NB: no sRGB, because that's how the original code did it
+        let format = wgpu::TextureFormat::R8Unorm;
+
+        let size = mip_levels[0].dimensions().into();
+
+        let data = mip_levels
+            .iter()
+            .map(|&image| image.as_ref())
+            .collect::<Vec<_>>();
+
+        Self::new_static_with_mip_data(device, queue, label, size, format, data.as_slice())
     }
 
     pub fn new_empty(
@@ -112,7 +167,7 @@ impl GpuTexture {
         format: wgpu::TextureFormat,
         kind: TextureKind,
     ) -> Self {
-        let texture = device.create_texture(&Self::make_descriptor(label, size, format, kind));
+        let texture = device.create_texture(&Self::make_descriptor(label, size, format, kind, 1));
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = TextureSampler::Linear;
 

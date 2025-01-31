@@ -4,14 +4,15 @@ use shin_render_shader_types::{
     buffer::VertexSource,
     texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget, TextureTargetKind},
     uniforms::{
-        ClearUniformParams, FillUniformParams, LayerUniformParams, MovieUniformParams,
-        SpriteUniformParams, WiperDefaultUniformParams,
+        ClearUniformParams, FillUniformParams, FontBorderUniformParams, FontUniformParams,
+        LayerUniformParams, MovieUniformParams, SpriteUniformParams, WiperDefaultUniformParams,
     },
     vertices::PosVertex,
 };
 use shin_render_shaders::{
-    Clear, ClearBindings, Fill, FillBindings, Layer, LayerBindings, Movie, MovieBindings, Shader,
-    Sprite, SpriteBindings, WiperDefault, WiperDefaultBindings,
+    Clear, ClearBindings, Fill, FillBindings, Font, FontBindings, FontBorder, FontBorderBindings,
+    Layer, LayerBindings, Movie, MovieBindings, Shader, Sprite, SpriteBindings, WiperDefault,
+    WiperDefaultBindings,
 };
 
 use crate::{
@@ -162,6 +163,43 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
                 },
                 vertices,
             ),
+            RenderProgramWithArguments::Font {
+                vertices,
+                glyph,
+                transform,
+                color1,
+                color2,
+            } => self.run_impl::<Font>(
+                key,
+                FontBindings {
+                    params: &FontUniformParams {
+                        transform,
+                        color1,
+                        color2,
+                    },
+                    glyph,
+                },
+                vertices,
+            ),
+            RenderProgramWithArguments::FontBorder {
+                vertices,
+                glyph,
+                transform,
+                distances,
+                color,
+            } => self.run_impl::<FontBorder>(
+                key,
+                FontBorderBindings {
+                    params: &FontBorderUniformParams {
+                        transform,
+                        // [Vec2; 8] -> [Vec4; 4]
+                        dist: bytemuck::cast(distances),
+                        color,
+                    },
+                    glyph,
+                },
+                vertices,
+            ),
 
             RenderProgramWithArguments::Layer {
                 output_kind,
@@ -232,12 +270,14 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
             Some(z) => z + z - 1.0,
             None => 1.0,
         };
+        // draw a single full-screen triangle
+        // https://stackoverflow.com/questions/2588875/whats-the-best-way-to-draw-a-fullscreen-quad-in-opengl-3-2
         let vertices = &[
             PosVertex {
-                position: vec3(-1.0, 1.0, z),
+                position: vec3(-1.0, -1.0, z),
             },
             PosVertex {
-                position: vec3(3.0, 1.0, z),
+                position: vec3(3.0, -1.0, z),
             },
             PosVertex {
                 position: vec3(-1.0, 3.0, z),
@@ -254,6 +294,7 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
             StencilOperation::Keep
         };
 
+        self.push_debug(&format!("clear[{:?}, {:?}, {:?}]", color, stencil, depth));
         self.run(
             RenderRequestBuilder::new()
                 .color_blend_type(if color.is_some() {
@@ -286,5 +327,6 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
                     DrawPrimitive::Triangles,
                 ),
         );
+        self.pop_debug();
     }
 }

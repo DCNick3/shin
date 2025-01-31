@@ -55,15 +55,15 @@ pub struct Voice {
     pub filename: String,
     pub volume: f32,
     pub lipsync_enabled: bool,
-    pub time_to_first_sync: i32, // TODO: integer ticks?
+    pub segment_duration: u32,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct VoiceSync {
     pub time: f32,
     pub line_index: usize,
-    pub target_instant: i32,
-    pub time_to_next_sync: i32,
+    pub segment_start: u32,
+    pub segment_duration: u32,
 }
 
 #[derive(Debug, PartialEq)]
