@@ -10,6 +10,7 @@ pub mod dynamic_buffer;
 pub mod gpu_texture;
 pub mod init;
 pub mod pipelines;
+pub mod quad_vertices;
 pub mod render_pass;
 pub mod render_texture;
 pub mod resize;
