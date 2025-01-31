@@ -528,10 +528,17 @@ pub fn shin_orthographic_projection_matrix(
     near: f32,
     far: f32,
 ) -> Mat4 {
-    // flip the Y coordinate
-    // the game uses the D3D coordinate system (Y goes down), while wgpu uses the GL coordinate system (Y goes up)
-    Mat4::from_scale(vec3(1.0, -1.0, 1.0))
-        * Mat4::orthographic_rh_gl(left, right, bottom, top, near, far)
+    // flip the y coordinate (because the game uses coordinate system with Y going down, but wgpu has Y going up)
+    // and map Z from [-1; 1] to [0; 1] (because glam uses OpenGL's range of [-1; 1], while wgpu has range [0; 1])
+    #[rustfmt::skip]
+    const SHIN_TO_WGPU_MATRIX: Mat4 = Mat4::from_cols_array(&[
+        1.0, 0.0, 0.0, 0.0,
+        0.0,-1.0, 0.0, 0.0,
+        0.0, 0.0, 0.5, 0.0,
+        0.0, 0.0, 0.5, 1.0,
+    ]);
+
+    SHIN_TO_WGPU_MATRIX * Mat4::orthographic_rh_gl(left, right, bottom, top, near, far)
 }
 
 // /// A trait for elements that can be rendered

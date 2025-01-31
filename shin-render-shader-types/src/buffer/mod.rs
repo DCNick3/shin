@@ -16,6 +16,8 @@ use crate::{
     RenderClone, RenderCloneCtx,
 };
 
+const PHYSICAL_SIZE_ALIGNMENT: BytesAddress = BytesAddress::new(4);
+
 pub enum BufferUsage {
     /// COPY_DST | INDEX | VERTEX | UNIFORM
     DynamicBuffer,
@@ -44,7 +46,10 @@ impl From<BufferUsage> for wgpu::BufferUsages {
 pub struct Buffer<O: BufferOwnership, T: BufferType> {
     ownership: O,
     offset: BytesAddress,
-    size: BytesAddress,
+    /// Logical size of the buffer, in bytes
+    ///
+    /// Does not necessarily correspond to "physical" buffer size reported to the underlying graphics API
+    logical_size: BytesAddress,
     phantom: PhantomData<T>,
 }
 
@@ -64,14 +69,16 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
         label: Option<&str>,
     ) -> Self {
         let offset = BytesAddress::new(0);
-        let size = size_bytes;
+        let logical_size = size_bytes;
+        let physical_size = logical_size.align_to(PHYSICAL_SIZE_ALIGNMENT);
 
         assert!(T::is_valid_offset(offset));
-        assert!(T::is_valid_size(size));
+        assert!(T::is_valid_logical_size(logical_size));
+        assert!(physical_size.is_aligned_to(PHYSICAL_SIZE_ALIGNMENT));
 
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label,
-            size: size.get(),
+            size: physical_size.get(),
             usage: usage.into(),
             mapped_at_creation: false,
         });
@@ -79,7 +86,7 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
         Buffer {
             ownership: O::new(buffer),
             offset,
-            size,
+            logical_size,
             phantom: PhantomData,
         }
     }
@@ -93,11 +100,12 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
         label: Option<&str>,
     ) -> Self {
         let offset = BytesAddress::new(0);
-        let size = BytesAddress::new(contents.len() as _);
+        let logical_size = BytesAddress::new(contents.len() as _);
 
         assert!(T::is_valid_offset(offset));
-        assert!(T::is_valid_size(size));
+        assert!(T::is_valid_logical_size(logical_size));
 
+        // wgpu will handle the physical size by itself
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label,
             contents,
@@ -107,46 +115,67 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
         Buffer {
             ownership: O::new(buffer),
             offset,
-            size,
+            logical_size,
             phantom: PhantomData,
         }
     }
 
+    #[deprecated(
+        note = "Might not work properly if physical size is different from logical; needs to be fixed"
+    )]
     pub fn from_wgpu_buffer(buffer: wgpu::Buffer) -> Self {
         let offset = BytesAddress::new(0);
         let size = BytesAddress::new(buffer.size());
 
         assert!(T::is_valid_offset(offset));
-        assert!(T::is_valid_size(size));
+        // TODO: we need a method to derive a logical size from physical
+        assert!(T::is_valid_logical_size(size));
 
         Buffer {
             ownership: O::new(buffer),
             offset,
-            size,
+            logical_size: size,
             phantom: PhantomData,
         }
     }
 
     pub fn write(&self, queue: &wgpu::Queue, offset: BytesAddress, data: &[u8]) {
-        queue.write_buffer(self.ownership.get(), offset.get(), data);
+        let Some(size) = wgpu::BufferSize::new(data.len() as u64) else {
+            // empty writes are no-op
+            return;
+        };
+
+        // if the data length is not aligned to 4, pad the write
+        // the buffer should be large enough (its size alignment is validated at creation)
+        let write_size = wgpu::BufferSize::new(wgpu::util::align_to(
+            size.get(),
+            RawMarker::OFFSET_ALIGNMENT.get(),
+        ))
+        .unwrap();
+
+        let mut staging = queue
+            .write_buffer_with(self.ownership.get(), offset.get(), write_size)
+            .expect("failed to write buffer");
+
+        staging[..data.len()].copy_from_slice(data);
     }
 
     pub fn as_buffer_ref(&self) -> BufferRef<T> {
         let slice = self
             .ownership
             .get()
-            .slice(self.offset.get()..(self.offset + self.size).get());
+            .slice(self.offset.get()..(self.offset + self.logical_size).get());
 
         BufferRef {
             slice,
-            size: self.size,
+            size: self.logical_size,
             phantom: PhantomData,
         }
     }
 
     pub fn as_buffer_binding(&self) -> wgpu::BufferBinding {
         let offset = self.offset.get();
-        let size = self.size.get();
+        let size = self.logical_size.get();
 
         wgpu::BufferBinding {
             buffer: self.ownership.get(),
@@ -165,8 +194,8 @@ impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
         let size = BytesAddress::from_usize(size * element_size);
 
         // check if we are within the bounds of the buffer
-        assert!((BytesAddress::ZERO..self.size).contains(&offset));
-        assert!((BytesAddress::ZERO..=self.size).contains(&(offset + size)));
+        assert!((BytesAddress::ZERO..self.logical_size).contains(&offset));
+        assert!((BytesAddress::ZERO..=self.logical_size).contains(&(offset + size)));
 
         let new_offset = self.offset + offset;
 
@@ -183,7 +212,7 @@ impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
     }
 
     pub fn count(&self) -> usize {
-        self.size.get() as usize / size_of::<T::Element>()
+        self.logical_size.get() as usize / size_of::<T::Element>()
     }
 }
 
@@ -202,12 +231,12 @@ where
             &Buffer {
                 ref ownership,
                 offset,
-                size,
+                logical_size: size,
                 phantom,
             } => Buffer {
                 ownership: RenderClone::render_clone(ownership, ctx),
                 offset,
-                size,
+                logical_size: size,
                 phantom,
             },
         }
@@ -233,16 +262,16 @@ impl<T: BufferType> SharedBuffer<T> {
 
         let offset = self.offset + start;
 
-        assert!((self.offset..self.offset + self.size).contains(&offset));
-        assert!((self.offset..self.offset + self.size).contains(&(offset + size)));
+        assert!((self.offset..self.offset + self.logical_size).contains(&offset));
+        assert!((self.offset..self.offset + self.logical_size).contains(&(offset + size)));
 
         assert!(T::is_valid_offset(offset));
-        assert!(T::is_valid_size(size));
+        assert!(T::is_valid_logical_size(size));
 
         Self {
             ownership,
             offset,
-            size,
+            logical_size: size,
             phantom: Default::default(),
         }
     }
@@ -278,7 +307,7 @@ impl<T: BufferType> From<OwnedBuffer<T>> for AnyBuffer<T> {
         AnyBuffer {
             ownership: AnyOwnership::Owned(Box::new(value.ownership)),
             offset: value.offset,
-            size: value.size,
+            logical_size: value.logical_size,
             phantom: Default::default(),
         }
     }
@@ -289,7 +318,7 @@ impl<T: BufferType> From<SharedBuffer<T>> for AnyBuffer<T> {
         AnyBuffer {
             ownership: AnyOwnership::Shared(value.ownership.clone()),
             offset: value.offset,
-            size: value.size,
+            logical_size: value.logical_size,
             phantom: Default::default(),
         }
     }
@@ -298,11 +327,11 @@ impl<T: BufferType> From<SharedBuffer<T>> for AnyBuffer<T> {
 impl<O: BufferOwnership> Buffer<O, RawMarker> {
     pub fn downcast<T: BufferType>(self) -> Buffer<O, T> {
         assert!(T::is_valid_offset(self.offset));
-        assert!(T::is_valid_size(self.size));
+        assert!(T::is_valid_logical_size(self.logical_size));
         Buffer {
             ownership: self.ownership,
             offset: self.offset,
-            size: self.size,
+            logical_size: self.logical_size,
             phantom: Default::default(),
         }
     }

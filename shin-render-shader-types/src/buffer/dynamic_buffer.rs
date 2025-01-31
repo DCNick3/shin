@@ -24,13 +24,14 @@ pub trait DynamicBufferBackend {
         buffer.write(data).unwrap();
         let buffer = buffer.into_inner();
 
-        self.get_with_raw_data(T::MIN_ALIGNMENT, buffer).downcast()
+        self.get_with_raw_data(T::OFFSET_ALIGNMENT, buffer)
+            .downcast()
     }
 
     fn get_with_slice_data<T: ArrayBufferType>(&mut self, data: &[T::Element]) -> SharedBuffer<T> {
         let data: &[u8] = bytemuck::cast_slice(data);
 
-        self.get_with_raw_data(T::MIN_ALIGNMENT, data).downcast()
+        self.get_with_raw_data(T::OFFSET_ALIGNMENT, data).downcast()
     }
 
     fn get_uniform_with_data<T: encase::ShaderSize + encase::internal::WriteInto>(
