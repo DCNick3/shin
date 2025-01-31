@@ -48,18 +48,18 @@ pub fn derive_command(input: TokenStream) -> TokenStream {
 /// #[derive(TextureArchive)]
 /// pub struct MessageboxTextures {
 ///     #[txa(name = "keywait")]
-///     pub keywait: LazyGpuTexture,
+///     pub keywait: GpuTexture,
 ///     #[txa(name = "select")]
-///     pub select: LazyGpuTexture,
+///     pub select: GpuTexture,
 ///     #[txa(name = "select_cur")]
-///     pub select_cursor: LazyGpuTexture,
+///     pub select_cursor: GpuTexture,
 ///
 ///     #[txa(name = "msgwnd1")]
-///     pub message_window_1: LazyGpuTexture,
+///     pub message_window_1: GpuTexture,
 ///     #[txa(name = "msgwnd2")]
-///     pub message_window_2: LazyGpuTexture,
+///     pub message_window_2: GpuTexture,
 ///     #[txa(name = "msgwnd3")]
-///     pub message_window_3: LazyGpuTexture,
+///     pub message_window_3: GpuTexture,
 /// }
 /// ```
 #[proc_macro_derive(TextureArchive, attributes(txa))]

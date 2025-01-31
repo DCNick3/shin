@@ -168,6 +168,7 @@ impl Asset for GpuFontLazy {
     async fn load(
         _context: &AssetLoadContext,
         _args: (),
+        _name: &str,
         data: AssetDataAccessor,
     ) -> anyhow::Result<Self> {
         let lazy_font =

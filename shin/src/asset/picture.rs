@@ -204,11 +204,13 @@ pub struct Picture {
 impl Asset for Picture {
     type Args = ();
 
-    async fn load(context: &AssetLoadContext, _args: (), data: AssetDataAccessor) -> Result<Self> {
+    async fn load(
+        context: &AssetLoadContext,
+        _args: (),
+        name: &str,
+        data: AssetDataAccessor,
+    ) -> Result<Self> {
         let data = data.read_all().await;
-
-        // extract the picture id before the call to read_picture
-        let info = shin_core::format::picture::read_picture_header(&data)?;
 
         // TODO: lookup if there's already a picture with this ID in the cache
         // Not sure if it makes sense to do so though: we are already caching pictures by their name
@@ -222,8 +224,7 @@ impl Asset for Picture {
                     wgpu_device: &context.wgpu_device,
                     wgpu_queue: &context.wgpu_queue,
                 },
-                // TODO: maybe use asset path as a label?
-                format!("Pic{:08x}", info.picture_id),
+                format!("Pic[{}]", name),
             ),
         )
     }

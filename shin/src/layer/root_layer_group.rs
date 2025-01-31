@@ -10,9 +10,12 @@ use crate::{
     adv::assets::AdvFonts,
     audio::VoicePlayer,
     layer::{
-        message_layer::MessageLayer, properties::LayerProperties, render_layer_without_bg,
-        render_params::TransformParams, screen_layer::ScreenLayer, DrawableLayer, Layer,
-        LayerGroup, PreRenderContext,
+        message_layer::{MessageLayer, MessageboxTextures},
+        properties::LayerProperties,
+        render_layer_without_bg,
+        render_params::TransformParams,
+        screen_layer::ScreenLayer,
+        DrawableLayer, Layer, LayerGroup, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
@@ -93,11 +96,15 @@ pub struct RootLayerGroup {
 }
 
 impl RootLayerGroup {
-    pub fn new(adv_fonts: AdvFonts, voice_player: VoicePlayer) -> Self {
+    pub fn new(
+        adv_fonts: AdvFonts,
+        messagebox_textures: Arc<MessageboxTextures>,
+        voice_player: VoicePlayer,
+    ) -> Self {
         let mut inner = LayerGroup::new(Some("RootLayerGroup".to_string()));
         inner.add_layer(
             MESSAGE_LAYERBANK,
-            MessageLayer::new(adv_fonts, voice_player).into(),
+            MessageLayer::new(adv_fonts, messagebox_textures, voice_player).into(),
         );
         inner.add_layer(SCREEN_LAYERBANK, ScreenLayer::new(4).into());
 

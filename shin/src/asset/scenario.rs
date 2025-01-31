@@ -8,6 +8,7 @@ impl Asset for Scenario {
     async fn load(
         _context: &AssetLoadContext,
         _args: (),
+        _name: &str,
         data: AssetDataAccessor,
     ) -> anyhow::Result<Self> {
         Scenario::new(data.read_all().await.into())

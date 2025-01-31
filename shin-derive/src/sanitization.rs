@@ -91,7 +91,7 @@ ident_str! {
 
     pub TEXTURE_ARCHIVE = from_shin!(asset::texture_archive::TextureArchive);
     pub TEXTURE_ARCHIVE_BUILDER = from_shin!(asset::texture_archive::TextureArchiveBuilder);
-    pub LAZY_GPU_TEXTURE = from_shin_render!(LazyGpuTexture);
+    pub GPU_TEXTURE = from_shin_render!(gpu_texture::GpuTexture);
     pub RENDER_CLONE = from_shin_render_shader_types!(RenderClone);
     pub RENDER_CLONE_CTX = from_shin_render_shader_types!(RenderCloneCtx);
 

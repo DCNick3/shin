@@ -4,7 +4,7 @@ use quote::quote;
 use synstructure::Structure;
 
 use crate::{
-    sanitization::{LAZY_GPU_TEXTURE, TEXTURE_ARCHIVE, TEXTURE_ARCHIVE_BUILDER},
+    sanitization::{GPU_TEXTURE, TEXTURE_ARCHIVE, TEXTURE_ARCHIVE_BUILDER},
     util::parse_attribute,
 };
 
@@ -58,7 +58,7 @@ pub fn impl_texture_archive(input: Structure) -> TokenStream {
 
         let texture_archive = &TEXTURE_ARCHIVE;
         let texture_archive_builder = &TEXTURE_ARCHIVE_BUILDER;
-        let lazy_gpu_texture = &LAZY_GPU_TEXTURE;
+        let gpu_texture = &GPU_TEXTURE;
 
         quote! {
             #vis struct #builder_ident {
@@ -73,7 +73,7 @@ pub fn impl_texture_archive(input: Structure) -> TokenStream {
                         #(#builder_new,)*
                     }
                 }
-                fn add_texture(&mut self, name: &str, texture: #lazy_gpu_texture) {
+                fn add_texture(&mut self, name: &str, texture: #gpu_texture) {
                     match name {
                         #(#builder_add_texture)*
                         _ => panic!("Unknown texture: {}", name),
