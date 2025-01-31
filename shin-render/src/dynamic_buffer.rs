@@ -134,7 +134,7 @@ impl DynamicBufferBackend for DynamicBuffer {
         }
 
         assert!(RawMarker::is_valid_offset(offset));
-        assert!(RawMarker::is_valid_size(size));
+        assert!(RawMarker::is_valid_logical_size(size));
 
         self.position = (offset + size).align_to(Self::ALIGNMENT);
 

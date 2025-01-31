@@ -6,13 +6,25 @@ use crate::{buffer::BytesAddress, vertices::VertexType};
 pub const MIN_UNIFORM_BUFFER_ALIGNMENT: BytesAddress = BytesAddress::new(256);
 
 pub trait BufferType {
-    const MIN_ALIGNMENT: BytesAddress;
+    const OFFSET_ALIGNMENT: BytesAddress;
+    const LOGICAL_SIZE_STRIDE: BytesAddress;
+    const IS_ARRAY_TYPE: bool;
 
-    fn is_valid_offset(offset: BytesAddress) -> bool;
+    fn is_valid_offset(offset: BytesAddress) -> bool {
+        offset.is_aligned_to(Self::OFFSET_ALIGNMENT)
+    }
 
-    fn is_valid_size(size: BytesAddress) -> bool;
+    fn is_valid_logical_size(size: BytesAddress) -> bool {
+        if Self::IS_ARRAY_TYPE {
+            size.is_aligned_to(Self::LOGICAL_SIZE_STRIDE)
+        } else {
+            size == Self::LOGICAL_SIZE_STRIDE
+        }
+    }
 }
 
+// I would like to impose bounds in these on IS_ARRAY_TYPE, but it doesn't seem possible with todays rust
+// https://github.com/rust-lang/rfcs/issues/3095
 pub trait ArrayBufferType: BufferType {
     type Element: bytemuck::NoUninit;
 }
@@ -36,66 +48,40 @@ pub struct IndexMarker;
 pub struct UniformMarker<T>(PhantomData<T>);
 
 impl BufferType for RawMarker {
-    const MIN_ALIGNMENT: BytesAddress = BytesAddress::new(4);
-
-    fn is_valid_offset(offset: BytesAddress) -> bool {
-        offset.is_aligned_to(Self::MIN_ALIGNMENT)
-    }
-
-    fn is_valid_size(size: BytesAddress) -> bool {
-        size.is_aligned_to(Self::MIN_ALIGNMENT)
-    }
+    const OFFSET_ALIGNMENT: BytesAddress = BytesAddress::new(4);
+    const LOGICAL_SIZE_STRIDE: BytesAddress = BytesAddress::new(1);
+    const IS_ARRAY_TYPE: bool = true;
 }
 impl ArrayBufferType for RawMarker {
     type Element = u8;
 }
 
 impl<T: VertexType> BufferType for VertexMarker<T> {
-    const MIN_ALIGNMENT: BytesAddress = if std::mem::align_of::<T>() < 4 {
+    const OFFSET_ALIGNMENT: BytesAddress = if std::mem::align_of::<T>() < 4 {
         BytesAddress::new(4)
     } else {
         BytesAddress::from_usize(std::mem::align_of::<T>())
     };
-
-    fn is_valid_offset(offset: BytesAddress) -> bool {
-        offset.is_aligned_to(Self::MIN_ALIGNMENT)
-    }
-
-    fn is_valid_size(size: BytesAddress) -> bool {
-        size.is_aligned_to(BytesAddress::from_usize(std::mem::size_of::<T>()))
-    }
+    const LOGICAL_SIZE_STRIDE: BytesAddress = BytesAddress::from_usize(std::mem::size_of::<T>());
+    const IS_ARRAY_TYPE: bool = true;
 }
 impl<T: VertexType> ArrayBufferType for VertexMarker<T> {
     type Element = T;
 }
 
 impl BufferType for IndexMarker {
-    const MIN_ALIGNMENT: BytesAddress = BytesAddress::new(4);
-
-    fn is_valid_offset(offset: BytesAddress) -> bool {
-        offset.is_aligned_to(Self::MIN_ALIGNMENT)
-    }
-
-    fn is_valid_size(size: BytesAddress) -> bool {
-        // TODO: what if the byte size is 2*m, where m is odd?
-        // seems like a valid size of u16 array to me...
-        size.is_aligned_to(Self::MIN_ALIGNMENT)
-    }
+    const OFFSET_ALIGNMENT: BytesAddress = BytesAddress::new(4);
+    const LOGICAL_SIZE_STRIDE: BytesAddress = BytesAddress::new(2);
+    const IS_ARRAY_TYPE: bool = true;
 }
 impl ArrayBufferType for IndexMarker {
     type Element = u16;
 }
 
 impl<T: encase::ShaderType + encase::ShaderSize> BufferType for UniformMarker<T> {
-    const MIN_ALIGNMENT: BytesAddress = MIN_UNIFORM_BUFFER_ALIGNMENT;
-
-    fn is_valid_offset(offset: BytesAddress) -> bool {
-        offset.is_aligned_to(Self::MIN_ALIGNMENT)
-    }
-
-    fn is_valid_size(size: BytesAddress) -> bool {
-        size == BytesAddress::new(T::SHADER_SIZE.get())
-    }
+    const OFFSET_ALIGNMENT: BytesAddress = MIN_UNIFORM_BUFFER_ALIGNMENT;
+    const LOGICAL_SIZE_STRIDE: BytesAddress = BytesAddress::new(T::SHADER_SIZE.get());
+    const IS_ARRAY_TYPE: bool = true;
 }
 impl<T: encase::ShaderSize + encase::internal::WriteInto> StructBufferType for UniformMarker<T> {
     type Value = T;

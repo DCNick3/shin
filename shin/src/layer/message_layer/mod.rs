@@ -1,5 +1,6 @@
 mod blocks;
 mod layout;
+mod messagebox;
 
 use std::sync::Arc;
 
@@ -32,7 +33,10 @@ use crate::{
     asset::{font::GpuFontLazy, texture_archive::TextureArchive},
     audio::{VoicePlayFlags, VoicePlayer},
     layer::{
-        message_layer::blocks::{Block, BlockType},
+        message_layer::{
+            blocks::{Block, BlockType},
+            messagebox::Messagebox,
+        },
         properties::LayerProperties,
         render_params::TransformParams,
         DrawableLayer, Layer, PreRenderContext,
@@ -62,23 +66,6 @@ bitflags! {
     pub struct MessageFlags: u32 {
         const UNUSED_FLAG = 0x1;
         const IGNORE_INPUT = 0x2;
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-struct Messagebox {
-    pub ty: MessageboxType,
-    pub slide_in_progress: f32,
-    pub height: f32,
-}
-
-impl From<SlidingOutMessagebox> for Messagebox {
-    fn from(value: SlidingOutMessagebox) -> Self {
-        Self {
-            ty: value.ty,
-            slide_in_progress: value.slide_out.value(),
-            height: value.height,
-        }
     }
 }
 
@@ -266,6 +253,11 @@ pub struct MessageLayer {
     adv_fonts: AdvFonts,
     // TODO: maybe split it into smaller structs to reduce complexity somewhat
     slide_in: SimpleInterpolator,
+    /// Annoyingly, this not only affects opacity, but also the position at the same time
+    ///
+    /// But it's independent of the `slide_in` interpolator and is used to hide the messagebox when modal dialogues are shown
+    ///
+    // TODO: I am thinking of renaming slide_in to natural_slide, and opacity to modal_slide (and SimpleInterpolator to SlideInterpolator)
     opacity: SimpleInterpolator,
 
     autoplay_requested: bool,
@@ -819,16 +811,6 @@ impl MessageLayer {
         // if let Some(m) = self.message.as_mut() {
         //     m.fast_forward()
         // }
-    }
-
-    fn render_messagebox(
-        &self,
-        pass: &mut RenderPass,
-        builder: RenderRequestBuilder,
-        transform: Mat4,
-        messagebox: Messagebox,
-    ) {
-        // TODO
     }
 }
 
