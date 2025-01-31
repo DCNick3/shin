@@ -86,13 +86,16 @@ pub enum Command {
     ///
     /// -1 means wait for the message to finish fully
     #[cmd(opcode = 0x87u8)]
-    MSGWAIT { section_num: NumberSpec },
+    MSGWAIT { signal_num: NumberSpec },
     /// Signal to the message @y command
     #[cmd(opcode = 0x88u8)]
     MSGSIGNAL {},
-    /// Not used in the scenario, semantics unclear
+    /// Synchronizes to a particular point in voice, like [BGMSYNC](Command::BGMSYNC)
     #[cmd(opcode = 0x89u8)]
-    MSGSYNC { arg1: NumberSpec, arg2: NumberSpec },
+    MSGSYNC {
+        voice_index: NumberSpec,
+        sync_time: NumberSpec,
+    },
     /// Close the messagebox
     #[cmd(opcode = 0x8au8)]
     MSGCLOSE {
@@ -141,10 +144,10 @@ pub enum Command {
         volume: NumberSpec<Volume>,
         fade_in_time: NumberSpec<Ticks>,
     },
-    /// Wait for the BGM track to reach the specified status
+    /// Wait for the BGM track to clear all the specified statuses
     #[cmd(opcode = 0x93u8)]
     BGMWAIT {
-        target_status: NumberSpec<AudioWaitStatus>,
+        unwanted_statuses: NumberSpec<AudioWaitStatus>,
     },
     /// Wait for BGM to reach the specified time ¿in ticks?
     #[cmd(opcode = 0x94u8)]
@@ -183,11 +186,11 @@ pub enum Command {
         pan: NumberSpec<Pan>,
         fade_in_time: NumberSpec<Ticks>,
     },
-    /// Wait for a SE track in the specified slot to reach the specified status
+    /// Wait for a SE track in the specified slot to clear all the specified statuses
     #[cmd(opcode = 0x9au8)]
     SEWAIT {
         se_slot: NumberSpec, // may have a special value of -1
-        target_status: NumberSpec<AudioWaitStatus>,
+        unwanted_statuses: NumberSpec<AudioWaitStatus>,
     },
     /// ¿Play an SE without a slot?
     #[cmd(opcode = 0x9bu8)]
@@ -206,13 +209,19 @@ pub enum Command {
     },
     #[cmd(opcode = 0x9du8)]
     VOICESTOP {},
+    /// Wait for voice player to clear all the specified statuses
     #[cmd(opcode = 0x9eu8)]
     VOICEWAIT {
-        target_status: NumberSpec<AudioWaitStatus>,
+        unwanted_statuses: NumberSpec<AudioWaitStatus>,
     },
     /// Play a system sound effect (from `/sysse.bin`)
+    ///
+    /// Actually supports only one sysse (id 0): "horror"
     #[cmd(opcode = 0x9fu8)]
-    SYSSE { arg1: NumberSpec, arg2: NumberSpec },
+    SYSSE {
+        sys_se_id: NumberSpec,
+        volume: NumberSpec<Volume>,
+    },
 
     /// Set current save info at specified level
     /// (0 - scenario name, 1 - chapter name)
@@ -237,7 +246,10 @@ pub enum Command {
     #[cmd(opcode = 0xa5u8)]
     RESUME {},
     #[cmd(opcode = 0xa6u8)]
-    SYSCALL { arg1: NumberSpec, arg2: NumberSpec },
+    SYSCALL {
+        call_id: NumberSpec,
+        argument: NumberSpec,
+    },
 
     /// Give the player a trophy (only implemented on PS4?)
     #[cmd(opcode = 0xb0u8)]

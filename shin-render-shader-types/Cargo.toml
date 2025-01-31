@@ -21,6 +21,7 @@ bytemuck = { workspace = true, features = ["derive"] }
 encase = { workspace = true, features = ["glam"] }
 
 enum-iterator = { workspace = true }
+drop_bomb = "0.1.5"
 
 [lints]
 workspace = true

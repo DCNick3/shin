@@ -1,13 +1,18 @@
+use std::sync::Arc;
+
 use from_variants::FromVariants;
 use glam::Mat4;
-use shin_core::vm::command::types::LayerbankId;
+use shin_core::{format::scenario::Scenario, vm::command::types::LayerbankId};
+use shin_derive::RenderClone;
 use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
+    adv::assets::AdvFonts,
+    audio::VoicePlayer,
     layer::{
-        properties::LayerProperties, render_layer_without_bg, render_params::TransformParams,
-        screen_layer::ScreenLayer, DrawableLayer, Layer, LayerGroup, MessageLayer,
-        PreRenderContext,
+        message_layer::MessageLayer, properties::LayerProperties, render_layer_without_bg,
+        render_params::TransformParams, screen_layer::ScreenLayer, DrawableLayer, Layer,
+        LayerGroup, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
@@ -16,11 +21,11 @@ const OVERLAY_LAYERBANK: LayerbankId = LayerbankId::new_unchecked(0);
 const MESSAGE_LAYERBANK: LayerbankId = LayerbankId::new_unchecked(1);
 const SCREEN_LAYERBANK: LayerbankId = LayerbankId::new_unchecked(2);
 
-#[derive(Clone, FromVariants)]
+#[derive(RenderClone, FromVariants)]
 enum RootLayer {
     // Overlay(OverlayLayer),
     Message(MessageLayer),
-    Screen(ScreenLayer),
+    Screen(#[render_clone(needs_render)] ScreenLayer),
 }
 
 impl AdvUpdatable for RootLayer {
@@ -83,15 +88,17 @@ impl DrawableLayer for RootLayer {
     }
 }
 
-#[derive(Clone)]
 pub struct RootLayerGroup {
     inner: LayerGroup<RootLayer>,
 }
 
 impl RootLayerGroup {
-    pub fn new() -> Self {
+    pub fn new(adv_fonts: AdvFonts, voice_player: VoicePlayer) -> Self {
         let mut inner = LayerGroup::new(Some("RootLayerGroup".to_string()));
-        inner.add_layer(MESSAGE_LAYERBANK, MessageLayer::new().into());
+        inner.add_layer(
+            MESSAGE_LAYERBANK,
+            MessageLayer::new(adv_fonts, voice_player).into(),
+        );
         inner.add_layer(SCREEN_LAYERBANK, ScreenLayer::new(4).into());
 
         Self { inner }

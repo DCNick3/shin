@@ -17,7 +17,7 @@ impl StartableCommand for command::runtime::MSGCLOSE {
     ) -> CommandStartResult {
         assert!(!self.wait_for_close);
 
-        adv_state.root_layer_group.message_layer_mut().close();
+        adv_state.root_layer_group.message_layer_mut().close(true);
 
         self.token.finish().into()
     }

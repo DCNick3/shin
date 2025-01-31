@@ -169,9 +169,8 @@ pub trait DecoderKernel {
     fn decode_block(&mut self) -> Option<[(f32, f32); BLOCK_SIZE]>;
 }
 
-struct MonoDecoderKernel {
+pub struct MonoDecoderKernel {
     data: std::vec::IntoIter<[u8; 16]>,
-    block_index: usize,
     history: History,
 }
 
@@ -181,7 +180,6 @@ impl MonoDecoderKernel {
 
         Self {
             data: data.into_iter(),
-            block_index: 0,
             history: History::new(),
         }
     }
@@ -196,9 +194,8 @@ impl DecoderKernel for MonoDecoderKernel {
     }
 }
 
-struct StereoDecoderKernel {
+pub struct StereoDecoderKernel {
     data: std::vec::IntoIter<[[u8; 16]; 2]>,
-    block_index: usize,
     history_left: History,
     history_right: History,
 }
@@ -209,7 +206,6 @@ impl StereoDecoderKernel {
 
         Self {
             data: data.into_iter(),
-            block_index: 0,
             history_left: History::new(),
             history_right: History::new(),
         }

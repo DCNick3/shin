@@ -18,8 +18,9 @@ use quote::{quote, TokenStreamExt};
 use shin_render_shader_types::{
     uniforms::{
         metadata::{ArraySchema, PrimitiveType, StructSchema, TypeSchema},
-        ClearUniformParams, FillUniformParams, FontUniformParams, LayerUniformParams,
-        MovieUniformParams, SpriteUniformParams, UniformType, WiperDefaultUniformParams,
+        ClearUniformParams, FillUniformParams, FontBorderUniformParams, FontUniformParams,
+        LayerUniformParams, MovieUniformParams, SpriteUniformParams, UniformType,
+        WiperDefaultUniformParams,
     },
     vertices::{
         BlendVertex, LayerVertex, MaskVertex, MovieVertex, PosColTexVertex, PosColVertex,
@@ -289,6 +290,7 @@ fn generate_wgsl_types() -> WgslSchema {
     ctx.gen_uniform::<FillUniformParams>();
     ctx.gen_uniform::<SpriteUniformParams>();
     ctx.gen_uniform::<FontUniformParams>();
+    ctx.gen_uniform::<FontBorderUniformParams>();
     ctx.gen_uniform::<LayerUniformParams>();
     ctx.gen_uniform::<MovieUniformParams>();
     ctx.gen_uniform::<WiperDefaultUniformParams>();
@@ -469,7 +471,14 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                     shader_type: naga_oil::compose::ShaderType::Wgsl,
                     ..Default::default()
                 })
-                .unwrap();
+                .unwrap_or_else(|error| {
+                    panic!(
+                        "failed to make naga module for {}: {:#?}",
+                        name,
+                        // anyhow::Error::new(error),
+                        error,
+                    )
+                });
 
             let module_info =
                 naga::valid::Validator::new(ValidationFlags::all(), Capabilities::empty())

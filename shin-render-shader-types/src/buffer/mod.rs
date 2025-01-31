@@ -13,6 +13,7 @@ pub use self::{bytes_address::BytesAddress, dynamic_buffer::DynamicBufferBackend
 use crate::{
     buffer::types::{ArrayBufferType, IndexMarker, RawMarker, VertexMarker},
     vertices::VertexType,
+    RenderClone, RenderCloneCtx,
 };
 
 pub enum BufferUsage {
@@ -189,6 +190,27 @@ impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
 impl<T: ArrayBufferType> BufferRef<'_, T> {
     pub fn count(&self) -> usize {
         self.size.get() as usize / size_of::<T::Element>()
+    }
+}
+
+impl<O: BufferOwnership, T: BufferType> RenderClone for Buffer<O, T>
+where
+    O: RenderClone,
+{
+    fn render_clone(&self, ctx: &mut RenderCloneCtx) -> Self {
+        match self {
+            &Buffer {
+                ref ownership,
+                offset,
+                size,
+                phantom,
+            } => Buffer {
+                ownership: RenderClone::render_clone(ownership, ctx),
+                offset,
+                size,
+                phantom,
+            },
+        }
     }
 }
 

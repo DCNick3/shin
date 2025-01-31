@@ -113,6 +113,10 @@ impl FloatColor4 {
         Self::from_rgba(r * a, g * a, b * a, a)
     }
 
+    pub fn with_alpha(self, new_alpha: f32) -> Self {
+        Self::from_rgba(self.r, self.g, self.b, new_alpha)
+    }
+
     pub const RED: Self = Self::from_unorm(UnormColor::RED);
     pub const GREEN: Self = Self::from_unorm(UnormColor::GREEN);
     pub const BLUE: Self = Self::from_unorm(UnormColor::BLUE);

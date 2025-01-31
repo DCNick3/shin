@@ -73,7 +73,7 @@ impl<T> TimedWiperWrapper<T> {
 impl<T: AdvUpdatable> AdvUpdatable for TimedWiperWrapper<T> {
     fn update(&mut self, context: &AdvUpdateContext) {
         self.state
-            .update(context.are_animations_allowed, context.delta_time);
+            .update(context.are_animations_allowed, context.delta_ticks);
         self.inner.update(context);
     }
 }

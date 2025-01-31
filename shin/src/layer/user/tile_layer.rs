@@ -4,7 +4,7 @@ use glam::{vec3, Vec4};
 use shin_core::primitives::color::FloatColor4;
 use shin_render::{
     render_pass::RenderPass,
-    shaders::types::{buffer::VertexSource, vertices::PosColVertex},
+    shaders::types::{buffer::VertexSource, vertices::PosColVertex, RenderClone},
     ColorBlendType, DrawPrimitive, LayerBlendType, PassKind, RenderProgramWithArguments,
     RenderRequestBuilder,
 };
@@ -18,7 +18,7 @@ use crate::{
     update::{AdvUpdatable, AdvUpdateContext},
 };
 
-#[derive(Clone)]
+#[derive(Clone, RenderClone)]
 pub struct TileLayerImpl {
     color: FloatColor4,
     rect: Vec4,

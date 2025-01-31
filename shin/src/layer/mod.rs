@@ -1,7 +1,6 @@
 mod either;
 mod layer_group;
-#[expect(unused)]
-mod message_layer;
+pub mod message_layer;
 mod new_drawable_layer;
 mod page_layer;
 mod properties;
@@ -17,7 +16,6 @@ use std::sync::Arc;
 use derive_more::From;
 use glam::vec3;
 pub use layer_group::LayerGroup;
-pub use message_layer::MessageLayer;
 pub use new_drawable_layer::{NewDrawableLayer, NewDrawableLayerWrapper};
 pub use page_layer::PageLayer;
 pub use properties::{LayerProperties, LayerPropertiesState};
@@ -58,12 +56,7 @@ pub struct PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder> {
 
 impl PreRenderContext<'_, '_, '_, '_> {
     pub fn new_render_texture(&self, label: Option<String>) -> RenderTexture {
-        RenderTexture::new(
-            self.device.clone(),
-            self.queue.clone(),
-            self.resize_source.handle(),
-            label,
-        )
+        RenderTexture::new(self.device.clone(), self.resize_source.handle(), label)
     }
 
     pub fn ensure_render_texture<'a>(

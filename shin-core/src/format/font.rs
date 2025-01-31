@@ -75,15 +75,24 @@ impl GlyphInfo {
         (self.actual_width as u32, self.actual_height as u32)
     }
 
+    pub fn actual_size_f32(&self) -> Vec2 {
+        vec2(self.actual_width as f32, self.actual_height as f32)
+    }
+
     pub fn texture_size(&self) -> (u32, u32) {
         (self.texture_width as u32, self.texture_height as u32)
     }
 
-    pub fn actual_size_relative(&self) -> Vec2 {
+    pub fn actual_size_normalized(&self) -> Vec2 {
         vec2(
             self.actual_width as f32 / self.texture_width as f32,
             self.actual_height as f32 / self.texture_height as f32,
         )
+    }
+
+    pub fn bearing_screenspace_f32(&self) -> Vec2 {
+        // NB: we flip the Y axis, since the engine uses a top-left origin, while font metrics are bottom-left
+        vec2(self.bearing_x as f32, -self.bearing_y as f32)
     }
 }
 
@@ -289,7 +298,9 @@ pub struct Font<G: GlyphTrait = Glyph> {
     glyphs: HashMap<GlyphId, G>,
 }
 
+/// A font that stores all glyph data & metadata in-memory, but the data is decompressed until needed.
 pub type FontLazy = Font<LazyGlyph>;
+/// A font that stores only glyph metadata. There is no way to get the actual glyph pixel data.
 pub type FontInfo = Font<GlyphInfo>;
 
 impl<G: GlyphTrait> Font<G> {

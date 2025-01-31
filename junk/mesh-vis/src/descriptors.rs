@@ -224,4 +224,22 @@ pub const VERTEX_DESCRTIPTORS: &[VertexDescriptor] = &[
         ],
         position_visualizations: &["pos", "tex"],
     },
+    VertexDescriptor {
+        name: "Text (Pos2Tex2Col)",
+        fields: &[
+            VertexFieldDescriptor {
+                name: "pos",
+                ty: VertexFieldType::Vector2,
+            },
+            VertexFieldDescriptor {
+                name: "tex",
+                ty: VertexFieldType::Vector2,
+            },
+            VertexFieldDescriptor {
+                name: "col",
+                ty: VertexFieldType::Float,
+            },
+        ],
+        position_visualizations: &["pos", "tex"],
+    },
 ];

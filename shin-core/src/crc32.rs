@@ -1,9 +1,12 @@
-pub fn crc32(data: &[u8], init: u32) -> u32 {
+pub const fn crc32(data: &[u8], init: u32) -> u32 {
     let mut state = !init;
 
-    for &x in data {
-        let i = (state as u8) ^ x;
-        state = CRC32_TABLE[i as usize] ^ (state >> 8);
+    // using while to make it const https://github.com/rust-lang/rust/issues/87575
+    let mut i = 0;
+    while i < data.len() {
+        let new_state_index = (state as u8) ^ data[i];
+        state = CRC32_TABLE[new_state_index as usize] ^ (state >> 8);
+        i += 1;
     }
 
     !state

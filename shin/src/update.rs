@@ -5,13 +5,13 @@ use shin_core::time::Ticks;
 use crate::{asset::system::AssetServer, layer::PreRenderContext};
 
 pub struct UpdateContext<'immutable, 'pre_render, 'pipelines, 'dynbuffer, 'encoder> {
-    pub delta_time: Ticks,
+    pub delta_ticks: Ticks,
     pub asset_server: &'immutable Arc<AssetServer>,
     pub pre_render: &'pre_render mut PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder>,
 }
 
 pub struct AdvUpdateContext<'a> {
-    pub delta_time: Ticks,
+    pub delta_ticks: Ticks,
     #[expect(unused)] // for future stuff
     pub asset_server: &'a Arc<AssetServer>,
     pub are_animations_allowed: bool,
@@ -24,7 +24,7 @@ impl<'a> AdvUpdateContext<'a> {
         are_animations_allowed: bool,
     ) -> Self {
         Self {
-            delta_time: context.delta_time,
+            delta_ticks: context.delta_ticks,
             asset_server: context.asset_server,
             are_animations_allowed,
         }

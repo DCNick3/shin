@@ -4,7 +4,6 @@ use anyhow::Result;
 use bitbuffer::{BitRead, BitWrite, BitWriteStream, Endianness};
 use chrono::{NaiveDate, NaiveDateTime};
 use num_integer::Integer;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
@@ -16,7 +15,7 @@ type Endian = bitbuffer::BigEndian;
 const ENDIAN: Endian = bitbuffer::BigEndian;
 type BitReadStream<'a, E = Endian> = bitbuffer::BitReadStream<'a, E>;
 
-static GAME_KEY: Lazy<u32> = Lazy::new(|| crc32::crc32("うみねこのなく頃に咲".as_bytes(), 0));
+const GAME_KEY: u32 = crc32::crc32("うみねこのなく頃に咲".as_bytes(), 0);
 
 fn read_u8<E: Endianness>(reader: &mut BitReadStream<E>) -> bitbuffer::Result<u8> {
     reader.read_int(8)
@@ -87,7 +86,7 @@ impl Savedata {
 
     /// Same as [Savedata::deobfuscate_with_key], but with fixed game key.
     pub fn deobfuscate(data: &[u8]) -> Result<Vec<u8>> {
-        Self::deobfuscate_with_key(data, *GAME_KEY)
+        Self::deobfuscate_with_key(data, GAME_KEY)
     }
 
     /// Decrypts the game data, returning the raw decrypted bytes.
@@ -98,7 +97,7 @@ impl Savedata {
 
     /// Same as [Savedata::obfuscate_with_key], but with fixed game key.
     pub fn obfuscate(data: &[u8]) -> Vec<u8> {
-        Self::obfuscate_with_key(data, *GAME_KEY)
+        Self::obfuscate_with_key(data, GAME_KEY)
     }
 
     /// Encrypts the game data, returning the raw encrypted bytes.
@@ -108,7 +107,7 @@ impl Savedata {
 
     /// Same as [Savedata::decode_with_key], but with fixed game key.
     pub fn decode(data: &[u8]) -> Result<Self> {
-        Self::decode_with_key(data, *GAME_KEY)
+        Self::decode_with_key(data, GAME_KEY)
     }
 
     /// Decrypts & decodes the game data, returning the parsed data.

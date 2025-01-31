@@ -62,6 +62,14 @@ macro_rules! from_shin_render {
     };
 }
 
+macro_rules! from_shin_render_shader_types {
+    ($path:path) => {
+        // not ideal, as this won't work in `shin-render-shader-types` crate
+        // maybe we want this to be configurable with an attribute
+        concat!("shin_render::shaders::types::", stringify!($path))
+    };
+}
+
 macro_rules! from_shin {
     ($path:path) => {
         concat!("shin::", stringify!($path))
@@ -84,6 +92,8 @@ ident_str! {
     pub TEXTURE_ARCHIVE = from_shin!(asset::texture_archive::TextureArchive);
     pub TEXTURE_ARCHIVE_BUILDER = from_shin!(asset::texture_archive::TextureArchiveBuilder);
     pub LAZY_GPU_TEXTURE = from_shin_render!(LazyGpuTexture);
+    pub RENDER_CLONE = from_shin_render_shader_types!(RenderClone);
+    pub RENDER_CLONE_CTX = from_shin_render_shader_types!(RenderCloneCtx);
 
     pub BIN_READ = from_binrw!(BinRead);
     pub BIN_WRITE = from_binrw!(BinWrite);

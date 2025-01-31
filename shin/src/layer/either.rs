@@ -1,3 +1,4 @@
+use shin_derive::RenderClone;
 use shin_render::{render_pass::RenderPass, PassKind};
 
 use crate::{
@@ -5,10 +6,10 @@ use crate::{
     update::{AdvUpdatable, AdvUpdateContext},
 };
 
-#[derive(Clone)]
+#[derive(RenderClone)]
 pub enum EitherLayer<L, R> {
-    Left(L),
-    Right(R),
+    Left(#[render_clone(needs_render)] L),
+    Right(#[render_clone(needs_render)] R),
 }
 
 impl<L: AdvUpdatable, R: AdvUpdatable> AdvUpdatable for EitherLayer<L, R> {

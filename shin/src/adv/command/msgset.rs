@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Formatter};
 
 use super::prelude::*;
+use crate::layer::message_layer::{MessageFlags, MsgsetParams};
 
 pub struct MSGSET {
     #[allow(unused)]
@@ -18,15 +19,35 @@ impl StartableCommand for command::runtime::MSGSET {
     fn start(
         self,
         context: &UpdateContext,
-        _scenario: &Arc<Scenario>,
-        _vm_state: &VmState,
+        scenario: &Arc<Scenario>,
+        vm_state: &VmState,
         _state_info: (),
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        adv_state
-            .root_layer_group
-            .message_layer_mut()
-            .set_message(context, &self.text);
+        adv_state.root_layer_group.message_layer_mut().on_msgset(
+            context.pre_render,
+            scenario,
+            &self.text,
+            MsgsetParams {
+                flags: {
+                    let mut flags = MessageFlags::empty();
+
+                    // TODO: we currently don't track those in the vm state
+                    // if vm_state.current_ev.is_some() {
+                    //     flags |= MessageFlags::IGNORE_INPUT;
+                    // }
+                    // if vm_state.has_seen_current_message {
+                    //     flags |= MessageFlags::UNUSED_FLAG;
+                    // }
+
+                    flags
+                },
+                messagebox_type: vm_state.messagebox_state.msginit.messagebox_type,
+                text_layout: vm_state.messagebox_state.msginit.text_layout,
+                message_id: self.msg_id,
+            },
+            true, // TODO: this needs to be adjusted for FF support
+        );
 
         if self.auto_wait {
             Yield(
@@ -52,10 +73,10 @@ impl UpdatableCommand for MSGSET {
         // rn it's kludged in the ADV update function though
         _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        if adv_state.root_layer_group.message_layer().is_finished() {
-            Some(self.token.take().unwrap().finish())
-        } else {
+        if adv_state.root_layer_group.message_layer().is_waiting(-1) {
             None
+        } else {
+            Some(self.token.take().unwrap().finish())
         }
     }
 }

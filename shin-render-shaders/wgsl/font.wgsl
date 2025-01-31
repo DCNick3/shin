@@ -34,5 +34,5 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     let sampled = textureSample(glyph_texture, glyph_sampler, input.texture_position).x;
 
-    return tint * vec4(sampled, sampled, sampled, 1.0);
+    return tint * vec4(1.0, 1.0, 1.0, sampled);
 }

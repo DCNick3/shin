@@ -1,0 +1,6 @@
+---
+source: shin-core/src/crc32.rs
+assertion_line: 73
+expression: "crc32(&[], 0)"
+---
+0

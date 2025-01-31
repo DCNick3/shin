@@ -99,7 +99,7 @@ impl FloatParseState {
             }
             .into(),
             text(format!("{0} (0x{0:x}) floats", self.floats.len())).into(),
-            text(format!("{:?}", self.floats)).into(),
+            // text(format!("{:?}", self.floats)).into(),
         ])
     }
 }

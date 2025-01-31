@@ -11,7 +11,7 @@ use shin_core::{
     primitives::color::FloatColor4,
     vm::command::types::LayerType,
 };
-use shin_render::{render_pass::RenderPass, PassKind};
+use shin_render::{render_pass::RenderPass, shaders::types::RenderClone, PassKind};
 use tracing::{debug, warn};
 
 use crate::{
@@ -40,19 +40,19 @@ pub use self::{
     picture_layer::PictureLayer, tile_layer::TileLayer,
 };
 
-#[derive(Derivative, Clone, FromVariants)]
+#[derive(Derivative, RenderClone, FromVariants)]
 #[derivative(Debug)]
 pub enum UserLayer {
     #[derivative(Debug = "transparent")]
     Null(NullLayer),
     #[derivative(Debug = "transparent")]
-    Picture(PictureLayer),
+    Picture(#[render_clone(needs_render)] PictureLayer),
     #[derivative(Debug = "transparent")]
-    Bustup(BustupLayer),
+    Bustup(#[render_clone(needs_render)] BustupLayer),
     #[derivative(Debug = "transparent")]
-    Tile(TileLayer),
+    Tile(#[render_clone(needs_render)] TileLayer),
     #[derivative(Debug = "transparent")]
-    Movie(MovieLayer),
+    Movie(#[render_clone(needs_render)] MovieLayer),
 }
 
 impl UserLayer {

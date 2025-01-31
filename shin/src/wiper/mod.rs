@@ -2,6 +2,7 @@ mod default;
 mod timed;
 
 use from_variants::FromVariants;
+use shin_derive::RenderClone;
 use shin_render::{
     render_pass::RenderPass, shaders::types::texture::TextureSource, RenderRequestBuilder,
 };
@@ -21,7 +22,7 @@ pub trait Wiper: AdvUpdatable {
     );
 }
 
-#[derive(Clone, FromVariants)]
+#[derive(RenderClone, FromVariants)]
 pub enum AnyWiper {
     Default(DefaultWiper),
 }

@@ -152,19 +152,21 @@ impl<S: AudioFrameSource + Send> AudioSound<S> {
     fn wait_status(&self) -> AudioWaitStatus {
         let mut result = AudioWaitStatus::empty();
 
-        if self.state == PlaybackState::Stopped {
-            result |= AudioWaitStatus::STOPPED;
-        }
+        // TODO: AudioWaitStatus::FADING
+        // if self.state == PlaybackState::Stopped {
+        //     result |= AudioWaitStatus::STOPPED;
+        // }
         if self.state == PlaybackState::Playing {
             result |= AudioWaitStatus::PLAYING;
         }
-        if self.volume.is_idle() {
-            result |= AudioWaitStatus::VOLUME_TWEENER_IDLE;
+        if !self.volume.is_idle() {
+            result |= AudioWaitStatus::VOLUME_TWEENING;
         }
-        if self.panning.is_idle() {
-            result |= AudioWaitStatus::PANNING_TWEENER_IDLE;
+        if !self.panning.is_idle() {
+            result |= AudioWaitStatus::PANNING_TWEENING;
         }
-        result |= AudioWaitStatus::PLAY_SPEED_TWEENER_IDLE;
+        // TODO: AudioWaitStatus::PLAY_SPEED_TWEENING
+        // result |= AudioWaitStatus::PLAY_SPEED_TWEENER_IDLE;
 
         result
     }

@@ -2,7 +2,11 @@ use std::{fmt::Debug, sync::Arc};
 
 use glam::Mat4;
 use shin_audio::AudioManager;
-use shin_render::{render_pass::RenderPass, PassKind};
+use shin_render::{
+    render_pass::RenderPass,
+    shaders::types::{RenderClone, RenderCloneCtx},
+    PassKind,
+};
 use shin_video::VideoPlayer;
 
 use crate::{
@@ -85,7 +89,7 @@ impl MovieLayer {
 impl AdvUpdatable for MovieLayer {
     fn update(&mut self, ctx: &AdvUpdateContext) {
         self.video_player.update(
-            ctx.delta_time,
+            ctx.delta_ticks,
             todo!(), // &ctx.gpu_resources.queue
         );
     }
@@ -99,8 +103,8 @@ impl Debug for MovieLayer {
     }
 }
 
-impl Clone for MovieLayer {
-    fn clone(&self) -> Self {
+impl RenderClone for MovieLayer {
+    fn render_clone(&self, _ctx: &mut RenderCloneCtx) -> Self {
         todo!()
     }
 }

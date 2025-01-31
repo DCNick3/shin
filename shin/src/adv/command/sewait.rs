@@ -7,7 +7,7 @@ use super::prelude::*;
 pub struct SEWAIT {
     token: Option<command::token::SEWAIT>,
     slot: i32,
-    target_status: AudioWaitStatus,
+    unwanted_statuses: AudioWaitStatus,
 }
 
 impl StartableCommand for command::runtime::SEWAIT {
@@ -28,7 +28,7 @@ impl StartableCommand for command::runtime::SEWAIT {
             SEWAIT {
                 token: Some(self.token),
                 slot: self.se_slot,
-                target_status: self.target_status,
+                unwanted_statuses: self.unwanted_statuses,
             }
             .into(),
         )
@@ -45,7 +45,7 @@ impl UpdatableCommand for SEWAIT {
         _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
         let status = adv_state.se_player.get_wait_status(self.slot);
-        let finished = !(status & self.target_status).is_empty();
+        let finished = (status & self.unwanted_statuses).is_empty();
 
         if finished {
             Some(self.token.take().unwrap().finish())
@@ -59,7 +59,7 @@ impl Debug for SEWAIT {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("SEWAIT")
             .field(&self.slot)
-            .field(&self.target_status)
+            .field(&self.unwanted_statuses)
             .finish()
     }
 }
