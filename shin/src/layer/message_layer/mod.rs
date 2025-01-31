@@ -19,6 +19,7 @@ use shin_core::{
 };
 use shin_render::{
     gpu_texture::GpuTexture,
+    quad_vertices::QuadVertices,
     render_pass::RenderPass,
     shaders::types::{
         buffer::{OwnedVertexBuffer, VertexSource},
@@ -1084,10 +1085,43 @@ impl Layer for MessageLayer {
         };
 
         match self.wait_kind {
-            Some(WaitKind::Regular | WaitKind::Last) => {
+            Some(wait_kind @ (WaitKind::Regular | WaitKind::Last)) => {
                 pass.push_debug("MessageLayer/keywait");
-                // TODO: render the keywait sprite from msgtex txa
-                // need SpriteVertices
+
+                let builder = RenderRequestBuilder::new().color_blend_type(ColorBlendType::Layer1);
+                let texture = self.messagebox_textures.keywait.as_source();
+
+                let atlas_pos_x = match wait_kind {
+                    WaitKind::Regular => 0.0,
+                    WaitKind::Last => 0.5,
+                    WaitKind::AutoClick => unreachable!(),
+                };
+
+                let alpha_wiggle =
+                    (self.ticks_since_last_wait.as_seconds() * std::f32::consts::PI).sin();
+
+                let position = match self.messagebox_type {
+                    MessageboxType::Neutral
+                    | MessageboxType::WitchSpace
+                    | MessageboxType::Ushiromiya
+                    | MessageboxType::Transparent
+                    | MessageboxType::Novel => {
+                        self.cursor_position + vec2(210.0, position_y - 30.0)
+                    }
+                    MessageboxType::NoText => vec2(1870.0, 1030.0),
+                };
+
+                let transform = transform * Mat4::from_translation(position.extend(0.0));
+
+                QuadVertices::new()
+                    .with_box(0.0, 0.0, 30.0, 30.0)
+                    .with_tex_box(atlas_pos_x, 0.0, atlas_pos_x + 0.5, 1.0)
+                    .with_color(
+                        FloatColor4::from_rgba(1.0, 1.0, 1.0, alpha_wiggle * 0.4 + 0.6)
+                            .into_unorm(),
+                    )
+                    .render_sprite(pass, builder, texture, transform);
+
                 pass.pop_debug();
             }
             Some(WaitKind::AutoClick) | None => {
