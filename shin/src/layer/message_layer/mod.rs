@@ -17,6 +17,7 @@ use shin_core::{
     vm::command::types::{AudioWaitStatus, MessageTextLayout, MessageboxType, Volume},
 };
 use shin_render::{
+    gpu_texture::GpuTexture,
     render_pass::RenderPass,
     shaders::types::{
         buffer::{OwnedVertexBuffer, VertexSource},
@@ -28,7 +29,7 @@ use tracing::debug;
 
 use crate::{
     adv::assets::AdvFonts,
-    asset::font::GpuFontLazy,
+    asset::{font::GpuFontLazy, texture_archive::TextureArchive},
     audio::{VoicePlayFlags, VoicePlayer},
     layer::{
         message_layer::blocks::{Block, BlockType},
@@ -38,6 +39,23 @@ use crate::{
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
+
+#[derive(TextureArchive)]
+pub struct MessageboxTextures {
+    #[txa(name = "keywait")]
+    pub keywait: GpuTexture,
+    #[txa(name = "select")]
+    pub select: GpuTexture,
+    #[txa(name = "select_cur")]
+    pub select_cursor: GpuTexture,
+
+    #[txa(name = "msgwnd1")]
+    pub message_window_1: GpuTexture,
+    #[txa(name = "msgwnd2")]
+    pub message_window_2: GpuTexture,
+    #[txa(name = "msgwnd3")]
+    pub message_window_3: GpuTexture,
+}
 
 bitflags! {
     #[derive(Copy, Clone, Debug, Default)]
@@ -240,6 +258,7 @@ impl Countdown {
 const VERTICES_PER_CHARACTER: usize = 4;
 
 pub struct MessageLayer {
+    messagebox_textures: Arc<MessageboxTextures>,
     props: LayerProperties,
     // TODO: how should we handle the ownership for the listener?
     message_layer_listener: (),
@@ -298,8 +317,13 @@ pub struct MessageLayer {
 }
 
 impl MessageLayer {
-    pub fn new(adv_fonts: AdvFonts, voice_player: VoicePlayer) -> Self {
+    pub fn new(
+        adv_fonts: AdvFonts,
+        messagebox_textures: Arc<MessageboxTextures>,
+        voice_player: VoicePlayer,
+    ) -> Self {
         Self {
+            messagebox_textures,
             props: LayerProperties::new(),
             message_layer_listener: (), // TODO
             voice_player,

@@ -36,6 +36,7 @@ pub trait Asset: Send + Sync + Sized + 'static {
     fn load(
         context: &AssetLoadContext,
         args: Self::Args,
+        name: &str,
         data: AssetDataAccessor,
     ) -> impl Future<Output = Result<Self>> + Send;
 }
@@ -108,7 +109,10 @@ impl AssetServer {
         // spawn tasks on IO task pool because they can be blocking
         // they should take care off-load CPU-intensive work to the compute task pool
         let asset = IoTaskPool::get()
-            .spawn(async move { T::load(&context, args, data).await })
+            .spawn({
+                let path = path.to_string();
+                async move { T::load(&context, args, &path, data).await }
+            })
             .await
             .with_context(|| format!("Loading asset {:?}", path))?;
         let asset = Arc::new(asset);

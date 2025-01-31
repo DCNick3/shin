@@ -1,15 +1,14 @@
 use anyhow::Result;
 pub use shin_derive::TextureArchive;
+use shin_render::gpu_texture::GpuTexture;
 
 use crate::asset::system::{Asset, AssetDataAccessor, AssetLoadContext};
-
-// TODO: add strong typing with derive or smth
 
 pub trait TextureArchiveBuilder {
     type Output;
 
     fn new() -> Self;
-    fn add_texture(&mut self, name: &str, texture: ());
+    fn add_texture(&mut self, name: &str, texture: GpuTexture);
     fn build(self) -> Self::Output;
 }
 
@@ -20,21 +19,30 @@ pub trait TextureArchive: Sync + Send + 'static {
 impl<T: TextureArchive> Asset for T {
     type Args = ();
 
-    async fn load(_context: &AssetLoadContext, _args: (), data: AssetDataAccessor) -> Result<Self> {
+    async fn load(
+        context: &AssetLoadContext,
+        _args: (),
+        txa_name: &str,
+        data: AssetDataAccessor,
+    ) -> Result<Self> {
         let archive =
             shin_core::format::texture_archive::read_texture_archive(&data.read_all().await)?;
 
         let mut builder = T::Builder::new();
-        let mut textures = archive.textures.into_iter().map(Some).collect::<Vec<_>>();
 
-        todo!()
+        for (name, index) in archive.name_to_index {
+            let texture = &archive.textures[index];
 
-        // for (name, index) in archive.name_to_index.into_iter() {
-        //     let texture = textures[index].take().unwrap();
-        //     let image = LazyGpuTexture::new(texture, Some(&format!("TextureArchive[{:?}]", name)));
-        //     builder.add_texture(&name, image);
-        // }
-        //
-        // Ok(builder.build())
+            let texture = GpuTexture::new_static_from_rgba_image(
+                &context.wgpu_device,
+                &context.wgpu_queue,
+                Some(&format!("TXA[{}]/{}", txa_name, name)),
+                texture,
+            );
+
+            builder.add_texture(&name, texture);
+        }
+
+        Ok(builder.build())
     }
 }

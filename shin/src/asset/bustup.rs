@@ -230,6 +230,7 @@ impl Asset for Bustup {
     async fn load(
         context: &AssetLoadContext,
         args: BustupArgs,
+        name: &str,
         data: AssetDataAccessor,
     ) -> Result<Self> {
         let data = data.read_all().await;
@@ -242,9 +243,7 @@ impl Asset for Bustup {
                 wgpu_queue: &context.wgpu_queue,
             },
             cache: &context.bustup_cache,
-            label:
-            // TODO: maybe use asset path as a label?
-            format!("{}[{}]", info.bustup_id.to_string(), args.expression),
+            label: format!("{}[{}]", name, args.expression),
             expression: args.expression,
             character_id: args.character_id,
             disable_animations: args.disable_animations,

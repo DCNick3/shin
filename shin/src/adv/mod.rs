@@ -284,6 +284,7 @@ impl AdvState {
         Self {
             root_layer_group: RootLayerGroup::new(
                 assets.fonts.clone(),
+                assets.messagebox_textures.clone(),
                 VoicePlayer::new(audio_manager.clone()),
             ),
             audio_manager: audio_manager.clone(),
