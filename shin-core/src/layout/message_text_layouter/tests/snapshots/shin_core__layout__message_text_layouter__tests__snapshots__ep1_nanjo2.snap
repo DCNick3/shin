@@ -131,7 +131,7 @@ expression: snapshot
                 filename: "19/11900003",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Char(
@@ -389,7 +389,7 @@ expression: snapshot
                 filename: "19/11900004",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Char(
@@ -1031,7 +1031,7 @@ expression: snapshot
                 filename: "19/11900005",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Char(
@@ -1769,7 +1769,7 @@ expression: snapshot
                 filename: "19/11900006",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Char(
@@ -2027,7 +2027,7 @@ expression: snapshot
                 filename: "19/11900007",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Char(

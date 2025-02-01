@@ -125,7 +125,7 @@ mod model {
         #[n(4)]
         pub lipsync_enabled: bool,
         #[n(5)]
-        pub time_to_first_sync: i32, // TODO: integer ticks?
+        pub segment_duration: i32,
     }
 
     #[derive(Debug, PartialEq, Encode, Decode)]
@@ -135,9 +135,9 @@ mod model {
         #[n(1)]
         pub line_index: usize,
         #[n(2)]
-        pub target_instant: i32,
+        pub segment_start: i32,
         #[n(3)]
-        pub time_to_next_sync: i32,
+        pub segment_duration: i32,
     }
 
     #[derive(Debug, PartialEq, Encode, Decode)]
