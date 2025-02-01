@@ -11,7 +11,7 @@ expression: snapshot
                 filename: "27/40700828",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Section(
@@ -475,7 +475,7 @@ expression: snapshot
                 filename: "27/40700829",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Section(

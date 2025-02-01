@@ -131,7 +131,7 @@ expression: snapshot
                 filename: "19/11900001",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Char(
@@ -341,7 +341,7 @@ expression: snapshot
                 filename: "19/11900002",
                 volume: 1.0,
                 lipsync_enabled: true,
-                time_to_first_sync: 0,
+                segment_duration: 0,
             },
         ),
         Char(
