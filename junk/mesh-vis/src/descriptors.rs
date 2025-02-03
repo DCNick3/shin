@@ -2,7 +2,6 @@ use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy)]
 pub enum VertexFieldType {
-    #[expect(unused)]
     Float,
     Vector2,
     Vector3,
