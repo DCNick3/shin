@@ -58,8 +58,6 @@ pub struct LayerGroup<T = UserLayer> {
 }
 
 impl<T> LayerGroup<T> {
-    // TODO: technically we need not only `UserLayer`s, but system layers sometimes too
-    // Maybe I should bite the bullet and make an owning `AnyLayer` for all the types, or just use `Box<dyn Layer>`
     pub fn new(label: Option<String>) -> Self {
         Self {
             layers: vec![],

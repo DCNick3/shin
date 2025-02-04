@@ -12,7 +12,7 @@ use crate::layer::message_layer::{MessageLayer, SlidingOutMessagebox};
 #[derive(Debug, Copy, Clone)]
 pub struct Messagebox {
     pub ty: MessageboxType,
-    pub slide_in_progress: f32,
+    pub natural_slide: f32,
     pub height: f32,
 }
 
@@ -20,7 +20,7 @@ impl From<SlidingOutMessagebox> for Messagebox {
     fn from(value: SlidingOutMessagebox) -> Self {
         Self {
             ty: value.ty,
-            slide_in_progress: value.slide_out.value(),
+            natural_slide: value.slide_out.value(),
             height: value.height,
         }
     }
@@ -49,10 +49,10 @@ impl MessageLayer {
         transform: Mat4,
         messagebox: Messagebox,
     ) {
-        if messagebox.slide_in_progress == 0.0 {
+        if messagebox.natural_slide == 0.0 {
             return;
         }
-        let final_slide_progress = messagebox.slide_in_progress * self.opacity.value();
+        let final_slide_progress = messagebox.natural_slide * self.modal_slide.value();
 
         match messagebox.ty {
             MessageboxType::Neutral | MessageboxType::WitchSpace | MessageboxType::Ushiromiya => {
@@ -75,7 +75,10 @@ impl MessageLayer {
                         0.0,
                     ));
 
-                let color = FloatColor4::from_rgba(1.0, 1.0, 1.0, msgwinalpha).into_unorm();
+                // slide progress also affects the messagebox opacity!
+                let color =
+                    FloatColor4::from_rgba(1.0, 1.0, 1.0, final_slide_progress * msgwinalpha)
+                        .into_unorm();
 
                 let char_name_width = self.char_name_width;
 
