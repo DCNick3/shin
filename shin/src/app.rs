@@ -15,13 +15,16 @@ use crate::{
     asset::system::{cache::AssetCache, locate_assets, AssetLoadContext, AssetServer},
     cli::Cli,
     layer::PreRenderContext,
-    update::{Updatable as _, UpdateContext},
+    update::UpdateContext,
 };
 
 #[derive(Debug, Enum)]
 pub enum AppAction {
     ToggleFullscreen,
     Act,
+    Enter,
+    Cancel,
+    AnyDown,
 }
 
 impl Action for AppAction {
@@ -32,6 +35,12 @@ impl Action for AppAction {
                 raw_input_state.keyboard.contains(&KeyCode::Space)
                     || raw_input_state.mouse.buttons[MouseButton::Left]
             }
+            AppAction::Enter => {
+                raw_input_state.keyboard.contains(&KeyCode::Space)
+                    | raw_input_state.keyboard.contains(&KeyCode::Enter)
+            }
+            AppAction::Cancel => raw_input_state.keyboard.contains(&KeyCode::Backspace),
+            AppAction::AnyDown => raw_input_state.keyboard.contains(&KeyCode::ArrowDown),
         })
     }
 }
@@ -192,7 +201,7 @@ impl ShinApp for App {
             pre_render: &mut pre_render_context,
         };
 
-        self.adv.update(&mut update_context);
+        self.adv.update(&mut update_context, input);
 
         // let update_context = AdvUpdateContext {
         //     delta_time: Ticks::from_duration(elapsed_time),
