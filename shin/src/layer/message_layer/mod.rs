@@ -314,20 +314,6 @@ impl MessageLayer {
         true
     }
 
-    pub fn is_waiting(&self, signal_index: i32) -> bool {
-        // all blocks are done, so nothing should be waiting
-        if self.current_block_index >= self.blocks.len() {
-            return false;
-        }
-        // negative `section_index` -> wait for the full message
-        if signal_index < 0 {
-            return true;
-        }
-        let signal_index = signal_index as u32;
-
-        self.completed_sections <= signal_index
-    }
-
     fn play_voice(&mut self, voice_index: usize, segment_start: u32, segment_duration: u32) {
         // NB: original game passes the actual voice block reference in here,
         // but it's annoying to do with borrow checker, as we need &mut for VoicePlayer::play
@@ -733,11 +719,22 @@ impl MessageLayer {
         true
     }
 
-    pub fn signal(&mut self) {
-        todo!()
-        // if let Some(message) = self.message.as_mut() {
-        //     message.signal();
-        // }
+    pub fn recv_sync_is_waiting(&self, signal_index: i32) -> bool {
+        // all blocks are done, so nothing should be waiting
+        if self.current_block_index >= self.blocks.len() {
+            return false;
+        }
+        // negative `section_index` -> wait for the full message
+        if signal_index < 0 {
+            return true;
+        }
+        let signal_index = signal_index as u32;
+
+        self.completed_sections <= signal_index
+    }
+
+    pub fn send_sync(&mut self) {
+        self.received_syncs += 1;
     }
 
     pub fn fast_forward(&mut self) {

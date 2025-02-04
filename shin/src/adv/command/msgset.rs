@@ -73,7 +73,11 @@ impl UpdatableCommand for MSGSET {
         // rn it's kludged in the ADV update function though
         _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        if adv_state.root_layer_group.message_layer().is_waiting(-1) {
+        if adv_state
+            .root_layer_group
+            .message_layer()
+            .recv_sync_is_waiting(-1)
+        {
             None
         } else {
             Some(self.token.take().unwrap().finish())
