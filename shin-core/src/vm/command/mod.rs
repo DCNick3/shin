@@ -295,7 +295,8 @@ pub enum Command {
     #[cmd(opcode = 0xc5u8)]
     LAYERSWAP { arg1: NumberSpec, arg2: NumberSpec },
     /// Select a subset of layers to perform batch operations
-    /// (TODO: fact check) These can be used as layer_id = -4
+    /// 
+    /// These can then be used as [VLayerIdRepr::Selected] in commands accepting a [VLayerId].
     #[cmd(opcode = 0xc6u8)]
     LAYERSELECT {
         // AFAIK, those can't use the virtual layer numbers

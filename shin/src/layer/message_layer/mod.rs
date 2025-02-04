@@ -1,4 +1,5 @@
 mod blocks;
+mod interpolators;
 mod layout;
 mod messagebox;
 
@@ -6,6 +7,9 @@ use std::sync::Arc;
 
 use bitflags::bitflags;
 use glam::{vec2, vec3, vec4, Mat4, Vec2};
+use interpolators::{
+    Countdown, HeightInterpolator, SimpleInterpolatorDirection, SlideInterpolator,
+};
 use itertools::{Either, Itertools};
 use shin_core::{
     format::scenario::{instruction_elements::MessageId, Scenario},
@@ -76,7 +80,7 @@ bitflags! {
 #[derive(Debug, Copy, Clone)]
 struct SlidingOutMessagebox {
     pub ty: MessageboxType,
-    pub slide_out: SimpleInterpolator,
+    pub slide_out: SlideInterpolator,
     pub height: f32,
 }
 
@@ -95,154 +99,6 @@ pub struct MsgsetParams {
     pub message_id: MessageId,
 }
 
-/// A simple utility interpolator class used to animate the message box sliding in and out & opacity changes when menu is opened
-///
-/// Clamps the value between 0.0 and 1.0 and stores the direction of the interpolation
-#[derive(Debug, Copy, Clone)]
-struct SimpleInterpolator {
-    current_direction: SimpleInterpolatorDirection,
-    value: f32,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum SimpleInterpolatorDirection {
-    Increasing,
-    Decreasing,
-}
-
-impl SimpleInterpolatorDirection {
-    pub fn from_is_increasing(is_increasing: bool) -> Self {
-        if is_increasing {
-            Self::Increasing
-        } else {
-            Self::Decreasing
-        }
-    }
-
-    pub fn as_f32(&self) -> f32 {
-        match self {
-            Self::Increasing => 1.0,
-            Self::Decreasing => -1.0,
-        }
-    }
-}
-
-impl SimpleInterpolator {
-    const RATE_PER_TICK: f32 = 0.1;
-
-    #[inline]
-    pub fn new(value: f32, direction: SimpleInterpolatorDirection) -> Self {
-        Self {
-            value,
-            current_direction: direction,
-        }
-    }
-
-    pub fn set_direction(&mut self, direction: SimpleInterpolatorDirection) {
-        self.current_direction = direction;
-    }
-
-    pub fn set_value(&mut self, value: f32) {
-        self.value = value;
-    }
-
-    #[inline]
-    pub fn update(&mut self, delta_ticks: Ticks) -> f32 {
-        let delta = delta_ticks.as_f32() * Self::RATE_PER_TICK;
-        self.value = (self.value + delta * self.current_direction.as_f32()).clamp(0.0, 1.0);
-
-        self.value
-    }
-
-    pub fn direction(&self) -> SimpleInterpolatorDirection {
-        self.current_direction
-    }
-
-    pub fn value(&self) -> f32 {
-        self.value
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-struct HeightInterpolator {
-    target: f32,
-    value: f32,
-}
-
-impl HeightInterpolator {
-    const RATE_PER_TICK: f32 = 18.0;
-
-    pub fn new(value: f32) -> Self {
-        Self {
-            target: value,
-            value,
-        }
-    }
-
-    pub fn set_target(&mut self, target: f32) {
-        self.target = target;
-    }
-
-    pub fn set_min_target(&mut self, target: f32) {
-        self.target = self.target.max(target);
-    }
-
-    pub fn set_value(&mut self, value: f32) {
-        self.value = value;
-    }
-
-    #[inline]
-    pub fn update(&mut self, delta_ticks: Ticks) {
-        let delta = delta_ticks.as_f32() * Self::RATE_PER_TICK;
-
-        match self.target.partial_cmp(&self.value).unwrap() {
-            std::cmp::Ordering::Less => {
-                self.value = (self.value - delta).max(self.target);
-            }
-            std::cmp::Ordering::Greater => {
-                self.value = (self.value + delta).min(self.target);
-            }
-            std::cmp::Ordering::Equal => {}
-        }
-    }
-
-    pub fn is_interpolating(&self) -> bool {
-        self.value != self.target
-    }
-
-    pub fn value(&self) -> f32 {
-        self.value
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-struct Countdown {
-    time_left: f32,
-}
-
-impl Countdown {
-    const RATE_PER_TICK: f32 = Ticks::SECONDS_PER_TICK;
-
-    pub fn new(time_left: f32) -> Self {
-        Self { time_left }
-    }
-
-    pub fn set_time_left(&mut self, time_left: f32) {
-        self.time_left = time_left;
-    }
-
-    pub fn is_done(&self) -> bool {
-        self.time_left <= 0.0
-    }
-
-    pub fn update(&mut self, delta_ticks: Ticks) -> bool {
-        if self.time_left > 0.0 {
-            self.time_left -= delta_ticks.as_f32() * Self::RATE_PER_TICK;
-        }
-        self.is_done()
-    }
-}
-
 const VERTICES_PER_CHARACTER: usize = 4;
 
 pub struct MessageLayer {
@@ -253,13 +109,10 @@ pub struct MessageLayer {
     voice_player: VoicePlayer,
     adv_fonts: AdvFonts,
     // TODO: maybe split it into smaller structs to reduce complexity somewhat
-    slide_in: SimpleInterpolator,
-    /// Annoyingly, this not only affects opacity, but also the position at the same time
-    ///
-    /// But it's independent of the `slide_in` interpolator and is used to hide the messagebox when modal dialogues are shown
-    ///
-    // TODO: I am thinking of renaming slide_in to natural_slide, and opacity to modal_slide (and SimpleInterpolator to SlideInterpolator)
-    opacity: SimpleInterpolator,
+    /// Slide that is happening as a result of showing/hiding the messagebox with commands
+    natural_slide: SlideInterpolator,
+    /// Slide that is happening as a result of opening a modal window
+    modal_slide: SlideInterpolator,
 
     autoplay_requested: bool,
     // NB: there is another `_requested`-like field in the original engine, but it's never set, so don't bother
@@ -275,8 +128,6 @@ pub struct MessageLayer {
     autoplay_voice_delay: Countdown,
     is_voice_playing: bool,
     disable_voice: bool,
-    // NB: there was a `disable_voice` field, but it's never set to true
-    //
     completed_sections: u32,
     received_syncs: u32,
     ticks_since_last_wait: Ticks,
@@ -322,8 +173,8 @@ impl MessageLayer {
             voice_player,
             adv_fonts,
 
-            slide_in: SimpleInterpolator::new(0.0, SimpleInterpolatorDirection::Decreasing),
-            opacity: SimpleInterpolator::new(1.0, SimpleInterpolatorDirection::Increasing),
+            natural_slide: SlideInterpolator::new(0.0, SimpleInterpolatorDirection::Decreasing),
+            modal_slide: SlideInterpolator::new(1.0, SimpleInterpolatorDirection::Increasing),
 
             autoplay_requested: false,
             scenario: None,
@@ -441,10 +292,10 @@ impl MessageLayer {
     pub fn is_interested_in_input(&self) -> bool {
         // messagebox is in the process of being hidden or is not fully shown yet
         // TODO: can this be a function on SimpleInterpolator?
-        if self.slide_in.direction() == SimpleInterpolatorDirection::Decreasing {
+        if self.natural_slide.direction() == SimpleInterpolatorDirection::Decreasing {
             return false;
         }
-        if self.slide_in.value() < 1.0 {
+        if self.natural_slide.value() < 1.0 {
             return false;
         }
 
@@ -494,7 +345,7 @@ impl MessageLayer {
         };
         // TODO: need a settings handle here
         let voicevol = 90;
-        if voicevol == 0 {
+        if self.disable_voice == true || voicevol == 0 {
             return;
         }
 
@@ -533,17 +384,17 @@ impl MessageLayer {
         dont_ff_slide: bool,
     ) {
         // if the user can currently see a messagebox of a different type, take care to slide it out before (visibly) changing the type
-        if params.messagebox_type != self.messagebox_type && self.slide_in.value() > 0.0 {
+        if params.messagebox_type != self.messagebox_type && self.natural_slide.value() > 0.0 {
             self.sliding_out_messageboxes.push(SlidingOutMessagebox {
                 ty: self.messagebox_type,
                 // it should always be sliding out
-                slide_out: SimpleInterpolator::new(
-                    self.slide_in.value(),
+                slide_out: SlideInterpolator::new(
+                    self.natural_slide.value(),
                     SimpleInterpolatorDirection::Decreasing,
                 ),
                 height: self.height.value(),
             });
-            self.slide_in.set_value(0.0);
+            self.natural_slide.set_value(0.0);
         }
         self.reset_message();
 
@@ -554,7 +405,7 @@ impl MessageLayer {
 
         self.scenario = Some(scenario.clone());
 
-        self.slide_in
+        self.natural_slide
             .set_direction(SimpleInterpolatorDirection::Increasing);
 
         self.current_block_index = 0;
@@ -581,7 +432,7 @@ impl MessageLayer {
             self.height.set_target(1080.0);
             self.height.set_value(1080.0);
         } else {
-            if self.slide_in.value() == 0.0 {
+            if self.natural_slide.value() == 0.0 {
                 self.height.set_value(357.0);
             }
             self.height.set_target(357.0);
@@ -591,7 +442,7 @@ impl MessageLayer {
         self.rebuild_vertices(ctx);
 
         if !dont_ff_slide {
-            self.slide_in.set_value(1.0);
+            self.natural_slide.set_value(1.0);
         }
     }
 
@@ -785,10 +636,10 @@ impl MessageLayer {
     }
 
     pub fn close(&mut self, dont_ff_slide: bool) {
-        self.slide_in
+        self.natural_slide
             .set_direction(SimpleInterpolatorDirection::Decreasing);
         if !dont_ff_slide {
-            self.slide_in.set_value(0.0);
+            self.natural_slide.set_value(0.0);
         }
         self.reset_message();
     }
@@ -835,11 +686,11 @@ impl AdvUpdatable for MessageLayer {
 
         // if we are (semi)-transparent, don't update anything else
         // this is used for pausing
-        if self.opacity.update(dt) < 1.0 {
+        if self.modal_slide.update(dt) < 1.0 {
             return;
         }
 
-        self.slide_in.update(dt);
+        self.natural_slide.update(dt);
 
         self.sliding_out_messageboxes.retain_mut(|messagebox| {
             // NB: technically not the same as the original game (it doesn't clamp and checks < 0.0),
@@ -847,7 +698,7 @@ impl AdvUpdatable for MessageLayer {
             messagebox.slide_out.update(dt) > 0.0
         });
 
-        if self.slide_in.value() < 1.0 {
+        if self.natural_slide.value() < 1.0 {
             return;
         }
 
@@ -1056,17 +907,19 @@ impl Layer for MessageLayer {
             transform,
             Messagebox {
                 ty: self.messagebox_type,
-                slide_in_progress: self.slide_in.value(),
+                natural_slide: self.natural_slide.value(),
                 height: self.height.value(),
             },
         );
         pass.pop_debug();
 
-        if self.slide_in.value() * self.opacity.value() < 1.0 {
+        // if the messagebox is not fully shown - don't try to render the message and keywait
+        if self.natural_slide.value() * self.modal_slide.value() < 1.0 {
             pass.pop_debug();
             return;
         }
 
+        // no vertex buffer = no message and keywait
         let Some(vertex_buffer) = &self.vertex_buffer else {
             pass.pop_debug();
             return;
@@ -1078,12 +931,13 @@ impl Layer for MessageLayer {
             | MessageboxType::Ushiromiya
             | MessageboxType::Transparent
             | MessageboxType::NoText => {
-                (1.0 - self.slide_in.value()) * 64.0 + (1080.0 - self.height.value()) - 32.0
+                (1.0 - self.natural_slide.value()) * 64.0 + (1080.0 - self.height.value()) - 32.0
             }
 
             MessageboxType::Novel => 32.0f32.max((1080.0 - self.message_size.y) * 0.35),
         };
 
+        // render the keywait
         match self.wait_kind {
             Some(wait_kind @ (WaitKind::Regular | WaitKind::Last)) => {
                 pass.push_debug("MessageLayer/keywait");
@@ -1133,6 +987,8 @@ impl Layer for MessageLayer {
             pass.pop_debug();
             return;
         }
+
+        // render the text
 
         let transform = transform * Mat4::from_translation(vec3(210.0, position_y, 0.0));
 
