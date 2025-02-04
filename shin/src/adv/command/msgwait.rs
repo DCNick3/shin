@@ -42,7 +42,7 @@ impl UpdatableCommand for MSGWAIT {
     ) -> Option<CommandResult> {
         let message_layer = adv_state.root_layer_group.message_layer();
 
-        if message_layer.is_waiting(self.signal_num) {
+        if message_layer.recv_sync_is_waiting(self.signal_num) {
             None
         } else {
             Some(self.token.take().unwrap().finish())

@@ -14,7 +14,7 @@ impl StartableCommand for command::runtime::MSGSIGNAL {
         _state_info: (),
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        adv_state.root_layer_group.message_layer_mut().signal();
+        adv_state.root_layer_group.message_layer_mut().send_sync();
         self.token.finish().into()
     }
 }
