@@ -2,22 +2,13 @@
 
 use shin_core::time::Ticks;
 
-/// An interpolator that is used to animate messagebox sliding in/out and its opacity.
-///
-/// Clamps the value between 0.0 and 1.0 and stores the direction of the interpolation
-#[derive(Debug, Copy, Clone)]
-pub struct SlideInterpolator {
-    current_direction: SimpleInterpolatorDirection,
-    value: f32,
-}
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum SimpleInterpolatorDirection {
+pub enum SlideInterpolatorDirection {
     Increasing,
     Decreasing,
 }
 
-impl SimpleInterpolatorDirection {
+impl SlideInterpolatorDirection {
     pub fn from_is_increasing(is_increasing: bool) -> Self {
         if is_increasing {
             Self::Increasing
@@ -34,18 +25,27 @@ impl SimpleInterpolatorDirection {
     }
 }
 
+/// An interpolator that is used to animate messagebox sliding in/out and its opacity.
+///
+/// Clamps the value between 0.0 and 1.0 and stores the direction of the interpolation
+#[derive(Debug, Copy, Clone)]
+pub struct SlideInterpolator {
+    current_direction: SlideInterpolatorDirection,
+    value: f32,
+}
+
 impl SlideInterpolator {
     const RATE_PER_TICK: f32 = 0.1;
 
     #[inline]
-    pub fn new(value: f32, direction: SimpleInterpolatorDirection) -> Self {
+    pub fn new(value: f32, direction: SlideInterpolatorDirection) -> Self {
         Self {
             value,
             current_direction: direction,
         }
     }
 
-    pub fn set_direction(&mut self, direction: SimpleInterpolatorDirection) {
+    pub fn set_direction(&mut self, direction: SlideInterpolatorDirection) {
         self.current_direction = direction;
     }
 
@@ -61,12 +61,22 @@ impl SlideInterpolator {
         self.value
     }
 
-    pub fn direction(&self) -> SimpleInterpolatorDirection {
+    pub fn direction(&self) -> SlideInterpolatorDirection {
         self.current_direction
     }
 
     pub fn value(&self) -> f32 {
         self.value
+    }
+
+    pub fn is_fully_at(&self, direction: SlideInterpolatorDirection) -> bool {
+        if self.current_direction != direction {
+            return false;
+        }
+        match direction {
+            SlideInterpolatorDirection::Increasing => self.value >= 1.0,
+            SlideInterpolatorDirection::Decreasing => self.value <= 0.0,
+        }
     }
 }
 

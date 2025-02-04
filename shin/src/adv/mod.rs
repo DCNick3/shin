@@ -6,7 +6,7 @@ use std::{borrow::Cow, sync::Arc};
 
 pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
 use egui::Window;
-use enum_map::{enum_map, Enum};
+use enum_map::{enum_map, Enum, EnumMap};
 use glam::Mat4;
 use itertools::Itertools;
 use shin_audio::AudioManager;
@@ -32,6 +32,7 @@ use winit::keyboard::KeyCode;
 
 use crate::{
     adv::assets::AdvAssets,
+    app::AppAction,
     audio::{BgmPlayer, SePlayer, VoicePlayer},
     layer::{
         message_layer::MessageLayer, render_layer_without_bg, render_params::TransformParams,
@@ -115,10 +116,23 @@ impl Adv {
     pub fn render(&self, pass: &mut RenderPass) {
         self.adv_state.render(pass);
     }
-}
 
-impl Updatable for Adv {
-    fn update(&mut self, context: &mut UpdateContext) {
+    pub fn handle_input(&mut self, state: EnumMap<AppAction, ActionState>, is_focused: bool) {
+        if !is_focused {
+            return;
+        }
+
+        if state[AppAction::Enter].is_clicked {
+            self.adv_state.message_layer_mut().try_advance();
+        }
+    }
+
+    // TODO: impl Scene for Adv
+    pub fn update(
+        &mut self,
+        context: &mut UpdateContext,
+        input_state: EnumMap<AppAction, ActionState>,
+    ) {
         // self.action_state.update(context.raw_input_state);
 
         let fast_forward_button_held = false;
@@ -133,6 +147,9 @@ impl Updatable for Adv {
         //         .advance();
         // }
 
+        // TODO: tasks from task pool can steal focus
+        self.handle_input(input_state, true);
+
         if fast_forward_button_held || self.fast_forward_to_bp.is_some() {
             self.adv_state
                 .root_layer_group
@@ -142,11 +159,11 @@ impl Updatable for Adv {
 
         let mut result = CommandResult::None;
         loop {
-            // check the fast forward breakpoint; delete if hit
+            // check the fast-forward breakpoint; delete if hit
             if self
                 .fast_forward_to_bp
                 .as_mut()
-                .map_or(false, |bp| bp.update())
+                .is_some_and(|bp| bp.update())
             {
                 debug!("Fast-forward breakpoint hit, stopping the FF");
                 self.fast_forward_to_bp = None;
@@ -296,6 +313,10 @@ impl AdvState {
 
     pub fn root_layer_group_mut(&mut self) -> &mut RootLayerGroup {
         &mut self.root_layer_group
+    }
+
+    pub fn message_layer_mut(&mut self) -> &mut MessageLayer {
+        self.root_layer_group.message_layer_mut()
     }
 
     pub fn screen_layer_mut(&mut self) -> &mut ScreenLayer {

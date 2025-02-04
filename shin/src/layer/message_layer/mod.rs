@@ -7,9 +7,7 @@ use std::sync::Arc;
 
 use bitflags::bitflags;
 use glam::{vec2, vec3, vec4, Mat4, Vec2};
-use interpolators::{
-    Countdown, HeightInterpolator, SimpleInterpolatorDirection, SlideInterpolator,
-};
+use interpolators::{Countdown, HeightInterpolator, SlideInterpolator, SlideInterpolatorDirection};
 use itertools::{Either, Itertools};
 use shin_core::{
     format::scenario::{instruction_elements::MessageId, Scenario},
@@ -173,8 +171,8 @@ impl MessageLayer {
             voice_player,
             adv_fonts,
 
-            natural_slide: SlideInterpolator::new(0.0, SimpleInterpolatorDirection::Decreasing),
-            modal_slide: SlideInterpolator::new(1.0, SimpleInterpolatorDirection::Increasing),
+            natural_slide: SlideInterpolator::new(0.0, SlideInterpolatorDirection::Decreasing),
+            modal_slide: SlideInterpolator::new(1.0, SlideInterpolatorDirection::Increasing),
 
             autoplay_requested: false,
             scenario: None,
@@ -292,7 +290,7 @@ impl MessageLayer {
     pub fn is_interested_in_input(&self) -> bool {
         // messagebox is in the process of being hidden or is not fully shown yet
         // TODO: can this be a function on SimpleInterpolator?
-        if self.natural_slide.direction() == SimpleInterpolatorDirection::Decreasing {
+        if self.natural_slide.direction() == SlideInterpolatorDirection::Decreasing {
             return false;
         }
         if self.natural_slide.value() < 1.0 {
@@ -390,7 +388,7 @@ impl MessageLayer {
                 // it should always be sliding out
                 slide_out: SlideInterpolator::new(
                     self.natural_slide.value(),
-                    SimpleInterpolatorDirection::Decreasing,
+                    SlideInterpolatorDirection::Decreasing,
                 ),
                 height: self.height.value(),
             });
@@ -406,7 +404,7 @@ impl MessageLayer {
         self.scenario = Some(scenario.clone());
 
         self.natural_slide
-            .set_direction(SimpleInterpolatorDirection::Increasing);
+            .set_direction(SlideInterpolatorDirection::Increasing);
 
         self.current_block_index = 0;
         self.current_time = 0.0;
@@ -637,24 +635,108 @@ impl MessageLayer {
 
     pub fn close(&mut self, dont_ff_slide: bool) {
         self.natural_slide
-            .set_direction(SimpleInterpolatorDirection::Decreasing);
+            .set_direction(SlideInterpolatorDirection::Decreasing);
         if !dont_ff_slide {
             self.natural_slide.set_value(0.0);
         }
         self.reset_message();
     }
 
+    pub fn try_advance(&mut self) -> bool {
+        if !self
+            .modal_slide
+            .is_fully_at(SlideInterpolatorDirection::Increasing)
+            || !self
+                .natural_slide
+                .is_fully_at(SlideInterpolatorDirection::Increasing)
+            || self.current_block_index >= self.blocks.len()
+            || self.message_flags.contains(MessageFlags::IGNORE_INPUT)
+        {
+            // we should not accept any input in this case
+            return false;
+        }
+
+        // try to fast-forward any non-complete chars in this section
+        let any_char_ff = self.chars.iter_mut().fold(false, |acc, char| {
+            if char.block_index > self.current_block_index {
+                return acc;
+            }
+
+            if char.current_progress < 1.0 {
+                char.current_progress = 1.0;
+                return true;
+            }
+
+            acc
+        });
+
+        if any_char_ff {
+            if self.current_block_index < self.blocks.len() {
+                self.current_time = self.blocks[self.current_block_index].time;
+            }
+            return true;
+        }
+
+        // no chars needed to be fast-forwarded, try to advance wait
+        if let Some(wait_kind) = self.wait_kind {
+            match wait_kind {
+                WaitKind::Regular => {
+                    self.voice_player.stop();
+                    self.is_voice_playing = false;
+                    self.autoplay_voice_delay.set_time_left(0.0);
+                }
+                WaitKind::Last | WaitKind::AutoClick => {
+                    // TODO: we need a settings handle here
+                    let v6 = false;
+                    if !v6 {
+                        self.voice_player.stop();
+                        self.is_voice_playing = false;
+                        self.autoplay_voice_delay.set_time_left(0.0);
+                    }
+                    // TODO: notify the message listener
+                    // self.message_layer_listener.on_message_done();
+                }
+            }
+
+            self.wait_kind = None;
+            self.current_block_index += 1;
+            return true;
+        }
+
+        // if all else fails - try to stop/advance the voice
+        if self.blocks.len() >= self.current_block_index {
+            return true;
+        }
+        match &self.blocks[self.current_block_index].ty {
+            BlockType::Voice(_) | BlockType::VoiceWait(_) => {
+                // just stop the voice so the wait can begin
+                self.voice_player.stop();
+                self.is_voice_playing = false;
+                self.autoplay_voice_delay.set_time_left(0.0);
+            }
+            BlockType::VoiceSync(voice_sync) => {
+                // start playing next voice segment
+                //
+                // NB: we do not check if `self.voice_block_index` actually points to a voice block
+                // surely it'll be fine (and we'll just crash)
+                self.play_voice(
+                    self.voice_block_index,
+                    voice_sync.segment_start,
+                    voice_sync.segment_duration,
+                );
+                self.current_block_index += 1;
+            }
+
+            BlockType::Wait(_) | BlockType::Section(_) | BlockType::Sync(_) => {}
+        }
+
+        true
+    }
+
     pub fn signal(&mut self) {
         todo!()
         // if let Some(message) = self.message.as_mut() {
         //     message.signal();
-        // }
-    }
-
-    pub fn advance(&mut self) {
-        todo!()
-        // if let Some(m) = self.message.as_mut() {
-        //     m.advance()
         // }
     }
 

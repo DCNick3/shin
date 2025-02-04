@@ -36,6 +36,8 @@ impl VoicePlayer {
         false
     }
 
+    pub fn stop(&mut self) {}
+
     pub fn get_wait_status(&self) -> AudioWaitStatus {
         AudioWaitStatus::empty()
     }
