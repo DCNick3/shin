@@ -52,7 +52,8 @@ bytemuck = "1.16.1"
 encase = "0.9.0"
 
 # TODO: migrate more things to parking_lot
-parking_lot = "0.12.3"
+# running with deadlock detection for now because I've been getting rare deadlocks in wgpu :/
+parking_lot = { version = "0.12.3", features = ["deadlock_detection"] }
 
 [profile.release]
 debug = true

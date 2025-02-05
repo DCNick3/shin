@@ -110,11 +110,12 @@ impl DynamicBufferBackend for DynamicBuffer {
         data: &[u8],
     ) -> SharedBuffer<RawMarker> {
         let offset = self.position.align_to(alignment);
-        let size = BytesAddress::new(data.len() as _);
+        let logical_size = BytesAddress::new(data.len() as _);
+        let physical_size = logical_size.align_to(Self::ALIGNMENT);
 
         let mut waste = offset - self.position;
 
-        if offset + size > self.block_size {
+        if offset + physical_size > self.block_size {
             info!("reallocating the dynamic buffer, stats={:?}", self.stats);
 
             self.stats.generation += 1;
@@ -134,19 +135,19 @@ impl DynamicBufferBackend for DynamicBuffer {
         }
 
         assert!(RawMarker::is_valid_offset(offset));
-        assert!(RawMarker::is_valid_logical_size(size));
+        assert!(RawMarker::is_valid_logical_size(logical_size));
 
-        self.position = (offset + size).align_to(Self::ALIGNMENT);
+        self.position = (offset + physical_size).align_to(Self::ALIGNMENT);
 
-        waste += self.position - (offset + size);
+        waste += self.position - (offset + logical_size);
 
         self.stats.wasted += waste.get();
-        self.stats.allocated += size.get();
+        self.stats.allocated += logical_size.get();
         self.stats.alignment_histogram.add(alignment.get() as f64);
-        self.stats.size_histogram.add(size.get() as f64);
+        self.stats.size_histogram.add(logical_size.get() as f64);
 
         self.buffer.write(&self.queue, offset, data);
 
-        self.buffer.slice_bytes(offset, size)
+        self.buffer.slice_bytes(offset, logical_size)
     }
 }
