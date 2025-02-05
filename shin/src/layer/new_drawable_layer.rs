@@ -322,6 +322,10 @@ impl<T: NewDrawableLayer> NewDrawableLayerWrapper<T> {
             props: LayerProperties::new(),
         }
     }
+
+    pub fn inner_ref(&self) -> &T {
+        &self.inner_layer
+    }
 }
 
 impl<T: AdvUpdatable> AdvUpdatable for NewDrawableLayerWrapper<T> {
@@ -332,7 +336,7 @@ impl<T: AdvUpdatable> AdvUpdatable for NewDrawableLayerWrapper<T> {
     }
 }
 
-impl<T: NewDrawableLayer + Clone + AdvUpdatable> Layer for NewDrawableLayerWrapper<T> {
+impl<T: NewDrawableLayer + AdvUpdatable> Layer for NewDrawableLayerWrapper<T> {
     fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         self.state
             .pre_render(context, &self.props, &mut self.inner_layer, transform);
@@ -356,7 +360,7 @@ impl<T: NewDrawableLayer + Clone + AdvUpdatable> Layer for NewDrawableLayerWrapp
     }
 }
 
-impl<T: NewDrawableLayer + Clone + AdvUpdatable> DrawableLayer for NewDrawableLayerWrapper<T> {
+impl<T: NewDrawableLayer + AdvUpdatable> DrawableLayer for NewDrawableLayerWrapper<T> {
     fn properties(&self) -> &LayerProperties {
         &self.props
     }

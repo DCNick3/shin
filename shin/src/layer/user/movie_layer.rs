@@ -1,133 +1,222 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{
+    fmt::Debug,
+    sync::{Arc, Mutex},
+};
 
-use glam::Mat4;
+use glam::{vec3, Mat4};
 use shin_audio::AudioManager;
+use shin_core::{
+    format::scenario::info::{MovieTransparencyMode, MovieVolumeSource},
+    primitives::update::{FrameId, UpdateTracker},
+    vm::command::types::Volume,
+};
 use shin_render::{
     render_pass::RenderPass,
-    shaders::types::{RenderClone, RenderCloneCtx},
-    PassKind,
+    shaders::types::{
+        texture::{DepthStencilTarget, TextureTarget},
+        RenderClone, RenderCloneCtx,
+    },
+    LayerBlendType, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_video::VideoPlayerHandle;
+use tracing::warn;
 
 use crate::{
-    asset::movie::Movie,
-    layer::{properties::LayerProperties, render_params::TransformParams, DrawableLayer, Layer},
+    asset::{movie::Movie, picture::Picture},
+    layer::{
+        new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
+        properties::LayerProperties,
+        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
+        user::PictureLayer,
+        DrawableLayer, Layer, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
+    },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 
-pub struct MovieLayer {
-    props: LayerProperties,
-    video_player: VideoPlayerHandle,
-    // render_target: RenderTarget,
-    movie_name: Option<String>,
+struct Shared {
+    update_tracker: UpdateTracker,
+    volume_source: MovieVolumeSource,
+    local_volume: Volume,
 }
+
+impl Shared {
+    fn new(volume_source: MovieVolumeSource, local_volume: Volume) -> Self {
+        Self {
+            update_tracker: UpdateTracker::new(),
+            volume_source,
+            local_volume,
+        }
+    }
+
+    fn update(&mut self, frame_id: FrameId, handle: &VideoPlayerHandle) {
+        if !self.update_tracker.update(frame_id) {
+            return;
+        }
+
+        // TODO: restart the video if it's looping and it's finished
+
+        // TODO: need settings handle to read volume
+        let settings_volume = Volume(1.0);
+        let final_volume = self.local_volume * settings_volume;
+
+        handle.set_volume(final_volume);
+    }
+}
+
+#[derive(RenderClone)]
+pub struct MovieLayerImpl {
+    movie_label: String,
+    video_player: Arc<VideoPlayerHandle>,
+    still_picture: Option<Arc<Picture>>,
+    shared: Arc<Mutex<Shared>>,
+    transparency: MovieTransparencyMode,
+    repeat: bool,
+}
+
+pub struct MovieArgs {
+    pub volume_source: MovieVolumeSource,
+    pub transparency: MovieTransparencyMode,
+    pub local_volume: Volume,
+    pub repeat: bool,
+}
+
+struct MovieBackendArgs {
+    pub is_bgm: bool,
+    pub transparency: MovieTransparencyMode,
+    pub repeat: bool,
+}
+
+pub type MovieLayer = NewDrawableLayerWrapper<MovieLayerImpl>;
 
 impl MovieLayer {
     pub fn new(
         device: &wgpu::Device,
         audio_manager: &AudioManager,
         movie: Arc<Movie>,
-        movie_name: Option<String>,
+        MovieArgs {
+            volume_source,
+            transparency,
+            local_volume,
+            repeat,
+        }: MovieArgs,
+        // NB: the original engine uses PictureLayer here
+        // we have decoupled asset type from the layer type though
+        still_picture: Option<Arc<Picture>>,
     ) -> Self {
-        Self {
-            props: LayerProperties::new(),
-            video_player: movie
-                .play(device, audio_manager)
-                .expect("Failed to play movie"),
-            // render_target: RenderTarget::new(
-            //     resources,
-            //     resources.current_render_buffer_size(),
-            //     Some("MovieLayer RenderTarget"),
-            // ),
-            movie_name,
+        if transparency != MovieTransparencyMode::Opaque {
+            warn!("Movie transparency mode {:?} not supported", transparency);
         }
+        if repeat {
+            warn!("Movie repeat mode not supported");
+        }
+
+        NewDrawableLayerWrapper::from_inner(MovieLayerImpl {
+            movie_label: movie.label().to_string(),
+            video_player: Arc::new(
+                movie
+                    .play(device, audio_manager)
+                    .expect("Failed to play movie"),
+            ),
+            still_picture,
+            shared: Arc::new(Mutex::new(Shared::new(volume_source, local_volume))),
+            transparency,
+            repeat,
+        })
     }
 
     pub fn is_finished(&self) -> bool {
-        self.video_player.is_finished()
+        self.inner_ref().video_player.is_finished()
     }
 }
 
-// impl Renderable for MovieLayer {
-//     fn render<'enc>(
-//         &'enc self,
-//         resources: &'enc GpuCommonResources,
-//         render_pass: &mut wgpu::RenderPass<'enc>,
-//         transform: Mat4,
-//         projection: Mat4,
-//     ) {
-//         // draw to a render target first because currently all our layer passes are in Srgb
-//         // TODO: I believe this will be changed, so we can remove this extra render pass
-//         {
-//             let mut encoder = resources.start_encoder();
-//             let mut render_pass = self
-//                 .render_target
-//                 .begin_raw_render_pass(&mut encoder, Some("MovieLayer RenderPass"));
-//
-//             self.video_player.render(
-//                 resources,
-//                 &mut render_pass,
-//                 transform,
-//                 self.render_target.projection_matrix(),
-//             );
-//         }
-//
-//         resources.draw_sprite(
-//             render_pass,
-//             self.render_target.vertex_source(),
-//             self.render_target.bind_group(),
-//             projection,
-//         );
-//     }
-//
-//     fn resize(&mut self, resources: &GpuCommonResources) {
-//         self.render_target
-//             .resize(resources, resources.current_render_buffer_size());
-//     }
-// }
+impl NewDrawableLayerNeedsSeparatePass for MovieLayerImpl {
+    fn needs_separate_pass(&self, props: &LayerProperties) -> bool {
+        // NB: this if is not present in the original implementation
+        // instead, it always forces an additional render pass to convert YUV to RGB
+        // we try to be better and optimistically render it in one pass
 
-impl AdvUpdatable for MovieLayer {
-    fn update(&mut self, ctx: &AdvUpdateContext) {
-        self.video_player.update(
-            ctx.frame_id,
-            ctx.delta_ticks,
-            todo!(), // &ctx.gpu_resources.queue
+        // In actuality, I think we can do even better, by adding support of some of these effects to the movie shader
+        // but that's probably not very useful (?)
+        if props.get_clip_mode() != DrawableClipMode::None
+            || props.is_fragment_shader_nontrivial()
+            || props.is_blending_nontrivial()
+        {
+            return true;
+        }
+
+        if !self.video_player.is_finished() {
+            return false;
+        }
+
+        self.still_picture.is_some()
+    }
+}
+
+impl NewDrawableLayer for MovieLayerImpl {
+    fn render_drawable_indirect(
+        &mut self,
+        context: &mut PreRenderContext,
+        props: &LayerProperties,
+        target: TextureTarget,
+        depth_stencil: DepthStencilTarget,
+        transform: &TransformParams,
+    ) -> PassKind {
+        todo!()
+    }
+
+    fn render_drawable_direct(
+        &self,
+        pass: &mut RenderPass,
+        transform: &TransformParams,
+        drawable: &DrawableParams,
+        _clip: &DrawableClipParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        // TODO: I think some of these conditions conflict with the needs_separate_pass logic
+        // (aka they will never be true)
+        let target_pass = if self.transparency != MovieTransparencyMode::Opaque
+            || drawable.blend_type != LayerBlendType::Type1
+            || drawable.color_multiplier.a < 1.0
+        {
+            PassKind::Transparent
+        } else {
+            PassKind::Opaque
+        };
+
+        if pass_kind != target_pass {
+            return;
+        }
+
+        let Some(frame) = self.video_player.get_frame() else {
+            return;
+        };
+
+        // NB: the original engine uses a generic layer shader here, because it does YUV->RGB conversion in a separate pass
+        // we try to do better, so we do the conversion in the main pass
+
+        let transform =
+            transform.compute_final_transform() * Mat4::from_translation(vec3(-960.0, -540.0, 0.0));
+
+        frame.render(
+            pass,
+            RenderRequestBuilder::new().depth_stencil_shorthand(stencil_ref, false, false),
+            transform,
         );
     }
 }
 
-impl Debug for MovieLayer {
+impl AdvUpdatable for MovieLayerImpl {
+    fn update(&mut self, ctx: &AdvUpdateContext) {
+        self.video_player
+            .update(ctx.frame_id, ctx.delta_ticks, ctx.queue);
+    }
+}
+
+impl Debug for MovieLayerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("MovieLayer")
-            .field(&self.movie_name.as_ref().map_or("<unnamed>", |v| v.as_str()))
+            .field(&self.movie_label)
             .finish()
-    }
-}
-
-impl RenderClone for MovieLayer {
-    fn render_clone(&self, _ctx: &mut RenderCloneCtx) -> Self {
-        todo!()
-    }
-}
-
-impl Layer for MovieLayer {
-    fn render(
-        &self,
-        pass: &mut RenderPass,
-        transform: &TransformParams,
-        stencil_ref: u8,
-        pass_kind: PassKind,
-    ) {
-        todo!()
-    }
-}
-
-impl DrawableLayer for MovieLayer {
-    fn properties(&self) -> &LayerProperties {
-        &self.props
-    }
-
-    fn properties_mut(&mut self) -> &mut LayerProperties {
-        &mut self.props
     }
 }

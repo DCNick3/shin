@@ -5,11 +5,11 @@ use shin_audio::AudioManager;
 use shin_core::{
     format::scenario::{
         info::{BustupInfoItem, MovieInfoItem, PictureInfoItem},
-        instruction_elements::UntypedNumberArray,
+        instruction_elements::{FromNumber, UntypedNumberArray},
         Scenario,
     },
     primitives::color::FloatColor4,
-    vm::command::types::LayerType,
+    vm::command::types::{LayerType, Volume},
 };
 use shin_render::{render_pass::RenderPass, shaders::types::RenderClone, PassKind};
 use tracing::{debug, warn};
@@ -22,7 +22,8 @@ use crate::{
         system::AssetServer,
     },
     layer::{
-        render_params::TransformParams, DrawableLayer, Layer, LayerProperties, PreRenderContext,
+        render_params::TransformParams, user::movie_layer::MovieArgs, DrawableLayer, Layer,
+        LayerProperties, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -119,14 +120,20 @@ impl UserLayer {
                 BustupLayer::new(bup, Some(name.to_string())).into()
             }
             LayerType::Movie => {
-                let (movie_id, _volume, _flags, ..) = params;
-                let movie_info @ MovieInfoItem {
-                    name,
+                let (movie_id, volume, repeat, ..) = params;
+                let movie_info @ &MovieInfoItem {
+                    ref name,
                     linked_picture_id,
                     volume_source,
                     transparency,
                     linked_bgm_id,
                 } = scenario.info_tables().movie_info(movie_id);
+                let pic_name = (linked_picture_id != 0).then(|| {
+                    &scenario
+                        .info_tables()
+                        .picture_info(linked_picture_id as i32)
+                        .name
+                });
                 debug!(
                     "Load movie: {movie_id} -> {name} {linked_picture_id} {volume_source:?} {transparency:?} {linked_bgm_id}"
                 );
@@ -135,7 +142,25 @@ impl UserLayer {
                     .await
                     .expect("Failed to load movie");
 
-                MovieLayer::new(device, audio_manager, movie, Some(name.to_string())).into()
+                let still_picture = if let Some(pic_name) = pic_name {
+                    Some(
+                        asset_server
+                            .load::<Picture, _>(pic_name)
+                            .await
+                            .expect("Failed to load still picture"),
+                    )
+                } else {
+                    None
+                };
+
+                let args = MovieArgs {
+                    volume_source,
+                    transparency,
+                    local_volume: Volume::from_number(volume),
+                    repeat: repeat & 1 != 0,
+                };
+
+                MovieLayer::new(device, audio_manager, movie, args, still_picture).into()
             }
             LayerType::Rain => {
                 let (_always_zero, _min_distance, _max_distance, ..) = params;

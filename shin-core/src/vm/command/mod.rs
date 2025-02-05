@@ -305,8 +305,8 @@ pub enum Command {
     },
     #[cmd(opcode = 0xc7u8)]
     MOVIEWAIT {
-        layer_id: NumberSpec<LayerId>,
-        target_status: NumberSpec,
+        layer_id: NumberSpec<VLayerId>,
+        unwanted_statuses: NumberSpec<AudioWaitStatus>,
     },
     // 0xc8 unused
     #[cmd(opcode = 0xc9u8)]

@@ -154,7 +154,9 @@ impl Adv {
             self.adv_state
                 .root_layer_group
                 .message_layer_mut()
-                .fast_forward();
+                // TODO: do actual fast-forward instead of this faux one
+                .try_advance();
+            //.fast_forward();
         }
 
         let mut result = CommandResult::None;
@@ -353,6 +355,8 @@ impl Updatable for AdvState {
             frame_id: context.frame_id,
             delta_ticks: context.delta_ticks,
             asset_server: context.asset_server,
+            device: &context.pre_render.device,
+            queue: &context.pre_render.queue,
             are_animations_allowed: self.allow_running_animations,
         };
 

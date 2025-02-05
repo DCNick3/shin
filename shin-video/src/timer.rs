@@ -1,5 +1,8 @@
 use shin_audio::AudioHandle;
-use shin_core::time::Ticks;
+use shin_core::{
+    time::{Ticks, Tween},
+    vm::command::types::Volume,
+};
 use tracing::warn;
 
 pub struct IndependentTimer {
@@ -14,8 +17,10 @@ impl IndependentTimer {
         IndependentTimer { time_base, time: 0 }
     }
 
-    pub fn update(&mut self, delta_time: Ticks) {
+    pub fn update(&mut self, delta_time: Ticks) -> u64 {
         self.time += (delta_time.as_seconds() as f64 * self.time_base as f64) as u64;
+
+        self.time
     }
 
     pub fn time(&self) -> u64 {
@@ -38,7 +43,7 @@ impl AudioTiedTimer {
         }
     }
 
-    pub fn update(&mut self, delta_time: Ticks) {
+    pub fn update(&mut self, delta_time: Ticks) -> u64 {
         self.timer.update(delta_time);
 
         let audio_secs = self.audio_handle.position().as_seconds() as f64;
@@ -51,6 +56,8 @@ impl AudioTiedTimer {
             );
             self.timer.time = (audio_secs * self.timer.time_base as f64) as u64;
         }
+
+        self.timer.time
     }
 
     pub fn time(&self) -> u64 {
@@ -72,7 +79,7 @@ impl Timer {
         Timer::AudioTiedTimer(AudioTiedTimer::new(time_base, audio_handle))
     }
 
-    pub fn update(&mut self, delta_time: Ticks) {
+    pub fn update(&mut self, delta_time: Ticks) -> u64 {
         match self {
             Timer::Independent(timer) => timer.update(delta_time),
             Timer::AudioTiedTimer(timer) => timer.update(delta_time),
@@ -84,5 +91,18 @@ impl Timer {
             Timer::Independent(timer) => timer.time(),
             Timer::AudioTiedTimer(timer) => timer.time(),
         }
+    }
+
+    // Why is this a function on a timer?
+    // because timer keeps the audio handle :/
+    pub fn set_audio_volume(&mut self, volume: Volume) {
+        let Timer::AudioTiedTimer(timer) = self else {
+            return;
+        };
+
+        timer
+            .audio_handle
+            .set_volume(volume, Tween::IMMEDIATE)
+            .unwrap()
     }
 }

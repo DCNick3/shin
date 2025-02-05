@@ -3,7 +3,9 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Context;
 use enum_map::{Enum, EnumMap};
 use shin_audio::AudioManager;
-use shin_core::{primitives::update::FrameId, time::Ticks};
+use shin_core::{
+    format::scenario::instruction_elements::CodeAddress, primitives::update::FrameId, time::Ticks,
+};
 use shin_input::{inputs::MouseButton, Action, ActionState, RawInputState};
 use shin_render::render_pass::RenderPass;
 use shin_window::{AppContext, RenderContext, ShinApp};
@@ -77,7 +79,12 @@ impl ShinApp for App {
         // TODO: do not block the game loop (?)
         let adv_assets = shin_tasks::block_on(AdvAssets::load(&asset_server)).unwrap();
 
-        let adv = Adv::new(audio_manager.clone(), adv_assets, 0, 42);
+        let mut adv = Adv::new(audio_manager.clone(), adv_assets, 0, 42);
+
+        if let Some(addr) = cli.fast_forward_to {
+            debug!("Fast forwarding to 0x{:x}", addr);
+            adv.fast_forward_to(CodeAddress(addr));
+        }
 
         // let picture_name = "/picture/text001.pic";
         //

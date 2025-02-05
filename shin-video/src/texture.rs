@@ -1,4 +1,5 @@
 use dpi::PhysicalSize;
+use glam::{vec2, Vec2};
 use shin_render::{
     gpu_texture::{GpuTexture, TextureKind},
     shaders::types::texture::TextureSource,
@@ -82,6 +83,11 @@ impl VideoFrameTexture {
                 depth_or_array_layers: 1,
             },
         );
+    }
+
+    pub fn get_size(&self) -> Vec2 {
+        let PhysicalSize { width, height } = self.size;
+        vec2(width as f32, height as f32)
     }
 
     pub fn get_y_source(&self) -> TextureSource {
