@@ -6,7 +6,10 @@ use kira::track::TrackId;
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockUpgradableReadGuard};
 use shin_audio::{AudioData, AudioManager, AudioSettings};
 use shin_core::{
-    primitives::update::{FrameId, UpdateTracker},
+    primitives::{
+        exclusive::Exclusive,
+        update::{FrameId, UpdateTracker},
+    },
     time::{Ticks, Tween},
     vm::command::types::{Pan, Volume},
 };
@@ -27,10 +30,9 @@ use crate::{
 
 struct VideoPlayerInner {
     update_tracker: UpdateTracker,
-    // additionally wrap by mutex because deep inside of Timer there's a `Cell` :/
-    // I am pretty the lack of aliasing mutating access can be proven statically, but meh
+    // we could use [`Exclusive`] instead of [`Mutex`] here, but `set_volume` will then have to take a lock that is much larger than necessary
     timer: Mutex<Timer>,
-    video_decoder: H264Decoder,
+    video_decoder: Exclusive<H264Decoder>,
     video_texture: VideoFrameTexture,
     pending_frame: Option<(FrameTiming, Nv12Frame)>,
 }
@@ -90,7 +92,7 @@ impl VideoPlayerHandle {
         let inner = VideoPlayerInner {
             update_tracker: UpdateTracker::new(),
             timer: Mutex::new(timer),
-            video_decoder,
+            video_decoder: Exclusive::new(video_decoder),
             video_texture,
             pending_frame,
         };
@@ -142,10 +144,14 @@ impl VideoPlayerHandle {
                 }
 
                 // look at the frame after the pending one
-                let next_frame = this.video_decoder.read_frame().unwrap_or_else(|err| {
-                    error!("Error reading frame: {}. Stopping playback", err);
-                    None
-                });
+                let next_frame = this
+                    .video_decoder
+                    .get_mut()
+                    .read_frame()
+                    .unwrap_or_else(|err| {
+                        error!("Error reading frame: {}. Stopping playback", err);
+                        None
+                    });
 
                 // if the next frame is not ready for display yet...
                 if next_frame
@@ -201,6 +207,10 @@ pub struct VideoPlayerFrameHandle<'a> {
 }
 
 impl<'a> VideoPlayerFrameHandle<'a> {
+    pub fn get_frame(&self) -> &VideoFrameTexture {
+        &self.guard.video_texture
+    }
+
     pub fn render(&self, pass: &mut RenderPass, builder: RenderRequestBuilder, transform: Mat4) {
         let tex = &self.guard.video_texture;
 
