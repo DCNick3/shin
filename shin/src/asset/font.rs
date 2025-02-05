@@ -36,6 +36,10 @@ impl GpuFontLazy {
         queue: &Arc<wgpu::Queue>,
         characters: &[char],
     ) -> Vec<GpuFontGlyphHandle> {
+        if characters.is_empty() {
+            return Vec::new();
+        }
+
         let glyph_map = self.font.get_character_mapping();
 
         let mut glyphs_dedup = IndexSet::new();
@@ -67,7 +71,7 @@ impl GpuFontLazy {
 
             // actually load the stuff
             let task_pool = AsyncComputeTaskPool::get();
-            let chunk_size = std::cmp::min(16, need_loading_list.len() / task_pool.thread_num());
+            let chunk_size = std::cmp::max(16, need_loading_list.len() / task_pool.thread_num());
 
             for chunk in &need_loading_list.into_iter().chunks(chunk_size) {
                 let chunk = chunk.collect::<Vec<_>>();
