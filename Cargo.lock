@@ -5789,6 +5789,7 @@ dependencies = [
  "mp4",
  "num-integer",
  "once_cell",
+ "parking_lot 0.12.3",
  "shin-audio",
  "shin-core",
  "shin-input",

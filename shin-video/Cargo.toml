@@ -41,6 +41,8 @@ num-integer = "0.1.45"
 
 dpi = { workspace = true }
 
+parking_lot = { workspace = true }
+
 [features]
 gstreamer = [
     "dep:gst",

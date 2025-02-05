@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Context;
 use enum_map::{Enum, EnumMap};
 use shin_audio::AudioManager;
-use shin_core::time::Ticks;
+use shin_core::{primitives::update::FrameId, time::Ticks};
 use shin_input::{inputs::MouseButton, Action, ActionState, RawInputState};
 use shin_render::render_pass::RenderPass;
 use shin_window::{AppContext, RenderContext, ShinApp};
@@ -46,6 +46,7 @@ impl Action for AppAction {
 }
 
 pub struct App {
+    frame_id: FrameId,
     #[expect(unused)] // for future stuff
     audio_manager: Arc<AudioManager>,
     asset_server: Arc<AssetServer>,
@@ -143,6 +144,7 @@ impl ShinApp for App {
         // }
 
         Ok(Self {
+            frame_id: FrameId::default(),
             audio_manager,
             asset_server,
             adv,
@@ -196,6 +198,7 @@ impl ShinApp for App {
         };
 
         let mut update_context = UpdateContext {
+            frame_id: self.frame_id,
             delta_ticks: Ticks::from_duration(elapsed_time),
             asset_server: &self.asset_server,
             pre_render: &mut pre_render_context,
@@ -237,6 +240,8 @@ impl ShinApp for App {
         //     .pre_render(&mut pre_render_context, &transform);
 
         context.wgpu.queue.submit(std::iter::once(encoder.finish()));
+
+        self.frame_id.advance();
     }
 
     fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {

@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use shin_audio::AudioManager;
-use shin_video::{mp4::Mp4, VideoPlayer};
+use shin_video::{mp4::Mp4, VideoPlayerHandle};
 
 use crate::asset::system::{Asset, AssetDataAccessor, AssetDataCursor, AssetLoadContext};
 
@@ -25,7 +25,11 @@ impl Asset for Movie {
 }
 
 impl Movie {
-    pub fn play(&self, device: &wgpu::Device, audio_manager: &AudioManager) -> Result<VideoPlayer> {
-        VideoPlayer::new(device, audio_manager, self.mp4.clone())
+    pub fn play(
+        &self,
+        device: &wgpu::Device,
+        audio_manager: &AudioManager,
+    ) -> Result<VideoPlayerHandle> {
+        VideoPlayerHandle::new(device, audio_manager, self.mp4.clone())
     }
 }

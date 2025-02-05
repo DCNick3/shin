@@ -3,8 +3,10 @@ use std::io::{Read, Seek};
 use anyhow::{Context, Result};
 use glam::{Mat4, Vec3, Vec4};
 use kira::track::TrackId;
+use parking_lot::{RwLock, RwLockReadGuard, RwLockUpgradableReadGuard};
 use shin_audio::{AudioData, AudioManager, AudioSettings};
 use shin_core::{
+    primitives::update::{FrameId, UpdateTracker},
     time::{Ticks, Tween},
     vm::command::types::{Pan, Volume},
 };
@@ -23,19 +25,24 @@ use crate::{
     VideoFrameTexture,
 };
 
-pub struct VideoPlayer {
+struct VideoPlayerInner {
+    update_tracker: UpdateTracker,
     timer: Timer,
     video_decoder: H264Decoder,
     video_texture: VideoFrameTexture,
     pending_frame: Option<(FrameTiming, Nv12Frame)>,
 }
 
-impl VideoPlayer {
+pub struct VideoPlayerHandle {
+    inner: RwLock<VideoPlayerInner>,
+}
+
+impl VideoPlayerHandle {
     pub fn new<S: Read + Seek + Send + 'static>(
         device: &wgpu::Device,
         audio_manager: &AudioManager,
         mp4: Mp4<S>,
-    ) -> Result<VideoPlayer> {
+    ) -> Result<VideoPlayerHandle> {
         let time_base = mp4
             .video_track
             .get_mp4_track_info(|track| track.timescale());
@@ -78,77 +85,112 @@ impl VideoPlayer {
             None => Timer::new_independent(time_base),
         };
 
-        Ok(VideoPlayer {
+        let inner = VideoPlayerInner {
+            update_tracker: UpdateTracker::new(),
             timer,
             video_decoder,
             video_texture,
             pending_frame,
+        };
+
+        Ok(VideoPlayerHandle {
+            inner: RwLock::new(inner),
         })
     }
 
-    pub fn update(&mut self, delta_time: Ticks, queue: &wgpu::Queue) {
-        self.timer.update(delta_time);
-        let current_time = self.timer.time();
+    pub fn update(&self, game_frame_id: FrameId, delta_time: Ticks, queue: &wgpu::Queue) {
+        let read_guard = self.inner.upgradable_read();
+        if !read_guard.update_tracker.needs_update(game_frame_id) {
+            return;
+        }
 
-        let mut skipped_frames = 0;
-        // find the latest frame that is ready for display
-        // this might be the currently pending frame, or any of the frames after it (shouldn't happen often I think)
-        while let Some((timing, ref frame)) = self.pending_frame {
-            // if it's not time to display the frame yet - stop the loop
-            if timing.start_time > current_time {
-                // very noisy
-                // trace!(
-                //     "Not time to display frame #{}, time: {}",
-                //     timing.frame_number,
-                //     timing.start_time
-                // );
-                break;
-            }
+        let mut write_guard = RwLockUpgradableReadGuard::upgrade(read_guard);
 
-            // look at the frame after the pending one
-            let next_frame = match self.video_decoder.read_frame() {
-                Ok(frame) => frame,
-                Err(err) => {
+        let this = &mut *write_guard;
+
+        if this.update_tracker.update(game_frame_id) {
+            this.timer.update(delta_time);
+            let current_time = this.timer.time();
+
+            let mut skipped_frames = 0;
+            // find the latest frame that is ready for display
+            // this might be the currently pending frame, or any of the frames after it (shouldn't happen often I think)
+            while let Some((timing, ref frame)) = this.pending_frame {
+                // if it's not time to display the frame yet - stop the loop
+                if timing.start_time > current_time {
+                    // very noisy
+                    // trace!(
+                    //     "Not time to display frame #{}, time: {}",
+                    //     timing.frame_number,
+                    //     timing.start_time
+                    // );
+                    break;
+                }
+
+                // look at the frame after the pending one
+                let next_frame = this.video_decoder.read_frame().unwrap_or_else(|err| {
                     error!("Error reading frame: {}. Stopping playback", err);
                     None
+                });
+
+                // if the next frame is not ready for display yet...
+                if next_frame
+                    .as_ref()
+                    .map_or(true, |(timing, _)| timing.start_time > current_time)
+                {
+                    if skipped_frames > 0 {
+                        warn!("Skipped {} frames", skipped_frames);
+                    }
+
+                    // then update the texture with the pending frame
+                    trace!(
+                        "Displaying frame #{}, time: {}",
+                        timing.frame_number,
+                        timing.start_time
+                    );
+                    this.video_texture.write_data_nv12(queue, frame);
+                    // the loop will not enter again, so the pending frame will now be displayed
+                } else {
+                    skipped_frames += 1;
+                    // if the next frame is also ready for display, then we should skip the pending frame
                 }
-            };
 
-            // if the next frame is not ready for display yet...
-            if next_frame
-                .as_ref()
-                .map_or(true, |(timing, _)| timing.start_time > current_time)
-            {
-                if skipped_frames > 0 {
-                    warn!("Skipped {} frames", skipped_frames);
+                if next_frame.is_none() {
+                    info!("No more frames, stopping playback");
                 }
 
-                // then update the texture with the pending frame
-                trace!(
-                    "Displaying frame #{}, time: {}",
-                    timing.frame_number,
-                    timing.start_time
-                );
-                self.video_texture.write_data_nv12(queue, frame);
-                // the loop will not enter again, so the pending frame will now be displayed
-            } else {
-                skipped_frames += 1;
-                // if the next frame is also ready for display, then we should skip the pending frame
+                this.pending_frame = next_frame;
             }
-
-            if next_frame.is_none() {
-                info!("No more frames, stopping playback");
-            }
-
-            self.pending_frame = next_frame;
         }
     }
 
     pub fn is_finished(&self) -> bool {
-        self.pending_frame.is_none()
+        let read_guard = self.inner.read();
+        read_guard.pending_frame.is_none()
     }
 
+    pub fn get_frame(&self) -> Option<VideoPlayerFrameHandle> {
+        let read_guard = self.inner.read();
+
+        // TODO: actually, this will eat the last frame of the video
+        // we need to provide another mechanism for determining how long to display the last frame
+        if read_guard.pending_frame.is_none() {
+            return None;
+        }
+
+        Some(VideoPlayerFrameHandle { guard: read_guard })
+    }
+}
+
+pub struct VideoPlayerFrameHandle<'a> {
+    guard: RwLockReadGuard<'a, VideoPlayerInner>,
+}
+
+impl<'a> VideoPlayerFrameHandle<'a> {
     pub fn render(&self, pass: &mut RenderPass) {
+        let tex = &self.guard.video_texture;
+
+        // TODO: handle movie with alpha
         pass.run(RenderRequestBuilder::new().build(
             RenderProgramWithArguments::Movie {
                 vertices: VertexSource::VertexData {
@@ -167,8 +209,8 @@ impl VideoPlayer {
                         },
                     ],
                 },
-                texture_luma: self.video_texture.get_y_source(),
-                texture_chroma: self.video_texture.get_uv_source(),
+                texture_luma: tex.get_y_source(),
+                texture_chroma: tex.get_uv_source(),
                 // TODO: the coordinate systems are probably all whack
                 transform: Mat4::from_scale(Vec3::new(2.0, 2.0, -1.0))
                     * Mat4::from_translation(Vec3::new(-0.5, -0.5, 0.0)),

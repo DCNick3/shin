@@ -9,4 +9,4 @@ mod timer;
 mod video_player;
 
 pub use texture::VideoFrameTexture;
-pub use video_player::VideoPlayer;
+pub use video_player::VideoPlayerHandle;

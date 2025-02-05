@@ -350,6 +350,7 @@ impl AdvState {
 impl Updatable for AdvState {
     fn update(&mut self, context: &mut UpdateContext) {
         let adv_update_context = AdvUpdateContext {
+            frame_id: context.frame_id,
             delta_ticks: context.delta_ticks,
             asset_server: context.asset_server,
             are_animations_allowed: self.allow_running_animations,

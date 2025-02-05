@@ -2,13 +2,13 @@ use std::{fs::File, time::Duration};
 
 use enum_map::{enum_map, Enum, EnumMap};
 use shin_audio::AudioManager;
-use shin_core::time::Ticks;
+use shin_core::{primitives::update::FrameId, time::Ticks};
 use shin_input::{
     inputs::{GamepadButton, KeyCode},
     Action, ActionState, RawInputState,
 };
 use shin_render::render_pass::RenderPass;
-use shin_video::{mp4::Mp4, VideoPlayer};
+use shin_video::{mp4::Mp4, VideoPlayerHandle};
 use shin_window::{AppContext, RenderContext, ShinApp};
 
 #[derive(Enum)]
@@ -35,7 +35,8 @@ impl Action for PlayAction {
 struct PlayerExample {
     #[allow(dead_code)] // it's doing its thing in the background
     audio_manager: AudioManager,
-    video_player: VideoPlayer,
+    video_player: VideoPlayerHandle,
+    frame: FrameId,
 }
 
 impl ShinApp for PlayerExample {
@@ -49,11 +50,13 @@ impl ShinApp for PlayerExample {
         // let file = File::open("ship1.mp4").unwrap();
         let file = File::open("op1.mp4").unwrap();
         let mp4 = Mp4::new(file).unwrap();
-        let video_player = VideoPlayer::new(&context.wgpu.device, &audio_manager, mp4).unwrap();
+        let video_player =
+            VideoPlayerHandle::new(&context.wgpu.device, &audio_manager, mp4).unwrap();
 
         Ok(Self {
             audio_manager,
             video_player,
+            frame: FrameId::default(),
         })
     }
 
@@ -72,12 +75,19 @@ impl ShinApp for PlayerExample {
             context.winit.toggle_fullscreen();
         }
 
-        self.video_player
-            .update(Ticks::from_duration(elapsed_time), &context.wgpu.queue);
+        self.video_player.update(
+            self.frame,
+            Ticks::from_duration(elapsed_time),
+            &context.wgpu.queue,
+        );
+
+        self.frame.advance();
     }
 
     fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
-        self.video_player.render(pass);
+        if let Some(frame) = self.video_player.get_frame() {
+            frame.render(pass);
+        }
     }
 }
 
