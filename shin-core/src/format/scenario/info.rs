@@ -115,7 +115,7 @@ impl SeInfoItem {
 }
 
 /// Defines how to deal with transparency when playing a movie.
-#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub enum MovieTransparencyMode {
     /// Opaque mode. The video will be played normally.
     #[brw(magic = 0x0u8)]
@@ -126,7 +126,7 @@ pub enum MovieTransparencyMode {
 }
 
 /// Defines which volume setting to use when playing a movie.
-#[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub enum MovieVolumeSource {
     /// Ignore settings, always play at full volume
     #[brw(magic = 0x0u8)]

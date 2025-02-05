@@ -1,9 +1,9 @@
 use std::io::{Read, Seek};
 
 use anyhow::{Context, Result};
-use glam::{Mat4, Vec3, Vec4};
+use glam::{Mat4, Vec4};
 use kira::track::TrackId;
-use parking_lot::{RwLock, RwLockReadGuard, RwLockUpgradableReadGuard};
+use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockUpgradableReadGuard};
 use shin_audio::{AudioData, AudioManager, AudioSettings};
 use shin_core::{
     primitives::update::{FrameId, UpdateTracker},
@@ -27,7 +27,9 @@ use crate::{
 
 struct VideoPlayerInner {
     update_tracker: UpdateTracker,
-    timer: Timer,
+    // additionally wrap by mutex because deep inside of Timer there's a `Cell` :/
+    // I am pretty the lack of aliasing mutating access can be proven statically, but meh
+    timer: Mutex<Timer>,
     video_decoder: H264Decoder,
     video_texture: VideoFrameTexture,
     pending_frame: Option<(FrameTiming, Nv12Frame)>,
@@ -87,7 +89,7 @@ impl VideoPlayerHandle {
 
         let inner = VideoPlayerInner {
             update_tracker: UpdateTracker::new(),
-            timer,
+            timer: Mutex::new(timer),
             video_decoder,
             video_texture,
             pending_frame,
@@ -96,6 +98,15 @@ impl VideoPlayerHandle {
         Ok(VideoPlayerHandle {
             inner: RwLock::new(inner),
         })
+    }
+
+    pub fn set_volume(&self, volume: Volume) {
+        let read_guard = self.inner.read();
+        let mut timer = read_guard.timer.lock();
+
+        // timer keeps the audio handle, so we need to call it on the timer
+        // maybe we should restructure this stuff a bit...
+        timer.set_audio_volume(volume);
     }
 
     pub fn update(&self, game_frame_id: FrameId, delta_time: Ticks, queue: &wgpu::Queue) {
@@ -109,8 +120,11 @@ impl VideoPlayerHandle {
         let this = &mut *write_guard;
 
         if this.update_tracker.update(game_frame_id) {
-            this.timer.update(delta_time);
-            let current_time = this.timer.time();
+            let current_time = {
+                let timer = this.timer.get_mut();
+                timer.update(delta_time);
+                timer.time()
+            };
 
             let mut skipped_frames = 0;
             // find the latest frame that is ready for display
@@ -187,11 +201,13 @@ pub struct VideoPlayerFrameHandle<'a> {
 }
 
 impl<'a> VideoPlayerFrameHandle<'a> {
-    pub fn render(&self, pass: &mut RenderPass) {
+    pub fn render(&self, pass: &mut RenderPass, builder: RenderRequestBuilder, transform: Mat4) {
         let tex = &self.guard.video_texture;
 
+        let [width, height] = tex.get_size().to_array();
+
         // TODO: handle movie with alpha
-        pass.run(RenderRequestBuilder::new().build(
+        pass.run(builder.build(
             RenderProgramWithArguments::Movie {
                 vertices: VertexSource::VertexData {
                     vertices: &[
@@ -199,21 +215,19 @@ impl<'a> VideoPlayerFrameHandle<'a> {
                             coords: Vec4::new(0.0, 0.0, 0.0, 0.0),
                         },
                         MovieVertex {
-                            coords: Vec4::new(1.0, 0.0, 1.0, 0.0),
+                            coords: Vec4::new(width, 0.0, 1.0, 0.0),
                         },
                         MovieVertex {
-                            coords: Vec4::new(0.0, 1.0, 0.0, 1.0),
+                            coords: Vec4::new(0.0, height, 0.0, 1.0),
                         },
                         MovieVertex {
-                            coords: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                            coords: Vec4::new(width, height, 1.0, 1.0),
                         },
                     ],
                 },
                 texture_luma: tex.get_y_source(),
                 texture_chroma: tex.get_uv_source(),
-                // TODO: the coordinate systems are probably all whack
-                transform: Mat4::from_scale(Vec3::new(2.0, 2.0, -1.0))
-                    * Mat4::from_translation(Vec3::new(-0.5, -0.5, 0.0)),
+                transform,
                 color_bias: Vec4::new(0.0625, 0.5, 0.5, 1.1643835),
                 color_transform: [
                     Vec4::new(1.1643835, 0.0, 1.7927411, 0.0),

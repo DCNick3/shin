@@ -101,6 +101,14 @@ impl PartialEq for Volume {
 
 impl Eq for Volume {}
 
+impl std::ops::Mul<Volume> for Volume {
+    type Output = Volume;
+
+    fn mul(self, rhs: Volume) -> Self::Output {
+        Self(self.0 * rhs.0)
+    }
+}
+
 impl FromNumber for Volume {
     fn from_number(number: i32) -> Self {
         Self((number as f32 / 1000.0).clamp(0.0, 1.0)) // TODO: warn if out of range
