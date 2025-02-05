@@ -1,34 +1,22 @@
 use std::sync::Arc;
 
-use shin_core::time::Ticks;
+use shin_core::{primitives::update::FrameId, time::Ticks};
 
 use crate::{asset::system::AssetServer, layer::PreRenderContext};
 
 pub struct UpdateContext<'immutable, 'pre_render, 'pipelines, 'dynbuffer, 'encoder> {
+    pub frame_id: FrameId,
     pub delta_ticks: Ticks,
     pub asset_server: &'immutable Arc<AssetServer>,
     pub pre_render: &'pre_render mut PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder>,
 }
 
 pub struct AdvUpdateContext<'a> {
+    pub frame_id: FrameId,
     pub delta_ticks: Ticks,
     #[expect(unused)] // for future stuff
     pub asset_server: &'a Arc<AssetServer>,
     pub are_animations_allowed: bool,
-}
-
-impl<'a> AdvUpdateContext<'a> {
-    #[expect(unused)] // for future stuff
-    pub fn from_update_context(
-        context: &'a UpdateContext<'a, '_, '_, '_, '_>,
-        are_animations_allowed: bool,
-    ) -> Self {
-        Self {
-            delta_ticks: context.delta_ticks,
-            asset_server: context.asset_server,
-            are_animations_allowed,
-        }
-    }
 }
 
 pub trait Updatable {

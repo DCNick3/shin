@@ -7,7 +7,7 @@ use shin_render::{
     shaders::types::{RenderClone, RenderCloneCtx},
     PassKind,
 };
-use shin_video::VideoPlayer;
+use shin_video::VideoPlayerHandle;
 
 use crate::{
     asset::movie::Movie,
@@ -17,7 +17,7 @@ use crate::{
 
 pub struct MovieLayer {
     props: LayerProperties,
-    video_player: VideoPlayer,
+    video_player: VideoPlayerHandle,
     // render_target: RenderTarget,
     movie_name: Option<String>,
 }
@@ -89,6 +89,7 @@ impl MovieLayer {
 impl AdvUpdatable for MovieLayer {
     fn update(&mut self, ctx: &AdvUpdateContext) {
         self.video_player.update(
+            ctx.frame_id,
             ctx.delta_ticks,
             todo!(), // &ctx.gpu_resources.queue
         );

@@ -51,6 +51,9 @@ bytemuck = "1.16.1"
 # Be careful when updating! We rely on private & internal APIs
 encase = "0.9.0"
 
+# TODO: migrate more things to parking_lot
+parking_lot = "0.12.3"
+
 [profile.release]
 debug = true
 #lto = 'thin'
