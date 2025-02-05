@@ -1,13 +1,14 @@
 use std::{fs::File, time::Duration};
 
 use enum_map::{enum_map, Enum, EnumMap};
+use glam::Mat4;
 use shin_audio::AudioManager;
 use shin_core::{primitives::update::FrameId, time::Ticks};
 use shin_input::{
     inputs::{GamepadButton, KeyCode},
     Action, ActionState, RawInputState,
 };
-use shin_render::render_pass::RenderPass;
+use shin_render::{render_pass::RenderPass, RenderRequestBuilder};
 use shin_video::{mp4::Mp4, VideoPlayerHandle};
 use shin_window::{AppContext, RenderContext, ShinApp};
 
@@ -86,7 +87,13 @@ impl ShinApp for PlayerExample {
 
     fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
         if let Some(frame) = self.video_player.get_frame() {
-            frame.render(pass);
+            let size = frame.get_frame().get_size();
+
+            frame.render(
+                pass,
+                RenderRequestBuilder::new(),
+                Mat4::from_translation(1.0 / size.extend(1.0)),
+            );
         }
     }
 }
