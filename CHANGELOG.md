@@ -1,3 +1,24 @@
+# Version 0.7.0
+
+This is a release that contains big rewrites upder the hood. They might not improve compatibility that much initially (I
+would expect the compat to be worse, actually), but will make implementing some engine features possible at all.
+
+- Rewrite of the rendering engine to actually use the shaders/render passes in an equivalent to the way original game
+  does it.
+- Addition of `shin-window`: a common framework for starting a winit window, initializing wgpu and handling input. This
+  makes test apps (like `shin-video`'s play example) easier to maintain. This is also where most of the web support will
+  be contained.
+- Rewrite of the input handling to somewhat resemble what the original game does.
+- Rewrite of the `MessageLayer` to include all the features the original game has. Now we have messagebox sliding
+  animations, overflow handling, keywait animations and voice support (though this needs still needs implementation from
+  the audio engine side).
+- Rewrite of the `LayerGroup`, `PageLayer` and `ScreenLayer` classes, which are much closer to what the game does.
+- Stub implementation of `NewDrawableLayer` framework, paving the way for implementing various funny effects the scrip
+  uses sometimes.
+- Rewrite of `PictureLayer` and `BustupLayer` to no longer use stitched together textures (RIP), but do it the same way
+  game does, by rendering in blocks. This indirectly fixes the ugly face seams we were getting due to some rounding
+  bugs.
+
 # Version 0.6.1
 
 This release adds support for getting raw opus audio from nxa files to `sdu`. This allows preserving audio data without
