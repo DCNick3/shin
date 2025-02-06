@@ -25,7 +25,7 @@ jobs:
         with:
           make-default: false
       - name: Install packages (Linux)
-        run: sudo apt-get update && sudo apt-get install libasound2-dev
+        run: sudo apt-get update && sudo apt-get install libasound2-dev libudev-dev
       - name: cargo doc --no-deps
         uses: actions-rs/cargo@v1
         with:
