@@ -38,6 +38,7 @@ pub struct Id<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usi
 pub struct IdOpt<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize>(T);
 
 impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> Id<T, SENTINEL> {
+    #[inline]
     pub fn try_new(id: T) -> Option<Self> {
         if (0..SENTINEL).contains(&id.into_usize()) {
             Some(Self(id))
@@ -46,19 +47,23 @@ impl<T: num_traits::Unsigned + ThroughUsize + Copy, const SENTINEL: usize> Id<T,
         }
     }
 
+    #[inline]
     pub fn new(id: T) -> Self {
         Self::try_new(id).expect("Id::new: id out of range")
     }
 
     /// Doesn't check that the `T` is in range (here be dragons), but is a const fn
+    #[inline]
     pub const fn new_unchecked(id: T) -> Self {
         Self(id)
     }
 
+    #[inline]
     pub fn raw(self) -> T {
         self.0
     }
 
+    #[inline]
     pub fn try_next(self) -> Option<Self> {
         let id = self.0 + T::one();
         if id.into_usize() == SENTINEL {

@@ -8,7 +8,7 @@ use shin_core::{
     },
 };
 use smallvec::{smallvec, SmallVec};
-use tracing::warn;
+use tracing::{trace, warn};
 
 use crate::layer::LayerPropertiesState;
 
@@ -203,12 +203,16 @@ impl LayerbankAllocator {
             self.range_cache.clear();
 
             let mut position = from;
-            while position < to {
+            while position <= to {
                 if let Some(layerbank_id) = self.get_layerbank_id(plane, position) {
                     self.range_cache.push(position, layerbank_id);
                 }
 
-                position = position.next();
+                let Some(next_position) = position.try_next() else {
+                    // assuming this can only happen if to is at max
+                    break;
+                };
+                position = next_position;
             }
         }
 
@@ -231,6 +235,8 @@ impl LayerbankAllocator {
                 unreachable!()
             };
         });
+
+        trace!("Operating on layer range {:?}", result);
 
         result
     }

@@ -83,6 +83,8 @@ bitflags = "2.6.0"
 
 drop_bomb = "0.1.5"
 
+parking_lot = { workspace = true }
+
 [features]
 default = []
 gstreamer-video = ["shin-video/gstreamer"]
