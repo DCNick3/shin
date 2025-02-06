@@ -1,6 +1,6 @@
 [package]
 name = "shin-asm"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2021"
 description = "Assembler and disassembler library for the shin VM"
 repository = "https://github.com/DCNick3/shin"
