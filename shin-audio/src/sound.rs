@@ -132,7 +132,7 @@ impl<S: AudioFrameSource + Send> AudioSound<S> {
 
         let shared = Arc::new(Shared::new());
 
-        AudioSound {
+        let res = AudioSound {
             track_id: data.settings.track,
             command_consumer,
             shared,
@@ -141,7 +141,15 @@ impl<S: AudioFrameSource + Send> AudioSound<S> {
             panning: Tweener::new(data.settings.pan.0),
             volume_fade,
             sample_provider: SampleProvider::new(data.source, data.settings.loop_start),
-        }
+        };
+
+        // make sure the wait_status is reflective of the actual state right after the handle creation
+        res.shared.wait_status.store(
+            res.wait_status().bits(),
+            std::sync::atomic::Ordering::SeqCst,
+        );
+
+        res
     }
 
     fn stop(&mut self, fade_out_tween: Tween) {

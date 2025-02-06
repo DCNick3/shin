@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Formatter};
 
 use shin_core::vm::command::types::AudioWaitStatus;
+use tracing::trace;
 
 use super::prelude::*;
 
@@ -46,6 +47,8 @@ impl UpdatableCommand for SEWAIT {
     ) -> Option<CommandResult> {
         let status = adv_state.se_player.get_wait_status(self.slot);
         let finished = (status & self.unwanted_statuses).is_empty();
+
+        trace!(status = ?status, finished = %finished, "polling SEWAIT");
 
         if finished {
             Some(self.token.take().unwrap().finish())

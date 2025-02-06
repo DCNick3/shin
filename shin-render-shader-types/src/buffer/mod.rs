@@ -263,7 +263,7 @@ impl<T: BufferType> SharedBuffer<T> {
         let offset = self.offset + start;
 
         assert!((self.offset..self.offset + self.logical_size).contains(&offset));
-        assert!((self.offset..self.offset + self.logical_size).contains(&(offset + size)));
+        assert!((self.offset..=self.offset + self.logical_size).contains(&(offset + size)));
 
         assert!(T::is_valid_offset(offset));
         assert!(T::is_valid_logical_size(size));

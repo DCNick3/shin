@@ -313,18 +313,30 @@ impl AdvState {
         }
     }
 
+    pub fn root_layer_group(&self) -> &RootLayerGroup {
+        &self.root_layer_group
+    }
     pub fn root_layer_group_mut(&mut self) -> &mut RootLayerGroup {
         &mut self.root_layer_group
     }
 
+    pub fn message_layer(&self) -> &MessageLayer {
+        self.root_layer_group.message_layer()
+    }
     pub fn message_layer_mut(&mut self) -> &mut MessageLayer {
         self.root_layer_group.message_layer_mut()
     }
 
+    pub fn screen_layer(&self) -> &ScreenLayer {
+        self.root_layer_group.screen_layer()
+    }
     pub fn screen_layer_mut(&mut self) -> &mut ScreenLayer {
         self.root_layer_group.screen_layer_mut()
     }
 
+    pub fn page_layer(&self) -> &PageLayer {
+        self.root_layer_group.screen_layer().page_layer()
+    }
     pub fn page_layer_mut(&mut self) -> &mut PageLayer {
         self.root_layer_group.screen_layer_mut().page_layer_mut()
     }

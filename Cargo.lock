@@ -5562,6 +5562,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "once_cell",
+ "parking_lot 0.12.3",
  "petitset",
  "serde",
  "shin-audio",
