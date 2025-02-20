@@ -1,7 +1,7 @@
 [package]
 name = "shin-tasks"
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 description = "A task executor for Shin Engine (based on bevy)"
 repository = "https://github.com/DCNick3/shin"
 license = "MIT OR Apache-2.0"

@@ -1,7 +1,7 @@
 [package]
 name = "shin-core"
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 description = "Core library for the Shin engine: file formats support, virtual machine, etc"
 repository = "https://github.com/DCNick3/shin"
 license = "MPL-2.0"
@@ -40,7 +40,9 @@ bitvec = "1.0.1"
 # git version for unsafe-libopus backend
 # we can ditch the bindings, but this would make moving back to them harder
 opus = { git = "https://github.com/DCNick3/opus-rs.git", rev = "a3de7e71b35ab0a80be38c0d2420b18f0bd41411", default-features = false, features = ["unsafe-libopus-backend"] }
-bitbuffer = "0.11.0"
+# git version for this PR https://github.com/icewind1991/bitbuffer/pull/11
+# it fixes 2024 edition warnings
+bitbuffer = { git = "https://github.com/DCNick3/bitbuffer.git", rev = "1c0541878467b25d1977f096dde59c1b90394669" }
 serde = { version = "1.0.204", features = ["derive"] }
 serde-big-array = "0.5.1"
 num-integer = "0.1.46"

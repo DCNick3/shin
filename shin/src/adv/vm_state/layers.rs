@@ -285,7 +285,7 @@ impl LayerSelection {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = LayerId> {
+    pub fn iter(&self) -> impl Iterator<Item = LayerId> + use<> {
         LayerSelectionIter {
             current: LayerIdOpt::some(self.from),
             high: self.to,

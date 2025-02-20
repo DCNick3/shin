@@ -1,7 +1,7 @@
 [package]
 name = "sdu"
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 description = "Cli tool for working with shin-specific file formats"
 repository = "https://github.com/DCNick3/shin"
 license = "MPL-2.0"

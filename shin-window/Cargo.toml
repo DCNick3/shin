@@ -1,7 +1,7 @@
 [package]
 name = "shin-window"
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 shin-primitives = { path = "../shin-primitives" }

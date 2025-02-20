@@ -15,7 +15,7 @@ impl FromHirExpr for CodeAddress {
         ctx: &FromHirBlockCtx,
         expr: ExprId,
     ) -> LowerResult<Self> {
-        let hir::Expr::NameRef(ref name) = ctx.expr(expr) else {
+        let hir::Expr::NameRef(name) = ctx.expr(expr) else {
             return collectors.emit_diagnostic(
                 expr.into(),
                 format!("Expected a label, got {}", ctx.expr(expr).describe_ty()),

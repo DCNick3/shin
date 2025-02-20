@@ -40,7 +40,7 @@ pub fn impl_render_clone(structure: Structure) -> TokenStream {
     structure.gen_impl(quote! {
         gen impl #RENDER_CLONE for @Self {
             fn render_clone(&self, ctx: &mut #RENDER_CLONE_CTX) -> Self {
-                match self {
+                match *self {
                     #body
                 }
             }

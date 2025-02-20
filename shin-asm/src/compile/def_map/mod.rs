@@ -132,7 +132,7 @@ impl DefMap {
         let mut global_registers = self.global_registers(db).iter().collect::<Vec<_>>();
         global_registers.sort_by_key(|(name, _)| *name);
         let mut local_registers = self.local_registers(db).iter().collect::<Vec<_>>();
-        local_registers.sort_by_key(|(&index, _)| index);
+        local_registers.sort_by_key(|&(&index, _)| index);
 
         writeln!(output, "registers:").unwrap();
         writeln!(output, "  global:").unwrap();

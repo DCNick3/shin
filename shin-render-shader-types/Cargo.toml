@@ -1,7 +1,7 @@
 [package]
 name = "shin-render-shader-types"
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 shin-derive = { path = "../shin-derive" }

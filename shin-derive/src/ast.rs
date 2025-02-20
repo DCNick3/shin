@@ -1,11 +1,11 @@
 use proc_macro2::{Span, TokenStream, TokenTree};
 use quote::{quote, quote_spanned};
 use syn::{
+    Meta, Token,
     parse::{Parse, ParseStream},
     parse_quote,
     punctuated::Punctuated,
     spanned::Spanned,
-    Meta, Token,
 };
 use synstructure::{BindingInfo, Structure, VariantInfo};
 
@@ -167,12 +167,9 @@ fn parse_ast_attr() {
     };
     let s = AstAttributeContents::from_attributes(&s.attrs, s.span()).unwrap();
 
-    assert_eq!(
-        s,
-        AstAttributeContents::AstNode {
-            kind: parse_quote!(SOURCE_FILE),
-        }
-    );
+    assert_eq!(s, AstAttributeContents::AstNode {
+        kind: parse_quote!(SOURCE_FILE),
+    });
 }
 
 fn get_inner_field<'a>(variant: &'a VariantInfo) -> &'a BindingInfo<'a> {
@@ -272,7 +269,7 @@ fn gen_syntax(input: &AstNodeInput, ast_kind: AstKind) -> TokenStream {
     });
 
     quote! {
-        match self {
+        match *self {
             #body
         }
     }
