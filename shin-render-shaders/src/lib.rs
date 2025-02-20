@@ -24,7 +24,6 @@ pub struct ShaderDescriptor {
     pub name: &'static str,
     #[cfg(not(target_arch = "wasm32"))]
     pub spirv: &'static [u32],
-    #[cfg(target_arch = "wasm32")]
     pub wgsl: &'static str,
     pub vertex_entry: &'static str,
     pub fragment_entry: &'static str,
@@ -98,19 +97,39 @@ impl ShaderDescriptor {
             push_constant_ranges: &[],
         });
 
+        let mut shader_module = None;
+
+        // first, try to use SPIR-V passthrough if available
         #[cfg(not(target_arch = "wasm32"))]
-        // SAFETY: well, naga spit it out, so it should be good, right?
-        let shader_module = unsafe {
-            device.create_shader_module_spirv(&wgpu::ShaderModuleDescriptorSpirV {
-                label: Some(&format!("{} shader module", self.name)),
-                source: self.spirv.into(),
-            })
-        };
-        #[cfg(target_arch = "wasm32")]
-        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some(&format!("{} shader module", self.name)),
-            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(self.wgsl)),
-        });
+        if shader_module.is_none()
+            && device
+                .features()
+                .contains(wgpu::Features::SPIRV_SHADER_PASSTHROUGH)
+        {
+            shader_module = Some(
+                // SAFETY: well, naga spit it out, so it should be good, right?
+                unsafe {
+                    device.create_shader_module_spirv(&wgpu::ShaderModuleDescriptorSpirV {
+                        label: Some(&format!("{} shader module", self.name)),
+                        source: self.spirv.into(),
+                    })
+                },
+            )
+        }
+
+        if shader_module.is_none() {
+            unsafe {
+                shader_module = Some(device.create_shader_module_trusted(
+                    wgpu::ShaderModuleDescriptor {
+                        label: Some(&format!("{} shader module", self.name)),
+                        source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(self.wgsl)),
+                    },
+                    wgpu::ShaderRuntimeChecks::unchecked(),
+                ))
+            }
+        }
+
+        let shader_module = shader_module.expect("Failed to create shader module");
 
         ShaderContext {
             shader_descriptor: self.clone(),

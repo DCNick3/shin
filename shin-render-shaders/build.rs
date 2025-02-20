@@ -11,16 +11,16 @@ use heck::ToPascalCase;
 use indexmap::IndexMap;
 use itertools::{EitherOrBoth, Itertools};
 use naga::{
-    valid::{Capabilities, ValidationFlags},
     Handle, ShaderStage, Type, UniqueArena,
+    valid::{Capabilities, ValidationFlags},
 };
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 use shin_render_shader_types::{
     uniforms::{
-        metadata::{ArraySchema, PrimitiveType, StructSchema, TypeSchema},
         ClearUniformParams, FillUniformParams, FontBorderUniformParams, FontUniformParams,
         LayerUniformParams, MovieUniformParams, SpriteUniformParams, UniformType,
         WiperDefaultUniformParams, WiperMaskUniformParams,
+        metadata::{ArraySchema, PrimitiveType, StructSchema, TypeSchema},
     },
     vertices::{
         BlendVertex, LayerVertex, MaskVertex, MovieVertex, PosColTexVertex, PosColVertex,
@@ -167,14 +167,12 @@ impl GenCtx {
         };
         let handle = self.type_arena.insert(ty, naga::Span::UNDEFINED);
 
-        self.known_structs.insert(
-            schema.name.to_string(),
-            KnownStructInfo {
+        self.known_structs
+            .insert(schema.name.to_string(), KnownStructInfo {
                 schema: *schema,
                 handle,
                 fully_qualified_rust_name: fully_qualified_rust_name.to_string(),
-            },
-        );
+            });
 
         handle
     }
@@ -592,13 +590,10 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                         // assert_eq!(binding.binding, 0);
                         assert_eq!(arrayed, false);
                         assert_eq!(dim, naga::ImageDimension::D2);
-                        assert_eq!(
-                            class,
-                            naga::ImageClass::Sampled {
-                                kind: naga::ScalarKind::Float,
-                                multi: false
-                            }
-                        );
+                        assert_eq!(class, naga::ImageClass::Sampled {
+                            kind: naga::ScalarKind::Float,
+                            multi: false
+                        });
 
                         texture_bindings.insert(name.to_string(), binding.binding);
                     }
@@ -627,14 +622,11 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                         let fully_qualified_rust_name =
                             wgsl_schema.struct_rust_names.get(type_name).unwrap();
 
-                        struct_bindings.insert(
-                            var.name.clone().unwrap(),
-                            StructBindingInfo {
-                                binding: binding.binding,
-                                fully_qualified_rust_ty: fully_qualified_rust_name.clone(),
-                                size: ty.inner.size(module.to_ctx()),
-                            },
-                        );
+                        struct_bindings.insert(var.name.clone().unwrap(), StructBindingInfo {
+                            binding: binding.binding,
+                            fully_qualified_rust_ty: fully_qualified_rust_name.clone(),
+                            size: ty.inner.size(module.to_ctx()),
+                        });
                     }
                     e => panic!("unsupported global variable type {:?}", e),
                 }
@@ -648,14 +640,11 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
 
             for (name, info) in struct_bindings.into_iter() {
                 assert_eq!(
-                    bindings_unified.insert(
-                        name,
-                        ShaderBindingGroupDescriptor::Uniform {
-                            binding: info.binding,
-                            ty: info.fully_qualified_rust_ty,
-                            size: info.size,
-                        },
-                    ),
+                    bindings_unified.insert(name, ShaderBindingGroupDescriptor::Uniform {
+                        binding: info.binding,
+                        ty: info.fully_qualified_rust_ty,
+                        size: info.size,
+                    },),
                     None
                 );
             }
@@ -668,13 +657,11 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
             {
                 match v {
                     EitherOrBoth::Both((name, texture_binding), (_, sampler_binding)) => {
-                        let existing = bindings_unified.insert(
-                            name,
-                            ShaderBindingGroupDescriptor::Texture {
+                        let existing =
+                            bindings_unified.insert(name, ShaderBindingGroupDescriptor::Texture {
                                 texture_binding,
                                 sampler_binding,
-                            },
-                        );
+                            });
                         assert_eq!(existing, None);
                     }
                     EitherOrBoth::Left((texture_name, _)) => {
@@ -774,9 +761,10 @@ fn codegen_shader_descriptor(shader: &ShaderWithDescriptor) -> proc_macro2::Toke
     quote! {
         crate::ShaderDescriptor {
             name: #snake_name,
+            // wasm32 never supports spir-v, so don't include it
             #[cfg(not(target_arch = "wasm32"))]
             spirv: &[#spirv],
-            #[cfg(target_arch = "wasm32")]
+            // always include wgsl as a fallback for devices that don't support spir-v (don't have vulkan support)
             wgsl: #wgsl,
             vertex_entry: #vertex_entry_name,
             fragment_entry: #fragment_entry_name,

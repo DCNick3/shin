@@ -6,12 +6,12 @@ use tracing::{debug, info};
 use wgpu::{InstanceFlags, SurfaceTarget};
 
 use crate::{
+    DEPTH_STENCIL_FORMAT,
     depth_stencil::DepthStencil,
     dynamic_buffer::DynamicBuffer,
     pipelines::PipelineStorage,
     resize::{CanvasSize, ResizeHandle, SurfaceSize},
     resizeable_texture::ResizeableTexture,
-    DEPTH_STENCIL_FORMAT,
 };
 
 #[derive(Debug)]
@@ -181,12 +181,8 @@ pub async fn init_wgpu<'window>(
         .request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
-                // TODO: probably will need to make it configurable with a wgsl fallback at some point
-                required_features: if cfg!(not(target_arch = "wasm32")) {
-                    wgpu::Features::SPIRV_SHADER_PASSTHROUGH
-                } else {
-                    wgpu::Features::empty()
-                },
+                // this enables SPIRV_SHADER_PASSTHROUGH if available
+                required_features: adapter.features() & wgpu::Features::SPIRV_SHADER_PASSTHROUGH,
                 required_limits: wgpu::Limits {
                     // This is required in order to support higher resolutions
                     // TODO: make it configurable for lower-end devices

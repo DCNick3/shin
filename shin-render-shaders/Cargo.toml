@@ -9,6 +9,7 @@ shin-render-shader-types = { path = "../shin-render-shader-types" }
 wgpu = { workspace = true }
 bytemuck = { workspace = true }
 enum-iterator = { workspace = true }
+cfg-if = "1.0.0"
 
 [build-dependencies]
 shin-render-shader-types = { path = "../shin-render-shader-types" }
