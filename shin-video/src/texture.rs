@@ -46,14 +46,14 @@ impl VideoFrameTexture {
         let size = self.size;
 
         queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: self.tex_y.wgpu_texture(),
                 mip_level: 0,
                 origin: Default::default(),
                 aspect: wgpu::TextureAspect::All,
             },
             &nv12.y_plane,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(size.width),
                 rows_per_image: Some(size.height),
@@ -65,14 +65,14 @@ impl VideoFrameTexture {
             },
         );
         queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: self.tex_uv.wgpu_texture(),
                 mip_level: 0,
                 origin: Default::default(),
                 aspect: Default::default(),
             },
             &nv12.uv_plane,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(size.width),
                 rows_per_image: Some(size.height / 2),

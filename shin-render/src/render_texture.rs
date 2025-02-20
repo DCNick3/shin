@@ -92,13 +92,13 @@ impl RenderClone for RenderTexture {
         );
 
         ctx.encoder.copy_texture_to_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: self.inner_texture.get_texture(),
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: new_texture.get_texture(),
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,

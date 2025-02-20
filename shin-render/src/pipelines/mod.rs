@@ -42,7 +42,7 @@ impl PipelineStorageKey {
             layout: Some(&context.pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &context.shader_module,
-                entry_point: context.shader_descriptor.vertex_entry,
+                entry_point: Some(context.shader_descriptor.vertex_entry),
                 compilation_options: Default::default(),
                 buffers: &[context.shader_descriptor.vertex_buffer_layout.clone()],
             },
@@ -75,7 +75,7 @@ impl PipelineStorageKey {
             },
             fragment: Some(wgpu::FragmentState {
                 module: &context.shader_module,
-                entry_point: context.shader_descriptor.fragment_entry,
+                entry_point: Some(context.shader_descriptor.fragment_entry),
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: match target_kind {

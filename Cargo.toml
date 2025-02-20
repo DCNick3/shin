@@ -28,13 +28,13 @@ enum-map = "3.0.0-beta.1"
 #enum-map = { path = "/home/dcnick3/git_cloned/enum-map/enum-map" }
 smallvec = "2.0.0-alpha.8"
 heapless = "0.8.0"
-wgpu = "22.1.0"
+wgpu = "24.0.1"
 kira = { version = "0.9.3", default-features = false }
 winit = "0.30.5"
 
 # egui used for debug overlays
-egui = "0.29.1"
-egui-wgpu = "0.29.1"
+egui = "0.31.0"
+egui-wgpu = "0.31.0"
 
 image = { version = "0.25.1", default-features = false }
 anyhow = "1.0.69"

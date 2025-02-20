@@ -3,8 +3,8 @@ use std::cell::RefCell;
 use bevy_utils::HashMap;
 use egui::{
     ahash::HashMapExt, style::WidgetVisuals, ClippedPrimitive, CollapsingHeader, Color32, Context,
-    FontFamily, FontId, InnerResponse, Pos2, Rect, Rounding, Stroke, TextureId, Ui, ViewportId,
-    ViewportIdMap,
+    CornerRadius, FontFamily, FontId, InnerResponse, Pos2, Rect, Rounding, Stroke, TextureId, Ui,
+    ViewportId, ViewportIdMap,
 };
 use egui_wgpu::{Renderer, ScreenDescriptor};
 use enum_map::{enum_map, Enum};
@@ -67,7 +67,7 @@ impl OverlayManager {
                         weak_bg_fill: from_gray(248),
                         bg_stroke: Stroke::new(1.0, from_gray(190)), // separators, indentation lines
                         fg_stroke: Stroke::new(1.0, Color32::from_gray(180)), // normal text color
-                        rounding: Rounding::same(2.0),
+                        corner_radius: CornerRadius::same(2),
                         expansion: 0.0,
                     },
                     inactive: WidgetVisuals {
@@ -75,7 +75,7 @@ impl OverlayManager {
                         weak_bg_fill: from_gray(230),
                         bg_stroke: Default::default(),
                         fg_stroke: Stroke::new(1.0, Color32::from_gray(180)), // button text
-                        rounding: Rounding::same(2.0),
+                        corner_radius: CornerRadius::same(2),
                         expansion: 0.0,
                     },
                     hovered: WidgetVisuals {
@@ -83,7 +83,7 @@ impl OverlayManager {
                         weak_bg_fill: from_gray(220),
                         bg_stroke: Stroke::new(1.0, from_gray(105)), // e.g. hover over window edge or button
                         fg_stroke: Stroke::new(1.5, Color32::BLACK),
-                        rounding: Rounding::same(3.0),
+                        corner_radius: CornerRadius::same(3),
                         expansion: 1.0,
                     },
                     active: WidgetVisuals {
@@ -91,7 +91,7 @@ impl OverlayManager {
                         weak_bg_fill: from_gray(165),
                         bg_stroke: Stroke::new(1.0, from_gray(255)),
                         fg_stroke: Stroke::new(2.0, Color32::BLACK),
-                        rounding: Rounding::same(2.0),
+                        corner_radius: CornerRadius::same(2),
                         expansion: 1.0,
                     },
                     open: WidgetVisuals {
@@ -99,7 +99,7 @@ impl OverlayManager {
                         weak_bg_fill: from_gray(220),
                         bg_stroke: Stroke::new(1.0, from_gray(160)),
                         fg_stroke: Stroke::new(1.0, Color32::BLACK),
-                        rounding: Rounding::same(2.0),
+                        corner_radius: CornerRadius::same(2),
                         expansion: 0.0,
                     },
                 },

@@ -149,8 +149,8 @@ pub async fn init_wgpu<'window>(
 ) -> anyhow::Result<WgpuInitResult<'window>> {
     info!("Initializing wgpu...");
 
-    let backends = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all());
-    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+    let backends = wgpu::Backends::from_env().unwrap_or(wgpu::Backends::all());
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
         backends,
         flags: InstanceFlags::debugging(),
         ..Default::default()

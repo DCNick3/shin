@@ -592,7 +592,7 @@ trait InfoIdNewtype: Copy + crate::format::scenario::instruction_elements::FromN
 macro_rules! info_id_newtypes {
     ($($newtype:ident),*) => {
         $(
-            #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+            #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
             pub struct $newtype(i32);
 
             impl crate::format::scenario::instruction_elements::FromNumber for $newtype {
