@@ -513,7 +513,6 @@ fn find_entrypoints(wgsl_dir: &Path, wgsl_schema: &WgslSchema) -> Vec<ShaderWith
                         index: bounds_check_policy,
                         buffer: bounds_check_policy,
                         image_load: bounds_check_policy,
-                        image_store: bounds_check_policy,
                         binding_array: bounds_check_policy,
                     },
                     zero_initialize_workgroup_memory:

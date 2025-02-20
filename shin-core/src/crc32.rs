@@ -79,8 +79,8 @@ mod tests {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x42);
 
         for _ in 0..100 {
-            let len = rng.gen_range(1..20);
-            let data = (0..len).map(|_| rng.gen::<u8>()).collect::<Vec<_>>();
+            let len = rng.random_range(1..20);
+            let data = (0..len).map(|_| rng.random::<u8>()).collect::<Vec<_>>();
 
             let init = rng.next_u32();
             insta::assert_debug_snapshot!(

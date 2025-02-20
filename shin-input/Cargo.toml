@@ -4,15 +4,14 @@ version = "0.7.0"
 edition = "2021"
 
 [dependencies]
-tracing = "0.1.40"
+tracing = { workspace = true }
 
 enum-map = { workspace = true }
 petitset = "0.2.1"
 winit = { workspace = true }
 glam = { workspace = true }
-itertools = { workspace = true }
 gilrs = "0.11.0"
-indexmap = "2.6.0"
+indexmap = { workspace = true }
 
 [dev-dependencies]
 shin-primitives = { path = "../shin-primitives" }
@@ -21,7 +20,6 @@ shin-window = { path = "../shin-window" }
 shin-tasks = { path = "../shin-tasks" }
 
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-dpi = { workspace = true }
 spin_sleep_util = "0.1.1"
 anyhow = { workspace = true }
 

@@ -9,16 +9,14 @@ authors = ["DCNick3"]
 
 [dependencies]
 shin-core = { path = "../shin-core" }
-shin-derive = { path = "../shin-derive" }
 shin-render-shader-types = { path = "../shin-render-shader-types" }
 shin-render-shaders = { path = "../shin-render-shaders" }
 
 anyhow = { workspace = true }
-tracing = "0.1.40"
+tracing = { workspace = true }
 
 dpi = "0.1.1"
 wgpu = { workspace = true }
-naga = { version = "22.1.0", features = ["wgsl-out"] }
 
 glam = { workspace = true, features = [
     # "scalar-math" disables the 16-byte alignment requirement for some types
@@ -27,30 +25,13 @@ glam = { workspace = true, features = [
     "scalar-math"
 ] }
 bytemuck = { workspace = true, features = ["derive"] }
-encase = { workspace = true, features = ["glam"] }
 
 rustc-hash = "2.0.0"
-once_cell = "1.17.1"
 image = { workspace = true, default-features = false }
 
 enum-iterator = { workspace = true }
 
 sketches-ddsketch = "0.3.0"
-
-[build-dependencies]
-miette = { version = "7.2.0", features = ["fancy", "syntect"] }
-
-[dev-dependencies]
-shin-tasks = { path = "../shin-tasks" }
-shin-window = { path = "../shin-window" }
-
-winit = { workspace = true, features = ["android-game-activity"] }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-console_error_panic_hook = "0.1.6"
-tracing-wasm = { version = "0.2.1" }
-web-sys = { version = "0.3.70", features = ["Document"] }
 
 [lints]
 workspace = true

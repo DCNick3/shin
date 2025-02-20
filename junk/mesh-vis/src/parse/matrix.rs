@@ -179,8 +179,8 @@ impl MatrixDecomposition {
         ]
         .qr();
 
-        let rotation_matrix = qr.compute_q();
-        let scale_matrix = qr.compute_r();
+        let rotation_matrix = qr.Q_basis();
+        let scale_matrix = qr.R();
 
         // convert faer matrix to glam matrix
         // TODO: decompose the rotation into quaternion or euler angles

@@ -101,8 +101,8 @@ mod test {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x42);
 
         for _ in 0..100 {
-            let len = rng.gen_range(1..20);
-            let data = (0..len).map(|_| rng.gen::<u8>()).collect::<Vec<_>>();
+            let len = rng.random_range(1..20);
+            let data = (0..len).map(|_| rng.random::<u8>()).collect::<Vec<_>>();
             let data = hex::encode(data);
 
             let key = rng.next_u32();
@@ -130,8 +130,8 @@ mod test {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x42);
 
         for _ in 0..100 {
-            let len = rng.gen_range(1..20);
-            let data = (0..len).map(|_| rng.gen::<u8>()).collect::<Vec<_>>();
+            let len = rng.random_range(1..20);
+            let data = (0..len).map(|_| rng.random::<u8>()).collect::<Vec<_>>();
 
             assert_encode_decode_once(&data, rng.next_u32());
         }
@@ -143,8 +143,8 @@ mod test {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x42);
 
         for _ in 0..100 {
-            let len = rng.gen_range(1..20);
-            let data = (0..len).map(|_| rng.gen::<u8>()).collect::<Vec<_>>();
+            let len = rng.random_range(1..20);
+            let data = (0..len).map(|_| rng.random::<u8>()).collect::<Vec<_>>();
 
             let key = rng.next_u32();
             let encoded = super::encode(&data, key);

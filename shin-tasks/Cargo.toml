@@ -16,15 +16,12 @@ async-channel = "2.3.1"
 async-task = "4.7.1"
 once_cell = "1.19.0"
 concurrent-queue = "2.5.0"
-tracing = "0.1.40"
+tracing = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
 pin-project = "1"
 futures-channel = "0.3"
-
-[dev-dependencies]
-instant = { version = "0.1", features = ["wasm-bindgen"] }
 
 [lints]
 workspace = true

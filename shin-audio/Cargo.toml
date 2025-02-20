@@ -11,10 +11,9 @@ authors = ["DCNick3"]
 
 [dependencies]
 shin-core = { path = "../shin-core" }
-shin-tasks = { path = "../shin-tasks" }
 
 anyhow = { workspace = true }
-tracing = "0.1.40"
+tracing = { workspace = true }
 
 kira = { workspace = true, features = ["cpal"] }
 ringbuf = "0.4.1"
