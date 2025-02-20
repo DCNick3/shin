@@ -25,7 +25,7 @@ struct MskHeader {
 
 pub struct MaskTexture {
     pub id: u32,
-    pub vertices: VertexData,
+    pub regions: RegionData,
     pub texels: GrayImage,
 }
 
@@ -72,7 +72,7 @@ fn read_texels(texels_data: &[u8], width: u32, height: u32) -> Result<GrayImage>
 
 #[derive(BinRead, BinWrite, Debug, Copy, Clone)]
 #[br(little)]
-pub struct MaskVertex {
+pub struct MaskRect {
     pub from_x: u16,
     pub from_y: u16,
     pub to_x: u16,
@@ -82,24 +82,24 @@ pub struct MaskVertex {
 #[derive(BinRead, BinWrite, Debug, Copy, Clone)]
 #[br(little)]
 pub struct MaskRegionInfo {
-    pub vertex_count: u32,
+    pub rect_count: u32,
     /// Area in 4x4 blocks
     pub region_area: u32,
 }
 
 #[derive(BinRead, Debug, Clone)]
-pub struct VertexData {
+pub struct RegionData {
     pub black_regions: MaskRegionInfo,
     pub white_regions: MaskRegionInfo,
     pub transparent_regions: MaskRegionInfo,
-    #[br(count = black_regions.vertex_count + white_regions.vertex_count + transparent_regions.vertex_count)]
-    pub vertices: Vec<MaskVertex>,
+    #[br(count = black_regions.rect_count + white_regions.rect_count + transparent_regions.rect_count)]
+    pub rects: Vec<MaskRect>,
 }
 
-fn read_vertices(vertices_data: &[u8]) -> Result<VertexData> {
+fn read_regions(vertices_data: &[u8]) -> Result<RegionData> {
     let mut source = std::io::Cursor::new(vertices_data);
 
-    let vertex_data = VertexData::read_le(&mut source)?;
+    let vertex_data = RegionData::read_le(&mut source)?;
 
     Ok(vertex_data)
 }
@@ -114,12 +114,12 @@ pub fn read_mask(source: &[u8]) -> Result<MaskTexture> {
     let vertices_data =
         &source.get_ref()[header.vertices_data as usize..][..header.vertices_size as usize];
 
-    let vertices = read_vertices(vertices_data)?;
+    let regions = read_regions(vertices_data)?;
     let texels = read_texels(data, header.width as u32, header.height as u32)?;
 
     Ok(MaskTexture {
         id: header.mask_id,
-        vertices,
+        regions,
         texels,
     })
 }

@@ -4,7 +4,7 @@ mod flags;
 mod id;
 mod property;
 
-pub use flags::{AudioWaitStatus, LayerCtrlFlags, LayerLoadFlags, MaskFlags};
+pub use flags::{AudioWaitStatus, LayerCtrlFlags, LayerLoadFlags, MaskFlags, WipeFlags};
 pub use id::{
     LayerId, LayerIdOpt, LayerbankId, LayerbankIdOpt, PlaneId, PlaneIdOpt, VLayerId, VLayerIdRepr,
     LAYERBANKS_COUNT, LAYERS_COUNT, PLANES_COUNT,
@@ -32,6 +32,27 @@ impl FromNumber for LayerType {
     fn from_number(number: i32) -> Self {
         num_traits::FromPrimitive::from_i32(number)
             .unwrap_or_else(|| panic!("LayerType::from_vm_ctx: invalid layer type: {}", number))
+    }
+}
+
+#[derive(FromPrimitive, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum WiperType {
+    Default = 0,
+    Mask = 1,
+    Scroll = 2,
+    Zoom = 3,
+    Turn = 4,
+    Wave = 5,
+    Scanline = 6,
+    Ripple = 7,
+    Whirl = 8,
+    Glass = 9,
+}
+
+impl FromNumber for WiperType {
+    fn from_number(number: i32) -> Self {
+        num_traits::FromPrimitive::from_i32(number)
+            .unwrap_or_else(|| panic!("WipeType::from_vm_ctx: invalid layer type: {}", number))
     }
 }
 
@@ -136,5 +157,32 @@ impl Eq for Pan {}
 impl FromNumber for Pan {
     fn from_number(number: i32) -> Self {
         Self((number as f32 / 1000.0).clamp(-1.0, 1.0)) // TODO: warn if out of range
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct MaskParam(pub f32);
+
+impl Default for MaskParam {
+    fn default() -> Self {
+        Self(0.0)
+    }
+}
+
+impl PartialEq for MaskParam {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.total_cmp(&other.0) == std::cmp::Ordering::Equal
+    }
+}
+
+impl Eq for MaskParam {}
+
+impl FromNumber for MaskParam {
+    fn from_number(number: i32) -> Self {
+        if number == 0 {
+            return Self(1.0);
+        }
+
+        Self((number as f32 / 1000.0).clamp(0.001, 1.0)) // TODO: warn if out of range
     }
 }

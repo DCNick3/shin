@@ -11,6 +11,41 @@ use crate::{
 /// An 8-typle of i32
 pub type UntypedNumberArray = (i32, i32, i32, i32, i32, i32, i32, i32);
 
+pub type TypedNumberArray<
+    T1 = i32,
+    T2 = i32,
+    T3 = i32,
+    T4 = i32,
+    T5 = i32,
+    T6 = i32,
+    T7 = i32,
+    T8 = i32,
+> = (T1, T2, T3, T4, T5, T6, T7, T8);
+
+pub fn lower_number_array<
+    T1: FromNumber,
+    T2: FromNumber,
+    T3: FromNumber,
+    T4: FromNumber,
+    T5: FromNumber,
+    T6: FromNumber,
+    T7: FromNumber,
+    T8: FromNumber,
+>(
+    array: UntypedNumberArray,
+) -> (T1, T2, T3, T4, T5, T6, T7, T8) {
+    (
+        T1::from_number(array.0),
+        T2::from_number(array.1),
+        T3::from_number(array.2),
+        T4::from_number(array.3),
+        T5::from_number(array.4),
+        T6::from_number(array.5),
+        T7::from_number(array.6),
+        T8::from_number(array.7),
+    )
+}
+
 /// Represents 8 numbers, each of which may or may not be present.
 ///
 /// If the number is not present, it is treated as `NumberSpec::Constant(0)`.

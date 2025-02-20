@@ -4,8 +4,8 @@ use glam::vec4;
 use shin_audio::AudioManager;
 use shin_core::{
     format::scenario::{
-        info::{BustupInfoItem, MovieInfoItem, PictureInfoItem},
-        instruction_elements::{FromNumber, UntypedNumberArray},
+        info::{BustupId, BustupInfoItem, MovieId, MovieInfoItem, PictureId, PictureInfoItem},
+        instruction_elements::{lower_number_array, TypedNumberArray, UntypedNumberArray},
         Scenario,
     },
     primitives::color::FloatColor4,
@@ -59,7 +59,6 @@ pub enum UserLayer {
 impl UserLayer {
     pub async fn load(
         device: &wgpu::Device,
-        // resources: &GpuCommonResources,
         asset_server: &AssetServer,
         audio_manager: &AudioManager,
         scenario: &Scenario,
@@ -71,7 +70,8 @@ impl UserLayer {
         match layer_ty {
             LayerType::Null => NullLayer::new().into(),
             LayerType::Tile => {
-                let (color, offset_x, offset_y, width, height, ..) = params;
+                let (color, offset_x, offset_y, width, height, ..): TypedNumberArray =
+                    lower_number_array(params);
                 let color = FloatColor4::from_4bpp_property(color);
                 let rect = vec4(
                     offset_x as f32,
@@ -83,10 +83,10 @@ impl UserLayer {
                 TileLayer::new(color, rect).into()
             }
             LayerType::Picture => {
-                let (pic_id, ..) = params;
+                let (pic_id, ..): TypedNumberArray<PictureId> = lower_number_array(params);
                 let pic_info @ PictureInfoItem { name, linked_cg_id } =
                     scenario.info_tables().picture_info(pic_id);
-                debug!("Load picture: {} -> {} {}", pic_id, name, linked_cg_id);
+                debug!("Load picture: {} -> {} {:?}", pic_id, name, linked_cg_id);
                 let pic = asset_server
                     .load::<Picture, _>(pic_info.path())
                     .await
@@ -94,7 +94,7 @@ impl UserLayer {
                 PictureLayer::new(pic, Some(name.to_string())).into()
             }
             LayerType::Bustup => {
-                let (bup_id, ..) = params;
+                let (bup_id, ..): TypedNumberArray<BustupId> = lower_number_array(params);
                 let bup_info @ BustupInfoItem {
                     name,
                     emotion,
@@ -120,7 +120,8 @@ impl UserLayer {
                 BustupLayer::new(bup, Some(name.to_string())).into()
             }
             LayerType::Movie => {
-                let (movie_id, volume, repeat, ..) = params;
+                let (movie_id, volume, repeat, ..): TypedNumberArray<MovieId, Volume> =
+                    lower_number_array(params);
                 let movie_info @ &MovieInfoItem {
                     ref name,
                     linked_picture_id,
@@ -128,14 +129,11 @@ impl UserLayer {
                     transparency,
                     linked_bgm_id,
                 } = scenario.info_tables().movie_info(movie_id);
-                let pic_name = (linked_picture_id != 0).then(|| {
-                    &scenario
-                        .info_tables()
-                        .picture_info(linked_picture_id as i32)
-                        .name
+                let pic_name = linked_picture_id.map(|linked_picture_id| {
+                    &scenario.info_tables().picture_info(linked_picture_id).name
                 });
                 debug!(
-                    "Load movie: {movie_id} -> {name} {linked_picture_id} {volume_source:?} {transparency:?} {linked_bgm_id}"
+                    "Load movie: {movie_id} -> {name} {linked_picture_id:?} {volume_source:?} {transparency:?} {linked_bgm_id:?}"
                 );
                 let movie = asset_server
                     .load::<Movie, _>(movie_info.path())
@@ -156,14 +154,15 @@ impl UserLayer {
                 let args = MovieArgs {
                     volume_source,
                     transparency,
-                    local_volume: Volume::from_number(volume),
+                    local_volume: volume,
                     repeat: repeat & 1 != 0,
                 };
 
                 MovieLayer::new(device, audio_manager, movie, args, still_picture).into()
             }
             LayerType::Rain => {
-                let (_always_zero, _min_distance, _max_distance, ..) = params;
+                let (_always_zero, _min_distance, _max_distance, ..): TypedNumberArray =
+                    lower_number_array(params);
 
                 warn!("Loading NullLayer instead of RainLayer");
                 NullLayer::new().into()

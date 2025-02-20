@@ -4,7 +4,7 @@ use shin_core::vm::command::types::{
     LayerId, LayerLoadFlags, LayerType, PlaneId, LAYERBANKS_COUNT,
 };
 use shin_render::shaders::types::{RenderClone, RenderCloneCtx};
-use shin_tasks::{AsyncComputeTaskPool, Task};
+use shin_tasks::{AsyncComputeTaskPool, IoTaskPool, Task};
 use tracing::error;
 
 use super::prelude::*;
@@ -95,8 +95,8 @@ impl StartableCommand for command::runtime::LAYERLOAD {
 
             let old_layer_type = state.layer_type;
 
-            if old_layer_type == Some(LayerType::Quiz)
-                || state.layer_type == Some(self.layer_type) && state.params == self.params
+            if state.layer_type == Some(self.layer_type)
+                && (old_layer_type == Some(LayerType::Quiz) || state.params == self.params)
             {
                 info.already_the_same = true;
             }
@@ -140,14 +140,12 @@ impl StartableCommand for command::runtime::LAYERLOAD {
         state_info: LayerLoadStateInfo,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        // TODO: loading should be done async
-        // let resources = context.gpu_resources.clone();
         let asset_server = context.asset_server.clone();
         let audio_manager = adv_state.audio_manager.clone();
         let scenario = scenario.clone();
 
         let device = context.pre_render.device.clone();
-        let load_task = AsyncComputeTaskPool::get().spawn(async move {
+        let load_task = IoTaskPool::get().spawn(async move {
             UserLayer::load(
                 &device,
                 &asset_server,
@@ -191,12 +189,15 @@ impl UpdatableCommand for LAYERLOAD {
 
             // NB: here the game also loads a wiper, but we don't support `LayerGroup`-level wiping
 
-            // TODO: create a ¿back layer group? if it doesn't exist yet
+            let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
+            adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
+            clone_ctx.finish(context.pre_render.queue);
 
             let mut plane_layer_group = adv_state.plane_layer_group_mut(self.state_info.plane);
 
             for info in &self.state_info.affected_layers {
                 // NOTE: the original game does not remove the previous layer here, but we can't to this because we don't Arc everything
+                // this should not be a problem because we replace the layer with this layerbank id at the end of the for loop iteration
                 let mut previous_layer =
                     plane_layer_group.remove_layer(info.operation_target.layerbank, Ticks::ZERO);
 
@@ -207,11 +208,11 @@ impl UpdatableCommand for LAYERLOAD {
                 let mut layer = if info.already_the_same {
                     previous_layer.unwrap()
                 } else {
-                    let mut ctx = RenderCloneCtx::new(&context.pre_render.device);
+                    let mut ctx = RenderCloneCtx::new(context.pre_render.device);
 
                     let res = layer.render_clone(&mut ctx);
 
-                    ctx.finish(&context.pre_render.queue);
+                    ctx.finish(context.pre_render.queue);
 
                     res
                 };
@@ -220,12 +221,13 @@ impl UpdatableCommand for LAYERLOAD {
                     // TODO: connect the BustupLayer to the lipsync machinery
                 }
 
-                let mut properties = if let Some(previous_props) = previous_props {
-                    previous_props
-                } else {
-                    let mut properties = LayerProperties::new();
-                    properties.set_layer_id(info.layer_id_for_properties);
-                    properties
+                let mut properties = match (previous_props, info.keep_old_props) {
+                    (Some(previous_props), true) => previous_props,
+                    _ => {
+                        let mut properties = LayerProperties::new();
+                        properties.set_layer_id(info.layer_id_for_properties);
+                        properties
+                    }
                 };
 
                 properties.set_layerload_counter1(info.layer_load_counter1);

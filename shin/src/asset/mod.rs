@@ -2,6 +2,7 @@ mod audio;
 #[expect(unused)]
 pub mod bustup;
 pub mod font;
+pub mod mask;
 pub mod movie;
 pub mod picture;
 mod scenario;

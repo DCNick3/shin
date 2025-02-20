@@ -69,18 +69,15 @@ use std::sync::Arc;
 
 use derivative::Derivative;
 use enum_dispatch::enum_dispatch;
-use layerload::LAYERLOAD;
-use layerwait::LAYERWAIT;
-use moviewait::MOVIEWAIT;
-use msgset::MSGSET;
-use msgwait::MSGWAIT;
-use sewait::SEWAIT;
 use shin_core::{
     format::scenario::Scenario,
     vm::command::{CommandResult, RuntimeCommand},
 };
-use wait::WAIT;
 
+use self::{
+    layerload::LAYERLOAD, layerwait::LAYERWAIT, moviewait::MOVIEWAIT, msgset::MSGSET,
+    msgwait::MSGWAIT, sewait::SEWAIT, wait::WAIT, wipe::WIPE,
+};
 use crate::{
     adv::{AdvState, VmState},
     update::UpdateContext,
@@ -120,6 +117,8 @@ pub enum ExecutingCommand {
     SEWAIT,
     #[derivative(Debug = "transparent")]
     MOVIEWAIT,
+    #[derivative(Debug = "transparent")]
+    WIPE,
 }
 
 pub fn apply_command_state(command: RuntimeCommand, state: &mut VmState) {

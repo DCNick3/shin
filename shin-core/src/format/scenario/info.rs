@@ -8,7 +8,7 @@
 //!
 //! Apart from the asset tables, there are also a few other data blocks for various game-specific features, such as the Picture Box (`cgmode`) and Music Box (`bgmmode`), or Umineko's character relationship grid (`chars`). These may be somewhat more freeform in structure than the simple tables listed above, and their corresponding entry structs often also contain IDs linking to other data tables, as explained above.
 
-use std::io::{Read, Seek};
+use std::io::{Read, Seek, Write};
 
 use binrw::{file_ptr::FilePtrArgs, BinRead, BinResult, BinWrite, Endian, FilePtr32};
 
@@ -27,6 +27,12 @@ pub struct MaskInfoItem {
 }
 pub type MaskInfo = Vec<MaskInfoItem>;
 
+impl MaskInfoItem {
+    pub fn path(&self) -> String {
+        format!("/mask/{}.msk", self.name.as_str().to_ascii_lowercase())
+    }
+}
+
 /// References a static picture (`.pic` file).
 ///
 /// See [`shin_core::format::picture`] for functionality to read the `.pic` file this struct references.
@@ -40,7 +46,9 @@ pub struct PictureInfoItem {
     /// This is needed because the game occasionally composes CGs dynamically out of multiple animated parts, but still wants the (static, pre-assembled) main CG picture to be unlocked in the Picture Box if its main part (i.e. this picture) is shown.
     ///
     /// If there is no linked picture, the value is `-1`.
-    pub linked_cg_id: i16,
+    #[br(parse_with = parse_opt_newtype, args(-1))]
+    #[bw(write_with = write_opt_newtype, args(-1))]
+    pub linked_cg_id: Option<PictureId>,
 }
 pub type PictureInfo = Vec<PictureInfoItem>;
 
@@ -88,7 +96,9 @@ pub struct BgmInfoItem {
     pub display_name: U16String,
 
     /// The ID of another BGM track that should be unlocked in the Music Box (`bgmmode`) in addition to this track, when this track is played. `-1` if there is no linked BGM track.
-    pub linked_bgm_id: i16,
+    #[br(parse_with = parse_opt_newtype, args(-1))]
+    #[bw(write_with = write_opt_newtype, args(-1))]
+    pub linked_bgm_id: Option<MusicBoxId>, // TODO: I am not sure if using MusicBoxId is right here
 }
 pub type BgmInfo = Vec<BgmInfoItem>;
 
@@ -149,7 +159,9 @@ pub struct MovieInfoItem {
     pub name: U16String,
 
     /// The ID of the picture (indexing into [`PictureInfo`]) that will be displayed instead of the movie after the movie has finished playing. This is only really relevant for movies used in animations; the movies used in cutscenes have this set to 0.
-    pub linked_picture_id: u16,
+    #[br(parse_with = parse_opt_newtype, args(0))]
+    #[bw(write_with = write_opt_newtype, args(0))]
+    pub linked_picture_id: Option<PictureId>,
 
     /// Which volume setting to use when playing audio for this movie.
     pub volume_source: MovieVolumeSource,
@@ -158,7 +170,9 @@ pub struct MovieInfoItem {
     pub transparency: MovieTransparencyMode,
 
     /// The ID of the BGM (indexing into [`BgmInfo`]) that will be unlocked in the Music Box if this movie is played back. This is only really relevant for cutscene movies, where the Music Box entry for an opening theme needs to be unlocked. If there is no linked BGM track, the value is `-1`.
-    pub linked_bgm_id: i16,
+    #[br(parse_with = parse_opt_newtype, args(-1))]
+    #[bw(write_with = write_opt_newtype, args(-1))]
+    pub linked_bgm_id: Option<BgmId>,
 }
 pub type MovieInfo = Vec<MovieInfoItem>;
 
@@ -186,7 +200,7 @@ pub struct PictureBoxInfoItem {
     pub name: U16String,
 
     /// List of picture IDs (indexing into [`PictureInfo`]) that will be shown in sequence as the player clicks through the entry.
-    pub picture_ids: U16SmallList<u16>,
+    pub picture_ids: U16SmallList<PictureId>,
 }
 pub type PictureBoxInfo = Vec<PictureBoxInfoItem>;
 
@@ -194,7 +208,7 @@ pub type PictureBoxInfo = Vec<PictureBoxInfoItem>;
 #[derive(Debug, PartialEq, Eq, Hash, BinRead, BinWrite)]
 pub struct MusicBoxInfoItem {
     /// The ID of the BGM track (indexing into [`BgmInfo`]) to be played if this entry is selected.
-    pub bgm_id: u16,
+    pub bgm_id: BgmId,
 
     /// The index of the name to be displayed on the button for this entry, to be loaded from the `title*` textures in `bgmmode.txa`.
     pub name_index: u16,
@@ -211,9 +225,10 @@ pub enum CharacterBoxSegment {
     #[brw(magic = 0x0u8)]
     Background {
         /// The index of the picture (indexing into [`PictureInfo`]) that constitutes the primary background image (shown in front).
-        primary_picture_id: u16,
+        primary_picture_id: PictureId,
 
         /// This value is added to primary_picture_id to get the index of the secondary background image, shown behind the primary image. If 0, no secondary image will be shown.
+        // TODO: a newtype/parser combinator that can read Option<InfoId>
         secondary_picture_id_offset: u16,
     },
 
@@ -221,7 +236,7 @@ pub enum CharacterBoxSegment {
     #[brw(magic = 0x1u8)]
     Bustup {
         /// The ID of the bustup reference to be displayed. Indexes into [`BustupInfo`].
-        bustup_id: u16,
+        bustup_id: BustupId,
     },
 
     /// Ends a group of facial expressions (表情).
@@ -386,7 +401,7 @@ pub enum CharsGridSegment {
         grid_y: u8,
 
         /// The ID of the character this portrait is for, indexing into [`CharsSpriteInfo`].
-        character_id: u16,
+        character_id: CharsSpriteId,
 
         /// The index of the character state (see [`CharsSpriteSegment`]) to display initially. If 0, the portrait will display as an unselectable empty frame.
         default_state: u8,
@@ -566,23 +581,126 @@ pub struct ScenarioInfoTables {
     pub tips_info: Vec<TipsInfoItem>,
 }
 
+// definitions of newtypes for indices into the info tables
+// internally the into items are stored as i32, as most of the time they will come from a VM register value (i32). This is represented by implementing `FromNumber`
+// for cross-references between tables in the binary format, however, they are encoded as u16. This is represented by implementations of BinRead and BinWrite
+
+trait InfoIdNewtype: Copy + crate::format::scenario::instruction_elements::FromNumber {
+    fn into_i32(self) -> i32;
+}
+
+macro_rules! info_id_newtypes {
+    ($($newtype:ident),*) => {
+        $(
+            #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+            pub struct $newtype(i32);
+
+            impl crate::format::scenario::instruction_elements::FromNumber for $newtype {
+                fn from_number(number: i32) -> Self {
+                    Self(number)
+                }
+            }
+
+            impl InfoIdNewtype for $newtype {
+                fn into_i32(self) -> i32 {
+                    self.0
+                }
+            }
+
+            impl std::fmt::Display for $newtype {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", self.0)
+                }
+            }
+
+            impl BinRead for $newtype {
+                type Args<'a> = ();
+
+                fn read_options<R: Read + Seek>(
+                    reader: &mut R,
+                    endian: Endian,
+                    args: Self::Args<'_>,
+                ) -> BinResult<Self> {
+                    u16::read_options(reader, endian, args).map(|v| Self(v as i32))
+                }
+            }
+
+            impl BinWrite for $newtype {
+                type Args<'a> = ();
+
+                fn write_options<W: Write + Seek>(
+                    &self,
+                    writer: &mut W,
+                    endian: Endian,
+                    args: Self::Args<'_>,
+                ) -> BinResult<()> {
+                    u16::write_options(&(self.0 as u16), writer, endian, args)
+                }
+            }
+        )*
+    };
+}
+
+// binrw parser combinators allowing us to read and write `Option`s of the indices
+fn parse_opt_newtype<T: InfoIdNewtype, R: Read + Seek>(
+    r: &mut R,
+    endian: Endian,
+    (sentinel,): (i16,),
+) -> BinResult<Option<T>> {
+    let raw = i16::read_options(r, endian, ())?;
+
+    if raw == sentinel {
+        Ok(None)
+    } else {
+        Ok(Some(T::from_number(raw as i32)))
+    }
+}
+
+fn write_opt_newtype<T: InfoIdNewtype, W: Write + Seek>(
+    obj: &Option<T>,
+    w: &mut W,
+    endian: Endian,
+    (sentinel,): (i16,),
+) -> BinResult<()> {
+    let raw = match obj {
+        Some(value) => value.into_i32().try_into().unwrap(),
+        None => sentinel,
+    };
+
+    i16::write_options(&raw, w, endian, ())
+}
+
+info_id_newtypes!(
+    MaskId,
+    // TODO: BustupId and PictureId conflict with PictureId and BustupId newtypes for ids found the picture and bup headers. Ideally we would want to rename either of them
+    PictureId,
+    BustupId,
+    BgmId,
+    SeId,
+    MovieId,
+    PictureBoxId,
+    MusicBoxId,
+    CharacterBoxId,
+    CharsSpriteId
+);
+
 impl ScenarioInfoTables {
-    pub fn mask_info(&self, msk_id: i32) -> &MaskInfoItem {
-        &self.mask_info[msk_id as usize]
+    pub fn mask_info(&self, msk_id: MaskId) -> &MaskInfoItem {
+        &self.mask_info[msk_id.0 as usize]
     }
-    pub fn picture_info(&self, pic_id: i32) -> &PictureInfoItem {
-        &self.picture_info[pic_id as usize]
+    pub fn picture_info(&self, pic_id: PictureId) -> &PictureInfoItem {
+        &self.picture_info[pic_id.0 as usize]
     }
-    pub fn bustup_info(&self, bup_id: i32) -> &BustupInfoItem {
-        &self.bustup_info[bup_id as usize]
+    pub fn bustup_info(&self, bup_id: BustupId) -> &BustupInfoItem {
+        &self.bustup_info[bup_id.0 as usize]
     }
-    pub fn bgm_info(&self, bgm_id: i32) -> &BgmInfoItem {
-        &self.bgm_info[bgm_id as usize]
+    pub fn bgm_info(&self, bgm_id: BgmId) -> &BgmInfoItem {
+        &self.bgm_info[bgm_id.0 as usize]
     }
-    pub fn se_info(&self, se_id: i32) -> &SeInfoItem {
-        &self.se_info[se_id as usize]
+    pub fn se_info(&self, se_id: SeId) -> &SeInfoItem {
+        &self.se_info[se_id.0 as usize]
     }
-    pub fn movie_info(&self, movie_id: i32) -> &MovieInfoItem {
-        &self.movie_info[movie_id as usize]
+    pub fn movie_info(&self, movie_id: MovieId) -> &MovieInfoItem {
+        &self.movie_info[movie_id.0 as usize]
     }
 }

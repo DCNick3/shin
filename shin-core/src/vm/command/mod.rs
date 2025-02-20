@@ -11,12 +11,14 @@ use types::{
 use crate::{
     format::{
         scenario::{
+            info::{BgmId, SeId},
             instruction_elements::{BitmaskNumberArray, MessageId, NumberSpec, Register, U8Bool},
             types::U8SmallNumberList,
         },
         text::{StringArray, U16FixupString, U16String},
     },
     time::Ticks,
+    vm::command::types::{WipeFlags, WiperType},
 };
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
@@ -118,9 +120,9 @@ pub enum Command {
     },
     #[cmd(opcode = 0x8eu8)]
     WIPE {
-        arg1: NumberSpec,
-        arg2: NumberSpec,
-        wipe_time: NumberSpec,
+        ty: NumberSpec<WiperType>,
+        flags: NumberSpec<WipeFlags>,
+        duration: NumberSpec<Ticks>,
         params: BitmaskNumberArray,
     },
     #[cmd(opcode = 0x8fu8)]
@@ -129,7 +131,7 @@ pub enum Command {
     #[cmd(opcode = 0x90u8)]
     BGMPLAY {
         /// BGM ID (stored in scenario header)
-        bgm_data_id: NumberSpec,
+        bgm_data_id: NumberSpec<BgmId>,
         fade_in_time: NumberSpec<Ticks>,
         /// If true - do not restart the track when it's finished
         no_repeat: NumberSpec<bool>,
@@ -156,7 +158,7 @@ pub enum Command {
     #[cmd(opcode = 0x95u8)]
     SEPLAY {
         se_slot: NumberSpec,
-        se_data_id: NumberSpec,
+        se_data_id: NumberSpec<SeId>,
         fade_in_time: NumberSpec<Ticks>,
         no_repeat: NumberSpec<bool>,
         volume: NumberSpec<Volume>,

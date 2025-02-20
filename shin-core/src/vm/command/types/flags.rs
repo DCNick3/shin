@@ -29,12 +29,12 @@ impl FromNumber for LayerCtrlFlags {
 }
 
 bitflags! {
-    /// Flags that can be used in [MASKLOAD](super::super::runtime::MASKLOAD) command
+    /// Flags that can be used in [MASKLOAD](super::super::runtime::MASKLOAD) command and with `MaskWiper`
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct MaskFlags: i32 {
         const FLIP_X = 0x0001;
         const FLIP_Y = 0x0002;
-        const UNK_4 = 0x0004;
+        const FLIP_MIN_MAX = 0x0004;
         const SCALE = 0x0010;
     }
 }
@@ -88,5 +88,20 @@ bitflags! {
 impl FromNumber for LayerLoadFlags {
     fn from_number(number: i32) -> Self {
         LayerLoadFlags::from_bits(number).expect("Invalid LayerLoadFlags")
+    }
+}
+
+bitflags! {
+    /// Flags modifying WIPE behavior
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
+    pub struct WipeFlags: i32 {
+        const DONT_BLOCK_ANIMATIONS = 1;
+        const DONT_WAIT = 2;
+    }
+}
+
+impl FromNumber for WipeFlags {
+    fn from_number(number: i32) -> Self {
+        WipeFlags::from_bits(number).expect("Invalid WipeFlags")
     }
 }

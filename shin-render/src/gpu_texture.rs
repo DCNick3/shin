@@ -1,4 +1,5 @@
 use dpi::PhysicalSize;
+use glam::{vec2, Vec2};
 use shin_render_shader_types::texture::{TextureSampler, TextureSource};
 use wgpu::TextureDimension;
 
@@ -141,6 +142,25 @@ impl GpuTexture {
         )
     }
 
+    pub fn new_static_from_gray_image(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        label: Option<&str>,
+        image: &image::GrayImage,
+    ) -> Self {
+        // NB: no sRGB, because that's how the original code did it
+        let format = wgpu::TextureFormat::R8Unorm;
+
+        Self::new_static_with_data(
+            device,
+            queue,
+            label,
+            image.dimensions().into(),
+            format,
+            image.as_ref(),
+        )
+    }
+
     pub fn new_static_from_gray_mipped_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -180,6 +200,10 @@ impl GpuTexture {
 
     pub fn size(&self) -> PhysicalSize<u32> {
         PhysicalSize::new(self.texture.width(), self.texture.height())
+    }
+
+    pub fn size_vec(&self) -> Vec2 {
+        vec2(self.texture.width() as f32, self.texture.height() as f32)
     }
 
     // TODO: we should provide APIs instead of just exposing the raw wgpu texture

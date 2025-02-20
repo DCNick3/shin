@@ -1,10 +1,11 @@
+use replace_with::replace_with;
 use shin_core::primitives::color::{FloatColor4, UnormColor};
 use shin_render::{
     render_pass::RenderPass,
     render_texture::RenderTexture,
     shaders::types::{
         texture::{DepthStencilTarget, TextureTarget},
-        RenderClone,
+        RenderClone, RenderCloneCtx,
     },
     PassKind, RenderRequestBuilder,
 };
@@ -254,36 +255,32 @@ impl ScreenLayer {
         }
     }
 
-    #[expect(unused)] // for future stuff
-    pub fn pageback(&mut self, immediate: bool) {
-        if immediate {
+    pub fn pageback(&mut self, ctx: &mut RenderCloneCtx, start_anew: bool) {
+        if start_anew {
             todo!()
         }
 
-        todo!()
-
-        // TODO: we need to wire in the args for render_clone
-        // let new_pending_layer = self.active_layer.render_clone().into_target_layer();
-
-        // self.pending_layer = Some(new_pending_layer);
+        self.pending_layer = Some(self.active_layer.get_target_layer().render_clone(ctx));
 
         // NB: the original engine iterates over plane `LayerGroup`s and calls `LayerGroup::stop_transition` on them
         // We do not implement `LayerGroup`-level transitions, so this is skipped
     }
 
-    #[expect(unused)] // for future stuff
     pub fn apply_transition(&mut self, wiper: Option<AnyWiper>) {
         let Some(pending_layer) = self.pending_layer.take() else {
             return;
         };
+        replace_with(
+            &mut self.active_layer,
+            TransitionLayer::dummy,
+            |prev_transition_layer| {
+                TransitionLayer::new(Some(Box::new(prev_transition_layer)), pending_layer, wiper)
+            },
+        );
+    }
 
-        // I am not a fan of this =(
-        // unfortunately you can't just temporarily take the `active_layer` out in safe rust
-        // so we have to invent a dummy value for it
-        let prev_transition_layer =
-            std::mem::replace(&mut self.active_layer, TransitionLayer::dummy());
-        self.active_layer =
-            TransitionLayer::new(Some(Box::new(prev_transition_layer)), pending_layer, wiper);
+    pub fn is_transition_active(&self) -> bool {
+        self.active_layer.is_transition_active()
     }
 }
 

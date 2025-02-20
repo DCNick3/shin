@@ -1,6 +1,6 @@
-use shin_core::format::mask::MaskVertex;
+use shin_core::format::mask::MaskRect;
 
-fn make_svg(vertices: &[MaskVertex], color: &str, view_box: (f32, f32, f32, f32)) -> String {
+fn make_svg(vertices: &[MaskRect], color: &str, view_box: (f32, f32, f32, f32)) -> String {
     use std::fmt::Write;
 
     let mut result = String::new();
@@ -37,7 +37,7 @@ fn make_svg(vertices: &[MaskVertex], color: &str, view_box: (f32, f32, f32, f32)
     result
 }
 
-fn compute_area(vertices: &[MaskVertex]) -> u32 {
+fn compute_area(vertices: &[MaskRect]) -> u32 {
     vertices
         .iter()
         .map(|v| (v.to_x - v.from_x) as u32 * (v.to_y - v.from_y) as u32)
@@ -48,21 +48,21 @@ pub fn main(msk_path: String) {
     let mask = std::fs::read(msk_path).unwrap();
     let mask = shin_core::format::mask::read_mask(&mask).unwrap();
 
-    let black_range = 0..mask.vertices.black_regions.vertex_count as usize;
+    let black_range = 0..mask.regions.black_regions.rect_count as usize;
     let white_range =
-        black_range.end..black_range.end + mask.vertices.white_regions.vertex_count as usize;
+        black_range.end..black_range.end + mask.regions.white_regions.rect_count as usize;
     let transparent_range =
-        white_range.end..white_range.end + mask.vertices.transparent_regions.vertex_count as usize;
+        white_range.end..white_range.end + mask.regions.transparent_regions.rect_count as usize;
 
     assert!(mask
-        .vertices
-        .vertices
+        .regions
+        .rects
         .iter()
         .all(|v| v.from_x % 4 == 0 && v.from_y % 4 == 0 && v.to_x % 4 == 0 && v.to_y % 4 == 0));
 
-    let black_vertices = &mask.vertices.vertices[black_range];
-    let white_vertices = &mask.vertices.vertices[white_range];
-    let transparent_vertices = &mask.vertices.vertices[transparent_range];
+    let black_vertices = &mask.regions.rects[black_range];
+    let white_vertices = &mask.regions.rects[white_range];
+    let transparent_vertices = &mask.regions.rects[transparent_range];
 
     // the areas are computed in 4x4 blocks
     println!("Black area: {}", compute_area(black_vertices) / 16);

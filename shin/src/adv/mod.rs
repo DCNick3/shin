@@ -23,7 +23,10 @@ use shin_core::{
     },
 };
 use shin_input::{inputs::MouseButton, Action, ActionState};
-use shin_render::render_pass::RenderPass;
+use shin_render::{
+    render_pass::RenderPass,
+    shaders::types::{RenderClone as _, RenderCloneCtx},
+};
 use smallvec::{smallvec, SmallVec};
 use tracing::{debug, warn};
 use vm_state::layers::ITER_VLAYER_SMALL_VECTOR_SIZE;
@@ -292,6 +295,7 @@ impl Adv {
 /// This is the object the VM manipulates
 pub struct AdvState {
     pub root_layer_group: RootLayerGroup,
+    pub back_layer_group: Option<RootLayerGroup>,
     pub audio_manager: Arc<AudioManager>,
     pub bgm_player: BgmPlayer,
     pub se_player: SePlayer,
@@ -306,6 +310,7 @@ impl AdvState {
                 assets.messagebox_textures.clone(),
                 VoicePlayer::new(audio_manager.clone()),
             ),
+            back_layer_group: None,
             audio_manager: audio_manager.clone(),
             bgm_player: BgmPlayer::new(audio_manager.clone()),
             se_player: SePlayer::new(audio_manager),
@@ -355,6 +360,19 @@ impl AdvState {
             .get_plane_mut(plane)
     }
 
+    pub fn create_back_layer_group_if_needed(&mut self, ctx: &mut RenderCloneCtx) {
+        // This currently doesn't work because cloning MessageLayer is weird
+        // the game just increases the refcount but in rust we would have to wrap it in an `Arc`
+        // I am also not yet convinced that "back_layer_group" is not some legacy transition mechanism not actually used by umineko
+        // so, do not do anything for now
+
+        // if self.back_layer_group.is_some() {
+        //     return;
+        // }
+        //
+        // self.back_layer_group = Some(self.root_layer_group.render_clone(ctx));
+    }
+
     pub fn render(&self, pass: &mut RenderPass) {
         pass.clear(Some(UnormColor::BLACK), Some(0), Some(1.0));
         render_layer_without_bg(pass, &TransformParams::default(), &self.root_layer_group, 0)
@@ -367,10 +385,16 @@ impl Updatable for AdvState {
             frame_id: context.frame_id,
             delta_ticks: context.delta_ticks,
             asset_server: context.asset_server,
-            device: &context.pre_render.device,
-            queue: &context.pre_render.queue,
+            device: context.pre_render.device,
+            queue: context.pre_render.queue,
             are_animations_allowed: self.allow_running_animations,
         };
+
+        // this seems like a pre-PAGEBACK feature to stop incomplete transitions from rendering
+        // why did they leave it in :/
+        if self.allow_running_animations {
+            self.back_layer_group = None;
+        }
 
         self.root_layer_group.update(&adv_update_context);
 

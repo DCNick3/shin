@@ -1,4 +1,5 @@
 use shin_core::time::{Easing, Tween};
+use shin_render::shaders::types::RenderCloneCtx;
 
 use super::prelude::*;
 use crate::{adv::vm_state::layers::LayerOperationTargetList, layer::LayerProperties};
@@ -53,7 +54,7 @@ impl StartableCommand for command::runtime::LAYERCTRL {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         affected_layers: LayerOperationTargetList,
@@ -61,7 +62,9 @@ impl StartableCommand for command::runtime::LAYERCTRL {
     ) -> CommandStartResult {
         let (target_value, duration, flags, easing_param, ..) = self.params;
 
-        // TODO: create a ¿back layer group? if it doesn't exist yet
+        let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
+        adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
+        clone_ctx.finish(context.pre_render.queue);
 
         if flags.unused_1() != 0 || flags.unused_2() != 0 || flags.unused_3() != 0 {
             panic!("LAYERCTRL: unused flags are set: {:?}", flags);

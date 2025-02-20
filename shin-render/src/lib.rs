@@ -22,7 +22,9 @@ use shin_core::primitives::color::FloatColor4;
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::TextureSource,
-    vertices::{LayerVertex, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex},
+    vertices::{
+        LayerVertex, MaskVertex, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex,
+    },
 };
 pub use shin_render_shaders as shaders;
 use shin_render_shaders::ShaderName;
@@ -211,10 +213,15 @@ pub enum RenderProgramWithArguments<'a> {
         texture_source: TextureSource<'a>,
         texture_target: TextureSource<'a>,
         transform: Mat4,
-        alpha: Vec4,
+        alpha: f32,
     },
     WiperMask {
-        // TODO
+        vertices: VertexSource<'a, MaskVertex>,
+        texture_source: TextureSource<'a>,
+        texture_target: TextureSource<'a>,
+        texture_mask: TextureSource<'a>,
+        transform: Mat4,
+        minmax: Vec2,
     },
     WiperWave {
         // TODO

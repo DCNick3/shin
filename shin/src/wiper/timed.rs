@@ -19,7 +19,7 @@ pub trait TimedWiper {
     );
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct TimedWiperState {
     current_time: Ticks,
     total_time: Ticks,
@@ -55,7 +55,7 @@ impl TimedWiperState {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TimedWiperWrapper<T> {
     state: TimedWiperState,
     inner: T,

@@ -12,7 +12,7 @@ use crate::{
     wiper::timed::{TimedWiper, TimedWiperWrapper},
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct DefaultWiperImpl;
 
 impl AdvUpdatable for DefaultWiperImpl {
@@ -54,7 +54,7 @@ impl TimedWiper for DefaultWiperImpl {
                         texture_source,
                         texture_target,
                         transform,
-                        alpha: vec4(progress, 0.0, 0.0, 0.0),
+                        alpha: progress,
                     },
                     DrawPrimitive::TrianglesStrip,
                 ),
@@ -65,7 +65,6 @@ impl TimedWiper for DefaultWiperImpl {
 pub type DefaultWiper = TimedWiperWrapper<DefaultWiperImpl>;
 
 impl DefaultWiper {
-    #[expect(unused)] // for future stuff
     pub fn new(duration: Ticks) -> Self {
         Self::from_inner(DefaultWiperImpl, duration)
     }

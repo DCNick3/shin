@@ -261,3 +261,29 @@ impl UniformType for WiperDefaultUniformParams {
         ],
     });
 }
+
+#[derive(ShaderType)]
+pub struct WiperMaskUniformParams {
+    pub transform: Mat4,
+    pub minmax: Vec4,
+}
+
+impl UniformType for WiperMaskUniformParams {
+    const SCHEMA: TypeSchema = TypeSchema::Struct(StructSchema {
+        name: "WiperMaskUniformParams",
+        size: WiperMaskUniformParams::METADATA.min_size.get() as u32,
+        alignment: WiperMaskUniformParams::METADATA.alignment.get() as u32,
+        fields: &[
+            FieldSchema {
+                name: "transform",
+                ty: &<Mat4 as UniformType>::SCHEMA,
+                offset: WiperMaskUniformParams::METADATA.extra.offsets[0] as u32,
+            },
+            FieldSchema {
+                name: "minmax",
+                ty: &<Vec4 as UniformType>::SCHEMA,
+                offset: WiperMaskUniformParams::METADATA.extra.offsets[1] as u32,
+            },
+        ],
+    });
+}

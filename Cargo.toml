@@ -55,6 +55,8 @@ encase = "0.9.0"
 # running with deadlock detection for now because I've been getting rare deadlocks in wgpu :/
 parking_lot = { version = "0.12.3", features = ["deadlock_detection"] }
 
+replace_with = "0.1.7"
+
 [profile.release]
 debug = true
 #lto = 'thin'

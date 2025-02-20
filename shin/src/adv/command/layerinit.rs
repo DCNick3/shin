@@ -1,4 +1,5 @@
 use shin_core::vm::command::types::{LayerId, LayerbankId};
+use shin_render::shaders::types::RenderCloneCtx;
 
 use super::prelude::*;
 use crate::adv::vm_state::layers::LayerOperationTargetList;
@@ -50,13 +51,15 @@ impl StartableCommand for command::runtime::LAYERINIT {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         affected_layers: LayerOperationTargetList,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        // TODO: create a ¿back layer group? if it doesn't exist yet
+        let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
+        adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
+        clone_ctx.finish(context.pre_render.queue);
 
         match self.layer_id.repr() {
             VLayerIdRepr::RootLayerGroup => {

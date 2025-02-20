@@ -91,7 +91,9 @@ impl DrawableLayer for RootLayer {
     }
 }
 
+#[derive(RenderClone)]
 pub struct RootLayerGroup {
+    #[render_clone(needs_render)]
     inner: LayerGroup<RootLayer>,
 }
 

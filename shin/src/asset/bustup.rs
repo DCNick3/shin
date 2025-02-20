@@ -235,8 +235,6 @@ impl Asset for Bustup {
     ) -> Result<Self> {
         let data = data.read_all().await;
 
-        let info = shin_core::format::bustup::read_bustup_header(&data)?;
-
         let args = GpuBustupBuilderArgs {
             context: GpuTextureBuilderContext {
                 wgpu_device: &context.wgpu_device,

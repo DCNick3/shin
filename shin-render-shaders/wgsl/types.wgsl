@@ -35,7 +35,8 @@ struct LayerVertex {
 
 struct MaskVertex {
     @location(0) position: vec2<f32>,
-    @location(1) texture_position: vec4<f32>,
+    @location(1) texture_position: vec2<f32>,
+    @location(2) mask_position: vec2<f32>,
 }
 
 struct MovieVertex {
@@ -83,5 +84,10 @@ struct MovieUniformParams {
 struct WiperDefaultUniformParams {
     transform: mat4x4<f32>,
     alpha: vec4<f32>,
+}
+
+struct WiperMaskUniformParams {
+    transform: mat4x4<f32>,
+    minmax: vec4<f32>,
 }
 

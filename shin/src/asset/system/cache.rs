@@ -174,6 +174,7 @@ impl<K, V> CacheLookupResult<K, V> {
 pub enum CacheHandle<V> {
     Loaded(Arc<V>),
     Loading(CacheLoadHandle<V>),
+    #[expect(unused)] // it'll be used if `wait_inplace` will, not sure if it will tho
     Tombstone,
 }
 

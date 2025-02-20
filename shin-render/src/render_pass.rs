@@ -1,4 +1,4 @@
-use glam::vec3;
+use glam::{vec3, vec4};
 use shin_core::primitives::color::{FloatColor4, UnormColor};
 use shin_render_shader_types::{
     buffer::VertexSource,
@@ -6,13 +6,14 @@ use shin_render_shader_types::{
     uniforms::{
         ClearUniformParams, FillUniformParams, FontBorderUniformParams, FontUniformParams,
         LayerUniformParams, MovieUniformParams, SpriteUniformParams, WiperDefaultUniformParams,
+        WiperMaskUniformParams,
     },
     vertices::PosVertex,
 };
 use shin_render_shaders::{
     Clear, ClearBindings, Fill, FillBindings, Font, FontBindings, FontBorder, FontBorderBindings,
     Layer, LayerBindings, Movie, MovieBindings, Shader, Sprite, SpriteBindings, WiperDefault,
-    WiperDefaultBindings,
+    WiperDefaultBindings, WiperMask, WiperMaskBindings,
 };
 
 use crate::{
@@ -254,13 +255,36 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
             } => self.run_impl::<WiperDefault>(
                 key,
                 WiperDefaultBindings {
-                    params: &WiperDefaultUniformParams { transform, alpha },
+                    params: &WiperDefaultUniformParams {
+                        transform,
+                        alpha: vec4(alpha, 0.0, 0.0, 0.0),
+                    },
                     source: texture_source,
                     target: texture_target,
                 },
                 vertices,
             ),
 
+            RenderProgramWithArguments::WiperMask {
+                vertices,
+                texture_source,
+                texture_target,
+                texture_mask,
+                transform,
+                minmax,
+            } => self.run_impl::<WiperMask>(
+                key,
+                WiperMaskBindings {
+                    params: &WiperMaskUniformParams {
+                        transform,
+                        minmax: minmax.extend(0.0).extend(0.0),
+                    },
+                    source: texture_source,
+                    target: texture_target,
+                    mask: texture_mask,
+                },
+                vertices,
+            ),
             _ => todo!(),
         }
     }

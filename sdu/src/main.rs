@@ -97,7 +97,11 @@ enum MaskCommand {
     Decode {
         /// Path to the MSK file
         mask_path: PathBuf,
-        /// Path to the output PNG file
+        /// Path to the output directory
+        ///
+        /// The directory will contain a png file, as well as txt file with vertices
+        // TODO: is it actually useful to output vertices besides format RE?
+        // they can be generated from the mask texture itself
         output_path: PathBuf,
     },
 }
@@ -211,24 +215,24 @@ fn mask_command(command: MaskCommand) -> Result<()> {
                 .save(output_path.join("mask.png"))
                 .context("Writing mask.png")?;
 
-            let v = &mask.vertices;
+            let v = &mask.regions;
             let mut v_out =
                 File::create(output_path.join("vertices.txt")).context("Creating vertices.txt")?;
             writeln!(
                 v_out,
                 "({}, {}) ({}, {}) ({}, {})",
-                v.black_regions.vertex_count,
+                v.black_regions.rect_count,
                 v.black_regions.region_area,
-                v.white_regions.vertex_count,
+                v.white_regions.rect_count,
                 v.white_regions.region_area,
-                v.transparent_regions.vertex_count,
+                v.transparent_regions.rect_count,
                 v.transparent_regions.region_area
             )
             .context("Writing vertices.txt")?;
 
-            for (i, vertex) in (0..).zip(&v.vertices) {
-                if i == v.black_regions.vertex_count
-                    || i == v.black_regions.vertex_count + v.white_regions.vertex_count
+            for (i, vertex) in (0..).zip(&v.rects) {
+                if i == v.black_regions.rect_count
+                    || i == v.black_regions.rect_count + v.white_regions.rect_count
                 {
                     writeln!(v_out).context("Writing vertices.txt")?;
                 }

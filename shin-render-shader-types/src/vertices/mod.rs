@@ -193,12 +193,14 @@ impl VertexType for LayerVertex {
 #[repr(C, packed)]
 pub struct MaskVertex {
     pub position: Vec2,
-    pub texture_position: Vec4,
+    pub texture_position: Vec2,
+    pub mask_position: Vec2,
 }
 
 impl VertexType for MaskVertex {
     const NAME: &'static str = "MaskVertex";
-    const ATTRIBUTE_NAMES: &'static [&'static str] = &["position", "texture_position"];
+    const ATTRIBUTE_NAMES: &'static [&'static str] =
+        &["position", "texture_position", "mask_position"];
     const ATTRIBUTES: &'static [wgpu::VertexAttribute] = &[
         wgpu::VertexAttribute {
             format: <Vec2 as VertexAttribute>::FORMAT,
@@ -206,9 +208,14 @@ impl VertexType for MaskVertex {
             shader_location: 0,
         },
         wgpu::VertexAttribute {
-            format: <Vec4 as VertexAttribute>::FORMAT,
+            format: <Vec2 as VertexAttribute>::FORMAT,
             offset: std::mem::offset_of!(MaskVertex, texture_position) as wgpu::BufferAddress,
             shader_location: 1,
+        },
+        wgpu::VertexAttribute {
+            format: <Vec2 as VertexAttribute>::FORMAT,
+            offset: std::mem::offset_of!(MaskVertex, mask_position) as wgpu::BufferAddress,
+            shader_location: 2,
         },
     ];
 }

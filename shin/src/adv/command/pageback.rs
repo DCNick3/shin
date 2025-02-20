@@ -1,23 +1,38 @@
+use shin_render::shaders::types::RenderCloneCtx;
+
 use super::prelude::*;
 
 impl StartableCommand for command::runtime::PAGEBACK {
-    type StateInfo = ();
-    fn apply_state(&self, _state: &mut VmState) {
-        warn!("TODO: PAGEBACK state: {:?}", self);
-        // TODO: I __think__ we should have a way to store this in the state
-        // I am still not sure of the paradigm, lol
-        // ignore for now (along with WIPE)
+    type StateInfo = bool;
+    fn apply_state(&self, state: &mut VmState) -> bool {
+        if state.layers.is_page_back_started {
+            false
+        } else {
+            state.layers.is_page_back_started = true;
+
+            true
+        }
     }
 
     fn start(
         self,
-        _context: &UpdateContext,
+        context: &UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
-        _state_info: (),
-        _adv_state: &mut AdvState,
+        needs_page_back: bool,
+        adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        warn!("TODO: PAGEBACK: {:?}", self);
+        if !needs_page_back {
+            return self.token.finish().into();
+        }
+
+        let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
+
+        adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
+        adv_state.screen_layer_mut().pageback(&mut clone_ctx, false);
+
+        clone_ctx.finish(context.pre_render.queue);
+
         self.token.finish().into()
     }
 }
