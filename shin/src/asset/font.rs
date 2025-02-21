@@ -5,7 +5,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use shin_core::{
     format::font::{
-        read_lazy_font, FontLazy, Glyph, GlyphId, GlyphInfo, GlyphMipLevel, GlyphTrait,
+        FontLazy, Glyph, GlyphId, GlyphInfo, GlyphMipLevel, GlyphTrait, read_lazy_font,
     },
     layout::font::FontMetrics,
 };
@@ -13,8 +13,8 @@ use shin_render::{gpu_texture::GpuTexture, shaders::types::texture::TextureSourc
 use shin_tasks::AsyncComputeTaskPool;
 
 use crate::asset::system::{
-    cache::{AssetCache, CacheHandle},
     Asset, AssetDataAccessor, AssetLoadContext,
+    cache::{AssetCache, CacheHandle},
 };
 
 pub struct GpuFontLazy {
@@ -32,8 +32,8 @@ impl GpuFontLazy {
 
     pub fn load_glyphs(
         self: Arc<Self>,
-        device: &Arc<wgpu::Device>,
-        queue: &Arc<wgpu::Queue>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
         characters: &[char],
     ) -> Vec<GpuFontGlyphHandle> {
         if characters.is_empty() {

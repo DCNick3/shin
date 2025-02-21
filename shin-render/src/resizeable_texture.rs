@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 use dpi::PhysicalSize;
 
 use crate::resize::{ResizeHandle, SizeAspect};
 
 #[derive(Debug)]
 pub struct ResizeableTexture<Aspect: SizeAspect> {
-    device: Arc<wgpu::Device>,
+    device: wgpu::Device,
     label: String,
     texture: (wgpu::Texture, wgpu::TextureView),
     format: wgpu::TextureFormat,
@@ -46,7 +44,7 @@ impl<Aspect: SizeAspect> ResizeableTexture<Aspect> {
     }
 
     pub fn new_with_size(
-        device: Arc<wgpu::Device>,
+        device: wgpu::Device,
         label: Option<String>,
         format: wgpu::TextureFormat,
         usage: wgpu::TextureUsages,
@@ -68,7 +66,7 @@ impl<Aspect: SizeAspect> ResizeableTexture<Aspect> {
     }
 
     pub fn new(
-        device: Arc<wgpu::Device>,
+        device: wgpu::Device,
         label: Option<String>,
         format: wgpu::TextureFormat,
         usage: wgpu::TextureUsages,

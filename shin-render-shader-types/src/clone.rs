@@ -3,13 +3,13 @@ use std::sync::Arc;
 use drop_bomb::DropBomb;
 
 pub struct RenderCloneCtx<'d> {
-    pub device: &'d Arc<wgpu::Device>,
+    pub device: &'d wgpu::Device,
     pub encoder: wgpu::CommandEncoder,
     bomb: DropBomb,
 }
 
 impl<'d> RenderCloneCtx<'d> {
-    pub fn new(device: &'d Arc<wgpu::Device>) -> Self {
+    pub fn new(device: &'d wgpu::Device) -> Self {
         Self {
             device,
             encoder: device.create_command_encoder(&wgpu::CommandEncoderDescriptor {

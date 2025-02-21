@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use shin_render_shader_types::texture::DepthStencilTarget;
 
 use crate::{
+    DEPTH_STENCIL_FORMAT,
     resize::{CanvasSize, ResizeHandle},
     resizeable_texture::ResizeableTexture,
-    DEPTH_STENCIL_FORMAT,
 };
 
 #[derive(Debug)]
@@ -19,7 +17,7 @@ pub struct DepthStencil {
 
 impl DepthStencil {
     pub fn new(
-        device: Arc<wgpu::Device>,
+        device: wgpu::Device,
         resize_handle: ResizeHandle<CanvasSize>,
         label: Option<String>,
     ) -> Self {

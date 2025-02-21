@@ -1,8 +1,8 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use shin_render_shader_types::buffer::{
-    types::{BufferType, RawMarker},
     Buffer, BufferUsage, BytesAddress, DynamicBufferBackend, SharedBuffer,
+    types::{BufferType, RawMarker},
 };
 use sketches_ddsketch::DDSketch;
 use tracing::info;
@@ -69,8 +69,8 @@ impl Debug for DynamicBufferStats {
 
 /// Dynamically allocates space in a gpu buffer, mostly used for submitting uniform data
 pub struct DynamicBuffer {
-    device: Arc<wgpu::Device>,
-    queue: Arc<wgpu::Queue>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
     block_size: BytesAddress,
     position: BytesAddress,
     buffer: SharedBuffer<RawMarker>,
@@ -80,11 +80,7 @@ pub struct DynamicBuffer {
 impl DynamicBuffer {
     const ALIGNMENT: BytesAddress = BytesAddress::new(16);
 
-    pub fn new(
-        device: Arc<wgpu::Device>,
-        queue: Arc<wgpu::Queue>,
-        block_size: BytesAddress,
-    ) -> Self {
+    pub fn new(device: wgpu::Device, queue: wgpu::Queue, block_size: BytesAddress) -> Self {
         let buffer = Buffer::allocate_raw(
             &device,
             block_size,

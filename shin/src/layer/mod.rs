@@ -11,8 +11,6 @@ mod screen_layer;
 pub mod user;
 mod wobbler;
 
-use std::sync::Arc;
-
 use derive_more::From;
 use glam::vec3;
 pub use layer_group::LayerGroup;
@@ -23,6 +21,8 @@ pub use root_layer_group::RootLayerGroup;
 pub use screen_layer::ScreenLayer;
 use shin_core::primitives::color::FloatColor4;
 use shin_render::{
+    DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
+    StencilFunction, StencilOperation, StencilPipelineState, StencilState,
     dynamic_buffer::DynamicBuffer,
     pipelines::PipelineStorage,
     render_pass::RenderPass,
@@ -33,8 +33,6 @@ use shin_render::{
         texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget},
         vertices::PosVertex,
     },
-    DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
-    StencilFunction, StencilOperation, StencilPipelineState, StencilState,
 };
 
 use crate::{
@@ -43,8 +41,8 @@ use crate::{
 };
 
 pub struct PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder> {
-    pub device: &'immutable Arc<wgpu::Device>,
-    pub queue: &'immutable Arc<wgpu::Queue>,
+    pub device: &'immutable wgpu::Device,
+    pub queue: &'immutable wgpu::Queue,
     pub resize_source: &'immutable SurfaceResizeSource,
     pub sampler_store: &'immutable TextureSamplerStore,
     pub depth_stencil: DepthStencilTarget<'immutable>,

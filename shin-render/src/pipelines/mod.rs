@@ -1,6 +1,6 @@
 mod conversions;
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use enum_iterator::Sequence;
 use rustc_hash::FxHashMap;
@@ -9,7 +9,7 @@ use shin_render_shaders::{Shader, ShaderContext, ShaderName, TypedRenderPipeline
 use wgpu::RenderPipeline;
 
 use crate::{
-    ColorBlendType, CullFace, DepthStencilPipelineState, DrawPrimitive, DEPTH_STENCIL_FORMAT,
+    ColorBlendType, CullFace, DEPTH_STENCIL_FORMAT, DepthStencilPipelineState, DrawPrimitive,
     TEXTURE_FORMAT,
 };
 
@@ -112,14 +112,14 @@ impl ShaderContextStorage {
 }
 
 pub struct PipelineStorage {
-    device: Arc<wgpu::Device>,
+    device: wgpu::Device,
     screen_texture_format: wgpu::TextureFormat,
     shader_context: ShaderContextStorage,
     pipelines: FxHashMap<(ShaderName, PipelineStorageKey), wgpu::RenderPipeline>,
 }
 
 impl PipelineStorage {
-    pub fn new(device: Arc<wgpu::Device>, screen_texture_format: wgpu::TextureFormat) -> Self {
+    pub fn new(device: wgpu::Device, screen_texture_format: wgpu::TextureFormat) -> Self {
         let shader_context = ShaderContextStorage::new(&device);
         Self {
             device,

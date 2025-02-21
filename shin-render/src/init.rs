@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Context;
 use shin_render_shader_types::{buffer::BytesAddress, texture::TextureSamplerStore};
 use tracing::{debug, info};
@@ -16,7 +14,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ResizeableSurface<'window> {
-    device: Arc<wgpu::Device>,
+    device: wgpu::Device,
     surface: wgpu::Surface<'window>,
     surface_config: wgpu::SurfaceConfiguration,
     resize_handle: ResizeHandle<SurfaceSize>,
@@ -57,7 +55,7 @@ pub struct SurfaceTextureWithView {
 }
 
 fn configure_surface(
-    device: Arc<wgpu::Device>,
+    device: wgpu::Device,
     surface: wgpu::Surface,
     mut surface_resize_handle: ResizeHandle<SurfaceSize>,
     surface_texture_format: wgpu::TextureFormat,
@@ -90,8 +88,8 @@ pub struct WgpuInitResult<'window> {
     pub surface: ResizeableSurface<'window>,
     pub adapter: wgpu::Adapter,
     pub surface_texture_format: wgpu::TextureFormat,
-    pub device: Arc<wgpu::Device>,
-    pub queue: Arc<wgpu::Queue>,
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
 }
 
 impl WgpuInitResult<'static> {
@@ -210,9 +208,6 @@ pub async fn init_wgpu<'window>(
         surface_texture_format
     );
 
-    let device = Arc::new(device);
-    let queue = Arc::new(queue);
-
     let surface = configure_surface(
         device.clone(),
         surface,
@@ -233,7 +228,7 @@ pub async fn init_wgpu<'window>(
 /// Re-create a surface with the same parameters as an old one. This function is designed to be used on platforms that have application suspension/resume events, like iOS, Android and web.
 pub fn surface_reinit<'window>(
     instance: &wgpu::Instance,
-    device: Arc<wgpu::Device>,
+    device: wgpu::Device,
     surface_target: impl Into<SurfaceTarget<'window>>,
     surface_resize_handle: ResizeHandle<SurfaceSize>,
     surface_texture_format: wgpu::TextureFormat,
@@ -254,8 +249,8 @@ pub fn surface_reinit<'window>(
 pub struct WgpuResources {
     pub instance: wgpu::Instance,
     pub adapter: wgpu::Adapter,
-    pub device: Arc<wgpu::Device>,
-    pub queue: Arc<wgpu::Queue>,
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
 }
 
 pub struct RenderResources {

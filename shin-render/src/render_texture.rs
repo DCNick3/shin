@@ -1,14 +1,12 @@
-use std::sync::Arc;
-
 use shin_render_shader_types::{
-    texture::{TextureSampler, TextureSource, TextureTarget, TextureTargetKind},
     RenderClone, RenderCloneCtx,
+    texture::{TextureSampler, TextureSource, TextureTarget, TextureTargetKind},
 };
 
 use crate::{
+    TEXTURE_FORMAT,
     resize::{CanvasSize, ResizeHandle},
     resizeable_texture::ResizeableTexture,
-    TEXTURE_FORMAT,
 };
 
 const TEXTURE_USAGES: wgpu::TextureUsages = {
@@ -36,7 +34,7 @@ pub struct RenderTexture {
 
 impl RenderTexture {
     pub fn new(
-        device: Arc<wgpu::Device>,
+        device: wgpu::Device,
         resize_handle: ResizeHandle<CanvasSize>,
         label: Option<String>,
     ) -> Self {
