@@ -69,6 +69,15 @@ pub struct PosColTexVertex {
     pub texture_position: Vec2,
 }
 
+impl PosColTexVertex {
+    pub fn pos_col(self) -> PosColVertex {
+        PosColVertex {
+            position: self.position,
+            color: self.color,
+        }
+    }
+}
+
 impl VertexType for PosColTexVertex {
     const NAME: &'static str = "PosColTexVertex";
     const ATTRIBUTE_NAMES: &'static [&'static str] = &["position", "color", "texture_position"];

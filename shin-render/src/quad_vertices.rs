@@ -1,11 +1,11 @@
-use glam::{vec2, vec3, Mat4};
+use glam::{Mat4, vec2, vec3};
 use shin_core::primitives::color::UnormColor;
 use shin_render_shader_types::{
     buffer::VertexSource, texture::TextureSource, vertices::PosColTexVertex,
 };
 
 use crate::{
-    render_pass::RenderPass, DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
+    DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder, render_pass::RenderPass,
 };
 
 /// A struct that stores a quad and allows to more easily dispatch various rendering commands, generating the correct vertex data under the hood.
@@ -103,5 +103,17 @@ impl QuadVertices {
             },
             DrawPrimitive::TrianglesStrip,
         ));
+    }
+
+    pub fn fill(&self, pass: &mut RenderPass, builder: RenderRequestBuilder, transform: Mat4) {
+        pass.run(builder.build(
+            RenderProgramWithArguments::Fill {
+                vertices: VertexSource::VertexData {
+                    vertices: &self.vertices.map(PosColTexVertex::pos_col),
+                },
+                transform,
+            },
+            DrawPrimitive::TrianglesStrip,
+        ))
     }
 }

@@ -1,10 +1,11 @@
-use glam::{vec2, vec3, Mat4, Vec2};
+use glam::{Mat4, Vec2, vec2, vec3};
 use shin_core::{primitives::color::FloatColor4, vm::command::types::MessageboxType};
 use shin_render::{
+    ColorBlendType, DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
+    quad_vertices::QuadVertices,
     render_pass::RenderPass,
     shaders::types::{buffer::VertexSource, vertices::PosColTexVertex},
-    shin_orthographic_projection_matrix, ColorBlendType, DrawPrimitive, RenderProgramWithArguments,
-    RenderRequestBuilder,
+    shin_orthographic_projection_matrix,
 };
 
 use crate::layer::message_layer::{MessageLayer, SlidingOutMessagebox};
@@ -154,8 +155,16 @@ impl MessageLayer {
             }
             MessageboxType::Novel => {
                 // draw a full-screen translucent overlay
+                let builder = builder.color_blend_type(ColorBlendType::Layer1);
+
                 let transform = shin_orthographic_projection_matrix(0.0, 1.0, 1.0, 0.0, -1.0, 1.0);
-                todo!()
+                QuadVertices::new()
+                    .with_box(0.0, 0.0, 1.0, 1.0)
+                    .with_color(
+                        FloatColor4::from_rgba(0.0, 0.0, 0.0, final_slide_progress * 0.7)
+                            .into_unorm(),
+                    )
+                    .fill(pass, builder, transform);
             }
             MessageboxType::Transparent | MessageboxType::NoText => {
                 // nothing!
