@@ -5468,6 +5468,7 @@ version = "0.7.0"
 dependencies = [
  "anyhow",
  "kira",
+ "parking_lot 0.12.3",
  "ringbuf 0.4.7",
  "shin-core",
  "tracing",
@@ -5561,6 +5562,7 @@ dependencies = [
  "cfg-if",
  "encase",
  "glam 0.29.2",
+ "parking_lot 0.12.3",
 ]
 
 [[package]]

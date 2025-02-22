@@ -1,11 +1,12 @@
 use std::{
     hash::Hash,
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, Weak},
 };
 
 use drop_bomb::DropBomb;
-use indexmap::{map::Entry, IndexMap};
+use indexmap::{IndexMap, map::Entry};
 use once_cell::sync::OnceCell;
+use parking_lot::Mutex;
 
 enum CacheEntry<V> {
     // NOTE: we should add support for some policies other than "if it's not used right now, yagni"
@@ -26,7 +27,7 @@ impl<K: Hash + Eq + Clone, V> AssetCache<K, V> {
     }
 
     pub fn lookup(&self, key: K) -> CacheLookupResult<K, V> {
-        let mut cache = self.cache.lock().unwrap();
+        let mut cache = self.cache.lock();
 
         let key_clone = key.clone();
         let make_load_handle_pair = || {
@@ -67,7 +68,7 @@ impl<K: Hash + Eq + Clone, V> AssetCache<K, V> {
     }
 
     pub fn finish_load(&self, mut handle: CacheLoaderHandle<K, V>, asset: Arc<V>) {
-        let mut cache = self.cache.lock().unwrap();
+        let mut cache = self.cache.lock();
 
         let entry = cache.get_mut(&handle.key).unwrap();
         let CacheEntry::Loading(_) = &entry else {

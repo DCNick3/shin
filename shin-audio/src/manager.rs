@@ -1,6 +1,5 @@
-use std::sync::Mutex;
-
 use kira::{manager::AudioManagerSettings, sound::SoundData};
+use parking_lot::Mutex;
 
 type Backend = kira::manager::backend::cpal::CpalBackend;
 
@@ -23,7 +22,7 @@ impl AudioManager {
     where
         S::Error: std::fmt::Debug,
     {
-        let mut manager = self.manager.lock().unwrap();
+        let mut manager = self.manager.lock();
 
         manager.play(data).expect("Failed to start playing audio")
     }

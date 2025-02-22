@@ -1,9 +1,7 @@
-use std::{
-    fmt::Debug,
-    sync::{Arc, Mutex},
-};
+use std::{fmt::Debug, sync::Arc};
 
-use glam::{vec3, Mat4};
+use glam::{Mat4, vec3};
+use parking_lot::Mutex;
 use shin_audio::AudioManager;
 use shin_core::{
     format::scenario::info::{MovieTransparencyMode, MovieVolumeSource},
@@ -11,12 +9,12 @@ use shin_core::{
     vm::command::types::Volume,
 };
 use shin_render::{
+    LayerBlendType, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
     render_pass::RenderPass,
     shaders::types::{
-        texture::{DepthStencilTarget, TextureTarget},
         RenderClone, RenderCloneCtx,
+        texture::{DepthStencilTarget, TextureTarget},
     },
-    LayerBlendType, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_video::VideoPlayerHandle;
 use tracing::warn;
@@ -24,11 +22,11 @@ use tracing::warn;
 use crate::{
     asset::{movie::Movie, picture::Picture},
     layer::{
+        DrawableLayer, Layer, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
         new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         user::PictureLayer,
-        DrawableLayer, Layer, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };

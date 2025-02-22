@@ -18,6 +18,8 @@ tracing = { workspace = true }
 kira = { workspace = true, features = ["cpal"] }
 ringbuf = "0.4.1"
 
+parking_lot = { workspace = true }
+
 [lints]
 workspace = true
 

@@ -18,7 +18,7 @@ pub struct SePlayer {
 
 impl SePlayer {
     pub fn new(audio_manager: Arc<AudioManager>) -> Self {
-        let mut manager = audio_manager.kira_manager().lock().unwrap();
+        let mut manager = audio_manager.kira_manager().lock();
 
         let se_tracks = [(); SE_SLOT_COUNT].map(|_| {
             manager
@@ -47,16 +47,13 @@ impl SePlayer {
         let slot = slot as usize;
 
         let loop_start = repeat.then_some(se.info().loop_start);
-        let kira_data = AudioData::from_audio_file(
-            se,
-            AudioSettings {
-                track: self.se_tracks[slot].id(),
-                fade_in,
-                loop_start,
-                volume,
-                pan,
-            },
-        );
+        let kira_data = AudioData::from_audio_file(se, AudioSettings {
+            track: self.se_tracks[slot].id(),
+            fade_in,
+            loop_start,
+            volume,
+            pan,
+        });
 
         let handle = self.audio_manager.play(kira_data);
 

@@ -1,10 +1,11 @@
 use std::{
     io::{Read, Seek, SeekFrom},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use mp4::{Mp4Sample, Mp4Track};
+use parking_lot::Mutex;
 
 pub type Mp4ReadStream = std::fs::File;
 pub type Mp4Reader<S> = Arc<Mutex<mp4::Mp4Reader<S>>>;
@@ -18,7 +19,7 @@ pub struct Mp4TrackReader<S: Read + Seek> {
 
 impl<S: Read + Seek> Mp4TrackReader<S> {
     pub fn new(mp4: Mp4Reader<S>, track_id: u32) -> Result<Self> {
-        let mp4_guard = mp4.lock().unwrap();
+        let mp4_guard = mp4.lock();
 
         let track = mp4_guard
             .tracks()
@@ -38,7 +39,7 @@ impl<S: Read + Seek> Mp4TrackReader<S> {
     }
 
     pub fn get_mp4_track_info<R>(&self, f: impl FnOnce(&Mp4Track) -> R) -> R {
-        let mp4 = self.mp4.lock().unwrap();
+        let mp4 = self.mp4.lock();
         let track = mp4.tracks().get(&self.track_id).unwrap();
         f(track)
     }
@@ -48,7 +49,7 @@ impl<S: Read + Seek> Mp4TrackReader<S> {
             return Ok(None);
         }
 
-        let mut mp4 = self.mp4.lock().unwrap();
+        let mut mp4 = self.mp4.lock();
         let sample = mp4
             .read_sample(self.track_id, self.samples_position)
             .with_context(|| {

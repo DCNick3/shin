@@ -17,7 +17,7 @@ pub struct BgmPlayer {
 
 impl BgmPlayer {
     pub fn new(audio_manager: Arc<AudioManager>) -> Self {
-        let mut manager = audio_manager.kira_manager().lock().unwrap();
+        let mut manager = audio_manager.kira_manager().lock();
 
         let bgm_track = manager
             .add_sub_track(TrackBuilder::new().routes(TrackRoutes::parent(TrackId::Main)))
@@ -41,16 +41,13 @@ impl BgmPlayer {
         fade_in: Tween,
     ) {
         let loop_start = repeat.then_some(bgm.info().loop_start);
-        let kira_data = AudioData::from_audio_file(
-            bgm,
-            AudioSettings {
-                track: self.bgm_track.id(),
-                fade_in,
-                loop_start,
-                volume,
-                pan: Pan::default(),
-            },
-        );
+        let kira_data = AudioData::from_audio_file(bgm, AudioSettings {
+            track: self.bgm_track.id(),
+            fade_in,
+            loop_start,
+            volume,
+            pan: Pan::default(),
+        });
 
         let handle = self.audio_manager.play(kira_data);
 

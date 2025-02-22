@@ -1,8 +1,9 @@
 use std::{
     fs::File,
     io::{Read, Seek as _},
-    sync::Mutex,
 };
+
+use parking_lot::Mutex;
 
 #[derive(Debug)]
 pub struct StatelessFileImpl {
@@ -17,7 +18,7 @@ impl StatelessFileImpl {
     }
 
     pub fn read_at(&self, offset: u64, buf: &mut [u8]) -> std::io::Result<usize> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock();
         inner.seek(std::io::SeekFrom::Start(offset))?;
         inner.read(buf)
     }

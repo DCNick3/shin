@@ -1,6 +1,6 @@
 use std::{
     marker::PhantomData,
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, Weak},
 };
 
 use anyhow::{Context, Result};

@@ -9,6 +9,8 @@ bytemuck = { workspace = true, features = ["derive"] }
 glam = { workspace = true }
 encase = { workspace = true, optional = true }
 
+parking_lot = { workspace = true }
+
 [features]
 encase = ["dep:encase"]
 
