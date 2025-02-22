@@ -1,8 +1,8 @@
 use shin_derive::RenderClone;
-use shin_render::{render_pass::RenderPass, PassKind};
+use shin_render::{PassKind, render_pass::RenderPass};
 
 use crate::{
-    layer::{render_params::TransformParams, DrawableLayer, Layer, PreRenderContext},
+    layer::{DrawableLayer, Layer, PreRenderContext, render_params::TransformParams},
     update::{AdvUpdatable, AdvUpdateContext},
 };
 
@@ -23,6 +23,13 @@ impl<L: AdvUpdatable, R: AdvUpdatable> AdvUpdatable for EitherLayer<L, R> {
 }
 
 impl<L: Layer, R: Layer> Layer for EitherLayer<L, R> {
+    fn fast_forward(&mut self) {
+        match self {
+            EitherLayer::Left(left) => left.fast_forward(),
+            EitherLayer::Right(right) => right.fast_forward(),
+        }
+    }
+
     #[inline]
     fn get_stencil_bump(&self) -> u8 {
         match self {

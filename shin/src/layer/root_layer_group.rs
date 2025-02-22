@@ -4,18 +4,18 @@ use from_variants::FromVariants;
 use glam::Mat4;
 use shin_core::{format::scenario::Scenario, vm::command::types::LayerbankId};
 use shin_derive::RenderClone;
-use shin_render::{render_pass::RenderPass, PassKind};
+use shin_render::{PassKind, render_pass::RenderPass};
 
 use crate::{
     adv::assets::AdvFonts,
     audio::VoicePlayer,
     layer::{
+        DrawableLayer, Layer, LayerGroup, PreRenderContext,
         message_layer::{MessageLayer, MessageboxTextures},
         properties::LayerProperties,
         render_layer_without_bg,
         render_params::TransformParams,
         screen_layer::ScreenLayer,
-        DrawableLayer, Layer, LayerGroup, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
@@ -42,6 +42,13 @@ impl AdvUpdatable for RootLayer {
 }
 
 impl Layer for RootLayer {
+    fn fast_forward(&mut self) {
+        match self {
+            RootLayer::Message(message) => message.fast_forward(),
+            RootLayer::Screen(screen) => screen.fast_forward(),
+        }
+    }
+
     fn get_stencil_bump(&self) -> u8 {
         match self {
             // RootLayer::Overlay(overlay) => overlay.get_stencil_bump(),
@@ -153,6 +160,10 @@ impl AdvUpdatable for RootLayerGroup {
 }
 
 impl Layer for RootLayerGroup {
+    fn fast_forward(&mut self) {
+        self.inner.fast_forward();
+    }
+
     fn get_stencil_bump(&self) -> u8 {
         self.inner.get_stencil_bump()
     }

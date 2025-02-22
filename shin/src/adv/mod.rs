@@ -6,31 +6,31 @@ use std::{borrow::Cow, sync::Arc};
 
 pub use command::{CommandStartResult, ExecutingCommand, StartableCommand, UpdatableCommand};
 use egui::Window;
-use enum_map::{enum_map, Enum, EnumMap};
+use enum_map::{Enum, EnumMap, enum_map};
 use glam::Mat4;
 use itertools::Itertools;
 use shin_audio::AudioManager;
 use shin_core::{
-    format::scenario::{instruction_elements::CodeAddress, Scenario},
+    format::scenario::{Scenario, instruction_elements::CodeAddress},
     primitives::color::UnormColor,
     vm::{
+        Scripter,
         breakpoint::BreakpointObserver,
         command::{
-            types::{LayerId, PlaneId, VLayerId, VLayerIdRepr, PLANES_COUNT},
             CommandResult,
+            types::{LayerId, PLANES_COUNT, PlaneId, VLayerId, VLayerIdRepr},
         },
-        Scripter,
     },
 };
-use shin_input::{inputs::MouseButton, Action, ActionState};
+use shin_input::{Action, ActionState, inputs::MouseButton};
 use shin_render::{
     render_pass::RenderPass,
     shaders::types::{RenderClone as _, RenderCloneCtx},
 };
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use tracing::{debug, warn};
 use vm_state::layers::ITER_VLAYER_SMALL_VECTOR_SIZE;
-pub use vm_state::{layers::LayerSelection, VmState};
+pub use vm_state::{VmState, layers::LayerSelection};
 use winit::keyboard::KeyCode;
 
 use crate::{
@@ -38,9 +38,9 @@ use crate::{
     app::AppAction,
     audio::{BgmPlayer, SePlayer, VoicePlayer},
     layer::{
-        message_layer::MessageLayer, render_layer_without_bg, render_params::TransformParams,
-        user::UserLayer, AnyLayer, AnyLayerMut, Layer as _, LayerGroup, PageLayer,
-        PreRenderContext, RootLayerGroup, ScreenLayer,
+        AnyLayer, AnyLayerMut, Layer as _, LayerGroup, PageLayer, PreRenderContext, RootLayerGroup,
+        ScreenLayer, message_layer::MessageLayer, render_layer_without_bg,
+        render_params::TransformParams, user::UserLayer,
     },
     render::overlay::{OverlayCollector, OverlayVisitable},
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
@@ -154,12 +154,10 @@ impl Adv {
         self.handle_input(input_state, true);
 
         if fast_forward_button_held || self.fast_forward_to_bp.is_some() {
-            self.adv_state
-                .root_layer_group
-                .message_layer_mut()
-                // TODO: do actual fast-forward instead of this faux one
-                .try_advance();
-            //.fast_forward();
+            self.adv_state.root_layer_group_mut().fast_forward();
+            if let Some(back_layer_group) = &mut self.adv_state.back_layer_group {
+                back_layer_group.fast_forward();
+            }
         }
 
         let mut result = CommandResult::None;

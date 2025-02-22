@@ -1,25 +1,25 @@
 use replace_with::replace_with;
 use shin_core::primitives::color::{FloatColor4, UnormColor};
 use shin_render::{
+    PassKind, RenderRequestBuilder,
     render_pass::RenderPass,
     render_texture::RenderTexture,
     shaders::types::{
-        texture::{DepthStencilTarget, TextureTarget},
         RenderClone, RenderCloneCtx,
+        texture::{DepthStencilTarget, TextureTarget},
     },
-    PassKind, RenderRequestBuilder,
 };
 use tracing::debug;
 
 use crate::{
     layer::{
+        DrawableLayer, Layer, NewDrawableLayer, PreRenderContext,
         either::EitherLayer,
         new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
         page_layer::PageLayer,
         properties::LayerProperties,
         render_layer,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        DrawableLayer, Layer, NewDrawableLayer, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext},
     wiper::{AnyWiper, Wiper as _},
@@ -119,6 +119,16 @@ impl AdvUpdatable for TransitionLayer {
 }
 
 impl Layer for TransitionLayer {
+    fn fast_forward(&mut self) {
+        if let Some(target_layer) = &mut self.target_layer {
+            target_layer.fast_forward();
+        }
+        self.get_target_layer_mut().fast_forward();
+        if let Some(wiper) = &mut self.wiper {
+            wiper.fast_forward();
+        }
+    }
+
     fn get_stencil_bump(&self) -> u8 {
         if self.wiper.is_some() {
             return 1;
@@ -355,6 +365,14 @@ impl AdvUpdatable for ScreenLayer {
 }
 
 impl Layer for ScreenLayer {
+    fn fast_forward(&mut self) {
+        self.props.fast_forward();
+        self.active_layer.fast_forward();
+        if let Some(target_layer) = &mut self.pending_layer {
+            target_layer.fast_forward();
+        }
+    }
+
     fn get_stencil_bump(&self) -> u8 {
         self.active_layer.get_stencil_bump()
     }

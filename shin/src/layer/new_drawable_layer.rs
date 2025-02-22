@@ -1,23 +1,24 @@
 use glam::vec4;
 use shin_core::vm::command::types::LayerProperty;
 use shin_render::{
+    ColorBlendType, DepthStencilState, DrawPrimitive, LayerShaderOutputKind, PassKind,
+    RenderProgramWithArguments, RenderRequestBuilder, StencilFunction, StencilOperation,
+    StencilPipelineState, StencilState,
     render_pass::RenderPass,
     render_texture::RenderTexture,
     shaders::types::{
+        RenderClone,
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureSource, TextureTarget},
         vertices::LayerVertex,
-        RenderClone,
     },
-    shin_orthographic_projection_matrix, ColorBlendType, DepthStencilState, DrawPrimitive,
-    LayerShaderOutputKind, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
-    StencilFunction, StencilOperation, StencilPipelineState, StencilState,
+    shin_orthographic_projection_matrix,
 };
 
 use crate::{
     layer::{
-        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         DrawableLayer, Layer, LayerProperties, PreRenderContext,
+        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -51,6 +52,10 @@ pub trait NewDrawableLayer: NewDrawableLayerNeedsSeparatePass {
         stencil_ref: u8,
         pass_kind: PassKind,
     );
+}
+
+pub trait NewDrawableLayerFastForward {
+    fn fast_forward(&mut self);
 }
 
 #[expect(unused)] // this will be used once mask rendering in LayerGroup will be implemented
@@ -336,7 +341,13 @@ impl<T: AdvUpdatable> AdvUpdatable for NewDrawableLayerWrapper<T> {
     }
 }
 
-impl<T: NewDrawableLayer + AdvUpdatable> Layer for NewDrawableLayerWrapper<T> {
+impl<T: NewDrawableLayer + AdvUpdatable + NewDrawableLayerFastForward> Layer
+    for NewDrawableLayerWrapper<T>
+{
+    fn fast_forward(&mut self) {
+        self.inner_layer.fast_forward();
+    }
+
     fn pre_render(&mut self, context: &mut PreRenderContext, transform: &TransformParams) {
         self.state
             .pre_render(context, &self.props, &mut self.inner_layer, transform);
@@ -360,7 +371,9 @@ impl<T: NewDrawableLayer + AdvUpdatable> Layer for NewDrawableLayerWrapper<T> {
     }
 }
 
-impl<T: NewDrawableLayer + AdvUpdatable> DrawableLayer for NewDrawableLayerWrapper<T> {
+impl<T: NewDrawableLayer + AdvUpdatable + NewDrawableLayerFastForward> DrawableLayer
+    for NewDrawableLayerWrapper<T>
+{
     fn properties(&self) -> &LayerProperties {
         &self.props
     }

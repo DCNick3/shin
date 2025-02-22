@@ -3,22 +3,24 @@ use std::{fmt::Debug, sync::Arc};
 use glam::{Mat4, Vec3, Vec4};
 use shin_core::primitives::color::FloatColor4;
 use shin_render::{
-    render_pass::RenderPass,
-    shaders::types::{
-        buffer::VertexSource,
-        texture::{DepthStencilTarget, TextureTarget},
-        RenderClone,
-    },
     ColorBlendType, DrawPrimitive, LayerBlendType, LayerFragmentShader, LayerShaderOutputKind,
     PassKind, RenderProgramWithArguments, RenderRequestBuilder,
+    render_pass::RenderPass,
+    shaders::types::{
+        RenderClone,
+        buffer::VertexSource,
+        texture::{DepthStencilTarget, TextureTarget},
+    },
 };
 
 use crate::{
     asset::picture::{GpuPictureBlock, Picture},
     layer::{
-        new_drawable_layer::{NewDrawableLayer, NewDrawableLayerNeedsSeparatePass},
-        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         LayerProperties, NewDrawableLayerWrapper, PreRenderContext,
+        new_drawable_layer::{
+            NewDrawableLayer, NewDrawableLayerFastForward, NewDrawableLayerNeedsSeparatePass,
+        },
+        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -250,6 +252,10 @@ impl NewDrawableLayer for PictureLayerImpl {
 
         self.render_blocks(pass, builder, params, transform);
     }
+}
+
+impl NewDrawableLayerFastForward for PictureLayerImpl {
+    fn fast_forward(&mut self) {}
 }
 
 impl AdvUpdatable for PictureLayerImpl {

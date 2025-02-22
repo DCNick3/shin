@@ -4,14 +4,14 @@ use glam::vec4;
 use shin_audio::AudioManager;
 use shin_core::{
     format::scenario::{
-        info::{BustupId, BustupInfoItem, MovieId, MovieInfoItem, PictureId, PictureInfoItem},
-        instruction_elements::{lower_number_array, TypedNumberArray, UntypedNumberArray},
         Scenario,
+        info::{BustupId, BustupInfoItem, MovieId, MovieInfoItem, PictureId, PictureInfoItem},
+        instruction_elements::{TypedNumberArray, UntypedNumberArray, lower_number_array},
     },
     primitives::color::FloatColor4,
     vm::command::types::{LayerType, Volume},
 };
-use shin_render::{render_pass::RenderPass, shaders::types::RenderClone, PassKind};
+use shin_render::{PassKind, render_pass::RenderPass, shaders::types::RenderClone};
 use tracing::{debug, warn};
 
 use crate::{
@@ -22,8 +22,8 @@ use crate::{
         system::AssetServer,
     },
     layer::{
-        render_params::TransformParams, user::movie_layer::MovieArgs, DrawableLayer, Layer,
-        LayerProperties, PreRenderContext,
+        DrawableLayer, Layer, LayerProperties, PreRenderContext, render_params::TransformParams,
+        user::movie_layer::MovieArgs,
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -105,15 +105,12 @@ impl UserLayer {
                     bup_id, name, emotion, lipsync_character_id
                 );
                 let bup = asset_server
-                    .load_with_args::<Bustup, _>(
-                        bup_info.path(),
-                        BustupArgs {
-                            expression: emotion.to_string(),
-                            // TODO: do this conversion on info load
-                            character_id: CharacterId::new(*lipsync_character_id as i32),
-                            disable_animations: false,
-                        },
-                    )
+                    .load_with_args::<Bustup, _>(bup_info.path(), BustupArgs {
+                        expression: emotion.to_string(),
+                        // TODO: do this conversion on info load
+                        character_id: CharacterId::new(*lipsync_character_id as i32),
+                        disable_animations: false,
+                    })
                     .await
                     .expect("Failed to load bustup");
 
@@ -209,6 +206,16 @@ impl DrawableLayer for UserLayer {
 }
 
 impl Layer for UserLayer {
+    fn fast_forward(&mut self) {
+        match self {
+            Self::Null(layer) => layer.fast_forward(),
+            Self::Picture(layer) => layer.fast_forward(),
+            Self::Bustup(layer) => layer.fast_forward(),
+            Self::Tile(layer) => layer.fast_forward(),
+            Self::Movie(layer) => layer.fast_forward(),
+        }
+    }
+
     fn get_stencil_bump(&self) -> u8 {
         match self {
             Self::Null(layer) => layer.get_stencil_bump(),

@@ -83,7 +83,7 @@ impl PreRenderContext<'_, '_, '_, '_> {
 }
 
 pub trait Layer: AdvUpdatable {
-    // fn fast_forward(&mut self);
+    fn fast_forward(&mut self);
     fn get_stencil_bump(&self) -> u8 {
         1
     }
@@ -103,6 +103,11 @@ pub trait Layer: AdvUpdatable {
 }
 
 impl<T: Layer> Layer for Box<T> {
+    #[inline]
+    fn fast_forward(&mut self) {
+        (**self).fast_forward()
+    }
+
     #[inline]
     fn get_stencil_bump(&self) -> u8 {
         (**self).get_stencil_bump()

@@ -1,26 +1,26 @@
 use glam::vec3;
 use shin_core::{
     primitives::color::{FloatColor4, UnormColor},
-    vm::command::types::{PlaneId, PLANES_COUNT},
+    vm::command::types::{PLANES_COUNT, PlaneId},
 };
 use shin_derive::RenderClone;
 use shin_render::{
+    DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
+    StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureTarget},
         vertices::PosVertex,
     },
-    DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
-    StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,
 };
 
 use crate::{
     layer::{
+        DrawableLayer, Layer, LayerGroup, NewDrawableLayer, PreRenderContext,
         new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        DrawableLayer, Layer, LayerGroup, NewDrawableLayer, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -158,6 +158,14 @@ impl AdvUpdatable for PageLayer {
 }
 
 impl Layer for PageLayer {
+    fn fast_forward(&mut self) {
+        self.props.fast_forward();
+
+        for plane in &mut self.planes {
+            plane.fast_forward();
+        }
+    }
+
     fn get_stencil_bump(&self) -> u8 {
         self.stencil_bump
     }
@@ -235,17 +243,14 @@ impl Layer for PageLayer {
 
         let self_transform = props.get_composed_transform_params(transform);
 
-        pass.push_debug(&format!(
-            "PageLayer/{}",
-            match pass_kind {
-                PassKind::Opaque => {
-                    "opaque"
-                }
-                PassKind::Transparent => {
-                    "transparent"
-                }
+        pass.push_debug(&format!("PageLayer/{}", match pass_kind {
+            PassKind::Opaque => {
+                "opaque"
             }
-        ));
+            PassKind::Transparent => {
+                "transparent"
+            }
+        }));
 
         match pass_kind {
             PassKind::Opaque => {

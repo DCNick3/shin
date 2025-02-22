@@ -1,5 +1,5 @@
-use enum_map::{enum_map, EnumMap};
-use glam::{vec2, vec3, vec4, Mat4, Vec2, Vec4};
+use enum_map::{EnumMap, enum_map};
+use glam::{Mat4, Vec2, Vec4, vec2, vec3, vec4};
 use shin_core::{
     primitives::color::FloatColor4,
     time::{Ticks, Tweener},
@@ -67,6 +67,12 @@ impl LayerProperties {
     pub fn init(&mut self) {
         for (prop, val) in initial_values() {
             self.properties[prop].fast_forward_to(val as f32);
+        }
+    }
+
+    pub fn fast_forward(&mut self) {
+        for (_, tweener) in &mut self.properties {
+            tweener.fast_forward();
         }
     }
 

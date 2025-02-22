@@ -1,19 +1,19 @@
 use std::fmt::Debug;
 
-use glam::{vec3, Vec4};
+use glam::{Vec4, vec3};
 use shin_core::primitives::color::FloatColor4;
 use shin_render::{
-    render_pass::RenderPass,
-    shaders::types::{buffer::VertexSource, vertices::PosColVertex, RenderClone},
     ColorBlendType, DrawPrimitive, LayerBlendType, PassKind, RenderProgramWithArguments,
     RenderRequestBuilder,
+    render_pass::RenderPass,
+    shaders::types::{RenderClone, buffer::VertexSource, vertices::PosColVertex},
 };
 
 use crate::{
     layer::{
-        new_drawable_layer::NewDrawableLayerNeedsSeparatePass,
-        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         NewDrawableLayer, NewDrawableLayerWrapper,
+        new_drawable_layer::{NewDrawableLayerFastForward, NewDrawableLayerNeedsSeparatePass},
+        render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -130,6 +130,10 @@ impl NewDrawableLayer for TileLayerImpl {
 
         pass.pop_debug();
     }
+}
+
+impl NewDrawableLayerFastForward for TileLayerImpl {
+    fn fast_forward(&mut self) {}
 }
 
 impl AdvUpdatable for TileLayerImpl {

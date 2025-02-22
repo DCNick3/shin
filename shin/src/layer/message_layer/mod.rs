@@ -736,13 +736,6 @@ impl MessageLayer {
     pub fn send_sync(&mut self) {
         self.received_syncs += 1;
     }
-
-    pub fn fast_forward(&mut self) {
-        todo!()
-        // if let Some(m) = self.message.as_mut() {
-        //     m.fast_forward()
-        // }
-    }
 }
 
 impl Clone for MessageLayer {
@@ -955,6 +948,67 @@ impl AdvUpdatable for MessageLayer {
 }
 
 impl Layer for MessageLayer {
+    fn fast_forward(&mut self) {
+        if self.modal_slide.direction() != SlideInterpolatorDirection::Increasing {
+            return;
+        }
+        self.natural_slide.fast_forward();
+        self.sliding_out_messageboxes.clear();
+
+        while self.current_block_index < self.blocks.len() {
+            let block = &self.blocks[self.current_block_index];
+            self.current_time = block.time;
+            match &block.ty {
+                BlockType::Voice(_) => {
+                    self.voice_block_index = self.current_block_index;
+                    self.voice_counter += 1;
+                }
+                BlockType::Wait(wait) => {
+                    if wait.is_last_wait {
+                        // TODO: notify the listener that the message is done
+                    }
+                }
+                BlockType::Section(section) => {
+                    self.completed_sections = section.index;
+                }
+                BlockType::Sync(sync) => {
+                    if self.received_syncs <= sync.index {
+                        break;
+                    }
+                }
+                BlockType::VoiceSync(_) | BlockType::VoiceWait(_) => {}
+            }
+            self.current_block_index += 1;
+            debug!("[ff] Advanced to block {}", self.current_block_index);
+        }
+
+        // surely nobody would need more than 64 lines, right?
+        // NB: the original game uses an std::vector<bool> here, but I don't wanna
+        let mut line_mask = 0u64;
+
+        for char in &mut self.chars {
+            if char.block_index > self.current_block_index || char.time > self.current_time {
+                continue;
+            }
+
+            char.current_progress = 1.0;
+
+            let line = &self.lines[char.line_index];
+            self.height
+                .set_min_target(char.position.y + line.line_height);
+
+            assert!(char.line_index < 64);
+            line_mask |= 1 << char.line_index as u64;
+        }
+
+        self.voice_player.stop();
+
+        self.height.fast_forward();
+        self.is_voice_playing = false;
+        self.autoplay_voice_delay.set_time_left(0.0);
+        self.wait_kind = None;
+    }
+
     fn get_stencil_bump(&self) -> u8 {
         3
     }

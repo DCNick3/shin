@@ -1,22 +1,22 @@
 use std::{fmt::Debug, sync::Arc};
 
-use glam::{vec3, Mat4, Vec3};
+use glam::{Mat4, Vec3, vec3};
 use shin_render::{
+    PassKind, RenderRequestBuilder,
     render_pass::RenderPass,
     shaders::types::{
-        texture::{DepthStencilTarget, TextureTarget},
         RenderClone,
+        texture::{DepthStencilTarget, TextureTarget},
     },
-    PassKind, RenderRequestBuilder,
 };
 
 use crate::{
     asset::bustup::Bustup,
     layer::{
-        new_drawable_layer::NewDrawableLayerNeedsSeparatePass,
+        LayerProperties, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
+        new_drawable_layer::{NewDrawableLayerFastForward, NewDrawableLayerNeedsSeparatePass},
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         user::picture_layer::{PictureBlockParams, PictureBlockPassKind},
-        LayerProperties, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
@@ -159,6 +159,10 @@ impl NewDrawableLayer for BustupLayerImpl {
 
         self.render_impl(pass, builder, params, transform);
     }
+}
+
+impl NewDrawableLayerFastForward for BustupLayerImpl {
+    fn fast_forward(&mut self) {}
 }
 
 impl AdvUpdatable for BustupLayerImpl {

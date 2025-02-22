@@ -61,6 +61,10 @@ impl SlideInterpolator {
         self.value
     }
 
+    pub fn fast_forward(&mut self) {
+        self.value = self.current_direction.as_f32();
+    }
+
     pub fn direction(&self) -> SlideInterpolatorDirection {
         self.current_direction
     }
@@ -121,6 +125,10 @@ impl HeightInterpolator {
             }
             std::cmp::Ordering::Equal => {}
         }
+    }
+
+    pub fn fast_forward(&mut self) {
+        self.value = self.target;
     }
 
     pub fn is_interpolating(&self) -> bool {

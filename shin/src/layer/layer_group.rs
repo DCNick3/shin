@@ -6,22 +6,22 @@ use shin_core::{
 };
 use shin_derive::RenderClone;
 use shin_render::{
+    DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
+    StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureTarget},
         vertices::PosVertex,
     },
-    DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
-    StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,
 };
 
 use crate::{
     layer::{
+        DrawableLayer, Layer, NewDrawableLayer, PreRenderContext, UserLayer,
         new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        DrawableLayer, Layer, NewDrawableLayer, PreRenderContext, UserLayer,
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -81,13 +81,10 @@ impl<T> LayerGroup<T> {
                 self.layers[index].layer = layer;
             }
             Err(index) => {
-                self.layers.insert(
-                    index,
-                    LayerItem {
-                        layerbank_id,
-                        layer,
-                    },
-                );
+                self.layers.insert(index, LayerItem {
+                    layerbank_id,
+                    layer,
+                });
             }
         }
     }
@@ -264,6 +261,14 @@ impl<T> Layer for LayerGroup<T>
 where
     T: DrawableLayer,
 {
+    fn fast_forward(&mut self) {
+        self.props.fast_forward();
+
+        for layer in self.layers.iter_mut() {
+            layer.layer.fast_forward();
+        }
+    }
+
     fn get_stencil_bump(&self) -> u8 {
         self.stencil_bump
     }

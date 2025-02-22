@@ -23,7 +23,9 @@ use crate::{
     asset::{movie::Movie, picture::Picture},
     layer::{
         DrawableLayer, Layer, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
-        new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
+        new_drawable_layer::{
+            NewDrawableLayerFastForward, NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState,
+        },
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         user::PictureLayer,
@@ -201,6 +203,12 @@ impl NewDrawableLayer for MovieLayerImpl {
             RenderRequestBuilder::new().depth_stencil_shorthand(stencil_ref, false, false),
             transform,
         );
+    }
+}
+
+impl NewDrawableLayerFastForward for MovieLayerImpl {
+    fn fast_forward(&mut self) {
+        // TODO: fast forward the movie
     }
 }
 

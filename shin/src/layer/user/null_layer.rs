@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
-use shin_render::{render_pass::RenderPass, PassKind};
+use shin_render::{PassKind, render_pass::RenderPass};
 
 use crate::{
-    layer::{properties::LayerProperties, render_params::TransformParams, DrawableLayer, Layer},
+    layer::{DrawableLayer, Layer, properties::LayerProperties, render_params::TransformParams},
     update::{AdvUpdatable, AdvUpdateContext},
 };
 
@@ -31,6 +31,8 @@ impl Debug for NullLayer {
 }
 
 impl Layer for NullLayer {
+    fn fast_forward(&mut self) {}
+
     fn render(
         &self,
         _pass: &mut RenderPass,
