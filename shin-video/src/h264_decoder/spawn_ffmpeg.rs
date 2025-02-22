@@ -8,16 +8,16 @@ use std::{
     process::Stdio,
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use dpi::PhysicalSize;
-use futures_lite::{io::BufReader, AsyncBufReadExt, AsyncWriteExt};
-use shin_tasks::{IoTaskPool, Task};
+use futures_lite::{AsyncBufReadExt, AsyncWriteExt, io::BufReader};
+use shin_tasks::AsyncTask;
 use tracing::{debug, error, trace, warn};
 
 use crate::{
     h264_decoder::{
-        y4m::{self, FrameSize, PlanarFrame},
         FrameTiming, Nv12Frame,
+        y4m::{self, FrameSize, PlanarFrame},
     },
     mp4::Mp4TrackReader,
     mp4_bitstream_converter::Mp4BitstreamConverter,
@@ -31,11 +31,11 @@ pub struct SpawnFfmpegH264Decoder {
     frame_receiver: Peekable<std::sync::mpsc::IntoIter<PlanarFrame>>,
     frame_timing_receiver: std::sync::mpsc::Receiver<FrameTiming>,
     #[allow(unused)]
-    frame_sender_task: Task<()>,
+    frame_sender_task: AsyncTask<()>,
     #[allow(unused)]
-    packet_sender_task: Task<()>,
+    packet_sender_task: AsyncTask<()>,
     #[allow(unused)]
-    stderr_task: Task<()>,
+    stderr_task: AsyncTask<()>,
 
     frame_size: Option<FrameSize>,
 }
@@ -83,7 +83,7 @@ impl super::H264DecoderTrait for SpawnFfmpegH264Decoder {
         // hence the larger capacity (otherwise we might deadlock)
         let (frame_timing_sender, frame_timing_receiver) = std::sync::mpsc::sync_channel(10);
 
-        let frame_sender_task = IoTaskPool::get().spawn(async move {
+        let frame_sender_task = shin_tasks::async_io::spawn(async move {
             let mut decoder = match y4m::Decoder::new(stdout).await {
                 Ok(r) => r,
                 Err(e) => {
@@ -115,7 +115,7 @@ impl super::H264DecoderTrait for SpawnFfmpegH264Decoder {
             }
         });
 
-        let packet_sender_task = IoTaskPool::get().spawn(async move {
+        let packet_sender_task = shin_tasks::async_io::spawn(async move {
             let mut track = track;
             let mut buffer = Vec::new();
             let mut stdin = stdin;
@@ -172,7 +172,7 @@ impl super::H264DecoderTrait for SpawnFfmpegH264Decoder {
 
         // pump ffmpeg's stderr to the logs
         // TODO: parse the ffmpeg's log leve?
-        let stderr_task = IoTaskPool::get().spawn(async move {
+        let stderr_task = shin_tasks::async_io::spawn(async move {
             let mut stderr = BufReader::new(stderr);
             let mut buffer = String::new();
 

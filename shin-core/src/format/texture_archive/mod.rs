@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use binrw::{BinRead, BinWrite};
 use image::RgbaImage;
-use shin_tasks::ParallelSlice;
+use rayon::prelude::*;
 
 use crate::format::text::ZeroString;
 
@@ -74,6 +74,9 @@ fn decode_texture(
     Ok(image)
 }
 
+/// Reads and decodes a texture archive.
+///
+/// NOTE: this will spawn rayon tasks and block waiting for them. If you don't want blocking wrap it with [`shin_tasks::compute::spawn`].
 pub fn read_texture_archive(source: &[u8]) -> Result<TextureArchive> {
     let mut source = std::io::Cursor::new(source);
     let source = &mut source;
@@ -84,20 +87,19 @@ pub fn read_texture_archive(source: &[u8]) -> Result<TextureArchive> {
 
     let textures = header
         .index
-        .par_chunk_map(shin_tasks::AsyncComputeTaskPool::get(), 1, |chunk| {
-            let [v] = chunk else { unreachable!() };
-            let size = if v.data_compressed_size != 0 {
-                v.data_compressed_size
+        .par_iter()
+        .map(|entry| {
+            let size = if entry.data_compressed_size != 0 {
+                entry.data_compressed_size
             } else {
-                v.data_decompressed_size
+                entry.data_decompressed_size
             } as usize;
             decode_texture(
-                &source.get_ref()[v.data_offset as usize..][..size],
-                v,
+                &source.get_ref()[entry.data_offset as usize..][..size],
+                entry,
                 header.use_dict_encoding != 0,
             )
         })
-        .into_iter()
         .collect::<Result<Vec<_>>>()?;
 
     let name_to_index = header

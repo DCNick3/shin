@@ -49,6 +49,9 @@ num-integer = "0.1.46"
 chrono = { version = "0.4.38", features = ["serde"] }
 indexmap = { workspace = true }
 
+rayon = { workspace = true }
+parking_lot = { workspace = true }
+
 array-util = "1.0.2"
 
 [dev-dependencies]

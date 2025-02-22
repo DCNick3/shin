@@ -4307,6 +4307,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
 
 [[package]]
+name = "oneshot"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79d72a7c0f743d2ebb0a2ad1d219db75fdc799092ed3a884c9144c42a31225bd"
+
+[[package]]
 name = "option-operations"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5408,6 +5414,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "parking_lot 0.12.3",
+ "rayon",
  "replace_with",
  "shin-audio",
  "shin-core",
@@ -5495,8 +5502,10 @@ dependencies = [
  "num-traits",
  "once_cell",
  "opus",
+ "parking_lot 0.12.3",
  "proc-bitfield",
  "rand 0.9.0",
+ "rayon",
  "serde",
  "serde-big-array",
  "shin-derive",
@@ -5612,16 +5621,16 @@ dependencies = [
 name = "shin-tasks"
 version = "0.7.0"
 dependencies = [
- "async-channel",
  "async-executor",
  "async-task",
- "concurrent-queue",
  "futures-channel",
  "futures-lite",
- "once_cell",
+ "oneshot",
  "pin-project",
+ "rayon-core",
  "tracing",
  "wasm-bindgen-futures",
+ "wasm_thread",
 ]
 
 [[package]]
@@ -6793,6 +6802,18 @@ dependencies = [
  "pin-utils",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "wasm_thread"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7516db7f32decdadb1c3b8deb1b7d78b9df7606c5cc2f6241737c2ab3a0258e"
+dependencies = [
+ "futures",
+ "js-sys",
+ "wasm-bindgen",
  "web-sys",
 ]
 

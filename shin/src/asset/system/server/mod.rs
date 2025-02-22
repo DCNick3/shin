@@ -11,14 +11,13 @@ use std::{
     sync::{Arc, RwLock, Weak},
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use derive_more::From;
 use indexmap::IndexMap;
 use shin_core::{
     format::rom::{RomFileReader, RomReader},
     primitives::stateless_reader::StatelessFile,
 };
-use shin_tasks::IoTaskPool;
 use tracing::debug;
 
 pub use self::{
@@ -32,9 +31,10 @@ pub trait Asset: Send + Sync + Sized + 'static {
     /// Load an asset from the provided data accessor.
     ///
     /// The future returned by this function will be spawned on the IO task pool.
+    /// Blocking is to be avoided, as it will starve the IO task pool.
     /// CPU-intensive work should be offloaded to the compute task pool.
     fn load(
-        context: &AssetLoadContext,
+        context: &Arc<AssetLoadContext>,
         args: Self::Args,
         name: &str,
         data: AssetDataAccessor,
@@ -106,13 +106,8 @@ impl AssetServer {
 
         let context = self.context.clone();
 
-        // spawn tasks on IO task pool because they can be blocking
-        // they should take care off-load CPU-intensive work to the compute task pool
-        let asset = IoTaskPool::get()
-            .spawn({
-                let path = path.to_string();
-                async move { T::load(&context, args, &path, data).await }
-            })
+        // just await the task
+        let asset = T::load(&context, args, &path, data)
             .await
             .with_context(|| format!("Loading asset {:?}", path))?;
         let asset = Arc::new(asset);

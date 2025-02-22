@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use anyhow::{Context, Result};
-use shin_core::format::audio::{read_audio, AudioFile};
+use shin_core::format::audio::{AudioFile, read_audio};
 
 use crate::asset::system::{Asset, AssetDataAccessor, AssetLoadContext};
 
@@ -7,7 +9,7 @@ impl Asset for AudioFile {
     type Args = ();
 
     async fn load(
-        _context: &AssetLoadContext,
+        _context: &Arc<AssetLoadContext>,
         _args: (),
         _name: &str,
         data: AssetDataAccessor,

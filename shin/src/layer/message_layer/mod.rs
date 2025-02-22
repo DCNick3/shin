@@ -6,20 +6,21 @@ mod messagebox;
 use std::sync::Arc;
 
 use bitflags::bitflags;
-use glam::{vec2, vec3, vec4, Mat4, Vec2};
+use glam::{Mat4, Vec2, vec2, vec3, vec4};
 use interpolators::{Countdown, HeightInterpolator, SlideInterpolator, SlideInterpolatorDirection};
 use itertools::{Either, Itertools};
 use shin_core::{
-    format::scenario::{instruction_elements::MessageId, Scenario},
+    format::scenario::{Scenario, instruction_elements::MessageId},
     layout::{
-        commands::{CharFontType, Command},
         LayoutParams, MessageLayerLayouter, MessageTextLayouterDefaults,
+        commands::{CharFontType, Command},
     },
     primitives::color::FloatColor4,
     time::Ticks,
     vm::command::types::{AudioWaitStatus, MessageTextLayout, MessageboxType, Volume},
 };
 use shin_render::{
+    ColorBlendType, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
     gpu_texture::GpuTexture,
     quad_vertices::QuadVertices,
     render_pass::RenderPass,
@@ -27,7 +28,6 @@ use shin_render::{
         buffer::{OwnedVertexBuffer, VertexSource},
         vertices::TextVertex,
     },
-    ColorBlendType, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use tracing::debug;
 
@@ -36,13 +36,13 @@ use crate::{
     asset::{font::GpuFontLazy, texture_archive::TextureArchive},
     audio::{VoicePlayFlags, VoicePlayer},
     layer::{
+        DrawableLayer, Layer, PreRenderContext,
         message_layer::{
             blocks::{Block, BlockType},
             messagebox::Messagebox,
         },
         properties::LayerProperties,
         render_params::TransformParams,
-        DrawableLayer, Layer, PreRenderContext,
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -480,13 +480,13 @@ impl MessageLayer {
             .adv_fonts
             .medium_font
             .clone()
-            .load_glyphs(ctx.device, ctx.queue, &regular_chars)
+            .load_glyphs(ctx.device.clone(), ctx.queue.clone(), &regular_chars)
             .into_iter();
         let mut bold_glyphs = self
             .adv_fonts
             .bold_font
             .clone()
-            .load_glyphs(ctx.device, ctx.queue, &bold_chars)
+            .load_glyphs(ctx.device.clone(), ctx.queue.clone(), &bold_chars)
             .into_iter();
 
         let mut wait_auto_delay = 0.0;
@@ -980,16 +980,11 @@ impl Layer for MessageLayer {
         for &messagebox in &self.sliding_out_messageboxes {
             self.render_messagebox(pass, builder, transform, messagebox.into());
         }
-        self.render_messagebox(
-            pass,
-            builder,
-            transform,
-            Messagebox {
-                ty: self.messagebox_type,
-                natural_slide: self.natural_slide.value(),
-                height: self.height.value(),
-            },
-        );
+        self.render_messagebox(pass, builder, transform, Messagebox {
+            ty: self.messagebox_type,
+            natural_slide: self.natural_slide.value(),
+            height: self.height.value(),
+        });
         pass.pop_debug();
 
         // if the messagebox is not fully shown - don't try to render the message and keywait

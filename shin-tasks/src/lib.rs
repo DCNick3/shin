@@ -1,153 +1,178 @@
-#![warn(missing_docs)]
-#![doc = include_str!("../README.md")]
+use std::{fmt, fmt::Debug, io, num::NonZeroUsize};
 
-mod slice;
+use futures_lite::FutureExt as _;
+use tracing::debug;
+use wasm_thread as thread;
 
-use std::future::Future;
-
-pub use slice::{ParallelSlice, ParallelSliceMut};
-
-#[cfg_attr(target_arch = "wasm32", path = "wasm_task.rs")]
-mod task;
-pub use task::Task;
-
-#[cfg(not(target_arch = "wasm32"))]
-mod task_pool;
-#[cfg(not(target_arch = "wasm32"))]
-pub use task_pool::{Scope, TaskPool, TaskPoolBuilder};
-
-#[cfg(target_arch = "wasm32")]
-mod single_threaded_task_pool;
-#[cfg(target_arch = "wasm32")]
-pub use single_threaded_task_pool::{Scope, TaskPool, TaskPoolBuilder, ThreadExecutor};
-
-mod usages;
-#[cfg(not(target_arch = "wasm32"))]
-pub use usages::tick_global_task_pools_on_main_thread;
-pub use usages::{AsyncComputeTaskPool, ComputeTaskPool, IoTaskPool};
-
-#[cfg(not(target_arch = "wasm32"))]
-mod thread_executor;
-#[cfg(not(target_arch = "wasm32"))]
-pub use thread_executor::{ThreadExecutor, ThreadExecutorTicker};
-
-mod iter;
-pub use iter::ParallelIterator;
-
-#[allow(missing_docs)]
-pub mod prelude {
-    #[doc(hidden)]
-    pub use crate::{
-        iter::ParallelIterator,
-        slice::{ParallelSlice, ParallelSliceMut},
-        usages::{AsyncComputeTaskPool, ComputeTaskPool, IoTaskPool},
-    };
+pub struct AsyncTask<T> {
+    task: async_task::Task<T>,
 }
 
-use std::num::NonZeroUsize;
+impl<T> AsyncTask<T> {
+    pub fn detach(self) {
+        self.task.detach()
+    }
 
-use tracing::debug;
+    pub fn poll_naive(&mut self) -> Option<T> {
+        // this is slightly inefficient as it will end up registering the waker, even though we don't need it
+        // however, we would need to write our own task primitive if we want different behavior
+        match self
+            .task
+            .poll(&mut std::task::Context::from_waker(std::task::Waker::noop()))
+        {
+            std::task::Poll::Ready(result) => Some(result),
+            std::task::Poll::Pending => None,
+        }
+    }
+}
 
-/// Gets the logical CPU core count available to the current process.
-///
-/// This is identical to [`std::thread::available_parallelism`], except
-/// it will return a default value of 1 if it internally errors out.
-///
-/// This will always return at least 1.
-pub fn available_parallelism() -> usize {
-    std::thread::available_parallelism()
+impl<T> Future for AsyncTask<T> {
+    type Output = T;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        self.get_mut().task.poll(cx)
+    }
+}
+
+impl<T> Debug for AsyncTask<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.task.fmt(f)
+    }
+}
+
+pub struct ComputeTask<T> {
+    receiver: oneshot::Receiver<T>,
+}
+
+impl<T> ComputeTask<T> {
+    pub fn poll_naive(&mut self) -> Option<T> {
+        match self.receiver.try_recv() {
+            Ok(result) => Some(result),
+            Err(oneshot::TryRecvError::Empty) => None,
+            Err(oneshot::TryRecvError::Disconnected) => {
+                panic!("Either a completed task was polled again, or the sender was dropped");
+            }
+        }
+    }
+}
+
+impl<T> Future for ComputeTask<T> {
+    type Output = T;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        match self.get_mut().receiver.poll(cx) {
+            std::task::Poll::Ready(Ok(result)) => std::task::Poll::Ready(result),
+            std::task::Poll::Ready(Err(_)) => {
+                panic!("Either a completed task was polled again, or the sender was dropped");
+            }
+            std::task::Poll::Pending => std::task::Poll::Pending,
+        }
+    }
+}
+
+fn available_parallelism() -> usize {
+    thread::available_parallelism()
         .map(NonZeroUsize::get)
         .unwrap_or(1)
 }
 
-/// Initialize the global task pools.
-///
-/// Currently the AsyncComputeTaskPool and IoTaskPool are initialized. This may change in the future.
 pub fn create_task_pools() {
-    // bevy params:
-    // TaskPoolOptions {
-    //     // By default, use however many cores are available on the system
-    //     min_total_threads: 1,
-    //     max_total_threads: std::usize::MAX,
-    //
-    //     // Use 25% of cores for IO, at least 1, no more than 4
-    //     io: TaskPoolThreadAssignmentPolicy {
-    //         min_threads: 1,
-    //         max_threads: 4,
-    //         percent: 0.25,
-    //     },
-    //
-    //     // Use 25% of cores for async compute, at least 1, no more than 4
-    //     async_compute: TaskPoolThreadAssignmentPolicy {
-    //         min_threads: 1,
-    //         max_threads: 4,
-    //         percent: 0.25,
-    //     },
-    //
-    //     // Use all remaining cores for compute (at least 1)
-    //     compute: TaskPoolThreadAssignmentPolicy {
-    //         min_threads: 1,
-    //         max_threads: std::usize::MAX,
-    //         percent: 1.0, // This 1.0 here means "whatever is left over"
-    //     },
-    // }
+    let total_threads = available_parallelism();
 
-    let total_threads = available_parallelism().clamp(1, usize::MAX);
-    debug!("Assigning {} cores to default task pools", total_threads);
+    create_rayon_pool(total_threads);
 
-    let mut remaining_threads = total_threads;
+    create_async_io_pool(1);
+}
 
-    fn get_number_of_threads(
-        percent: f32,
-        min_threads: usize,
-        max_threads: usize,
-        remaining_threads: usize,
-        total_threads: usize,
-    ) -> usize {
-        let mut desired = (total_threads as f32 * percent).round() as usize;
+fn create_rayon_pool(threads: usize) {
+    debug!("Creating rayon thread pool with {} threads", threads);
 
-        // Limit ourselves to the number of cores available
-        desired = desired.min(remaining_threads);
+    rayon_core::ThreadPoolBuilder::new()
+        .num_threads(threads)
+        // spawn rayon threads using wasm_thread
+        .spawn_handler(|thread| -> io::Result<()> {
+            let mut b = thread::Builder::new();
+            if let Some(name) = thread.name() {
+                b = b.name(name.to_owned());
+            }
+            if let Some(stack_size) = thread.stack_size() {
+                b = b.stack_size(stack_size);
+            }
+            b.spawn(|| thread.run())?;
+            Ok(())
+        })
+        .build_global()
+        .expect("Failed to build global rayon thread pool");
+}
 
-        // Clamp by min_threads, max_threads. (This may result in us using more threads than are
-        // available, this is intended. An example case where this might happen is a device with
-        // <= 2 threads.
-        desired.clamp(min_threads, max_threads)
+fn create_async_io_pool(threads: usize) {
+    async_io::EXECUTOR
+        .set(async_executor::Executor::new())
+        .unwrap();
+
+    let executor = async_io::EXECUTOR.get().unwrap();
+
+    for _ in 0..threads {
+        thread::Builder::new()
+            .name("async-io".to_owned())
+            .spawn(|| {
+                futures_lite::future::block_on(executor.run(std::future::pending::<()>()));
+            })
+            .expect("Failed to spawn async-io thread");
     }
+}
 
+pub mod compute {
+    use super::ComputeTask;
+
+    pub fn spawn<T, F>(f: F) -> ComputeTask<T>
+    where
+        F: FnOnce() -> T + Send + 'static,
+        T: Send + 'static,
     {
-        // Determine the number of IO threads we will use
-        let io_threads = get_number_of_threads(0.25, 1, 4, remaining_threads, total_threads);
+        let (sender, receiver) = oneshot::channel();
 
-        debug!("IO Threads: {}", io_threads);
-        remaining_threads = remaining_threads.saturating_sub(io_threads);
-
-        IoTaskPool::init(|| {
-            TaskPoolBuilder::default()
-                .num_threads(io_threads)
-                .thread_name("IO Task Pool".to_string())
-                .build()
+        rayon_core::spawn(move || {
+            // ignore send errors
+            let _ = sender.send(f());
         });
+
+        ComputeTask { receiver }
     }
 
+    pub fn spawn_and_forget<F>(f: F)
+    where
+        F: FnOnce() + Send + 'static,
     {
-        // Use the rest for async compute threads
-        let async_compute_threads = remaining_threads;
-        // get_number_of_threads(0.25, 1, 4, remaining_threads, total_threads);
-
-        debug!("Async Compute Threads: {}", async_compute_threads);
-        remaining_threads = remaining_threads.saturating_sub(async_compute_threads);
-
-        AsyncComputeTaskPool::init(|| {
-            TaskPoolBuilder::default()
-                .num_threads(async_compute_threads)
-                .thread_name("Async Compute Task Pool".to_string())
-                .build()
-        });
+        rayon_core::spawn(f);
     }
+}
 
-    // do not initialize the compute task pool, we do not use it (at least for now)
-    debug!("Remaining Threads: {}", remaining_threads);
+pub mod async_io {
+    use std::sync::OnceLock;
+
+    use super::AsyncTask;
+
+    pub(crate) static EXECUTOR: OnceLock<async_executor::Executor<'static>> = OnceLock::new();
+
+    pub fn spawn<T, F>(f: F) -> AsyncTask<T>
+    where
+        F: Future<Output = T> + Send + 'static,
+        T: Send + 'static,
+    {
+        let task = EXECUTOR
+            .get()
+            .expect("async-io executor not initialized")
+            .spawn(f);
+
+        AsyncTask { task }
+    }
 }
 
 /// Blocks the current thread on a future.
@@ -155,9 +180,7 @@ pub fn create_task_pools() {
 /// # Examples
 ///
 /// ```
-/// use futures_lite::future;
-///
-/// let val = future::block_on(async {
+/// let val = shin_tasks::block_on(async {
 ///     1 + 2
 /// });
 ///

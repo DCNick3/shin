@@ -4,15 +4,16 @@
 //!
 //! It also stores a list of transparent and opaque rectangular regions of each block, allowing for a more efficient two-pass rendering.
 
-use std::{borrow::Cow, collections::BTreeMap, io, sync::Mutex};
+use std::{borrow::Cow, collections::BTreeMap, io};
 
-use anyhow::{bail, Context, Result};
-use binrw::{prelude::*, Endian};
+use anyhow::{Context, Result, bail};
+use binrw::{Endian, prelude::*};
 use bitflags::bitflags;
 use bytemuck::{Pod, Zeroable};
 use image::{ImageBuffer, RgbaImage};
 use itertools::Itertools;
-use shin_tasks::ParallelSlice;
+use parking_lot::Mutex;
+use rayon::prelude::*;
 
 #[derive(BinRead, BinWrite, Debug)]
 #[brw(little, magic = b"PIC4")]
@@ -381,11 +382,13 @@ pub fn read_texture(
         let dictionary = bytemuck::pod_read_unaligned::<[Rgba8; 0x100]>(dictionary);
 
         if !use_inline_alpha {
-            debug_assert!(dictionary
-                .iter()
-                // if we have inline alpha we can't have any transparent pixels
-                // (the second case is for empty dictionary entries, where all the components are 0)
-                .all(|v| v.a == 0xff || v == &Rgba8::default()));
+            debug_assert!(
+                dictionary
+                    .iter()
+                    // if we have inline alpha we can't have any transparent pixels
+                    // (the second case is for empty dictionary entries, where all the components are 0)
+                    .all(|v| v.a == 0xff || v == &Rgba8::default())
+            );
         }
 
         decode_dict(
@@ -490,6 +493,9 @@ pub fn read_picture_header(source: &[u8]) -> Result<PictureHeaderInfo> {
     })
 }
 
+/// Reads and decodes a picture.
+///
+/// NOTE: this will spawn rayon tasks and block waiting for them. If you don't want blocking wrap it with [`shin_tasks::compute::spawn`].
 pub fn read_picture<B: PictureBuilder>(source: &[u8], builder_args: B::Args) -> Result<B::Output> {
     let mut source = io::Cursor::new(source);
     let header: PicHeader = BinRead::read(&mut source)?;
@@ -530,21 +536,17 @@ pub fn read_picture<B: PictureBuilder>(source: &[u8], builder_args: B::Args) -> 
         header.picture_id,
     );
 
+    // TODO: in bustups we collect blocks into a vector, while here we call builder methods directly from rayon tasks
+    // We should decide which is better, because the inconsistency is killing me
     let builder = Mutex::new(builder);
     blocks
-        .into_iter()
-        .collect::<Vec<_>>()
-        // TODO: we can do this without spawning a task per block, par_map_chunks will probably be a little bit more efficient
-        .par_map(
-            shin_tasks::AsyncComputeTaskPool::get(),
-            |&(data_offset, (ref pos, data))| (data_offset, pos.clone(), read_picture_block(data)),
-        )
-        .into_iter()
+        .into_par_iter()
+        .map(|(data_offset, (pos, data))| (data_offset, pos, read_picture_block(data)))
         .try_for_each(|(data_offset, pos, block)| {
-            builder.lock().unwrap().add_block(data_offset, pos, block?)
+            builder.lock().add_block(data_offset, pos, block?)
         })?;
 
-    let listener = builder.into_inner().unwrap();
+    let builder = builder.into_inner();
 
-    listener.build()
+    builder.build()
 }

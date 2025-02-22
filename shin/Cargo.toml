@@ -71,6 +71,7 @@ bitflags = "2.6.0"
 
 drop_bomb = "0.1.5"
 
+rayon = { workspace = true }
 parking_lot = { workspace = true }
 
 replace_with = { workspace = true }

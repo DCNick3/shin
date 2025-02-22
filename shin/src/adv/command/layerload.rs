@@ -1,22 +1,22 @@
 use std::fmt::{Debug, Formatter};
 
 use shin_core::vm::command::types::{
-    LayerId, LayerLoadFlags, LayerType, PlaneId, LAYERBANKS_COUNT,
+    LAYERBANKS_COUNT, LayerId, LayerLoadFlags, LayerType, PlaneId,
 };
 use shin_render::shaders::types::{RenderClone, RenderCloneCtx};
-use shin_tasks::{AsyncComputeTaskPool, IoTaskPool, Task};
+use shin_tasks::AsyncTask;
 use tracing::error;
 
 use super::prelude::*;
 use crate::{
     adv::vm_state::layers::LayerOperationTarget,
-    layer::{user::UserLayer, LayerProperties},
+    layer::{LayerProperties, user::UserLayer},
 };
 
 pub struct LAYERLOAD {
     token: Option<command::token::LAYERLOAD>,
     state_info: LayerLoadStateInfo,
-    load_task: Option<Task<UserLayer>>,
+    load_task: AsyncTask<UserLayer>,
 }
 
 struct LayerInfo {
@@ -145,7 +145,7 @@ impl StartableCommand for command::runtime::LAYERLOAD {
         let scenario = scenario.clone();
 
         let device = context.pre_render.device.clone();
-        let load_task = IoTaskPool::get().spawn(async move {
+        let load_task = shin_tasks::async_io::spawn(async move {
             UserLayer::load(
                 &device,
                 &asset_server,
@@ -167,7 +167,7 @@ impl StartableCommand for command::runtime::LAYERLOAD {
             LAYERLOAD {
                 token: Some(self.token),
                 state_info,
-                load_task: Some(load_task),
+                load_task,
             }
             .into(),
         )
@@ -183,10 +183,7 @@ impl UpdatableCommand for LAYERLOAD {
         adv_state: &mut AdvState,
         _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        if self.load_task.as_ref().unwrap().is_finished() {
-            // TODO: do not block here; poll the task in a loop instead
-            let layer = shin_tasks::block_on(self.load_task.take().unwrap());
-
+        if let Some(layer) = self.load_task.poll_naive() {
             // NB: here the game also loads a wiper, but we don't support `LayerGroup`-level wiping
 
             let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);

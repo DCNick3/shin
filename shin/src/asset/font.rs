@@ -3,6 +3,7 @@ use std::{io::Cursor, sync::Arc};
 use anyhow::Context;
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
+use rayon::prelude::*;
 use shin_core::{
     format::font::{
         FontLazy, Glyph, GlyphId, GlyphInfo, GlyphMipLevel, GlyphTrait, read_lazy_font,
@@ -10,7 +11,6 @@ use shin_core::{
     layout::font::FontMetrics,
 };
 use shin_render::{gpu_texture::GpuTexture, shaders::types::texture::TextureSource};
-use shin_tasks::AsyncComputeTaskPool;
 
 use crate::asset::system::{
     Asset, AssetDataAccessor, AssetLoadContext,
@@ -30,10 +30,13 @@ impl GpuFontLazy {
         }
     }
 
+    /// Returns handles to an array of glyphs in bulk.
+    ///
+    /// The actual loading will happen in the compute task pool, with [`GpuFontGlyphHandle`] giving access to the results asynchronously.
     pub fn load_glyphs(
         self: Arc<Self>,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        device: wgpu::Device,
+        queue: wgpu::Queue,
         characters: &[char],
     ) -> Vec<GpuFontGlyphHandle> {
         if characters.is_empty() {
@@ -42,9 +45,12 @@ impl GpuFontLazy {
 
         let glyph_map = self.font.get_character_mapping();
 
+        let mut glyphs = Vec::with_capacity(characters.len());
         let mut glyphs_dedup = IndexSet::new();
         for &char in characters {
-            glyphs_dedup.insert(glyph_map[char as usize]);
+            let glyph = glyph_map[char as usize];
+            glyphs.push(glyph);
+            glyphs_dedup.insert(glyph);
         }
 
         let (need_loading_list, mut loading_list): (Vec<_>, Vec<_>) = glyphs_dedup
@@ -70,29 +76,19 @@ impl GpuFontLazy {
             }
 
             // actually load the stuff
-            let task_pool = AsyncComputeTaskPool::get();
-            let chunk_size = std::cmp::max(16, need_loading_list.len() / task_pool.thread_num());
+            // let this = self.clone();
+            shin_tasks::compute::spawn_and_forget(move || {
+                // spawn a rayon task because `for_each` will block otherwise
+                need_loading_list
+                    .into_par_iter()
+                    .for_each(|(id, need_loading)| {
+                        let glyph = self.font.get_glyph(id).unwrap();
+                        let glyph = glyph.decompress();
+                        let glyph = Arc::new(GpuFontGlyph::load(&device, &queue, id, glyph));
 
-            for chunk in &need_loading_list.into_iter().chunks(chunk_size) {
-                let chunk = chunk.collect::<Vec<_>>();
-                let device = device.clone();
-                let queue = queue.clone();
-                let this = self.clone();
-
-                // load the glyphs in background
-                // maybe by the time they're needed they'll be ready
-                AsyncComputeTaskPool::get()
-                    .spawn(async move {
-                        for (id, need_loading) in chunk {
-                            let glyph = this.font.get_glyph(id).unwrap();
-                            let glyph = glyph.decompress();
-                            let glyph = Arc::new(GpuFontGlyph::load(&device, &queue, id, glyph));
-
-                            this.glyph_cache.finish_load(need_loading, glyph);
-                        }
-                    })
-                    .detach();
-            }
+                        self.glyph_cache.finish_load(need_loading, glyph);
+                    });
+            });
         }
 
         let mut glyph_handles = IndexMap::new();
@@ -102,9 +98,8 @@ impl GpuFontLazy {
 
         let mut result = Vec::new();
 
-        for char in characters {
-            let id = glyph_map[*char as usize];
-            let handle = glyph_handles.get(&id).unwrap();
+        for glyph_id in glyphs {
+            let handle = glyph_handles.get(&glyph_id).unwrap();
             result.push(handle.clone());
         }
 
@@ -170,7 +165,7 @@ impl Asset for GpuFontLazy {
     type Args = ();
 
     async fn load(
-        _context: &AssetLoadContext,
+        _context: &Arc<AssetLoadContext>,
         _args: (),
         _name: &str,
         data: AssetDataAccessor,

@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use anyhow::{Context, Result};
 use shin_audio::AudioManager;
-use shin_video::{mp4::Mp4, VideoPlayerHandle};
+use shin_video::{VideoPlayerHandle, mp4::Mp4};
 
 use crate::asset::system::{Asset, AssetDataAccessor, AssetDataCursor, AssetLoadContext};
 
@@ -14,7 +16,7 @@ impl Asset for Movie {
     type Args = ();
 
     async fn load(
-        _context: &AssetLoadContext,
+        _context: &Arc<AssetLoadContext>,
         _args: (),
         name: &str,
         data: AssetDataAccessor,

@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 
 use anyhow::Result;
-use glam::{vec2, Vec2, Vec4};
+use glam::{Vec2, Vec4, vec2};
 use shin_core::format::picture::{PicBlock, PicBlockRect, PictureBuilder};
 use shin_render::{
     gpu_texture::GpuTexture,
@@ -159,10 +159,11 @@ impl<'a> PictureBuilder for GpuPictureBuilder<'a> {
             .map(|(x, y)| vec2(x as f32, y as f32))
             .collect::<Vec<_>>();
 
-        assert!(self
-            .blocks
-            .insert(data_offset, (positions, block))
-            .is_none());
+        assert!(
+            self.blocks
+                .insert(data_offset, (positions, block))
+                .is_none()
+        );
 
         Ok(())
     }
@@ -205,27 +206,32 @@ impl Asset for Picture {
     type Args = ();
 
     async fn load(
-        context: &AssetLoadContext,
+        context: &Arc<AssetLoadContext>,
         _args: (),
         name: &str,
         data: AssetDataAccessor,
     ) -> Result<Self> {
+        let label = format!("Pic[{}]", name);
         let data = data.read_all().await;
 
         // TODO: lookup if there's already a picture with this ID in the cache
         // Not sure if it makes sense to do so though: we are already caching pictures by their name
         // I don't think it's possible to have two pictures with the same ID but different names (why would they do it?)
 
-        // Move the read_picture to io task pool, since most of the time it's going to be waiting on spawned tasks to complete
-        shin_core::format::picture::read_picture::<GpuPictureBuilder>(
-            &data,
-            (
-                GpuTextureBuilderContext {
-                    wgpu_device: &context.wgpu_device,
-                    wgpu_queue: &context.wgpu_queue,
-                },
-                format!("Pic[{}]", name),
-            ),
-        )
+        // Move the read_picture to compute task pool since it spawns rayon tasks
+        let context = context.clone();
+        shin_tasks::compute::spawn(move || {
+            shin_core::format::picture::read_picture::<GpuPictureBuilder>(
+                &data,
+                (
+                    GpuTextureBuilderContext {
+                        wgpu_device: &context.wgpu_device,
+                        wgpu_queue: &context.wgpu_queue,
+                    },
+                    label,
+                ),
+            )
+        })
+        .await
     }
 }

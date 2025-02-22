@@ -50,7 +50,8 @@ impl AssetDataAccessor {
         }
     }
 
-    pub async fn read_all(&self) -> Vec<u8> {
+    // TODO: would it be beneficial to return bytes::Bytes here? Do we need the Arc sharing?
+    pub fn read_all_sync(&self) -> Vec<u8> {
         match &self.inner {
             AssetDataAccessorInner::File(path) => std::fs::read(path).expect("Reading file"),
             AssetDataAccessorInner::RomFile(reader) => {
@@ -63,6 +64,12 @@ impl AssetDataAccessor {
             }
         }
     }
+
+    pub async fn read_all(&self) -> Vec<u8> {
+        // TODO: these should actually do async io :/
+        // also, the sync (and file-based) impl won't work on web at all!
+        self.read_all_sync()
+    }
 }
 
 enum AssetDataCursorInner {
@@ -73,6 +80,7 @@ pub struct AssetDataCursor {
     inner: AssetDataCursorInner,
 }
 
+// TODO: how about async reading?
 impl io::Read for AssetDataCursor {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match &mut self.inner {

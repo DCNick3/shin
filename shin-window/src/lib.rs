@@ -14,7 +14,7 @@ use shin_render::{
     resize::{CanvasSize, ResizeHandle, SurfaceResizeSource, SurfaceSize, ViewportParams},
     shaders::types::texture::{DepthStencilTarget, TextureTarget, TextureTargetKind},
 };
-use shin_tasks::Task;
+use shin_tasks::AsyncTask;
 use tracing::{info, warn};
 use winit::{
     application::ApplicationHandler,
@@ -198,7 +198,7 @@ fn start_wgpu_init<A: ShinApp>(
             // this is not necessarily required anywhere besides wasm (we can't do sync init there)
             // however if we have to choose async init is a bit nicer because we can continue handling events
             let proxy_clone = proxy.clone();
-            let task = shin_tasks::IoTaskPool::get().spawn(async move {
+            let task = shin_tasks::async_io::spawn(async move {
                 let result = shin_render::init::init_wgpu(window, surface_resize_handle, None).await;
 
                 proxy_clone
@@ -300,7 +300,7 @@ enum WinitAppState<A: ShinApp> {
         params: A::Parameters,
         winit: WindowState,
         #[allow(unused)] // this is just to keep the task alive
-        task: Task<()>,
+        task: AsyncTask<()>,
     },
     Operational {
         proxy: EventLoopProxy<ShinAppEventImpl<A::EventType>>,

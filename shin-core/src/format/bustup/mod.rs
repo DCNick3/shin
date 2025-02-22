@@ -16,10 +16,10 @@
 mod builder;
 pub mod default_builder;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use binrw::{BinRead, BinWrite};
 use indexmap::IndexMap;
-use shin_tasks::ParallelSlice;
+use rayon::prelude::*;
 
 pub use self::builder::{
     BustupBlockPromise, BustupBlockPromiseToken, BustupBuilder, BustupExpressionSkeleton,
@@ -274,6 +274,9 @@ fn with_offset_and_size<
     Ok(result)
 }
 
+/// Reads and decodes a bustup.
+///
+/// NOTE: this will spawn rayon tasks and block waiting for them. If you don't want blocking wrap it with [`shin_tasks::compute::spawn`].
 pub fn read_bustup<B: BustupBuilder>(source: &[u8], builder_args: B::Args) -> Result<B::Output> {
     let mut source = std::io::Cursor::new(source);
     let source = &mut source;
@@ -369,14 +372,15 @@ pub fn read_bustup<B: BustupBuilder>(source: &[u8], builder_args: B::Args) -> Re
         .map(|((index, &desc), _)| (index, desc))
         .collect::<Vec<_>>();
 
-    // TODO: we can do this without spawning a task per block, par_map_chunks will probably be a little bit more efficient
-    let decoded_blocks =
-        required_blocks.par_map(shin_tasks::AsyncComputeTaskPool::get(), |&(index, desc)| {
+    let decoded_blocks = required_blocks
+        .into_par_iter()
+        .map(|(index, desc)| {
             let data = &source.get_ref()[desc.offset as usize..(desc.offset + desc.size) as usize];
             read_picture_block(data)
                 .and_then(|block| B::new_block(&builder_args, desc.offset, block))
                 .map(|block| (index, block))
-        });
+        })
+        .collect_vec_list();
 
     // prepare an array of `Option<PictureBlock>` for easier access by index by the promise
     let mut blocks_array = {
@@ -385,7 +389,7 @@ pub fn read_bustup<B: BustupBuilder>(source: &[u8], builder_args: B::Args) -> Re
         for _ in 0..block_descriptors.len() {
             blocks_array.push(None);
         }
-        for result in decoded_blocks {
+        for result in decoded_blocks.into_iter().flatten() {
             let (index, block) = result?;
             blocks_array[index] = Some(block);
         }

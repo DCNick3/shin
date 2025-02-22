@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use glam::vec3;
 use shin_core::{
     format::mask::{MaskRect, RegionData},
@@ -148,34 +150,36 @@ impl Asset for MaskTexture {
     type Args = ();
 
     async fn load(
-        context: &AssetLoadContext,
+        context: &Arc<AssetLoadContext>,
         _args: Self::Args,
         name: &str,
         data: AssetDataAccessor,
     ) -> anyhow::Result<Self> {
         let label = format!("Mask[{}]", name);
-
         let data = data.read_all().await;
+        let context = context.clone();
 
-        let mask = shin_core::format::mask::read_mask(&data)?;
+        shin_tasks::compute::spawn(move || {
+            let mask = shin_core::format::mask::read_mask(&data)?;
 
-        let (vertex_buffer, index_buffer, offsets) = load_vertices(context, &mask.regions, &label);
+            let (vertex_buffer, index_buffer, offsets) =
+                load_vertices(&context, &mask.regions, &label);
 
-        let texture = GpuTexture::new_static_from_gray_image(
-            &context.wgpu_device,
-            &context.wgpu_queue,
-            Some(&format!("{}/texture", label)),
-            &mask.texels,
-        );
+            let texture = GpuTexture::new_static_from_gray_image(
+                &context.wgpu_device,
+                &context.wgpu_queue,
+                Some(&format!("{}/texture", label)),
+                &mask.texels,
+            );
 
-        let result = MaskTexture {
-            label,
-            offsets,
-            vertex_buffer,
-            index_buffer,
-            texture,
-        };
-
-        Ok(result)
+            Ok(MaskTexture {
+                label,
+                offsets,
+                vertex_buffer,
+                index_buffer,
+                texture,
+            })
+        })
+        .await
     }
 }

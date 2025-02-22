@@ -63,6 +63,9 @@ parking_lot = { version = "0.12.3", features = ["deadlock_detection"] }
 
 replace_with = "0.1.7"
 
+rayon-core = "1.12.1"
+rayon = "1.10.0"
+
 [profile.release]
 debug = true
 #lto = 'thin'

@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use bevy_utils::HashMap;
-use glam::{vec2, Vec2};
+use glam::{Vec2, vec2};
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
 use shin_core::format::{
@@ -19,8 +19,8 @@ use shin_core::format::{
 use crate::asset::{
     picture::{GpuPictureBlock, GpuTextureBuilderContext},
     system::{
-        cache::{AssetCache, CacheLoadHandle, CacheLoaderHandle, CacheLookupResult},
         Asset, AssetDataAccessor, AssetLoadContext,
+        cache::{AssetCache, CacheLoadHandle, CacheLoaderHandle, CacheLookupResult},
     },
 };
 
@@ -228,25 +228,30 @@ impl Asset for Bustup {
     type Args = BustupArgs;
 
     async fn load(
-        context: &AssetLoadContext,
+        context: &Arc<AssetLoadContext>,
         args: BustupArgs,
         name: &str,
         data: AssetDataAccessor,
     ) -> Result<Self> {
+        let label = format!("{}[{}]", name, args.expression);
         let data = data.read_all().await;
+        let context = context.clone();
 
-        let args = GpuBustupBuilderArgs {
-            context: GpuTextureBuilderContext {
-                wgpu_device: &context.wgpu_device,
-                wgpu_queue: &context.wgpu_queue,
-            },
-            cache: &context.bustup_cache,
-            label: format!("{}[{}]", name, args.expression),
-            expression: args.expression,
-            character_id: args.character_id,
-            disable_animations: args.disable_animations,
-        };
+        shin_tasks::compute::spawn(move || {
+            let args = GpuBustupBuilderArgs {
+                context: GpuTextureBuilderContext {
+                    wgpu_device: &context.wgpu_device,
+                    wgpu_queue: &context.wgpu_queue,
+                },
+                cache: &context.bustup_cache,
+                label,
+                expression: args.expression,
+                character_id: args.character_id,
+                disable_animations: args.disable_animations,
+            };
 
-        shin_core::format::bustup::read_bustup::<GpuBustupBuilder>(&data, args)
+            shin_core::format::bustup::read_bustup::<GpuBustupBuilder>(&data, args)
+        })
+        .await
     }
 }
