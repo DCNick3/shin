@@ -10,10 +10,11 @@
 
 use std::io::{Read, Seek, Write};
 
-use binrw::{file_ptr::FilePtrArgs, BinRead, BinResult, BinWrite, Endian, FilePtr32};
+use anyhow::anyhow;
+use binrw::{BinRead, BinResult, BinWrite, Endian, FilePtr32, file_ptr::FilePtrArgs};
 
 use crate::format::{
-    scenario::types::{U16SmallList, U8SmallList},
+    scenario::types::{U8SmallList, U16SmallList},
     text::U16String,
 };
 
@@ -46,9 +47,7 @@ pub struct PictureInfoItem {
     /// This is needed because the game occasionally composes CGs dynamically out of multiple animated parts, but still wants the (static, pre-assembled) main CG picture to be unlocked in the Picture Box if its main part (i.e. this picture) is shown.
     ///
     /// If there is no linked picture, the value is `-1`.
-    #[br(parse_with = parse_opt_newtype, args(-1))]
-    #[bw(write_with = write_opt_newtype, args(-1))]
-    pub linked_cg_id: Option<PictureId>,
+    pub linked_cg_id: PictureIdOpt,
 }
 pub type PictureInfo = Vec<PictureInfoItem>;
 
@@ -96,9 +95,7 @@ pub struct BgmInfoItem {
     pub display_name: U16String,
 
     /// The ID of another BGM track that should be unlocked in the Music Box (`bgmmode`) in addition to this track, when this track is played. `-1` if there is no linked BGM track.
-    #[br(parse_with = parse_opt_newtype, args(-1))]
-    #[bw(write_with = write_opt_newtype, args(-1))]
-    pub linked_bgm_id: Option<MusicBoxId>, // TODO: I am not sure if using MusicBoxId is right here
+    pub linked_bgm_id: MusicBoxIdOpt, // TODO: I am not sure if using MusicBoxId is right here
 }
 pub type BgmInfo = Vec<BgmInfoItem>;
 
@@ -158,10 +155,8 @@ pub struct MovieInfoItem {
     /// The name of this movie. Corresponds to the base filename of the `.mp4` file the engine will load from the `movie/` directory when the movie is to be played.
     pub name: U16String,
 
-    /// The ID of the picture (indexing into [`PictureInfo`]) that will be displayed instead of the movie after the movie has finished playing. This is only really relevant for movies used in animations; the movies used in cutscenes have this set to 0.
-    #[br(parse_with = parse_opt_newtype, args(0))]
-    #[bw(write_with = write_opt_newtype, args(0))]
-    pub linked_picture_id: Option<PictureId>,
+    /// The ID of the picture (indexing into [`PictureInfo`]) that will be displayed instead of the movie after the movie has finished playing. This is only really relevant for movies used in animations; the movies used in cutscenes have this set to 0. This is not treated specially by the game; the PicId 0 corresponds to a black screen.
+    pub linked_picture_id: PictureId,
 
     /// Which volume setting to use when playing audio for this movie.
     pub volume_source: MovieVolumeSource,
@@ -170,9 +165,7 @@ pub struct MovieInfoItem {
     pub transparency: MovieTransparencyMode,
 
     /// The ID of the BGM (indexing into [`BgmInfo`]) that will be unlocked in the Music Box if this movie is played back. This is only really relevant for cutscene movies, where the Music Box entry for an opening theme needs to be unlocked. If there is no linked BGM track, the value is `-1`.
-    #[br(parse_with = parse_opt_newtype, args(-1))]
-    #[bw(write_with = write_opt_newtype, args(-1))]
-    pub linked_bgm_id: Option<BgmId>,
+    pub linked_bgm_id: BgmIdOpt,
 }
 pub type MovieInfo = Vec<MovieInfoItem>;
 
@@ -585,25 +578,86 @@ pub struct ScenarioInfoTables {
 // internally the into items are stored as i32, as most of the time they will come from a VM register value (i32). This is represented by implementing `FromNumber`
 // for cross-references between tables in the binary format, however, they are encoded as u16. This is represented by implementations of BinRead and BinWrite
 
-trait InfoIdNewtype: Copy + crate::format::scenario::instruction_elements::FromNumber {
-    fn into_i32(self) -> i32;
-}
-
 macro_rules! info_id_newtypes {
-    ($($newtype:ident),*) => {
+    ($(
+        [$newtype_opt:ident, $newtype:ident]
+    ),*) => {
         $(
             #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-            pub struct $newtype(i32);
+            pub struct $newtype_opt(i16);
 
-            impl crate::format::scenario::instruction_elements::FromNumber for $newtype {
-                fn from_number(number: i32) -> Self {
-                    Self(number)
+            impl $newtype_opt {
+                pub const fn some(value: $newtype) -> Self {
+                    Self(value.0 as i16)
+                }
+
+                pub const fn none() -> Self {
+                    Self(-1)
+                }
+
+                pub const fn into_i32(self) -> i32 {
+                    self.0 as i32
+                }
+
+                pub const fn repr(self) -> Option<$newtype> {
+                    if self.0 < 0 {
+                        None
+                    } else {
+                        Some($newtype(self.0 as u16))
+                    }
                 }
             }
 
-            impl InfoIdNewtype for $newtype {
-                fn into_i32(self) -> i32 {
-                    self.0
+            impl crate::format::scenario::instruction_elements::FromNumber for $newtype_opt {
+                fn from_number(number: i32) -> Self {
+                    Self(number.try_into().expect("info id newtype overflow"))
+                }
+            }
+
+            impl std::fmt::Display for $newtype_opt {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", self.0)
+                }
+            }
+
+            impl BinRead for $newtype_opt {
+                type Args<'a> = ();
+
+                fn read_options<R: Read + Seek>(
+                    reader: &mut R,
+                    endian: Endian,
+                    args: Self::Args<'_>,
+                ) -> BinResult<Self> {
+                    i16::read_options(reader, endian, args).map(Self)
+                }
+            }
+
+            impl BinWrite for $newtype_opt {
+                type Args<'a> = ();
+
+                fn write_options<W: Write + Seek>(
+                    &self,
+                    writer: &mut W,
+                    endian: Endian,
+                    args: Self::Args<'_>,
+                ) -> BinResult<()> {
+                    i16::write_options(&self.0, writer, endian, args)
+                }
+            }
+
+            #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+            pub struct $newtype(u16);
+
+            impl $newtype {
+                pub const fn into_i32(self) -> i32 {
+                    self.0 as i32
+                }
+            }
+
+            impl crate::format::scenario::instruction_elements::FromNumber for $newtype {
+                fn from_number(number: i32) -> Self {
+                    let opt = <$newtype_opt as crate::format::scenario::instruction_elements::FromNumber>::from_number(number);
+                    opt.repr().expect("unexpected negative value for info data id newtype")
                 }
             }
 
@@ -621,7 +675,12 @@ macro_rules! info_id_newtypes {
                     endian: Endian,
                     args: Self::Args<'_>,
                 ) -> BinResult<Self> {
-                    u16::read_options(reader, endian, args).map(|v| Self(v as i32))
+                    let pos = reader.stream_position()?;
+                    let opt = $newtype_opt::read_options(reader, endian, args)?;
+                    opt.repr().ok_or_else(|| binrw::Error::Custom {
+                        pos,
+                        err: Box::new(anyhow!("unexpected negative value for info data id newtype")),
+                    })
                 }
             }
 
@@ -634,54 +693,25 @@ macro_rules! info_id_newtypes {
                     endian: Endian,
                     args: Self::Args<'_>,
                 ) -> BinResult<()> {
-                    u16::write_options(&(self.0 as u16), writer, endian, args)
+                    $newtype_opt::some(*self).write_options(writer, endian, args)
                 }
             }
         )*
     };
 }
 
-// binrw parser combinators allowing us to read and write `Option`s of the indices
-fn parse_opt_newtype<T: InfoIdNewtype, R: Read + Seek>(
-    r: &mut R,
-    endian: Endian,
-    (sentinel,): (i16,),
-) -> BinResult<Option<T>> {
-    let raw = i16::read_options(r, endian, ())?;
-
-    if raw == sentinel {
-        Ok(None)
-    } else {
-        Ok(Some(T::from_number(raw as i32)))
-    }
-}
-
-fn write_opt_newtype<T: InfoIdNewtype, W: Write + Seek>(
-    obj: &Option<T>,
-    w: &mut W,
-    endian: Endian,
-    (sentinel,): (i16,),
-) -> BinResult<()> {
-    let raw = match obj {
-        Some(value) => value.into_i32().try_into().unwrap(),
-        None => sentinel,
-    };
-
-    i16::write_options(&raw, w, endian, ())
-}
-
 info_id_newtypes!(
-    MaskId,
+    [MaskIdOpt, MaskId],
     // TODO: BustupId and PictureId conflict with PictureId and BustupId newtypes for ids found the picture and bup headers. Ideally we would want to rename either of them
-    PictureId,
-    BustupId,
-    BgmId,
-    SeId,
-    MovieId,
-    PictureBoxId,
-    MusicBoxId,
-    CharacterBoxId,
-    CharsSpriteId
+    [PictureIdOpt, PictureId],
+    [BustupIdOpt, BustupId],
+    [BgmIdOpt, BgmId],
+    [SeIdOpt, SeId],
+    [MovieIdOpt, MovieId],
+    [PictureBoxIdOpt, PictureBoxId],
+    [MusicBoxIdOpt, MusicBoxId],
+    [CharacterBoxIdOpt, CharacterBoxId],
+    [CharsSpriteIdOpt, CharsSpriteId]
 );
 
 impl ScenarioInfoTables {

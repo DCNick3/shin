@@ -1,4 +1,5 @@
-#import types::{LayerVertex, LayerUniformParams}
+#import types::{PosTexVertex, LayerUniformParams}
+#import utils::evaluate_fragment_shader
 
 @group(0) @binding(0)
 var<uniform> params: LayerUniformParams;
@@ -14,41 +15,13 @@ struct VertexOutput {
 }
 
 @vertex
-fn vertex_main(input: LayerVertex) -> VertexOutput {
+fn vertex_main(input: PosTexVertex) -> VertexOutput {
     var output: VertexOutput;
 
-    output.clip_position = params.transform * vec4<f32>(input.coords.xy, 0.0, 1.0);
-    output.texture_position = input.coords.zw;
+    output.clip_position = params.transform * vec4<f32>(input.position, 0.0, 1.0);
+    output.texture_position = input.texture_position;
 
     return output;
-}
-
-fn evaluate_fragment_shader(color: vec3<f32>, operation: u32, param: vec4<f32>) -> vec3<f32> {
-    if operation == 0 {
-        // default
-        return color;
-    } else if operation == 1 {
-        // mono
-        let luma = dot(color, vec3(0.299, 0.587, 0.114));
-        let mix = mix(color, vec3(luma), param.w);
-        return mix * param.xyz;
-    } else if operation == 2 {
-        // fill
-        return mix(color, param.xyz, param.w);
-    } else if operation == 3 {
-        // fill2
-        // I have no idea how it is different from default
-        return color;
-    } else if operation == 4 {
-        // negative
-        let negated = 1 - color;
-        return mix(color, negated, param.w);
-    } else if operation == 5 {
-        // gamma
-        return exp2(log2(color) * 1 / param.xyz);
-    } else {
-        return color;
-    }
 }
 
 @fragment

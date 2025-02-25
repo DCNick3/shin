@@ -181,11 +181,8 @@ impl Layer for PageLayer {
 
             layer_group.pre_render(context, &self_transform);
             if layer_group.needs_rendering() {
-                // if a layer is rendered directly, we won't be able to see anything below it
-                if self
-                    .new_drawable_state
-                    .is_rendered_opaquely(props, &PageLayerNewDrawableSeparatePassDelegate)
-                {
+                // if a layer is rendered opaquely, we won't be able to see anything below it
+                if layer_group.is_rendered_opaquely() {
                     layer_stack.clear();
                 }
 

@@ -1,13 +1,13 @@
-use glam::vec4;
 use shin_core::time::Ticks;
 use shin_render::{
+    ColorBlendType, DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
+    quad_vertices::build_quad_vertices,
     render_pass::RenderPass,
-    shaders::types::{buffer::VertexSource, texture::TextureSource, vertices::LayerVertex},
-    shin_orthographic_projection_matrix, ColorBlendType, DrawPrimitive, RenderProgramWithArguments,
-    RenderRequestBuilder,
+    shaders::types::{buffer::VertexSource, texture::TextureSource, vertices::PosTexVertex},
 };
 
 use crate::{
+    layer::normalized_projection_matrix,
     update::{AdvUpdatable, AdvUpdateContext},
     wiper::timed::{TimedWiper, TimedWiperWrapper},
 };
@@ -28,22 +28,12 @@ impl TimedWiper for DefaultWiperImpl {
         texture_source: TextureSource,
         progress: f32,
     ) {
-        let transform = shin_orthographic_projection_matrix(0.0, 1.0, 1.0, 0.0, -1.0, 1.0);
+        let transform = normalized_projection_matrix();
 
-        let vertices = &[
-            LayerVertex {
-                coords: vec4(0.0, 0.0, 0.0, 0.0),
-            },
-            LayerVertex {
-                coords: vec4(1.0, 0.0, 1.0, 0.0),
-            },
-            LayerVertex {
-                coords: vec4(0.0, 1.0, 0.0, 1.0),
-            },
-            LayerVertex {
-                coords: vec4(1.0, 1.0, 1.0, 1.0),
-            },
-        ];
+        let vertices = &build_quad_vertices(|t| PosTexVertex {
+            position: t,
+            texture_position: t,
+        });
 
         pass.run(
             render_request_builder

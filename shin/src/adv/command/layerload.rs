@@ -179,70 +179,70 @@ impl UpdatableCommand for LAYERLOAD {
         &mut self,
         context: &UpdateContext,
         _scenario: &Arc<Scenario>,
-        vm_state: &VmState,
+        _vm_state: &VmState,
         adv_state: &mut AdvState,
         _is_fast_forwarding: bool,
     ) -> Option<CommandResult> {
-        if let Some(layer) = self.load_task.poll_naive() {
-            // NB: here the game also loads a wiper, but we don't support `LayerGroup`-level wiping
+        let Some(layer) = self.load_task.poll_naive() else {
+            return None;
+        };
 
-            let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
-            adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
-            clone_ctx.finish(context.pre_render.queue);
+        // NB: here the game also loads a wiper, but we don't support `LayerGroup`-level wiping
 
-            let mut plane_layer_group = adv_state.plane_layer_group_mut(self.state_info.plane);
+        let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
+        adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
+        clone_ctx.finish(context.pre_render.queue);
 
-            for info in &self.state_info.affected_layers {
-                // NOTE: the original game does not remove the previous layer here, but we can't to this because we don't Arc everything
-                // this should not be a problem because we replace the layer with this layerbank id at the end of the for loop iteration
-                let mut previous_layer =
-                    plane_layer_group.remove_layer(info.operation_target.layerbank, Ticks::ZERO);
+        let mut plane_layer_group = adv_state.plane_layer_group_mut(self.state_info.plane);
 
-                let mut previous_props = previous_layer
-                    .as_ref()
-                    .map(|layer| layer.properties().clone());
+        for info in &self.state_info.affected_layers {
+            // NOTE: the original game does not remove the previous layer here, but we can't to this because we don't Arc everything
+            // this should not be a problem because we replace the layer with this layerbank id at the end of the for loop iteration
+            let mut previous_layer =
+                plane_layer_group.remove_layer(info.operation_target.layerbank, Ticks::ZERO);
 
-                let mut layer = if info.already_the_same {
-                    previous_layer.unwrap()
-                } else {
-                    let mut ctx = RenderCloneCtx::new(context.pre_render.device);
+            let mut previous_props = previous_layer
+                .as_ref()
+                .map(|layer| layer.properties().clone());
 
-                    let res = layer.render_clone(&mut ctx);
+            let mut layer = if info.already_the_same {
+                previous_layer.unwrap()
+            } else {
+                let mut ctx = RenderCloneCtx::new(context.pre_render.device);
 
-                    ctx.finish(context.pre_render.queue);
+                let res = layer.render_clone(&mut ctx);
 
-                    res
-                };
+                ctx.finish(context.pre_render.queue);
 
-                if let UserLayer::Bustup(layer) = &mut layer {
-                    // TODO: connect the BustupLayer to the lipsync machinery
-                }
+                res
+            };
 
-                let mut properties = match (previous_props, info.keep_old_props) {
-                    (Some(previous_props), true) => previous_props,
-                    _ => {
-                        let mut properties = LayerProperties::new();
-                        properties.set_layer_id(info.layer_id_for_properties);
-                        properties
-                    }
-                };
-
-                properties.set_layerload_counter1(info.layer_load_counter1);
-                *layer.properties_mut() = properties;
-
-                plane_layer_group.add_layer(info.operation_target.layerbank, layer);
+            if let UserLayer::Bustup(layer) = &mut layer {
+                // TODO: connect the BustupLayer to the lipsync machinery
             }
 
-            // TODO: call function to unlock layer-related items in CG (for PictureLayer) and Movie & BGM (for MovieLayer) modes
+            let mut properties = match (previous_props, info.keep_old_props) {
+                (Some(previous_props), true) => previous_props,
+                _ => {
+                    let mut properties = LayerProperties::new();
+                    properties.set_layer_id(info.layer_id_for_properties);
+                    properties
+                }
+            };
 
-            adv_state.allow_running_animations = true;
+            properties.set_layerload_counter1(info.layer_load_counter1);
+            *layer.properties_mut() = properties;
 
-            // NB: the original game waits for the wipe to end, but we don't need to do this
-
-            return Some(self.token.take().unwrap().finish());
+            plane_layer_group.add_layer(info.operation_target.layerbank, layer);
         }
 
-        None
+        // TODO: call function to unlock layer-related items in CG (for PictureLayer) and Movie & BGM (for MovieLayer) modes
+
+        adv_state.allow_running_animations = true;
+
+        // NB: the original game waits for the wipe to end, but we don't need to do this
+
+        Some(self.token.take().unwrap().finish())
     }
 }
 

@@ -126,27 +126,24 @@ impl UserLayer {
                     transparency,
                     linked_bgm_id,
                 } = scenario.info_tables().movie_info(movie_id);
-                let pic_name = linked_picture_id.map(|linked_picture_id| {
-                    &scenario.info_tables().picture_info(linked_picture_id).name
-                });
+                let pic_path = scenario
+                    .info_tables()
+                    .picture_info(linked_picture_id)
+                    .path();
                 debug!(
-                    "Load movie: {movie_id} -> {name} {linked_picture_id:?} {volume_source:?} {transparency:?} {linked_bgm_id:?}"
+                    "Load movie: {movie_id} -> {name} {linked_picture_id} {volume_source:?} {transparency:?} {linked_bgm_id:?}"
                 );
                 let movie = asset_server
                     .load::<Movie, _>(movie_info.path())
                     .await
                     .expect("Failed to load movie");
 
-                let still_picture = if let Some(pic_name) = pic_name {
-                    Some(
-                        asset_server
-                            .load::<Picture, _>(pic_name)
-                            .await
-                            .expect("Failed to load still picture"),
-                    )
-                } else {
-                    None
-                };
+                let still_picture = Some(
+                    asset_server
+                        .load::<Picture, _>(pic_path)
+                        .await
+                        .expect("Failed to load still picture"),
+                );
 
                 let args = MovieArgs {
                     volume_source,

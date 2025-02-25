@@ -1,24 +1,24 @@
-use glam::vec4;
 use shin_core::vm::command::types::LayerProperty;
 use shin_render::{
     ColorBlendType, DepthStencilState, DrawPrimitive, LayerShaderOutputKind, PassKind,
     RenderProgramWithArguments, RenderRequestBuilder, StencilFunction, StencilOperation,
     StencilPipelineState, StencilState,
+    quad_vertices::build_quad_vertices,
     render_pass::RenderPass,
     render_texture::RenderTexture,
     shaders::types::{
         RenderClone,
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureSource, TextureTarget},
-        vertices::LayerVertex,
+        vertices::PosTexVertex,
     },
-    shin_orthographic_projection_matrix,
 };
 
 use crate::{
     layer::{
-        DrawableLayer, Layer, LayerProperties, PreRenderContext,
+        DrawableLayer, Layer, LayerProperties, PreRenderContext, VIRTUAL_CANVAS_SIZE_VEC,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
+        top_left_projection_matrix,
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -58,10 +58,9 @@ pub trait NewDrawableLayerFastForward {
     fn fast_forward(&mut self);
 }
 
-#[expect(unused)] // this will be used once mask rendering in LayerGroup will be implemented
 pub struct PrerenderedDrawable<'a> {
-    render_texture: TextureSource<'a>,
-    target_pass: PassKind,
+    pub render_texture: TextureSource<'a>,
+    pub target_pass: PassKind,
 }
 
 #[derive(Debug, RenderClone)]
@@ -223,22 +222,12 @@ impl NewDrawableLayerState {
         let clip_params = props.get_clip_params();
         assert_eq!(clip_params.mode, DrawableClipMode::None);
 
-        let transform = shin_orthographic_projection_matrix(0.0, 1920.0, 1080.0, 0.0, -1.0, 1.0);
+        let transform = top_left_projection_matrix();
 
-        let vertices = &[
-            LayerVertex {
-                coords: vec4(0.0, 0.0, 0.0, 0.0),
-            },
-            LayerVertex {
-                coords: vec4(1920.0, 0.0, 1.0, 0.0),
-            },
-            LayerVertex {
-                coords: vec4(0.0, 1080.0, 0.0, 1.0),
-            },
-            LayerVertex {
-                coords: vec4(1920.0, 1080.0, 1.0, 1.0),
-            },
-        ];
+        let vertices = &build_quad_vertices(|t| PosTexVertex {
+            position: t * VIRTUAL_CANVAS_SIZE_VEC,
+            texture_position: t,
+        });
 
         pass.run(
             RenderRequestBuilder::new()
@@ -345,6 +334,7 @@ impl<T: NewDrawableLayer + AdvUpdatable + NewDrawableLayerFastForward> Layer
     for NewDrawableLayerWrapper<T>
 {
     fn fast_forward(&mut self) {
+        self.props.fast_forward();
         self.inner_layer.fast_forward();
     }
 

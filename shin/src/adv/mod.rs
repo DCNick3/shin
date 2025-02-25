@@ -89,14 +89,8 @@ pub struct Adv {
 }
 
 impl Adv {
-    pub fn new(
-        audio_manager: Arc<AudioManager>,
-        assets: AdvAssets,
-        init_val: i32,
-        random_seed: u32,
-    ) -> Self {
+    pub fn new(audio_manager: Arc<AudioManager>, assets: AdvAssets, scripter: Scripter) -> Self {
         let scenario = assets.scenario.clone();
-        let scripter = Scripter::new(&scenario, init_val, random_seed);
         let vm_state = VmState::new();
         let adv_state = AdvState::new(audio_manager, assets);
 
@@ -138,7 +132,7 @@ impl Adv {
     ) {
         // self.action_state.update(context.raw_input_state);
 
-        let fast_forward_button_held = false;
+        let fast_forward_button_held = input_state[AppAction::HoldSkip].is_held;
         // self
         //     .action_state
         //     .is_pressed(AdvMessageAction::HoldFastForward);

@@ -183,19 +183,26 @@ impl VertexType for WindowVertex {
 
 #[derive(Copy, Clone, Debug, NoUninit)]
 #[repr(C, packed)]
-pub struct LayerVertex {
-    /// Combined position (xy) and texture coordinate (zw)
-    pub coords: Vec4,
+pub struct PosTexVertex {
+    pub position: Vec2,
+    pub texture_position: Vec2,
 }
 
-impl VertexType for LayerVertex {
-    const NAME: &'static str = "LayerVertex";
-    const ATTRIBUTE_NAMES: &'static [&'static str] = &["coords"];
-    const ATTRIBUTES: &'static [wgpu::VertexAttribute] = &[wgpu::VertexAttribute {
-        format: <Vec4 as VertexAttribute>::FORMAT,
-        offset: std::mem::offset_of!(LayerVertex, coords) as wgpu::BufferAddress,
-        shader_location: 0,
-    }];
+impl VertexType for PosTexVertex {
+    const NAME: &'static str = "PosTexVertex";
+    const ATTRIBUTE_NAMES: &'static [&'static str] = &["position", "texture_position"];
+    const ATTRIBUTES: &'static [wgpu::VertexAttribute] = &[
+        wgpu::VertexAttribute {
+            format: <Vec2 as VertexAttribute>::FORMAT,
+            offset: std::mem::offset_of!(PosTexVertex, position) as wgpu::BufferAddress,
+            shader_location: 0,
+        },
+        wgpu::VertexAttribute {
+            format: <Vec2 as VertexAttribute>::FORMAT,
+            offset: std::mem::offset_of!(PosTexVertex, texture_position) as wgpu::BufferAddress,
+            shader_location: 1,
+        },
+    ];
 }
 
 #[derive(Copy, Clone, Debug, NoUninit)]
@@ -227,21 +234,4 @@ impl VertexType for MaskVertex {
             shader_location: 2,
         },
     ];
-}
-
-#[derive(Copy, Clone, Debug, NoUninit)]
-#[repr(C, packed)]
-pub struct MovieVertex {
-    /// Combined position (xy) and texture coordinate (zw)
-    pub coords: Vec4,
-}
-
-impl VertexType for MovieVertex {
-    const NAME: &'static str = "MovieVertex";
-    const ATTRIBUTE_NAMES: &'static [&'static str] = &["coords"];
-    const ATTRIBUTES: &'static [wgpu::VertexAttribute] = &[wgpu::VertexAttribute {
-        format: <Vec4 as VertexAttribute>::FORMAT,
-        offset: std::mem::offset_of!(MovieVertex, coords) as wgpu::BufferAddress,
-        shader_location: 0,
-    }];
 }

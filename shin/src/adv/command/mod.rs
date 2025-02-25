@@ -3,19 +3,19 @@
 mod prelude {
     pub use std::sync::Arc;
 
+    pub use CommandStartResult::Yield;
     pub use shin_core::{
         format::scenario::Scenario,
         time::Ticks,
         vm::{
             command,
             command::{
-                types::{VLayerId, VLayerIdRepr},
                 CommandResult,
+                types::{VLayerId, VLayerIdRepr},
             },
         },
     };
     pub use tracing::warn;
-    pub use CommandStartResult::Yield;
 
     pub use crate::{
         adv::{AdvState, CommandStartResult, StartableCommand, UpdatableCommand, VmState},
@@ -38,6 +38,7 @@ mod layerload;
 mod layerselect;
 mod layerunload;
 mod layerwait;
+mod maskload;
 mod moviewait;
 mod msgclose;
 mod msginit;
@@ -75,8 +76,8 @@ use shin_core::{
 };
 
 use self::{
-    layerload::LAYERLOAD, layerwait::LAYERWAIT, moviewait::MOVIEWAIT, msgset::MSGSET,
-    msgwait::MSGWAIT, sewait::SEWAIT, wait::WAIT, wipe::WIPE,
+    layerload::LAYERLOAD, layerwait::LAYERWAIT, maskload::MASKLOAD, moviewait::MOVIEWAIT,
+    msgset::MSGSET, msgwait::MSGWAIT, sewait::SEWAIT, wait::WAIT, wipe::WIPE,
 };
 use crate::{
     adv::{AdvState, VmState},
@@ -119,6 +120,8 @@ pub enum ExecutingCommand {
     MOVIEWAIT,
     #[derivative(Debug = "transparent")]
     WIPE,
+    #[derivative(Debug = "transparent")]
+    MASKLOAD,
 }
 
 pub fn apply_command_state(command: RuntimeCommand, state: &mut VmState) {
@@ -263,7 +266,7 @@ pub fn apply_command_state_and_start(
         PAGEBACK,
         PLANESELECT,
         PLANECLEAR,
-        // MASKLOAD,
+        MASKLOAD,
         // MASKUNLOAD,
         CHARS,
         TIPSGET,

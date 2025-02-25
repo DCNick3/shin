@@ -1,4 +1,4 @@
-#import types::{MovieVertex, MovieUniformParams}
+#import types::{PosTexVertex, MovieUniformParams}
 
 @group(0) @binding(0)
 var<uniform> params: MovieUniformParams;
@@ -20,11 +20,11 @@ struct VertexOutput {
 }
 
 @vertex
-fn vertex_main(input: MovieVertex) -> VertexOutput {
+fn vertex_main(input: PosTexVertex) -> VertexOutput {
     var output: VertexOutput;
 
-    output.clip_position = params.transform * vec4<f32>(input.coords.xy, 0.0, 1.0);
-    output.texture_position = input.coords.zw;
+    output.clip_position = params.transform * vec4<f32>(input.position, 0.0, 1.0);
+    output.texture_position = input.texture_position;
 
     return output;
 }

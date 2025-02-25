@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
-use glam::vec3;
+use bitflags::bitflags;
+use glam::{Mat4, vec3};
 use shin_core::{
     format::mask::{MaskRect, RegionData},
     primitives::color::UnormColor,
 };
 use shin_render::{
+    DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
     gpu_texture::GpuTexture,
+    render_pass::RenderPass,
     shaders::types::{
         buffer::{OwnedIndexBuffer, OwnedVertexBuffer, VertexSource},
         vertices::PosColVertex,
@@ -15,6 +18,16 @@ use shin_render::{
 
 use crate::asset::system::{Asset, AssetDataAccessor, AssetLoadContext};
 
+bitflags! {
+    #[derive(Debug, Copy, Clone)]
+    pub struct MaskRenderFlags: u32 {
+        const BLACK = 1;
+        const WHITE = 2;
+        const TRANSPARENT = 4;
+    }
+}
+
+#[derive(Clone)]
 struct MaskTextureVertexOffsets {
     pub black_offset: usize,
     pub black_count: usize,
@@ -24,6 +37,7 @@ struct MaskTextureVertexOffsets {
     pub transparent_count: usize,
 }
 
+#[derive(Debug)]
 enum MaskVertexKind {
     Black,
     White,
@@ -47,8 +61,8 @@ impl MaskTextureVertexOffsets {
     ) -> VertexSource<'a, PosColVertex> {
         let (offset, size) = self.get_offset_and_count(kind);
 
-        let vertices =
-            vertex.as_sliced_buffer_ref(offset * VERTICES_PER_RECT, size * VERTICES_PER_RECT);
+        // Note to self: do NOT slice the vertex buffer
+        let vertices = vertex.as_buffer_ref();
         let indices =
             index.as_sliced_buffer_ref(offset * INDICES_PER_RECT, size * INDICES_PER_RECT);
 
@@ -66,6 +80,39 @@ pub struct MaskTexture {
     pub vertex_buffer: OwnedVertexBuffer<PosColVertex>,
     pub index_buffer: OwnedIndexBuffer,
     pub texture: GpuTexture,
+}
+
+impl MaskTexture {
+    pub fn render(
+        &self,
+        pass: &mut RenderPass,
+        builder: RenderRequestBuilder,
+        transform: Mat4,
+        flags: MaskRenderFlags,
+    ) {
+        let mut render_impl = |required_flags, vertex_kind| {
+            if flags.contains(required_flags) {
+                pass.push_debug(&format!("{}/{:?}", self.label, vertex_kind));
+                let vertices = self.offsets.slice_vertex_and_index(
+                    &self.vertex_buffer,
+                    &self.index_buffer,
+                    vertex_kind,
+                );
+                pass.run(builder.build(
+                    RenderProgramWithArguments::Fill {
+                        vertices,
+                        transform,
+                    },
+                    DrawPrimitive::Triangles,
+                ));
+                pass.pop_debug();
+            }
+        };
+
+        render_impl(MaskRenderFlags::BLACK, MaskVertexKind::Black);
+        render_impl(MaskRenderFlags::WHITE, MaskVertexKind::White);
+        render_impl(MaskRenderFlags::TRANSPARENT, MaskVertexKind::Transparent);
+    }
 }
 
 const VERTICES_PER_RECT: usize = 4;

@@ -1,13 +1,16 @@
 use bevy_utils::hashbrown::hash_map::Entry;
 use enum_map::{Enum, EnumMap};
 use shin_core::{
-    format::scenario::instruction_elements::UntypedNumberArray,
+    format::scenario::{
+        info::{MaskId, MaskIdOpt},
+        instruction_elements::UntypedNumberArray,
+    },
     vm::command::types::{
-        LayerId, LayerIdOpt, LayerType, LayerbankId, LayerbankIdOpt, MaskFlags, PlaneId,
-        PlaneIdOpt, VLayerId, VLayerIdRepr, LAYERBANKS_COUNT, LAYERS_COUNT, PLANES_COUNT,
+        LAYERBANKS_COUNT, LAYERS_COUNT, LayerId, LayerIdOpt, LayerType, LayerbankId,
+        LayerbankIdOpt, MaskFlags, PLANES_COUNT, PlaneId, PlaneIdOpt, VLayerId, VLayerIdRepr,
     },
 };
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use tracing::{trace, warn};
 
 use crate::layer::LayerPropertiesState;
@@ -345,7 +348,7 @@ impl LayerState {
 #[derive(Debug, Clone)]
 pub struct PlaneLayerGroupState {
     pub properties: LayerPropertiesState,
-    pub mask_id: i32,
+    pub mask_id: MaskIdOpt,
     pub mask_flags: MaskFlags,
 }
 
@@ -353,7 +356,7 @@ impl PlaneLayerGroupState {
     pub fn new() -> Self {
         Self {
             properties: LayerPropertiesState::new(),
-            mask_id: -1,
+            mask_id: MaskIdOpt::none(),
             mask_flags: MaskFlags::empty(),
         }
     }

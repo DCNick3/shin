@@ -6,14 +6,14 @@ use shin_core::{
     vm::command::types::{MaskFlags, MaskParam},
 };
 use shin_render::{
+    ColorBlendType, DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
     render_pass::RenderPass,
     shaders::types::{buffer::VertexSource, texture::TextureSource, vertices::MaskVertex},
-    shin_orthographic_projection_matrix, ColorBlendType, DrawPrimitive, RenderProgramWithArguments,
-    RenderRequestBuilder,
 };
 
 use crate::{
     asset::mask::MaskTexture,
+    layer::{VIRTUAL_CANVAS_SIZE_VEC, top_left_projection_matrix},
     update::{AdvUpdatable, AdvUpdateContext},
     wiper::timed::{TimedWiper, TimedWiperWrapper},
 };
@@ -52,20 +52,18 @@ impl TimedWiper for MaskWiperImpl {
         let mut min = 1.0 - progress * (inv_param2 + 1.0);
         let mut max = min + inv_param2;
 
-        if self.flags.contains(MaskFlags::FLIP_MIN_MAX) {
+        if self.flags.contains(MaskFlags::INVERT) {
             std::mem::swap(&mut min, &mut max);
         }
 
-        let screen_size = vec2(1920.0, 1080.0);
         let mask_size = self.mask.texture.size_vec();
 
-        let transform =
-            shin_orthographic_projection_matrix(0.0, screen_size.x, screen_size.y, 0.0, -1.0, 1.0);
+        let transform = top_left_projection_matrix();
 
         let [mut x1, mut y1] = [0.0, 0.0];
 
         let [mut x2, mut y2] = if self.flags.contains(MaskFlags::SCALE) {
-            (screen_size / mask_size).to_array()
+            (VIRTUAL_CANVAS_SIZE_VEC / mask_size).to_array()
         } else {
             [1.0, 1.0]
         };
@@ -84,17 +82,17 @@ impl TimedWiper for MaskWiperImpl {
                 mask_position: vec2(x1, y1),
             },
             MaskVertex {
-                position: vec2(screen_size.x, 0.0),
+                position: vec2(VIRTUAL_CANVAS_SIZE_VEC.x, 0.0),
                 texture_position: vec2(1.0, 0.0),
                 mask_position: vec2(x2, y1),
             },
             MaskVertex {
-                position: vec2(0.0, screen_size.y),
+                position: vec2(0.0, VIRTUAL_CANVAS_SIZE_VEC.y),
                 texture_position: vec2(0.0, 1.0),
                 mask_position: vec2(x1, y2),
             },
             MaskVertex {
-                position: vec2(screen_size.x, screen_size.y),
+                position: vec2(VIRTUAL_CANVAS_SIZE_VEC.x, VIRTUAL_CANVAS_SIZE_VEC.y),
                 texture_position: vec2(1.0, 1.0),
                 mask_position: vec2(x2, y2),
             },

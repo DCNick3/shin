@@ -1,27 +1,36 @@
-use glam::vec3;
+use std::sync::Arc;
+
+use glam::{Mat4, Vec3, Vec3Swizzles as _, vec2, vec3};
 use shin_core::{
     primitives::color::{FloatColor4, UnormColor},
     time::Ticks,
-    vm::command::types::{LayerProperty, LayerbankId},
+    vm::command::types::{LayerProperty, LayerbankId, MaskFlags},
 };
 use shin_derive::RenderClone;
 use shin_render::{
-    DepthStencilState, DrawPrimitive, PassKind, RenderProgramWithArguments, RenderRequestBuilder,
-    StencilFunction, StencilMask, StencilOperation, StencilPipelineState, StencilState,
+    ColorBlendType, DepthStencilState, DrawPrimitive, LayerShaderOutputKind, PassKind,
+    RenderProgramWithArguments, RenderRequestBuilder, StencilFunction, StencilMask,
+    StencilOperation, StencilPipelineState, StencilState,
+    quad_vertices::build_quad_vertices,
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
         texture::{DepthStencilTarget, TextureTarget},
-        vertices::PosVertex,
+        vertices::{MaskVertex, PosTexVertex, PosVertex},
     },
 };
 
 use crate::{
+    asset::mask::{MaskRenderFlags, MaskTexture},
     layer::{
         DrawableLayer, Layer, NewDrawableLayer, PreRenderContext, UserLayer,
-        new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
+        VIRTUAL_CANVAS_SIZE_VEC,
+        new_drawable_layer::{
+            NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState, PrerenderedDrawable,
+        },
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
+        top_left_projection_matrix,
     },
     update::{AdvUpdatable, AdvUpdateContext},
 };
@@ -52,7 +61,8 @@ pub struct LayerGroup<T = UserLayer> {
 
     #[render_clone(needs_render)]
     new_drawable_state: NewDrawableLayerState,
-    mask_texture: Option<()>, // Option<GpuMaskTexture>,
+    mask_texture: Option<Arc<MaskTexture>>,
+    mask_flags: MaskFlags,
     props: LayerProperties,
     label: String,
 }
@@ -65,6 +75,7 @@ impl<T> LayerGroup<T> {
             layers_to_render: vec![],
             new_drawable_state: NewDrawableLayerState::new(),
             mask_texture: None,
+            mask_flags: MaskFlags::empty(),
             props: LayerProperties::new(),
             label: label.unwrap_or_else(|| "unnamed".to_string()),
         }
@@ -129,9 +140,9 @@ impl<T> LayerGroup<T> {
         false
     }
 
-    #[expect(unused)] // for future stuff
-    pub fn set_mask_texture(&mut self, mask_texture: Option<()>) {
-        self.mask_texture = mask_texture;
+    pub fn set_mask_texture(&mut self, mask_texture: Arc<MaskTexture>, flags: MaskFlags) {
+        self.mask_texture = Some(mask_texture);
+        self.mask_flags = flags;
     }
 
     pub fn clear_mask_texture(&mut self) {
@@ -142,23 +153,249 @@ impl<T> LayerGroup<T> {
     pub fn needs_rendering(&self) -> bool {
         self.mask_texture.is_some() || self.layers.len() > 0
     }
+
+    pub fn is_rendered_opaquely(&self) -> bool {
+        self.new_drawable_state.is_rendered_opaquely(
+            &self.props,
+            &LayerGroupNewDrawableNeedsSeparatePassDelegate {
+                has_mask_texture: self.mask_texture.is_some(),
+            },
+        )
+    }
 }
 
-struct LayerGroupNewDrawableDelegate<'a, T> {
-    layers: &'a [LayerItem<T>],
-    layers_to_render: Vec<LayerRenderItem>,
-    mask_texture: &'a Option<()>,
+fn render_mask(
+    pass: &mut RenderPass,
+    builder: RenderRequestBuilder,
+    mask: &MaskTexture,
+    mask_flags: MaskFlags,
+    transform: TransformParams,
+    mask_render_flags: MaskRenderFlags,
+) {
+    pass.push_debug(&format!(
+        "LayerGroup/mask[{:?}, {:?}]",
+        mask_flags, mask_render_flags
+    ));
+    let mut scale = vec2(1.0, 1.0);
+
+    if mask_flags.contains(MaskFlags::FLIP_X) {
+        scale.x *= -1.0;
+    }
+    if mask_flags.contains(MaskFlags::FLIP_Y) {
+        scale.y *= -1.0;
+    }
+
+    let mask_size = mask.texture.size_vec();
+
+    if mask_flags.contains(MaskFlags::SCALE) {
+        scale *= VIRTUAL_CANVAS_SIZE_VEC / mask_size;
+    }
+
+    let transform = transform.compute_final_transform()
+        * Mat4::from_scale(scale.extend(1.0))
+        * Mat4::from_translation(-mask_size.extend(0.0) * 0.5);
+
+    mask.render(
+        pass,
+        builder.color_blend_type(ColorBlendType::NoColor),
+        transform,
+        mask_render_flags,
+    );
+    pass.pop_debug();
 }
 
-impl<T> NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableDelegate<'_, T> {
+fn prepare_mask_for_offscreen(
+    pass: &mut RenderPass,
+    mask: &MaskTexture,
+    mask_flags: MaskFlags,
+    transform: TransformParams,
+) {
+    pass.push_debug("LayerGroup/prepare_mask1");
+
+    pass.clear(Some(UnormColor::BLACK), Some(0x3f), None);
+
+    let mask_render_flags = if mask_flags.contains(MaskFlags::INVERT) {
+        MaskRenderFlags::BLACK | MaskRenderFlags::TRANSPARENT
+    } else {
+        MaskRenderFlags::WHITE | MaskRenderFlags::TRANSPARENT
+    };
+
+    let builder = RenderRequestBuilder::new().depth_stencil(DepthStencilState {
+        stencil: StencilState {
+            pipeline: StencilPipelineState {
+                function: StencilFunction::Always,
+                stencil_fail_operation: StencilOperation::Keep,
+                depth_fail_operation: StencilOperation::Keep,
+                pass_operation: StencilOperation::Replace,
+                stencil_read_mask: StencilMask::All,
+                stencil_write_mask: StencilMask::All,
+            },
+            stencil_reference: 0,
+        },
+        ..DepthStencilState::default()
+    });
+
+    render_mask(
+        pass,
+        builder,
+        mask,
+        mask_flags,
+        transform,
+        mask_render_flags,
+    );
+    pass.pop_debug();
+}
+
+fn prepare_mask_for_onscreen(
+    pass: &mut RenderPass,
+    mask: &MaskTexture,
+    mask_flags: MaskFlags,
+    transform: TransformParams,
+    render_opaque: bool,
+    render_transparent: bool,
+) {
+    pass.push_debug("LayerGroup/prepare_mask_for_onscreen");
+    let mut render_flags = MaskRenderFlags::empty();
+
+    if render_opaque {
+        if mask_flags.contains(MaskFlags::INVERT) {
+            render_flags |= MaskRenderFlags::BLACK;
+        } else {
+            render_flags |= MaskRenderFlags::WHITE;
+        };
+    }
+    if render_transparent {
+        render_flags |= MaskRenderFlags::TRANSPARENT;
+    }
+
+    let builder = RenderRequestBuilder::new().depth_stencil(DepthStencilState {
+        stencil: StencilState {
+            pipeline: StencilPipelineState {
+                function: StencilFunction::Always,
+                stencil_fail_operation: StencilOperation::Keep,
+                depth_fail_operation: StencilOperation::Keep,
+                pass_operation: StencilOperation::Replace,
+                stencil_read_mask: StencilMask::All,
+                stencil_write_mask: StencilMask::SignOnly,
+            },
+            stencil_reference: 0x80,
+        },
+        ..DepthStencilState::default()
+    });
+
+    render_mask(pass, builder, mask, mask_flags, transform, render_flags);
+
+    pass.run(
+        RenderRequestBuilder::new()
+            .color_blend_type(ColorBlendType::NoColor)
+            .depth_stencil(DepthStencilState {
+                stencil: StencilState {
+                    pipeline: StencilPipelineState {
+                        function: StencilFunction::Always,
+                        stencil_fail_operation: StencilOperation::Keep,
+                        depth_fail_operation: StencilOperation::Keep,
+                        pass_operation: StencilOperation::Invert,
+                        stencil_read_mask: StencilMask::SignOnly,
+                        stencil_write_mask: StencilMask::SignOnly,
+                    },
+                    stencil_reference: 0x80,
+                },
+                ..DepthStencilState::default()
+            })
+            .build(
+                RenderProgramWithArguments::Clear {
+                    vertices: VertexSource::VertexData {
+                        vertices: &[
+                            PosVertex {
+                                position: vec3(-1.0, 1.0, 0.0),
+                            },
+                            PosVertex {
+                                position: vec3(3.0, 1.0, 0.0),
+                            },
+                            PosVertex {
+                                position: vec3(-1.0, -3.0, 0.0),
+                            },
+                        ],
+                    },
+                    color: FloatColor4::BLACK,
+                },
+                DrawPrimitive::Triangles,
+            ),
+    );
+    pass.pop_debug();
+}
+
+fn finish_mask_for_onscreen(pass: &mut RenderPass) {
+    pass.push_debug("LayerGroup/finish_mask_for_onscreen");
+    pass.run(
+        RenderRequestBuilder::new()
+            .color_blend_type(ColorBlendType::NoColor)
+            .depth_stencil(DepthStencilState {
+                stencil: StencilState {
+                    pipeline: StencilPipelineState {
+                        function: StencilFunction::Always,
+                        stencil_fail_operation: StencilOperation::Keep,
+                        depth_fail_operation: StencilOperation::Keep,
+                        pass_operation: StencilOperation::Zero,
+                        stencil_read_mask: StencilMask::SignOnly,
+                        stencil_write_mask: StencilMask::SignOnly,
+                    },
+                    stencil_reference: 0x80,
+                },
+                ..DepthStencilState::default()
+            })
+            .build(
+                RenderProgramWithArguments::Clear {
+                    vertices: VertexSource::VertexData {
+                        vertices: &[
+                            PosVertex {
+                                position: vec3(-1.0, 1.0, 0.0),
+                            },
+                            PosVertex {
+                                position: vec3(3.0, 1.0, 0.0),
+                            },
+                            PosVertex {
+                                position: vec3(-1.0, -3.0, 0.0),
+                            },
+                        ],
+                    },
+                    color: FloatColor4::BLACK,
+                },
+                DrawPrimitive::Triangles,
+            ),
+    );
+    pass.pop_debug();
+}
+
+struct LayerGroupNewDrawableNeedsSeparatePassDelegate {
+    has_mask_texture: bool,
+}
+
+impl NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableNeedsSeparatePassDelegate {
     fn needs_separate_pass(&self, props: &LayerProperties) -> bool {
-        if self.mask_texture.is_some() {
+        if self.has_mask_texture {
             return true;
         }
 
         props.get_clip_mode() != DrawableClipMode::None
             || props.is_fragment_shader_nontrivial()
             || props.is_blending_nontrivial()
+    }
+}
+
+struct LayerGroupNewDrawableDelegate<'a, T> {
+    layers: &'a [LayerItem<T>],
+    layers_to_render: Vec<LayerRenderItem>,
+    mask_texture: &'a Option<Arc<MaskTexture>>,
+    mask_flags: MaskFlags,
+}
+
+impl<T> NewDrawableLayerNeedsSeparatePass for LayerGroupNewDrawableDelegate<'_, T> {
+    fn needs_separate_pass(&self, props: &LayerProperties) -> bool {
+        LayerGroupNewDrawableNeedsSeparatePassDelegate {
+            has_mask_texture: self.mask_texture.is_some(),
+        }
+        .needs_separate_pass(props)
     }
 }
 
@@ -185,13 +422,15 @@ where
             None,
         );
 
+        pass.push_debug("LayerGroup/render_drawable_indirect");
+
         if !props.is_visible() {
             pass.clear(Some(UnormColor::BLACK), None, None);
         } else {
             let self_transform = props.get_composed_transform_params(transform);
 
-            if let Some(_mask) = self.mask_texture {
-                todo!()
+            if let Some(mask) = self.mask_texture {
+                prepare_mask_for_offscreen(&mut pass, mask, self.mask_flags, self_transform);
             } else {
                 pass.clear(Some(UnormColor::BLACK), Some(0), None);
             }
@@ -215,6 +454,8 @@ where
         }
 
         self.layers_to_render.clear();
+
+        pass.pop_debug();
 
         // it's very sus that it does that, considering you can apply alpha and stuff...
         // but I guess that's just how planes are...
@@ -334,10 +575,13 @@ where
             layers: &self.layers,
             layers_to_render,
             mask_texture: &self.mask_texture,
+            mask_flags: self.mask_flags,
         };
 
+        // NOTE: we DON'T send self_transform to the pre-drawing
+        // this is because the `render_drawable_indirect` will apply the transform itself
         self.new_drawable_state
-            .pre_render(context, &self.props, &mut delegate, &self_transform);
+            .pre_render(context, &self.props, &mut delegate, transform);
 
         self.layers_to_render = delegate.layers_to_render;
     }
@@ -349,11 +593,18 @@ where
         stencil_ref: u8,
         pass_kind: PassKind,
     ) {
-        if let Some(_tex) = self.new_drawable_state.get_prerendered_tex() {
-            if let Some(_mask) = &self.mask_texture {
-                // Self::render_with_mask
-                todo!();
-                // return;
+        if let Some(tex) = self.new_drawable_state.get_prerendered_tex() {
+            if let Some(mask) = &self.mask_texture {
+                self.finish_render_with_mask(
+                    pass,
+                    tex,
+                    mask,
+                    self.mask_flags,
+                    transform,
+                    stencil_ref,
+                    pass_kind,
+                );
+                return;
             } else {
                 self.new_drawable_state.try_finish_indirect_render(
                     &self.props,
@@ -455,6 +706,147 @@ where
                 }
             }
         }
+
+        pass.pop_debug();
+    }
+}
+
+impl<T> LayerGroup<T> {
+    fn finish_render_with_mask(
+        &self,
+        pass: &mut RenderPass,
+        prerendered: PrerenderedDrawable,
+        mask: &MaskTexture,
+        mask_flags: MaskFlags,
+        transform_params: &TransformParams,
+        stencil_ref: u8,
+        pass_kind: PassKind,
+    ) {
+        pass.push_debug("LayerGroup/finish_render_with_mask");
+
+        let props = &self.props;
+        if !props.is_visible() {
+            return;
+        }
+        let color_multiplier = props.get_color_multiplier().premultiply();
+        let blend_type = props.get_blend_type();
+        let fragment_shader = props.get_fragment_shader();
+        let fragment_shader_param = props.get_fragment_shader_param();
+
+        let can_split_passes =
+            prerendered.target_pass == PassKind::Opaque && !props.is_blending_nontrivial();
+
+        let (render_opaque, render_transparent) = match (can_split_passes, pass_kind) {
+            (true, PassKind::Opaque) => (true, false),
+            (true, PassKind::Transparent) => (false, true),
+            // if we use can't split passes, we have to render everything in transparent pass
+            (false, PassKind::Opaque) => {
+                return;
+            }
+            (false, PassKind::Transparent) => (true, true),
+        };
+
+        let transform_params = props.get_composed_transform_params(transform_params);
+
+        prepare_mask_for_onscreen(
+            pass,
+            mask,
+            mask_flags,
+            transform_params,
+            render_opaque,
+            render_transparent,
+        );
+
+        assert_eq!(props.get_clip_mode(), DrawableClipMode::None);
+
+        // all the layer transforms were already applied during the pre-rendering
+        // so we just take a simple blank slate transform
+        let transform = top_left_projection_matrix();
+
+        let fragment_shader = fragment_shader.simplify(fragment_shader_param);
+
+        let builder =
+            RenderRequestBuilder::new().depth_stencil_shorthand(stencil_ref, false, false);
+
+        match pass_kind {
+            PassKind::Opaque => {
+                pass.run(builder.color_blend_type(ColorBlendType::Opaque).build(
+                    RenderProgramWithArguments::Layer {
+                        output_kind: LayerShaderOutputKind::Layer,
+                        fragment_shader,
+                        vertices: VertexSource::VertexData {
+                            vertices: &build_quad_vertices(|t| PosTexVertex {
+                                position: t * VIRTUAL_CANVAS_SIZE_VEC,
+                                texture_position: t,
+                            }),
+                        },
+                        texture: prerendered.render_texture,
+                        transform,
+                        color_multiplier,
+                        fragment_shader_param,
+                    },
+                    DrawPrimitive::TrianglesStrip,
+                ));
+            }
+            PassKind::Transparent => {
+                let mut min = 0.0;
+                let mut max = 1.0;
+                if mask_flags.contains(MaskFlags::INVERT) {
+                    std::mem::swap(&mut min, &mut max);
+                }
+
+                let mask_virt_coord = if mask_flags.contains(MaskFlags::SCALE) {
+                    VIRTUAL_CANVAS_SIZE_VEC
+                } else {
+                    mask.texture.size_vec()
+                };
+
+                let mut flip_scale = Vec3::ONE;
+
+                if mask_flags.contains(MaskFlags::FLIP_X) {
+                    flip_scale.x *= -1.0;
+                }
+                if mask_flags.contains(MaskFlags::FLIP_Y) {
+                    flip_scale.y *= -1.0;
+                }
+
+                let mask_position_transform = Mat4::from_translation(vec3(0.5, 0.5, 0.0))
+                    * Mat4::from_scale(flip_scale)
+                    * Mat4::from_scale(1.0 / mask_virt_coord.extend(1.0))
+                    * transform_params.compute_total_translation().inverse();
+
+                pass.run(builder.layer_color_blend_premultiplied(blend_type).build(
+                    RenderProgramWithArguments::Mask {
+                        fragment_shader,
+                        vertices: VertexSource::VertexData {
+                            vertices: &build_quad_vertices(|t| {
+                                MaskVertex {
+                                    position: t * VIRTUAL_CANVAS_SIZE_VEC,
+                                    texture_position: t,
+                                    mask_position: mask_position_transform
+                                        .project_point3(
+                                            ((t * 2.0 - 1.0) * VIRTUAL_CANVAS_SIZE_VEC / 2.0)
+                                                .extend(0.0),
+                                        )
+                                        .xy(),
+                                }
+                            }),
+                        },
+                        texture: prerendered.render_texture,
+                        mask: mask.texture.as_source(),
+                        transform,
+                        color_multiplier,
+                        fragment_shader_param,
+                        minmax: vec2(min, max),
+                    },
+                    DrawPrimitive::TrianglesStrip,
+                ));
+            }
+        }
+
+        // NB: finish_clip
+
+        finish_mask_for_onscreen(pass);
 
         pass.pop_debug();
     }

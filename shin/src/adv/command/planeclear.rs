@@ -1,4 +1,7 @@
-use shin_core::vm::command::types::{LayerId, PlaneId, LAYERS_COUNT};
+use shin_core::{
+    format::scenario::info::MaskIdOpt,
+    vm::command::types::{LAYERS_COUNT, LayerId, PlaneId},
+};
 use shin_render::shaders::types::RenderCloneCtx;
 
 use super::prelude::*;
@@ -22,7 +25,7 @@ impl StartableCommand for command::runtime::PLANECLEAR {
                 .free_layerbank(plane, target.layer);
         }
 
-        layers.plane_layergroups[plane].mask_id = -1;
+        layers.plane_layergroups[plane].mask_id = MaskIdOpt::none();
 
         plane
     }

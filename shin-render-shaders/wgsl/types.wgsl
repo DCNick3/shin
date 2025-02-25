@@ -2,6 +2,11 @@ struct PosVertex {
     @location(0) position: vec3<f32>,
 }
 
+struct PosTexVertex {
+    @location(0) position: vec2<f32>,
+    @location(1) texture_position: vec2<f32>,
+}
+
 struct PosColVertex {
     @location(0) position: vec3<f32>,
     @location(1) color: vec4<f32>,
@@ -29,18 +34,10 @@ struct WindowVertex {
     @location(1) texture_position: vec4<f32>,
 }
 
-struct LayerVertex {
-    @location(0) coords: vec4<f32>,
-}
-
 struct MaskVertex {
     @location(0) position: vec2<f32>,
     @location(1) texture_position: vec2<f32>,
     @location(2) mask_position: vec2<f32>,
-}
-
-struct MovieVertex {
-    @location(0) coords: vec4<f32>,
 }
 
 struct ClearUniformParams {
@@ -72,6 +69,14 @@ struct LayerUniformParams {
     color: vec4<f32>,
     fragment_param: vec4<f32>,
     output_type: u32,
+    fragment_operation: u32,
+}
+
+struct MaskUniformParams {
+    transform: mat4x4<f32>,
+    color: vec4<f32>,
+    fragment_param: vec4<f32>,
+    minmax: vec4<f32>,
     fragment_operation: u32,
 }
 

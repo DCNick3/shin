@@ -193,3 +193,9 @@ impl FromNumber for LayerId {
         LayerId::new(number.try_into().unwrap())
     }
 }
+
+impl FromNumber for PlaneId {
+    fn from_number(number: i32) -> Self {
+        PlaneId::new(number.try_into().unwrap())
+    }
+}

@@ -3806,6 +3806,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "naga"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu.git?rev=9aafe4c236dde009956888da824d2a4b048d2bd6#9aafe4c236dde009956888da824d2a4b048d2bd6"
+dependencies = [
+ "arrayvec",
+ "bit-set 0.8.0",
+ "bitflags 2.8.0",
+ "cfg_aliases 0.2.1",
+ "codespan-reporting",
+ "hexf-parse",
+ "indexmap 2.7.1",
+ "log",
+ "rustc-hash 1.1.0",
+ "spirv",
+ "strum 0.26.3",
+ "termcolor",
+ "thiserror 2.0.11",
+ "unicode-xid 0.2.6",
+]
+
+[[package]]
 name = "naga_oil"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3815,7 +3836,7 @@ dependencies = [
  "codespan-reporting",
  "data-encoding",
  "indexmap 2.7.1",
- "naga 24.0.0",
+ "naga 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "regex",
  "regex-syntax 0.8.5",
@@ -5608,7 +5629,7 @@ dependencies = [
  "heck 0.5.0",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "naga 24.0.0",
+ "naga 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "naga_oil",
  "prettyplease",
  "proc-macro2 1.0.93",
@@ -6976,8 +6997,7 @@ dependencies = [
 [[package]]
 name = "wgpu"
 version = "24.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47f55718f85c2fa756edffa0e7f0e0a60aba463d1362b57e23123c58f035e4b6"
+source = "git+https://github.com/gfx-rs/wgpu.git?rev=9aafe4c236dde009956888da824d2a4b048d2bd6#9aafe4c236dde009956888da824d2a4b048d2bd6"
 dependencies = [
  "arrayvec",
  "bitflags 2.8.0",
@@ -6985,7 +7005,7 @@ dependencies = [
  "document-features",
  "js-sys",
  "log",
- "naga 24.0.0",
+ "naga 24.0.0 (git+https://github.com/gfx-rs/wgpu.git?rev=9aafe4c236dde009956888da824d2a4b048d2bd6)",
  "parking_lot 0.12.3",
  "profiling",
  "raw-window-handle",
@@ -7028,8 +7048,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "24.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82a39b8842dc9ffcbe34346e3ab6d496b32a47f6497e119d762c97fcaae3cb37"
+source = "git+https://github.com/gfx-rs/wgpu.git?rev=9aafe4c236dde009956888da824d2a4b048d2bd6#9aafe4c236dde009956888da824d2a4b048d2bd6"
 dependencies = [
  "arrayvec",
  "bit-vec 0.8.0",
@@ -7038,7 +7057,7 @@ dependencies = [
  "document-features",
  "indexmap 2.7.1",
  "log",
- "naga 24.0.0",
+ "naga 24.0.0 (git+https://github.com/gfx-rs/wgpu.git?rev=9aafe4c236dde009956888da824d2a4b048d2bd6)",
  "once_cell",
  "parking_lot 0.12.3",
  "profiling",
@@ -7098,8 +7117,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "24.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a782e5056b060b0b4010881d1decddd059e44f2ecd01e2db2971b48ad3627e5"
+source = "git+https://github.com/gfx-rs/wgpu.git?rev=9aafe4c236dde009956888da824d2a4b048d2bd6#9aafe4c236dde009956888da824d2a4b048d2bd6"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7121,7 +7139,7 @@ dependencies = [
  "libloading 0.8.6",
  "log",
  "metal 0.31.0",
- "naga 24.0.0",
+ "naga 24.0.0 (git+https://github.com/gfx-rs/wgpu.git?rev=9aafe4c236dde009956888da824d2a4b048d2bd6)",
  "ndk-sys 0.5.0+25.2.9519653",
  "objc",
  "once_cell",
@@ -7155,8 +7173,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "24.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50ac044c0e76c03a0378e7786ac505d010a873665e2d51383dcff8dd227dc69c"
+source = "git+https://github.com/gfx-rs/wgpu.git?rev=9aafe4c236dde009956888da824d2a4b048d2bd6#9aafe4c236dde009956888da824d2a4b048d2bd6"
 dependencies = [
  "bitflags 2.8.0",
  "js-sys",

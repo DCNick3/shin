@@ -5,23 +5,23 @@ use shin_render_shader_types::{
     texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget, TextureTargetKind},
     uniforms::{
         ClearUniformParams, FillUniformParams, FontBorderUniformParams, FontUniformParams,
-        LayerUniformParams, MovieUniformParams, SpriteUniformParams, WiperDefaultUniformParams,
-        WiperMaskUniformParams,
+        LayerUniformParams, MaskUniformParams, MovieUniformParams, SpriteUniformParams,
+        WiperDefaultUniformParams, WiperMaskUniformParams,
     },
     vertices::PosVertex,
 };
 use shin_render_shaders::{
     Clear, ClearBindings, Fill, FillBindings, Font, FontBindings, FontBorder, FontBorderBindings,
-    Layer, LayerBindings, Movie, MovieBindings, Shader, Sprite, SpriteBindings, WiperDefault,
-    WiperDefaultBindings, WiperMask, WiperMaskBindings,
+    Layer, LayerBindings, Mask, MaskBindings, Movie, MovieBindings, Shader, Sprite, SpriteBindings,
+    WiperDefault, WiperDefaultBindings, WiperMask, WiperMaskBindings,
 };
 
 use crate::{
-    dynamic_buffer::DynamicBuffer,
-    pipelines::{PipelineStorage, PipelineStorageKey},
     ColorBlendType, CullFace, DepthFunction, DepthState, DepthStencilState, DrawPrimitive,
     RenderProgramWithArguments, RenderRequest, RenderRequestBuilder, StencilFunction,
     StencilOperation, StencilPipelineState, StencilState,
+    dynamic_buffer::DynamicBuffer,
+    pipelines::{PipelineStorage, PipelineStorageKey},
 };
 
 pub struct RenderPass<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder> {
@@ -224,7 +224,30 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
                 },
                 vertices,
             ),
-
+            RenderProgramWithArguments::Mask {
+                fragment_shader,
+                vertices,
+                texture,
+                mask,
+                transform,
+                color_multiplier,
+                fragment_shader_param,
+                minmax,
+            } => self.run_impl::<Mask>(
+                key,
+                MaskBindings {
+                    params: &MaskUniformParams {
+                        transform,
+                        color: color_multiplier,
+                        fragment_param: fragment_shader_param,
+                        minmax: minmax.extend(0.0).extend(0.0),
+                        fragment_operation: fragment_shader as u32,
+                    },
+                    texture,
+                    mask,
+                },
+                vertices,
+            ),
             RenderProgramWithArguments::Movie {
                 vertices,
                 texture_luma,

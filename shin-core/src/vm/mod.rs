@@ -30,9 +30,9 @@ use tracing::{instrument, trace};
 
 use crate::{
     format::scenario::{
+        InstructionReader, Scenario,
         instruction_elements::CodeAddress,
         instructions::{BinaryOperation, Instruction, UnaryOperation, UnaryOperationType},
-        InstructionReader, Scenario,
     },
     vm::{
         breakpoint::{BreakpointHandle, CodeBreakpointSet},
@@ -261,6 +261,14 @@ impl Scripter {
     #[inline]
     pub fn position(&self) -> CodeAddress {
         self.position
+    }
+
+    /// Sets the position of the VM
+    ///
+    /// This might have unpredictable results because the script is not supposed to be ran from arbitrary positions
+    pub fn unsafe_set_position(&mut self, address: CodeAddress) {
+        self.position = address;
+        self.instruction_reader.set_position(address);
     }
 
     /// Run the VM until a command is encountered

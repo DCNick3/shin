@@ -66,6 +66,10 @@ replace_with = "0.1.7"
 rayon-core = "1.12.1"
 rayon = "1.10.0"
 
+[patch.crates-io]
+# git version for deadlock fix https://github.com/gfx-rs/wgpu/pull/7221
+wgpu = { git = "https://github.com/gfx-rs/wgpu.git", rev = "9aafe4c236dde009956888da824d2a4b048d2bd6" }
+
 [profile.release]
 debug = true
 #lto = 'thin'

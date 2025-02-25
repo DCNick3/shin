@@ -34,7 +34,7 @@ bitflags! {
     pub struct MaskFlags: i32 {
         const FLIP_X = 0x0001;
         const FLIP_Y = 0x0002;
-        const FLIP_MIN_MAX = 0x0004;
+        const INVERT = 0x0004;
         const SCALE = 0x0010;
     }
 }

@@ -18,13 +18,13 @@ use quote::{TokenStreamExt, quote};
 use shin_render_shader_types::{
     uniforms::{
         ClearUniformParams, FillUniformParams, FontBorderUniformParams, FontUniformParams,
-        LayerUniformParams, MovieUniformParams, SpriteUniformParams, UniformType,
-        WiperDefaultUniformParams, WiperMaskUniformParams,
+        LayerUniformParams, MaskUniformParams, MovieUniformParams, SpriteUniformParams,
+        UniformType, WiperDefaultUniformParams, WiperMaskUniformParams,
         metadata::{ArraySchema, PrimitiveType, StructSchema, TypeSchema},
     },
     vertices::{
-        BlendVertex, LayerVertex, MaskVertex, MovieVertex, PosColTexVertex, PosColVertex,
-        PosVertex, TextVertex, VertexType, WindowVertex,
+        BlendVertex, MaskVertex, PosColTexVertex, PosColVertex, PosTexVertex, PosVertex,
+        TextVertex, VertexType, WindowVertex,
     },
 };
 
@@ -275,14 +275,13 @@ fn generate_wgsl_types() -> WgslSchema {
     let mut ctx = GenCtx::new();
 
     ctx.gen_vertex::<PosVertex>();
+    ctx.gen_vertex::<PosTexVertex>();
     ctx.gen_vertex::<PosColVertex>();
     ctx.gen_vertex::<PosColTexVertex>();
     ctx.gen_vertex::<TextVertex>();
     ctx.gen_vertex::<BlendVertex>();
     ctx.gen_vertex::<WindowVertex>();
-    ctx.gen_vertex::<LayerVertex>();
     ctx.gen_vertex::<MaskVertex>();
-    ctx.gen_vertex::<MovieVertex>();
 
     ctx.gen_uniform::<ClearUniformParams>();
     ctx.gen_uniform::<FillUniformParams>();
@@ -290,6 +289,7 @@ fn generate_wgsl_types() -> WgslSchema {
     ctx.gen_uniform::<FontUniformParams>();
     ctx.gen_uniform::<FontBorderUniformParams>();
     ctx.gen_uniform::<LayerUniformParams>();
+    ctx.gen_uniform::<MaskUniformParams>();
     ctx.gen_uniform::<MovieUniformParams>();
     ctx.gen_uniform::<WiperDefaultUniformParams>();
     ctx.gen_uniform::<WiperMaskUniformParams>();

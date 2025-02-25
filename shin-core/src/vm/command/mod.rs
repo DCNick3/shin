@@ -11,14 +11,14 @@ use types::{
 use crate::{
     format::{
         scenario::{
-            info::{BgmId, SeId},
+            info::{BgmId, MaskIdOpt, SeId},
             instruction_elements::{BitmaskNumberArray, MessageId, NumberSpec, Register, U8Bool},
             types::U8SmallNumberList,
         },
         text::{StringArray, U16FixupString, U16String},
     },
     time::Ticks,
-    vm::command::types::{WipeFlags, WiperType},
+    vm::command::types::{PlaneId, WipeFlags, WiperType},
 };
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
@@ -323,12 +323,12 @@ pub enum Command {
     #[cmd(opcode = 0xcbu8)]
     PAGEBACK {},
     #[cmd(opcode = 0xccu8)]
-    PLANESELECT { plane_id: NumberSpec },
+    PLANESELECT { plane_id: NumberSpec<PlaneId> },
     #[cmd(opcode = 0xcdu8)]
     PLANECLEAR {},
     #[cmd(opcode = 0xceu8)]
     MASKLOAD {
-        mask_data_id: NumberSpec,
+        mask_id: NumberSpec<MaskIdOpt>,
         mask_flags: NumberSpec<MaskFlags>,
         smth_smth_transition: NumberSpec<bool>,
     },

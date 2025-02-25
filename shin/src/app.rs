@@ -5,16 +5,17 @@ use enum_map::{Enum, EnumMap};
 use shin_audio::AudioManager;
 use shin_core::{
     format::scenario::instruction_elements::CodeAddress, primitives::update::FrameId, time::Ticks,
+    vm::Scripter,
 };
-use shin_input::{inputs::MouseButton, Action, ActionState, RawInputState};
+use shin_input::{Action, ActionState, RawInputState, inputs::MouseButton};
 use shin_render::render_pass::RenderPass;
 use shin_window::{AppContext, RenderContext, ShinApp};
 use tracing::debug;
 use winit::keyboard::KeyCode;
 
 use crate::{
-    adv::{assets::AdvAssets, Adv},
-    asset::system::{cache::AssetCache, locate_assets, AssetLoadContext, AssetServer},
+    adv::{Adv, assets::AdvAssets},
+    asset::system::{AssetLoadContext, AssetServer, cache::AssetCache, locate_assets},
     cli::Cli,
     layer::PreRenderContext,
     update::UpdateContext,
@@ -27,6 +28,7 @@ pub enum AppAction {
     Enter,
     Cancel,
     AnyDown,
+    HoldSkip,
 }
 
 impl Action for AppAction {
@@ -43,6 +45,7 @@ impl Action for AppAction {
             }
             AppAction::Cancel => raw_input_state.keyboard.contains(&KeyCode::Backspace),
             AppAction::AnyDown => raw_input_state.keyboard.contains(&KeyCode::ArrowDown),
+            AppAction::HoldSkip => raw_input_state.keyboard.contains(&KeyCode::ControlLeft),
         })
     }
 }
@@ -67,19 +70,23 @@ impl ShinApp for App {
 
         debug!("Asset IO: {:#?}", asset_io);
 
-        let asset_server = Arc::new(AssetServer::new(
-            asset_io.into(),
-            AssetLoadContext {
-                wgpu_device: context.wgpu.device.clone(),
-                wgpu_queue: context.wgpu.queue.clone(),
-                bustup_cache: AssetCache::new(),
-            },
-        ));
+        let asset_server = Arc::new(AssetServer::new(asset_io.into(), AssetLoadContext {
+            wgpu_device: context.wgpu.device.clone(),
+            wgpu_queue: context.wgpu.queue.clone(),
+            bustup_cache: AssetCache::new(),
+        }));
 
         // TODO: do not block the game loop (?)
         let adv_assets = shin_tasks::block_on(AdvAssets::load(&asset_server)).unwrap();
 
-        let mut adv = Adv::new(audio_manager.clone(), adv_assets, 0, 42);
+        let mut scripter = Scripter::new(&adv_assets.scenario, 0, 42);
+
+        if let Some(addr) = cli.unsafe_entry_point {
+            debug!("Starting execution from 0x{:x}", addr);
+            scripter.unsafe_set_position(CodeAddress(addr));
+        }
+
+        let mut adv = Adv::new(audio_manager.clone(), adv_assets, scripter);
 
         if let Some(addr) = cli.fast_forward_to {
             debug!("Fast forwarding to 0x{:x}", addr);

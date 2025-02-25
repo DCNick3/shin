@@ -203,6 +203,51 @@ impl UniformType for LayerUniformParams {
         ],
     });
 }
+#[derive(ShaderType)]
+pub struct MaskUniformParams {
+    pub transform: Mat4,
+    pub color: FloatColor4,
+    pub fragment_param: Vec4,
+    pub minmax: Vec4,
+    // in reality this is an enum, but wgsl doesn't natively support them
+    // we can probably be a bit smarter and generate constants for those but that's a paaaaaain
+    pub fragment_operation: u32,
+}
+
+impl UniformType for MaskUniformParams {
+    const SCHEMA: TypeSchema = TypeSchema::Struct(StructSchema {
+        name: "MaskUniformParams",
+        size: MaskUniformParams::METADATA.min_size.get() as u32,
+        alignment: MaskUniformParams::METADATA.alignment.get() as u32,
+        fields: &[
+            FieldSchema {
+                name: "transform",
+                ty: &<Mat4 as UniformType>::SCHEMA,
+                offset: MaskUniformParams::METADATA.extra.offsets[0] as u32,
+            },
+            FieldSchema {
+                name: "color",
+                ty: &<FloatColor4 as UniformType>::SCHEMA,
+                offset: MaskUniformParams::METADATA.extra.offsets[1] as u32,
+            },
+            FieldSchema {
+                name: "fragment_param",
+                ty: &<Vec4 as UniformType>::SCHEMA,
+                offset: MaskUniformParams::METADATA.extra.offsets[2] as u32,
+            },
+            FieldSchema {
+                name: "minmax",
+                ty: &<Vec4 as UniformType>::SCHEMA,
+                offset: MaskUniformParams::METADATA.extra.offsets[3] as u32,
+            },
+            FieldSchema {
+                name: "fragment_operation",
+                ty: &<u32 as UniformType>::SCHEMA,
+                offset: MaskUniformParams::METADATA.extra.offsets[4] as u32,
+            },
+        ],
+    });
+}
 
 #[derive(ShaderType)]
 pub struct MovieUniformParams {

@@ -14,18 +14,19 @@ use shin_core::{
     vm::command::types::{Pan, Volume},
 };
 use shin_render::{
-    render_pass::RenderPass,
-    shaders::types::{buffer::VertexSource, vertices::MovieVertex},
     DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
+    quad_vertices::build_quad_vertices,
+    render_pass::RenderPass,
+    shaders::types::{buffer::VertexSource, vertices::PosTexVertex},
 };
 use tracing::{error, info, trace, warn};
 
 use crate::{
+    VideoFrameTexture,
     audio::AacFrameSource,
     h264_decoder::{FrameTiming, H264Decoder, H264DecoderTrait, Nv12Frame},
     mp4::Mp4,
     timer::Timer,
-    VideoFrameTexture,
 };
 
 struct VideoPlayerInner {
@@ -165,8 +166,7 @@ impl VideoPlayerHandle {
                     // then update the texture with the pending frame
                     trace!(
                         "Displaying frame #{}, time: {}",
-                        timing.frame_number,
-                        timing.start_time
+                        timing.frame_number, timing.start_time
                     );
                     this.video_texture.write_data_nv12(queue, frame);
                     // the loop will not enter again, so the pending frame will now be displayed
@@ -214,26 +214,16 @@ impl<'a> VideoPlayerFrameHandle<'a> {
     pub fn render(&self, pass: &mut RenderPass, builder: RenderRequestBuilder, transform: Mat4) {
         let tex = &self.guard.video_texture;
 
-        let [width, height] = tex.get_size().to_array();
+        let size = tex.get_size();
 
         // TODO: handle movie with alpha
         pass.run(builder.build(
             RenderProgramWithArguments::Movie {
                 vertices: VertexSource::VertexData {
-                    vertices: &[
-                        MovieVertex {
-                            coords: Vec4::new(0.0, 0.0, 0.0, 0.0),
-                        },
-                        MovieVertex {
-                            coords: Vec4::new(width, 0.0, 1.0, 0.0),
-                        },
-                        MovieVertex {
-                            coords: Vec4::new(0.0, height, 0.0, 1.0),
-                        },
-                        MovieVertex {
-                            coords: Vec4::new(width, height, 1.0, 1.0),
-                        },
-                    ],
+                    vertices: &build_quad_vertices(|t| PosTexVertex {
+                        position: t * size,
+                        texture_position: t,
+                    }),
                 },
                 texture_luma: tex.get_y_source(),
                 texture_chroma: tex.get_uv_source(),

@@ -5,10 +5,12 @@ use shin_render::{
     quad_vertices::QuadVertices,
     render_pass::RenderPass,
     shaders::types::{buffer::VertexSource, vertices::PosColTexVertex},
-    shin_orthographic_projection_matrix,
 };
 
-use crate::layer::message_layer::{MessageLayer, SlidingOutMessagebox};
+use crate::layer::{
+    message_layer::{MessageLayer, SlidingOutMessagebox},
+    normalized_projection_matrix,
+};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Messagebox {
@@ -157,7 +159,7 @@ impl MessageLayer {
                 // draw a full-screen translucent overlay
                 let builder = builder.color_blend_type(ColorBlendType::Layer1);
 
-                let transform = shin_orthographic_projection_matrix(0.0, 1.0, 1.0, 0.0, -1.0, 1.0);
+                let transform = normalized_projection_matrix();
                 QuadVertices::new()
                     .with_box(0.0, 0.0, 1.0, 1.0)
                     .with_color(

@@ -1001,6 +1001,14 @@ impl Layer for MessageLayer {
             line_mask |= 1 << char.line_index as u64;
         }
 
+        for (i, line) in (0..).zip(&mut self.lines) {
+            if line_mask & (1 << i as u64) == 0 {
+                continue;
+            }
+
+            line.is_visible = 1.0;
+        }
+
         self.voice_player.stop();
 
         self.height.fast_forward();

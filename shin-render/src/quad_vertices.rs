@@ -1,4 +1,4 @@
-use glam::{Mat4, vec2, vec3};
+use glam::{Mat4, Vec2, vec2, vec3};
 use shin_core::primitives::color::UnormColor;
 use shin_render_shader_types::{
     buffer::VertexSource, texture::TextureSource, vertices::PosColTexVertex,
@@ -116,4 +116,16 @@ impl QuadVertices {
             DrawPrimitive::TrianglesStrip,
         ))
     }
+}
+
+pub fn build_quad_vertices<T, F>(f: F) -> [T; 4]
+where
+    F: Fn(Vec2) -> T,
+{
+    [
+        f(vec2(0.0, 0.0)),
+        f(vec2(1.0, 0.0)),
+        f(vec2(0.0, 1.0)),
+        f(vec2(1.0, 1.0)),
+    ]
 }

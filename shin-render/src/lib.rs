@@ -17,14 +17,12 @@ pub mod resize;
 pub mod resizeable_texture;
 
 use enum_iterator::Sequence;
-use glam::{vec3, vec4, Mat4, Vec2, Vec3, Vec4};
+use glam::{Mat4, Vec2, Vec3, Vec4, vec3, vec4};
 use shin_core::primitives::color::FloatColor4;
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::TextureSource,
-    vertices::{
-        LayerVertex, MaskVertex, MovieVertex, PosColTexVertex, PosColVertex, PosVertex, TextVertex,
-    },
+    vertices::{MaskVertex, PosColTexVertex, PosColVertex, PosTexVertex, PosVertex, TextVertex},
 };
 pub use shin_render_shaders as shaders;
 use shin_render_shaders::ShaderName;
@@ -49,12 +47,12 @@ pub enum LayerShaderOutputKind {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]
 #[repr(u32)]
 pub enum LayerFragmentShader {
-    Default,
-    Mono,
-    Fill,
-    Fill2,
-    Negative,
-    Gamma,
+    Default = 0,
+    Mono = 1,
+    Fill = 2,
+    Fill2 = 3,
+    Negative = 4,
+    Gamma = 5,
 }
 
 impl LayerFragmentShader {
@@ -178,7 +176,7 @@ pub enum RenderProgramWithArguments<'a> {
     Layer {
         output_kind: LayerShaderOutputKind,
         fragment_shader: LayerFragmentShader,
-        vertices: VertexSource<'a, LayerVertex>,
+        vertices: VertexSource<'a, PosTexVertex>,
         texture: TextureSource<'a>,
         transform: Mat4,
         color_multiplier: FloatColor4,
@@ -186,20 +184,19 @@ pub enum RenderProgramWithArguments<'a> {
     },
     Mask {
         fragment_shader: LayerFragmentShader,
-        // TODO
-        // vertices: VertexSource<'a, NewMaskVertex>,
-        texture1: TextureSource<'a>,
-        texture2: TextureSource<'a>,
+        vertices: VertexSource<'a, MaskVertex>,
+        texture: TextureSource<'a>,
+        mask: TextureSource<'a>,
         transform: Mat4,
         color_multiplier: FloatColor4,
         fragment_shader_param: Vec4,
-        minmax: Vec4,
+        minmax: Vec2,
     },
 
     Dissolve {},
     TapEffect {},
     Movie {
-        vertices: VertexSource<'a, MovieVertex>,
+        vertices: VertexSource<'a, PosTexVertex>,
         texture_luma: TextureSource<'a>,
         texture_chroma: TextureSource<'a>,
         transform: Mat4,
@@ -209,7 +206,7 @@ pub enum RenderProgramWithArguments<'a> {
     MovieAlpha {},
 
     WiperDefault {
-        vertices: VertexSource<'a, LayerVertex>,
+        vertices: VertexSource<'a, PosTexVertex>,
         texture_source: TextureSource<'a>,
         texture_target: TextureSource<'a>,
         transform: Mat4,
@@ -312,6 +309,7 @@ pub enum StencilOperation {
 pub enum StencilMask {
     #[default]
     All = 0xff,
+    SignOnly = 0x80,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Sequence)]

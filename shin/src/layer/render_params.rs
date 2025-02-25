@@ -1,7 +1,9 @@
 use bitflags::bitflags;
-use glam::{vec3, Mat4, Vec2, Vec3, Vec4};
+use glam::{Mat4, Vec2, Vec3, Vec4, vec3};
 use shin_core::primitives::color::FloatColor4;
-use shin_render::{shin_orthographic_projection_matrix, LayerBlendType, LayerFragmentShader};
+use shin_render::{LayerBlendType, LayerFragmentShader};
+
+use crate::layer::centered_projection_matrix;
 
 bitflags! {
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
@@ -60,10 +62,12 @@ impl TransformParams {
                 * self.transform;
     }
 
+    pub fn compute_total_translation(&self) -> Mat4 {
+        Mat4::from_translation(self.wobble_translation.extend(0.0)) * self.transform
+    }
+
     pub fn compute_final_transform(&self) -> Mat4 {
-        shin_orthographic_projection_matrix(-960.0, 960.0, 540.0, -540.0, -1.0, 1.0)
-            * Mat4::from_translation(self.wobble_translation.extend(0.0))
-            * self.transform
+        centered_projection_matrix() * self.compute_total_translation()
     }
 }
 

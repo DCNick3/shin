@@ -71,6 +71,7 @@ impl From<StencilMask> for u32 {
     fn from(value: StencilMask) -> Self {
         match value {
             StencilMask::All => 0xff,
+            StencilMask::SignOnly => 0x80,
         }
     }
 }

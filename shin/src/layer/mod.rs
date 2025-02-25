@@ -12,7 +12,7 @@ pub mod user;
 mod wobbler;
 
 use derive_more::From;
-use glam::vec3;
+use glam::{Mat4, vec3};
 pub use layer_group::LayerGroup;
 pub use new_drawable_layer::{NewDrawableLayer, NewDrawableLayerWrapper};
 pub use page_layer::PageLayer;
@@ -33,12 +33,44 @@ use shin_render::{
         texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget},
         vertices::PosVertex,
     },
+    shin_orthographic_projection_matrix,
 };
+use winit::dpi::PhysicalSize;
 
 use crate::{
     layer::{render_params::TransformParams, user::UserLayer},
     update::AdvUpdatable,
 };
+
+pub const VIRTUAL_CANVAS_SIZE: PhysicalSize<u32> = PhysicalSize::new(1920, 1080);
+pub const VIRTUAL_CANVAS_SIZE_VEC: glam::Vec2 = glam::vec2(
+    VIRTUAL_CANVAS_SIZE.width as f32,
+    VIRTUAL_CANVAS_SIZE.height as f32,
+);
+
+pub fn centered_projection_matrix() -> Mat4 {
+    shin_orthographic_projection_matrix(
+        -VIRTUAL_CANVAS_SIZE_VEC.x / 2.0,
+        VIRTUAL_CANVAS_SIZE_VEC.x / 2.0,
+        VIRTUAL_CANVAS_SIZE_VEC.y / 2.0,
+        -VIRTUAL_CANVAS_SIZE_VEC.y / 2.0,
+        -1.0,
+        1.0,
+    )
+}
+pub fn top_left_projection_matrix() -> Mat4 {
+    shin_orthographic_projection_matrix(
+        0.0,
+        VIRTUAL_CANVAS_SIZE_VEC.x,
+        VIRTUAL_CANVAS_SIZE_VEC.y,
+        0.0,
+        -1.0,
+        1.0,
+    )
+}
+pub fn normalized_projection_matrix() -> Mat4 {
+    shin_orthographic_projection_matrix(0.0, 1.0, 1.0, 0.0, -1.0, 1.0)
+}
 
 pub struct PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder> {
     pub device: &'immutable wgpu::Device,

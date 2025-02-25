@@ -1,20 +1,20 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use anyhow::Result;
-use glam::{Vec2, Vec4, vec2};
+use glam::{Vec2, vec2};
 use shin_core::format::picture::{PicBlock, PicBlockRect, PictureBuilder};
 use shin_render::{
     gpu_texture::GpuTexture,
     shaders::types::{
         buffer::{Buffer, OwnedIndexBuffer, OwnedVertexBuffer},
-        vertices::LayerVertex,
+        vertices::PosTexVertex,
     },
 };
 
 use crate::asset::system::{Asset, AssetDataAccessor, AssetLoadContext};
 
 pub struct GpuPictureBlock {
-    pub vertex_buffer: OwnedVertexBuffer<LayerVertex>,
+    pub vertex_buffer: OwnedVertexBuffer<PosTexVertex>,
     pub index_buffer: OwnedIndexBuffer,
     pub opaque_rect_count: usize,
     pub transparent_rect_count: usize,
@@ -63,8 +63,9 @@ impl GpuPictureBlock {
             let index_base = vertex_buffer.len() as u16;
             let indices: [u16; Self::INDICES_PER_RECT] = [0, 1, 2, 3, 2, 1].map(|i| index_base + i);
 
-            vertex_buffer.extend(vertices.map(|((px, tx), (py, ty))| LayerVertex {
-                coords: Vec4::new(px, py, tx, ty),
+            vertex_buffer.extend(vertices.map(|((px, tx), (py, ty))| PosTexVertex {
+                position: vec2(px, py),
+                texture_position: vec2(tx, ty),
             }));
             index_buffer.extend(indices);
         };

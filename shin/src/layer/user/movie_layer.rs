@@ -148,7 +148,9 @@ impl NewDrawableLayerNeedsSeparatePass for MovieLayerImpl {
             return false;
         }
 
-        self.still_picture.is_some()
+        false
+        // TODO: add support for still pictures & indirect rendering needed for them (?)
+        // self.still_picture.is_some()
     }
 }
 
