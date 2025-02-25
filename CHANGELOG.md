@@ -1,3 +1,14 @@
+# Unreleased
+
+- Implement wipes. Now instead of flickering on, the scene changes are animated, like in the original implementation.
+- Implement novel mode messagebox.
+- Implement LayerGroup rendering with masks (MASKLOAD command).
+- Now we release builds for aarch64 linux (because why not).
+
+- Add fallbacks from SPIR-V shaders to wgsl ones, allowing us to run on platforms not supporting SPIR-V shaders.
+- Rewrite `shin-tasks`. Now it is no longer a fork of `bevy_tasks`, but a much simpler library setting up rayon &
+  async-executor tasks pools. May support wasm in the future.
+
 # Version 0.7.0
 
 This is a release that contains big rewrites upder the hood. They might not improve compatibility that much initially (I
