@@ -569,19 +569,21 @@ checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
 name = "bitbuffer"
-version = "0.11.0"
-source = "git+https://github.com/DCNick3/bitbuffer.git?rev=1c0541878467b25d1977f096dde59c1b90394669#1c0541878467b25d1977f096dde59c1b90394669"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "391aa23e6223e2e80c036de304747055e9966647f2cf42c703b036ab93a297fc"
 dependencies = [
  "bitbuffer_derive",
  "memchr",
  "num-traits",
- "thiserror 1.0.69",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
 name = "bitbuffer_derive"
-version = "0.11.0"
-source = "git+https://github.com/DCNick3/bitbuffer.git?rev=1c0541878467b25d1977f096dde59c1b90394669#1c0541878467b25d1977f096dde59c1b90394669"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "012c668c57f28ed1341c602656194ed441fb87013c4bbe3c72fe5339f3eb43ef"
 dependencies = [
  "merge",
  "proc-macro2 1.0.93",
