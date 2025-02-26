@@ -117,7 +117,9 @@ impl StartableCommand for command::runtime::LAYERCTRL {
 
             if flags.ff_to_current() {
                 if flags.delta() {
-                    todo!("LAYERCTRL: ff_to_current and delta flags have an interaction that is not yet implemented");
+                    todo!(
+                        "LAYERCTRL: ff_to_current and delta flags have an interaction that is not yet implemented"
+                    );
                 }
 
                 let current = tweener.value();
@@ -158,13 +160,6 @@ impl StartableCommand for command::runtime::LAYERCTRL {
                     );
                 }
             }
-        }
-
-        if !self.property_id.is_implemented() && changed {
-            warn!(
-                "LAYERCTRL: property is not implemented yet (property_id={:?}, value={})",
-                self.property_id, target_value
-            );
         }
 
         self.token.finish().into()

@@ -162,26 +162,6 @@ impl LayerProperty {
             _ => 0,
         }
     }
-
-    pub fn is_implemented(&self) -> bool {
-        use LayerProperty::*;
-        matches!(
-            self,
-            ScaleOriginX | ScaleOriginY | ScaleX | ScaleY | ScaleX2 | ScaleY2 |
-            WobbleScaleXMode | WobbleScaleXPeriod | WobbleScaleXAmplitude | WobbleScaleXBias |
-            WobbleScaleYMode | WobbleScaleYPeriod | WobbleScaleYAmplitude | WobbleScaleYBias |
-            RotationOriginX | RotationOriginY | Rotation | Rotation2 |
-            WobbleRotationMode | WobbleRotationPeriod | WobbleRotationAmplitude | WobbleRotationBias |
-            TranslateX | TranslateY | TranslateX2 | TranslateY2 |
-            WobbleXMode | WobbleXPeriod | WobbleXAmplitude | WobbleXBias |
-            WobbleYMode | WobbleYPeriod | WobbleYAmplitude | WobbleYBias |
-
-            // this one is not, actually, implemented
-            // everything seems to work fine, so ignoring it for now
-            // (figuring out how it works is non-trivial tbh)
-            RenderPosition
-        )
-    }
 }
 
 impl FromNumber for LayerProperty {
