@@ -8,8 +8,9 @@ use shin_render::{
     shaders::types::{buffer::VertexSource, vertices::PosTexVertex},
 };
 
-use crate::layer::{
-    LayerProperties, PreRenderContext, VIRTUAL_CANVAS_SIZE_VEC, centered_projection_matrix,
+use crate::{
+    layer::LayerProperties,
+    render::{PreRenderContext, VIRTUAL_CANVAS_SIZE_VEC, centered_projection_matrix},
 };
 
 pub fn apply_ghosting(

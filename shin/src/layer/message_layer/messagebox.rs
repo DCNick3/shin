@@ -7,9 +7,9 @@ use shin_render::{
     shaders::types::{buffer::VertexSource, vertices::PosColTexVertex},
 };
 
-use crate::layer::{
-    message_layer::{MessageLayer, SlidingOutMessagebox},
-    normalized_projection_matrix,
+use crate::{
+    layer::message_layer::{MessageLayer, SlidingOutMessagebox},
+    render::normalized_projection_matrix,
 };
 
 #[derive(Debug, Copy, Clone)]

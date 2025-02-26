@@ -18,8 +18,11 @@ use shin_render::{
 
 use crate::{
     layer::{
-        DrawableLayer, Layer, LayerProperties, PreRenderContext, VIRTUAL_CANVAS_SIZE_VEC,
+        DrawableLayer, Layer, LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
+    },
+    render::{
+        PreRenderContext, VIRTUAL_CANVAS_SIZE_VEC, render_texture_holder::RenderTextureHolder,
         top_left_projection_matrix,
     },
     update::{AdvUpdatable, AdvUpdateContext},
@@ -68,8 +71,7 @@ pub struct PrerenderedDrawable<'a> {
 #[derive(Debug, RenderClone)]
 pub struct NewDrawableLayerState {
     #[render_clone(needs_render)]
-    render_texture_src: Option<RenderTexture>,
-    texture_alloc_counter: u32,
+    render_texture_src: RenderTextureHolder,
     // it's needed for any kind of effect. we just don't have them implemented yet
     #[render_clone(needs_render)]
     render_texture_target: Option<RenderTexture>,
@@ -81,8 +83,7 @@ pub struct NewDrawableLayerState {
 impl NewDrawableLayerState {
     pub fn new() -> Self {
         Self {
-            render_texture_src: None,
-            texture_alloc_counter: 0,
+            render_texture_src: RenderTextureHolder::new("NewDrawableLayerState/render_texture"),
             render_texture_target: None,
             render_texture_prev_frame: None,
             target_pass: PassKind::Transparent,
@@ -90,7 +91,7 @@ impl NewDrawableLayerState {
     }
 
     pub fn get_prerendered_tex(&self) -> Option<PrerenderedDrawable> {
-        let tex = self.render_texture_src.as_ref()?;
+        let tex = self.render_texture_src.get()?;
 
         Some(PrerenderedDrawable {
             render_texture: tex.as_texture_source(),
@@ -149,8 +150,8 @@ impl NewDrawableLayerState {
             && ghosting_alpha <= 0.0
             && !delegate.needs_separate_pass(props)
         {
+            self.render_texture_src.clear();
             self.render_texture_target = None;
-            self.render_texture_src = None;
             self.render_texture_prev_frame = None;
             return;
         }
@@ -160,15 +161,11 @@ impl NewDrawableLayerState {
         } else {
             std::mem::swap(
                 &mut self.render_texture_prev_frame,
-                &mut self.render_texture_src,
+                &mut self.render_texture_src.as_inner_mut(),
             );
         }
 
-        let render_texture_src = context.ensure_render_texture(
-            "NewDrawableLayerState/render_texture",
-            &mut self.render_texture_src,
-            &mut self.texture_alloc_counter,
-        );
+        let render_texture_src = self.render_texture_src.get_or_init(context);
         self.target_pass = delegate.render_drawable_indirect(
             context,
             props,
@@ -219,7 +216,7 @@ impl NewDrawableLayerState {
         stencil_ref: u8,
         pass_kind: PassKind,
     ) -> bool {
-        let Some(tex) = &self.render_texture_src else {
+        let Some(tex) = self.render_texture_src.get() else {
             return false;
         };
 

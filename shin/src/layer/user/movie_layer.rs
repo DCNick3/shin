@@ -22,7 +22,7 @@ use tracing::warn;
 use crate::{
     asset::{movie::Movie, picture::Picture},
     layer::{
-        DrawableLayer, Layer, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
+        DrawableLayer, Layer, NewDrawableLayer, NewDrawableLayerWrapper,
         new_drawable_layer::{
             NewDrawableLayerFastForward, NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState,
         },
@@ -30,6 +30,7 @@ use crate::{
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         user::PictureLayer,
     },
+    render::PreRenderContext,
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 

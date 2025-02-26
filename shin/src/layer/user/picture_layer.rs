@@ -16,12 +16,13 @@ use shin_render::{
 use crate::{
     asset::picture::{GpuPictureBlock, Picture},
     layer::{
-        LayerProperties, NewDrawableLayerWrapper, PreRenderContext,
+        LayerProperties, NewDrawableLayerWrapper,
         new_drawable_layer::{
             NewDrawableLayer, NewDrawableLayerFastForward, NewDrawableLayerNeedsSeparatePass,
         },
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
     },
+    render::PreRenderContext,
     update::{AdvUpdatable, AdvUpdateContext},
 };
 

@@ -2,7 +2,8 @@ use shin_derive::RenderClone;
 use shin_render::{PassKind, render_pass::RenderPass};
 
 use crate::{
-    layer::{DrawableLayer, Layer, PreRenderContext, render_params::TransformParams},
+    layer::{DrawableLayer, Layer, render_params::TransformParams},
+    render::PreRenderContext,
     update::{AdvUpdatable, AdvUpdateContext},
 };
 

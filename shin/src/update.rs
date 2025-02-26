@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use shin_core::{primitives::update::FrameId, time::Ticks};
 
-use crate::{asset::system::AssetServer, layer::PreRenderContext};
+use crate::{asset::system::AssetServer, render::PreRenderContext};
 
 pub struct UpdateContext<'immutable, 'pre_render, 'pipelines, 'dynbuffer, 'encoder> {
     pub frame_id: FrameId,

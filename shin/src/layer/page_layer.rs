@@ -17,11 +17,12 @@ use shin_render::{
 
 use crate::{
     layer::{
-        DrawableLayer, Layer, LayerGroup, NewDrawableLayer, PreRenderContext,
+        DrawableLayer, Layer, LayerGroup, NewDrawableLayer,
         new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
     },
+    render::PreRenderContext,
     update::{AdvUpdatable, AdvUpdateContext},
 };
 

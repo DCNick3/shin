@@ -22,9 +22,10 @@ use crate::{
         system::AssetServer,
     },
     layer::{
-        DrawableLayer, Layer, LayerProperties, PreRenderContext, render_params::TransformParams,
+        DrawableLayer, Layer, LayerProperties, render_params::TransformParams,
         user::movie_layer::MovieArgs,
     },
+    render::PreRenderContext,
     update::{AdvUpdatable, AdvUpdateContext},
 };
 

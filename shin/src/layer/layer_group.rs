@@ -23,15 +23,14 @@ use shin_render::{
 use crate::{
     asset::mask::{MaskRenderFlags, MaskTexture},
     layer::{
-        DrawableLayer, Layer, NewDrawableLayer, PreRenderContext, UserLayer,
-        VIRTUAL_CANVAS_SIZE_VEC,
+        DrawableLayer, Layer, NewDrawableLayer, UserLayer,
         new_drawable_layer::{
             NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState, PrerenderedDrawable,
         },
         properties::LayerProperties,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
-        top_left_projection_matrix,
     },
+    render::{PreRenderContext, VIRTUAL_CANVAS_SIZE_VEC, top_left_projection_matrix},
     update::{AdvUpdatable, AdvUpdateContext},
 };
 

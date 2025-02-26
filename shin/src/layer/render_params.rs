@@ -3,7 +3,7 @@ use glam::{Mat4, Vec2, Vec3, Vec4, vec3};
 use shin_core::primitives::color::FloatColor4;
 use shin_render::{LayerBlendType, LayerFragmentShader};
 
-use crate::layer::centered_projection_matrix;
+use crate::render::centered_projection_matrix;
 
 bitflags! {
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]

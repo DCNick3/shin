@@ -13,11 +13,12 @@ use shin_render::{
 use crate::{
     asset::bustup::Bustup,
     layer::{
-        LayerProperties, NewDrawableLayer, NewDrawableLayerWrapper, PreRenderContext,
+        LayerProperties, NewDrawableLayer, NewDrawableLayerWrapper,
         new_drawable_layer::{NewDrawableLayerFastForward, NewDrawableLayerNeedsSeparatePass},
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
         user::picture_layer::{PictureBlockParams, PictureBlockPassKind},
     },
+    render::PreRenderContext,
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 

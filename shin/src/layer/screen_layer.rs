@@ -3,7 +3,6 @@ use shin_core::primitives::color::{FloatColor4, UnormColor};
 use shin_render::{
     PassKind, RenderRequestBuilder,
     render_pass::RenderPass,
-    render_texture::RenderTexture,
     shaders::types::{
         RenderClone, RenderCloneCtx,
         texture::{DepthStencilTarget, TextureTarget},
@@ -13,7 +12,7 @@ use tracing::debug;
 
 use crate::{
     layer::{
-        DrawableLayer, Layer, NewDrawableLayer, PreRenderContext,
+        DrawableLayer, Layer, NewDrawableLayer,
         either::EitherLayer,
         new_drawable_layer::{NewDrawableLayerNeedsSeparatePass, NewDrawableLayerState},
         page_layer::PageLayer,
@@ -21,6 +20,7 @@ use crate::{
         render_layer,
         render_params::{DrawableClipMode, DrawableClipParams, DrawableParams, TransformParams},
     },
+    render::{PreRenderContext, render_texture_holder::RenderTextureHolder},
     update::{AdvUpdatable, AdvUpdateContext},
     wiper::{AnyWiper, Wiper as _},
 };
@@ -35,11 +35,9 @@ struct TransitionLayer {
     wiper: Option<AnyWiper>,
 
     #[render_clone(needs_render)]
-    source_render_texture: Option<RenderTexture>,
-    source_texture_alloc_counter: u32,
+    source_render_texture: RenderTextureHolder,
     #[render_clone(needs_render)]
-    target_render_texture: Option<RenderTexture>,
-    target_texture_alloc_counter: u32,
+    target_render_texture: RenderTextureHolder,
 }
 
 impl TransitionLayer {
@@ -52,10 +50,12 @@ impl TransitionLayer {
             source_layer: source.map(EitherLayer::Right),
             target_layer: Some(target),
             wiper,
-            source_render_texture: None,
-            source_texture_alloc_counter: 0,
-            target_render_texture: None,
-            target_texture_alloc_counter: 0,
+            source_render_texture: RenderTextureHolder::new(
+                "TransitionLayer/source_render_texture",
+            ),
+            target_render_texture: RenderTextureHolder::new(
+                "TransitionLayer/target_render_texture",
+            ),
         }
     }
 
@@ -64,10 +64,12 @@ impl TransitionLayer {
             source_layer: None,
             target_layer: None,
             wiper: None,
-            source_render_texture: None,
-            source_texture_alloc_counter: 0,
-            target_render_texture: None,
-            target_texture_alloc_counter: 0,
+            source_render_texture: RenderTextureHolder::new(
+                "TransitionLayer/source_render_texture",
+            ),
+            target_render_texture: RenderTextureHolder::new(
+                "TransitionLayer/target_render_texture",
+            ),
         }
     }
 
@@ -117,8 +119,8 @@ impl AdvUpdatable for TransitionLayer {
                 debug!("Wiper has finished running, cleaning up & switching to direct rendering");
                 self.wiper = None;
                 self.source_layer = None;
-                self.source_render_texture = None;
-                self.target_render_texture = None;
+                self.source_render_texture.clear();
+                self.target_render_texture.clear();
             }
         }
     }
@@ -158,11 +160,7 @@ impl Layer for TransitionLayer {
             .unwrap()
             .pre_render(context, transform);
 
-        let source_render_texture = context.ensure_render_texture(
-            "TransitionLayer/source_render_texture",
-            &mut self.source_render_texture,
-            &mut self.source_texture_alloc_counter,
-        );
+        let source_render_texture = self.source_render_texture.get_or_init(context);
 
         {
             let mut pass = context.begin_pass(
@@ -181,11 +179,7 @@ impl Layer for TransitionLayer {
             );
         }
 
-        let target_render_texture = context.ensure_render_texture(
-            "TransitionLayer/target_render_texture",
-            &mut self.target_render_texture,
-            &mut self.target_texture_alloc_counter,
-        );
+        let target_render_texture = self.target_render_texture.get_or_init(context);
         {
             let mut pass = context.begin_pass(
                 target_render_texture.as_texture_target(),
@@ -225,11 +219,11 @@ impl Layer for TransitionLayer {
                 pass,
                 render_request_builder,
                 self.target_render_texture
-                    .as_ref()
+                    .get()
                     .unwrap()
                     .as_texture_source(),
                 self.source_render_texture
-                    .as_ref()
+                    .get()
                     .unwrap()
                     .as_texture_source(),
             );

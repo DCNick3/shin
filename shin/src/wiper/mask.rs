@@ -13,7 +13,7 @@ use shin_render::{
 
 use crate::{
     asset::mask::MaskTexture,
-    layer::{VIRTUAL_CANVAS_SIZE_VEC, top_left_projection_matrix},
+    render::{VIRTUAL_CANVAS_SIZE_VEC, top_left_projection_matrix},
     update::{AdvUpdatable, AdvUpdateContext},
     wiper::timed::{TimedWiper, TimedWiperWrapper},
 };

@@ -17,7 +17,7 @@ use crate::{
     adv::{Adv, assets::AdvAssets},
     asset::system::{AssetLoadContext, AssetServer, cache::AssetCache, locate_assets},
     cli::Cli,
-    layer::PreRenderContext,
+    render::PreRenderContext,
     update::UpdateContext,
 };
 

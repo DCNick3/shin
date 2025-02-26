@@ -7,7 +7,7 @@ use shin_render::{
 };
 
 use crate::{
-    layer::normalized_projection_matrix,
+    render::normalized_projection_matrix,
     update::{AdvUpdatable, AdvUpdateContext},
     wiper::timed::{TimedWiper, TimedWiperWrapper},
 };

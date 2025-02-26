@@ -10,13 +10,14 @@ use crate::{
     adv::assets::AdvFonts,
     audio::VoicePlayer,
     layer::{
-        DrawableLayer, Layer, LayerGroup, PreRenderContext,
+        DrawableLayer, Layer, LayerGroup,
         message_layer::{MessageLayer, MessageboxTextures},
         properties::LayerProperties,
         render_layer_without_bg,
         render_params::TransformParams,
         screen_layer::ScreenLayer,
     },
+    render::PreRenderContext,
     update::{AdvUpdatable, AdvUpdateContext, Updatable, UpdateContext},
 };
 

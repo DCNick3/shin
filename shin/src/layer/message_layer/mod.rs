@@ -36,7 +36,7 @@ use crate::{
     asset::{font::GpuFontLazy, texture_archive::TextureArchive},
     audio::{VoicePlayFlags, VoicePlayer},
     layer::{
-        DrawableLayer, Layer, PreRenderContext,
+        DrawableLayer, Layer,
         message_layer::{
             blocks::{Block, BlockType},
             messagebox::Messagebox,
@@ -44,6 +44,7 @@ use crate::{
         properties::LayerProperties,
         render_params::TransformParams,
     },
+    render::PreRenderContext,
     update::{AdvUpdatable, AdvUpdateContext},
 };
 
