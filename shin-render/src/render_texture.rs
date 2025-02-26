@@ -36,17 +36,13 @@ impl RenderTexture {
     pub fn new(
         device: wgpu::Device,
         resize_handle: ResizeHandle<CanvasSize>,
-        label: Option<String>,
+        label: String,
     ) -> Self {
         let sampler = TextureSampler::Linear;
 
-        let label = label
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "unnamed".to_string());
-
         let inner_texture = ResizeableTexture::new(
             device,
-            Some(label.clone()),
+            label.clone(),
             TEXTURE_FORMAT,
             TEXTURE_USAGES,
             resize_handle,
@@ -82,7 +78,8 @@ impl RenderClone for RenderTexture {
 
         let new_texture = ResizeableTexture::new_with_size(
             ctx.device.clone(),
-            Some(self.label.clone()),
+            // TODO: having two object with the same name can be confusing
+            self.label.clone(),
             TEXTURE_FORMAT,
             TEXTURE_USAGES,
             size,

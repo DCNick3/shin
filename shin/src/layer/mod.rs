@@ -85,21 +85,29 @@ pub struct PreRenderContext<'immutable, 'pipelines, 'dynbuffer, 'encoder> {
 }
 
 impl PreRenderContext<'_, '_, '_, '_> {
-    pub fn new_render_texture(&self, label: Option<String>) -> RenderTexture {
+    pub fn new_render_texture(&self, label: String) -> RenderTexture {
         RenderTexture::new(self.device.clone(), self.resize_source.handle(), label)
     }
 
     pub fn ensure_render_texture<'a>(
         &self,
+        label: &str,
+        // TODO: it would probably be better to have a type that combines the Option<RenderTexture> with a counter
         storage: &'a mut Option<RenderTexture>,
+        counter_storage: &mut u32,
     ) -> &'a mut RenderTexture {
-        storage.get_or_insert_with(|| self.new_render_texture(None))
+        storage.get_or_insert_with(|| {
+            let res = self.new_render_texture(format!("{} #{}", label, *counter_storage));
+            *counter_storage += 1;
+            res
+        })
     }
 
     pub fn begin_pass(
         &mut self,
         target: TextureTarget,
-        depth_stencil: DepthStencilTarget,
+        depth_stencil: Option<DepthStencilTarget>,
+        label: &str,
     ) -> RenderPass {
         RenderPass::new(
             self.pipeline_storage,
@@ -110,6 +118,7 @@ impl PreRenderContext<'_, '_, '_, '_> {
             target,
             depth_stencil,
             None,
+            label,
         )
     }
 }

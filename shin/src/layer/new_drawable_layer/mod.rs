@@ -1,3 +1,5 @@
+mod effect_passes;
+
 use shin_core::vm::command::types::LayerProperty;
 use shin_render::{
     ColorBlendType, DepthStencilState, DrawPrimitive, LayerShaderOutputKind, PassKind,
@@ -67,6 +69,7 @@ pub struct PrerenderedDrawable<'a> {
 pub struct NewDrawableLayerState {
     #[render_clone(needs_render)]
     render_texture_src: Option<RenderTexture>,
+    texture_alloc_counter: u32,
     // it's needed for any kind of effect. we just don't have them implemented yet
     #[render_clone(needs_render)]
     render_texture_target: Option<RenderTexture>,
@@ -79,6 +82,7 @@ impl NewDrawableLayerState {
     pub fn new() -> Self {
         Self {
             render_texture_src: None,
+            texture_alloc_counter: 0,
             render_texture_target: None,
             render_texture_prev_frame: None,
             target_pass: PassKind::Transparent,
@@ -154,11 +158,17 @@ impl NewDrawableLayerState {
         if ghosting_alpha <= 0.0 {
             self.render_texture_prev_frame = None;
         } else {
-            // TODO: preserve render_texture_src as render_texture_prev_frame, while re-using render_texture_prev_frame as render_texture_src
-            todo!()
+            std::mem::swap(
+                &mut self.render_texture_prev_frame,
+                &mut self.render_texture_src,
+            );
         }
 
-        let render_texture_src = context.ensure_render_texture(&mut self.render_texture_src);
+        let render_texture_src = context.ensure_render_texture(
+            "NewDrawableLayerState/render_texture",
+            &mut self.render_texture_src,
+            &mut self.texture_alloc_counter,
+        );
         self.target_pass = delegate.render_drawable_indirect(
             context,
             props,
@@ -187,10 +197,17 @@ impl NewDrawableLayerState {
         if dissolve_intensity > 0.0 {
             todo!()
         }
-        if ghosting_alpha <= 0.0 || self.render_texture_prev_frame.is_none() {
-            self.render_texture_prev_frame = None;
-        } else {
-            todo!()
+        match (ghosting_alpha > 0.0, &mut self.render_texture_prev_frame) {
+            (true, Some(render_texture_prev_frame)) => {
+                effect_passes::apply_ghosting(
+                    context,
+                    props,
+                    render_texture_src,
+                    render_texture_prev_frame,
+                    ghosting_alpha,
+                );
+            }
+            _ => self.render_texture_prev_frame = None,
         }
     }
 

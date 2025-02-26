@@ -401,6 +401,23 @@ impl LayerProperties {
 
         transform
     }
+
+    pub fn get_ghosting_transform(&self) -> Mat4 {
+        use LayerProperty::*;
+
+        let transform_origin = vec2(
+            self.get_value(GhostingTransformOriginX),
+            self.get_value(GhostingTransformOriginY),
+        )
+        .extend(0.0);
+
+        Mat4::from_translation(transform_origin)
+            * Mat4::from_rotation_z(
+                self.get_value(GhostingRotation) * 0.001 * std::f32::consts::TAU,
+            )
+            * Mat4::from_scale((Vec2::ONE * self.get_value(GhostingZoom) * 0.001).extend(1.0))
+            * Mat4::from_translation(-transform_origin)
+    }
 }
 
 impl AdvUpdatable for LayerProperties {

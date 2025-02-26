@@ -45,14 +45,12 @@ impl<Aspect: SizeAspect> ResizeableTexture<Aspect> {
 
     pub fn new_with_size(
         device: wgpu::Device,
-        label: Option<String>,
+        label: String,
         format: wgpu::TextureFormat,
         usage: wgpu::TextureUsages,
         size: PhysicalSize<u32>,
         resize_handle: ResizeHandle<Aspect>,
     ) -> Self {
-        let label = label.unwrap_or_else(|| "unnamed".to_string());
-
         let texture = Self::create_texture(&device, &label, format, usage, size);
 
         Self {
@@ -67,7 +65,7 @@ impl<Aspect: SizeAspect> ResizeableTexture<Aspect> {
 
     pub fn new(
         device: wgpu::Device,
-        label: Option<String>,
+        label: String,
         format: wgpu::TextureFormat,
         usage: wgpu::TextureUsages,
         mut resize_handle: ResizeHandle<Aspect>,

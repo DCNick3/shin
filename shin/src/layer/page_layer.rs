@@ -101,7 +101,7 @@ impl NewDrawableLayer for PageLayerNewDrawableDelegate<'_> {
         depth_stencil: DepthStencilTarget,
         transform: &TransformParams,
     ) -> PassKind {
-        let mut pass = context.begin_pass(target, depth_stencil);
+        let mut pass = context.begin_pass(target, Some(depth_stencil), "PageLayer/indirect");
 
         if !props.is_visible() {
             pass.clear(Some(UnormColor::BLACK), None, None);

@@ -19,7 +19,7 @@ pub struct PipelineStorageKey {
     pub draw_primitive: DrawPrimitive,
     pub cull_face: CullFace,
     pub blend_type: ColorBlendType,
-    pub depth_stencil: DepthStencilPipelineState,
+    pub depth_stencil: Option<DepthStencilPipelineState>,
 }
 
 impl PipelineStorageKey {
@@ -34,7 +34,7 @@ impl PipelineStorageKey {
             draw_primitive,
             cull_face,
             blend_type,
-            depth_stencil: DepthStencilPipelineState { depth, stencil },
+            depth_stencil,
         } = self;
 
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -56,17 +56,19 @@ impl PipelineStorageKey {
                 polygon_mode: wgpu::PolygonMode::Fill,
                 conservative: false,
             },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: DEPTH_STENCIL_FORMAT,
-                depth_write_enabled: depth.write_enable,
-                depth_compare: depth.function.into(),
-                stencil: wgpu::StencilState {
-                    front: stencil.into(),
-                    back: stencil.into(),
-                    read_mask: stencil.stencil_read_mask.into(),
-                    write_mask: stencil.stencil_write_mask.into(),
-                },
-                bias: wgpu::DepthBiasState::default(),
+            depth_stencil: depth_stencil.map(|DepthStencilPipelineState { depth, stencil }| {
+                wgpu::DepthStencilState {
+                    format: DEPTH_STENCIL_FORMAT,
+                    depth_write_enabled: depth.write_enable,
+                    depth_compare: depth.function.into(),
+                    stencil: wgpu::StencilState {
+                        front: stencil.into(),
+                        back: stencil.into(),
+                        read_mask: stencil.stencil_read_mask.into(),
+                        write_mask: stencil.stencil_write_mask.into(),
+                    },
+                    bias: wgpu::DepthBiasState::default(),
+                }
             }),
             multisample: wgpu::MultisampleState {
                 count: 1,

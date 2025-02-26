@@ -29,6 +29,7 @@ pub struct RenderPass<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder> {
     dynamic_buffer: &'dynbuffer mut DynamicBuffer,
     sampler_store: &'sampler TextureSamplerStore,
     target_kind: TextureTargetKind,
+    has_depth_stencil: bool,
     device: &'device wgpu::Device,
     pass: wgpu::RenderPass<'encoder>,
 }
@@ -43,32 +44,37 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
         device: &'device wgpu::Device,
         encoder: &'encoder mut wgpu::CommandEncoder,
         target_color: TextureTarget,
-        target_depth_stencil: DepthStencilTarget,
+        target_depth_stencil: Option<DepthStencilTarget>,
         viewport: Option<(f32, f32, f32, f32)>,
+        label: &str,
     ) -> Self {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
+            label: Some(label),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: target_color.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    // NOTE: potential incompatibility, shin _might_ not perform a clear when changing a render target
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    // NOTE: using `Load` here can have some perf implications
+                    // however, this is needed for ghosting effect to work (maybe there's something else)
+                    // TODO: add a parameter determining whether to clear the texture or not
+                    load: wgpu::LoadOp::Load,
                     store: wgpu::StoreOp::Store,
                 },
             })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: target_depth_stencil.view,
-                depth_ops: Some(wgpu::Operations {
-                    // NOTE: potential incompatibility, shin _might_ not perform a clear when changing a render target
-                    load: wgpu::LoadOp::Clear(0.0),
-                    store: wgpu::StoreOp::Store,
-                }),
-                stencil_ops: Some(wgpu::Operations {
-                    // NOTE: potential incompatibility, shin _might_ not perform a clear when changing a render target
-                    load: wgpu::LoadOp::Clear(0),
-                    store: wgpu::StoreOp::Store,
-                }),
+            depth_stencil_attachment: target_depth_stencil.map(|target_depth_stencil| {
+                wgpu::RenderPassDepthStencilAttachment {
+                    view: target_depth_stencil.view,
+                    depth_ops: Some(wgpu::Operations {
+                        // NOTE: potential incompatibility, shin _might_ not perform a clear when changing a render target
+                        load: wgpu::LoadOp::Clear(0.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: Some(wgpu::Operations {
+                        // NOTE: potential incompatibility, shin _might_ not perform a clear when changing a render target
+                        load: wgpu::LoadOp::Clear(0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                }
             }),
             timestamp_writes: None,
             occlusion_query_set: None,
@@ -83,6 +89,7 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
             dynamic_buffer,
             sampler_store,
             target_kind: target_color.kind,
+            has_depth_stencil: target_depth_stencil.is_some(),
             device,
             pass,
         }
@@ -130,7 +137,7 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
             draw_primitive: primitive,
             cull_face: cull_faces,
             blend_type: color_blend_type,
-            depth_stencil,
+            depth_stencil: self.has_depth_stencil.then_some(depth_stencil),
         };
         pass.set_stencil_reference(stencil_reference as u32);
 

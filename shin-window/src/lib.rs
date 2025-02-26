@@ -587,10 +587,11 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                         kind: TextureTargetKind::Screen,
                         view: &surface_texture.view,
                     },
-                    DepthStencilTarget {
+                    Some(DepthStencilTarget {
                         view: render.surface_depth_stencil_buffer.resize_and_get_view(),
-                    },
+                    }),
                     Some(viewport),
+                    "app",
                 );
 
                 let context = RenderContext { winit, wgpu };

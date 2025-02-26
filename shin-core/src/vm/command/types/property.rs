@@ -80,8 +80,8 @@ pub enum LayerProperty {
     GhostingAlpha = 56,
     GhostingZoom = 57,
     GhostingRotation = 58,
-    GhostingRotationOriginDx = 59,
-    GhostingRotationOriginDy = 60,
+    GhostingTransformOriginX = 59,
+    GhostingTransformOriginY = 60,
 
     // Clipping, makes the layer render only within a certain rectangle
     ClipMode = 61,

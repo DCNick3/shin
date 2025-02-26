@@ -411,18 +411,7 @@ where
         depth_stencil: DepthStencilTarget,
         transform: &TransformParams,
     ) -> PassKind {
-        let mut pass = RenderPass::new(
-            context.pipeline_storage,
-            context.dynamic_buffer,
-            context.sampler_store,
-            context.device,
-            context.encoder,
-            target,
-            depth_stencil,
-            None,
-        );
-
-        pass.push_debug("LayerGroup/render_drawable_indirect");
+        let mut pass = context.begin_pass(target, Some(depth_stencil), "LayerGroup/indirect");
 
         if !props.is_visible() {
             pass.clear(Some(UnormColor::BLACK), None, None);
@@ -454,8 +443,6 @@ where
         }
 
         self.layers_to_render.clear();
-
-        pass.pop_debug();
 
         // it's very sus that it does that, considering you can apply alpha and stuff...
         // but I guess that's just how planes are...

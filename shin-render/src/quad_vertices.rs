@@ -118,6 +118,7 @@ impl QuadVertices {
     }
 }
 
+#[inline]
 pub fn build_quad_vertices<T, F>(f: F) -> [T; 4]
 where
     F: Fn(Vec2) -> T,

@@ -19,15 +19,11 @@ impl DepthStencil {
     pub fn new(
         device: wgpu::Device,
         resize_handle: ResizeHandle<CanvasSize>,
-        label: Option<String>,
+        label: String,
     ) -> Self {
-        let label = label
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "unnamed".to_string());
-
         let inner_texture = ResizeableTexture::new(
             device.clone(),
-            Some(label.clone()),
+            label.clone(),
             DEPTH_STENCIL_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT,
             resize_handle,

@@ -36,8 +36,10 @@ struct TransitionLayer {
 
     #[render_clone(needs_render)]
     source_render_texture: Option<RenderTexture>,
+    source_texture_alloc_counter: u32,
     #[render_clone(needs_render)]
     target_render_texture: Option<RenderTexture>,
+    target_texture_alloc_counter: u32,
 }
 
 impl TransitionLayer {
@@ -51,7 +53,9 @@ impl TransitionLayer {
             target_layer: Some(target),
             wiper,
             source_render_texture: None,
+            source_texture_alloc_counter: 0,
             target_render_texture: None,
+            target_texture_alloc_counter: 0,
         }
     }
 
@@ -61,7 +65,9 @@ impl TransitionLayer {
             target_layer: None,
             wiper: None,
             source_render_texture: None,
+            source_texture_alloc_counter: 0,
             target_render_texture: None,
+            target_texture_alloc_counter: 0,
         }
     }
 
@@ -152,12 +158,17 @@ impl Layer for TransitionLayer {
             .unwrap()
             .pre_render(context, transform);
 
-        let source_render_texture = context.ensure_render_texture(&mut self.source_render_texture);
+        let source_render_texture = context.ensure_render_texture(
+            "TransitionLayer/source_render_texture",
+            &mut self.source_render_texture,
+            &mut self.source_texture_alloc_counter,
+        );
 
         {
             let mut pass = context.begin_pass(
                 source_render_texture.as_texture_target(),
-                context.depth_stencil,
+                Some(context.depth_stencil),
+                "TransitionLayer/source",
             );
             pass.clear(None, Some(0), None);
 
@@ -170,11 +181,16 @@ impl Layer for TransitionLayer {
             );
         }
 
-        let target_render_texture = context.ensure_render_texture(&mut self.target_render_texture);
+        let target_render_texture = context.ensure_render_texture(
+            "TransitionLayer/target_render_texture",
+            &mut self.target_render_texture,
+            &mut self.target_texture_alloc_counter,
+        );
         {
             let mut pass = context.begin_pass(
                 target_render_texture.as_texture_target(),
-                context.depth_stencil,
+                Some(context.depth_stencil),
+                "TransitionLayer/target",
             );
             pass.clear(None, Some(0), None);
 
@@ -315,7 +331,7 @@ impl NewDrawableLayer for ScreenLayerNewDrawableDelegate<'_> {
         depth_stencil: DepthStencilTarget,
         transform: &TransformParams,
     ) -> PassKind {
-        let mut pass = context.begin_pass(target, depth_stencil);
+        let mut pass = context.begin_pass(target, Some(depth_stencil), "ScreenLayer/indirect");
 
         if !props.is_visible() {
             pass.clear(Some(UnormColor::BLACK), None, None);
