@@ -59,7 +59,7 @@ impl<T: Asset> DerefMut for AssetMap<T> {
 pub struct AssetServer {
     io: AssetIo,
     context: Arc<AssetLoadContext>,
-    loaded_assets: RwLock<anymap::Map<dyn core::any::Any + Send + Sync>>,
+    loaded_assets: RwLock<anymap3::Map<dyn core::any::Any + Send + Sync>>,
 }
 
 impl AssetServer {
@@ -67,7 +67,7 @@ impl AssetServer {
         Self {
             io,
             context: Arc::new(context),
-            loaded_assets: RwLock::new(anymap::Map::new()),
+            loaded_assets: RwLock::new(anymap3::Map::new()),
         }
     }
 
