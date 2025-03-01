@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{RenderClone, RenderCloneCtx};
 
 pub trait BufferOwnership {
@@ -7,16 +5,19 @@ pub trait BufferOwnership {
     fn get(&self) -> &wgpu::Buffer;
 }
 
+// TODO: now that we don't need an Arc in `Shared`, maybe we can unify those types somehow?
+// should we?
 #[derive(Debug)]
 pub struct Owned(wgpu::Buffer);
 
 #[derive(Debug, Clone)]
-pub struct Shared(Arc<wgpu::Buffer>);
+pub struct Shared(wgpu::Buffer);
 
+// TODO: this type seems kind of useless right now. Is there a valid use for it?
 #[derive(Debug)]
 pub enum AnyOwnership {
     Owned(Box<Owned>),
-    Shared(Shared),
+    Shared(Box<Shared>),
 }
 
 impl BufferOwnership for Owned {
@@ -37,7 +38,7 @@ impl RenderClone for Owned {
 
 impl BufferOwnership for Shared {
     fn new(buffer: wgpu::Buffer) -> Self {
-        Self(Arc::new(buffer))
+        Self(buffer)
     }
 
     fn get(&self) -> &wgpu::Buffer {

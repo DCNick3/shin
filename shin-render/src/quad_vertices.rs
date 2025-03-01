@@ -1,5 +1,5 @@
 use glam::{Mat4, Vec2, vec2, vec3};
-use shin_core::primitives::color::UnormColor;
+use shin_primitives::color::UnormColor;
 use shin_render_shader_types::{
     buffer::VertexSource, texture::TextureSource, vertices::PosColTexVertex,
 };

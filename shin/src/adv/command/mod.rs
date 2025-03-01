@@ -89,7 +89,7 @@ pub trait UpdatableCommand {
     // TODO: provide mutable access to Adv Scene state
     fn update(
         &mut self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,
@@ -199,7 +199,7 @@ pub fn apply_command_state(command: RuntimeCommand, state: &mut VmState) {
 
 pub fn apply_command_state_and_start(
     command: RuntimeCommand,
-    context: &UpdateContext,
+    context: &mut UpdateContext,
     scenario: &Arc<Scenario>,
     vm_state: &mut VmState,
     adv_state: &mut AdvState,
@@ -310,7 +310,7 @@ pub trait StartableCommand {
     fn apply_state(&self, state: &mut VmState) -> Self::StateInfo;
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         scenario: &Arc<Scenario>,
         vm_state: &VmState,
         state_info: Self::StateInfo,

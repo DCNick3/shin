@@ -40,6 +40,7 @@ impl BustupLayerImpl {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn render_impl(
         &self,
         pass: &mut RenderPass,
@@ -124,6 +125,7 @@ impl BustupLayer {
 impl NewDrawableLayerNeedsSeparatePass for BustupLayerImpl {}
 
 impl NewDrawableLayer for BustupLayerImpl {
+    #[tracing::instrument(skip_all)]
     fn render_drawable_indirect(
         &mut self,
         _context: &mut PreRenderContext,
@@ -135,6 +137,7 @@ impl NewDrawableLayer for BustupLayerImpl {
         todo!()
     }
 
+    #[tracing::instrument(skip_all)]
     fn render_drawable_direct(
         &self,
         pass: &mut RenderPass,

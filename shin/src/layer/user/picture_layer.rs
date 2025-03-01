@@ -94,6 +94,7 @@ fn cull_block(_block: &GpuPictureBlock, _transform: Mat4) -> bool {
 }
 
 // TODO: make this a method of GpuPictureBlock?
+#[tracing::instrument(skip_all)]
 pub fn render_block(
     block: &GpuPictureBlock,
     pass: &mut RenderPass,
@@ -217,6 +218,7 @@ impl PictureLayer {
 impl NewDrawableLayerNeedsSeparatePass for PictureLayerImpl {}
 
 impl NewDrawableLayer for PictureLayerImpl {
+    #[tracing::instrument(skip_all)]
     fn render_drawable_indirect(
         &mut self,
         _context: &mut PreRenderContext,
@@ -228,6 +230,7 @@ impl NewDrawableLayer for PictureLayerImpl {
         todo!()
     }
 
+    #[tracing::instrument(skip_all)]
     fn render_drawable_direct(
         &self,
         pass: &mut RenderPass,

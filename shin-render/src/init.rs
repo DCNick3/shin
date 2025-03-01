@@ -98,11 +98,8 @@ impl WgpuInitResult<'static> {
         surface_resize_handle: ResizeHandle<SurfaceSize>,
         canvas_resize_handle: ResizeHandle<CanvasSize>,
     ) -> (WgpuResources, RenderResources) {
-        let dynamic_buffer = DynamicBuffer::new(
-            self.device.clone(),
-            self.queue.clone(),
-            BytesAddress::new(1024 * 1024),
-        );
+        let dynamic_buffer =
+            DynamicBuffer::new(self.device.clone(), BytesAddress::new(1024 * 1024));
 
         let pipelines = PipelineStorage::new(self.device.clone(), self.surface_texture_format);
 

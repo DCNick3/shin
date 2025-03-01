@@ -41,6 +41,7 @@ impl TileLayer {
 impl NewDrawableLayerNeedsSeparatePass for TileLayerImpl {}
 
 impl NewDrawableLayer for TileLayerImpl {
+    #[tracing::instrument(skip_all)]
     fn render_drawable_direct(
         &self,
         pass: &mut RenderPass,

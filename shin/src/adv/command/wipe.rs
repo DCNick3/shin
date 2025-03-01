@@ -34,7 +34,7 @@ impl StartableCommand for command::runtime::WIPE {
 
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         needs_wipe: bool,
@@ -81,7 +81,7 @@ impl StartableCommand for command::runtime::WIPE {
 impl UpdatableCommand for WIPE {
     fn update(
         &mut self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,

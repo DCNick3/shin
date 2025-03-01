@@ -1022,6 +1022,7 @@ impl Layer for MessageLayer {
         3
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(
         &self,
         pass: &mut RenderPass,

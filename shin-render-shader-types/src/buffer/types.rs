@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+use tracing::error;
+
 use crate::{buffer::BytesAddress, vertices::VertexType};
 
 // TODO: this is very conservative, maybe we can find a way to relax this at runtime somehow
@@ -15,11 +17,27 @@ pub trait BufferType {
     }
 
     fn is_valid_logical_size(size: BytesAddress) -> bool {
-        if Self::IS_ARRAY_TYPE {
+        let result = if Self::IS_ARRAY_TYPE {
             size.is_aligned_to(Self::LOGICAL_SIZE_STRIDE)
         } else {
             size == Self::LOGICAL_SIZE_STRIDE
+        };
+
+        if !result {
+            let is_array_type = if Self::IS_ARRAY_TYPE {
+                "array"
+            } else {
+                "non-array"
+            };
+            error!(
+                "Logical size {:?} is not aligned to stride {:?} for {} type",
+                size,
+                Self::LOGICAL_SIZE_STRIDE,
+                is_array_type
+            );
         }
+
+        result
     }
 }
 

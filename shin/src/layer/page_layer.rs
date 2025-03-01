@@ -94,6 +94,7 @@ impl NewDrawableLayerNeedsSeparatePass for PageLayerNewDrawableDelegate<'_> {
 }
 
 impl NewDrawableLayer for PageLayerNewDrawableDelegate<'_> {
+    #[tracing::instrument(skip_all)]
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,
@@ -217,6 +218,7 @@ impl Layer for PageLayer {
         self.layers_to_render = delegate.layers_to_render;
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(
         &self,
         pass: &mut RenderPass,

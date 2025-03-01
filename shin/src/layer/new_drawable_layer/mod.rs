@@ -35,6 +35,7 @@ pub trait NewDrawableLayerNeedsSeparatePass {
 }
 
 pub trait NewDrawableLayer: NewDrawableLayerNeedsSeparatePass {
+    #[tracing::instrument(skip_all)]
     #[expect(unused)] // it will be used. eventually.
     fn render_drawable_indirect(
         &mut self,
@@ -282,6 +283,7 @@ impl NewDrawableLayerState {
         true
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn render<T: NewDrawableLayer>(
         &self,
         props: &LayerProperties,

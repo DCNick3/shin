@@ -66,6 +66,7 @@ impl Layer for RootLayer {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(
         &self,
         pass: &mut RenderPass,
@@ -173,6 +174,7 @@ impl Layer for RootLayerGroup {
         self.inner.pre_render(context, transform);
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(
         &self,
         pass: &mut RenderPass,

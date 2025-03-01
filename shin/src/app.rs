@@ -174,6 +174,7 @@ impl ShinApp for App {
         context: AppContext<Self>,
         input: EnumMap<Self::ActionType, ActionState>,
         elapsed_time: Duration,
+        command_encoder: &mut wgpu::CommandEncoder,
     ) {
         if input[AppAction::ToggleFullscreen].is_clicked {
             context.winit.toggle_fullscreen();
@@ -191,14 +192,6 @@ impl ShinApp for App {
         //     screen_layer.apply_transition(Some(DefaultWiper::new(Ticks::from_seconds(1.0)).into()));
         // }
 
-        let mut encoder =
-            context
-                .wgpu
-                .device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("App::update"),
-                });
-
         let mut pre_render_context = PreRenderContext {
             device: &context.wgpu.device,
             queue: &context.wgpu.queue,
@@ -208,7 +201,7 @@ impl ShinApp for App {
 
             pipeline_storage: &mut context.render.pipelines,
             dynamic_buffer: &mut context.render.dynamic_buffer,
-            encoder: &mut encoder,
+            encoder: command_encoder,
         };
 
         let mut update_context = UpdateContext {
@@ -253,11 +246,10 @@ impl ShinApp for App {
         // self.root_layer_group
         //     .pre_render(&mut pre_render_context, &transform);
 
-        context.wgpu.queue.submit(std::iter::once(encoder.finish()));
-
         self.frame_id.advance();
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(&mut self, _context: RenderContext, pass: &mut RenderPass) {
         self.adv.render(pass);
 

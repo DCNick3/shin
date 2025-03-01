@@ -1,16 +1,16 @@
 use std::time::Duration;
 
-use enum_map::{enum_map, Enum, EnumMap};
+use enum_map::{Enum, EnumMap, enum_map};
 use glam::{Mat4, Vec3};
-use shin_input::{inputs::GamepadButton, Action, ActionState, RawInputState};
+use shin_input::{Action, ActionState, RawInputState, inputs::GamepadButton};
 use shin_primitives::color::{FloatColor4, UnormColor};
 use shin_render::{
+    DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
     render_pass::RenderPass,
     shaders::types::{
         buffer::VertexSource,
         vertices::{PosColVertex, PosVertex},
     },
-    DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_window::{AppContext, RenderContext, ShinApp};
 use winit::keyboard::KeyCode;
@@ -54,6 +54,7 @@ impl ShinApp for HelloApp {
         context: AppContext<Self>,
         input: EnumMap<HelloAction, ActionState>,
         _elapsed: Duration,
+        _command_encoder: &mut wgpu::CommandEncoder,
     ) {
         if input[HelloAction::Back].is_clicked {
             context.event_loop.exit();

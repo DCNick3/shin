@@ -23,5 +23,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 spin_sleep_util = "0.1.1"
 anyhow = { workspace = true }
 
+wgpu = { workspace = true }
+
 [lints]
 workspace = true

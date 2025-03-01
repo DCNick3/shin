@@ -1,5 +1,5 @@
 use glam::{vec3, vec4};
-use shin_core::primitives::color::{FloatColor4, UnormColor};
+use shin_primitives::color::{FloatColor4, UnormColor};
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget, TextureTargetKind},
@@ -119,6 +119,7 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
         )
     }
 
+    #[tracing::instrument(skip_all, fields(shader = ?request.program.get_shader_name()))]
     pub fn run(&mut self, request: RenderRequest) {
         let pass = &mut self.pass;
 
@@ -319,6 +320,7 @@ impl<'pipelines, 'dynbuffer, 'sampler, 'device, 'encoder>
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn clear(&mut self, color: Option<UnormColor>, stencil: Option<u8>, depth: Option<f32>) {
         let z = match depth {
             Some(z) => z + z - 1.0,

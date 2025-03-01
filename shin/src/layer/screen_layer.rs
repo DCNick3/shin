@@ -198,6 +198,7 @@ impl Layer for TransitionLayer {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(
         &self,
         pass: &mut RenderPass,
@@ -317,6 +318,7 @@ impl NewDrawableLayerNeedsSeparatePass for ScreenLayerNewDrawableDelegate<'_> {
 }
 
 impl NewDrawableLayer for ScreenLayerNewDrawableDelegate<'_> {
+    #[tracing::instrument(skip_all)]
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,
@@ -402,6 +404,7 @@ impl Layer for ScreenLayer {
             .pre_render(context, props, &mut delegate, &self_transform);
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(
         &self,
         pass: &mut RenderPass,

@@ -1,11 +1,14 @@
+mod belt;
+
 use std::fmt::Debug;
 
 use shin_render_shader_types::buffer::{
-    Buffer, BufferUsage, BytesAddress, DynamicBufferBackend, SharedBuffer,
+    BufferRef, BytesAddress, DynamicBufferBackend,
     types::{BufferType, RawMarker},
 };
 use sketches_ddsketch::DDSketch;
-use tracing::info;
+
+use crate::dynamic_buffer::belt::StagingBelt;
 
 pub struct DynamicBufferStats {
     pub start_time: std::time::Instant,
@@ -70,80 +73,43 @@ impl Debug for DynamicBufferStats {
 /// Dynamically allocates space in a gpu buffer, mostly used for submitting uniform data
 pub struct DynamicBuffer {
     device: wgpu::Device,
-    queue: wgpu::Queue,
-    block_size: BytesAddress,
-    position: BytesAddress,
-    buffer: SharedBuffer<RawMarker>,
+    belt: StagingBelt,
     stats: DynamicBufferStats,
 }
 
 impl DynamicBuffer {
-    const ALIGNMENT: BytesAddress = BytesAddress::new(16);
-
-    pub fn new(device: wgpu::Device, queue: wgpu::Queue, block_size: BytesAddress) -> Self {
-        let buffer = Buffer::allocate_raw(
-            &device,
-            block_size,
-            BufferUsage::DynamicBuffer,
-            Some(&format!("DynamicBuffer generation {}", 0)),
-        );
-
+    pub fn new(device: wgpu::Device, chunk_size: BytesAddress) -> Self {
         Self {
             device,
-            queue,
-            block_size,
-            position: BytesAddress::ZERO,
-            buffer,
+            belt: StagingBelt::new(chunk_size),
             stats: DynamicBufferStats::new(),
         }
+    }
+
+    pub fn finish(&mut self, encoder: &mut wgpu::CommandEncoder) {
+        self.belt.finish(encoder)
+    }
+
+    pub fn recall(&mut self) {
+        self.belt.recall()
     }
 }
 
 impl DynamicBufferBackend for DynamicBuffer {
-    fn get_with_raw_data(
-        &mut self,
-        alignment: BytesAddress,
-        data: &[u8],
-    ) -> SharedBuffer<RawMarker> {
-        let offset = self.position.align_to(alignment);
+    #[tracing::instrument(skip_all)]
+    fn get_with_raw_data(&mut self, alignment: BytesAddress, data: &[u8]) -> BufferRef<RawMarker> {
         let logical_size = BytesAddress::new(data.len() as _);
-        let physical_size = logical_size.align_to(Self::ALIGNMENT);
 
-        let mut waste = offset - self.position;
+        let (staging, actual) = self.belt.allocate(logical_size, alignment, &self.device);
 
-        if offset + physical_size > self.block_size {
-            info!("reallocating the dynamic buffer, stats={:?}", self.stats);
-
-            self.stats.generation += 1;
-
-            self.buffer = Buffer::allocate_raw(
-                &self.device,
-                self.block_size,
-                BufferUsage::DynamicBuffer,
-                Some(&format!(
-                    "DynamicBuffer generation {}",
-                    self.stats.generation
-                )),
-            );
-            self.position = BytesAddress::ZERO;
-
-            return self.get_with_raw_data(alignment, data);
-        }
-
-        assert!(RawMarker::is_valid_offset(offset));
         assert!(RawMarker::is_valid_logical_size(logical_size));
 
-        self.position = (offset + physical_size).align_to(Self::ALIGNMENT);
-
-        waste += self.position - (offset + logical_size);
-
-        self.stats.wasted += waste.get();
         self.stats.allocated += logical_size.get();
         self.stats.alignment_histogram.add(alignment.get() as f64);
         self.stats.size_histogram.add(logical_size.get() as f64);
 
-        self.buffer.write(&self.queue, offset, data);
+        staging.get_mapped_range_mut()[..data.len()].copy_from_slice(data);
 
-        self.buffer.slice_bytes(offset, logical_size)
+        actual
     }
 }

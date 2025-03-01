@@ -47,7 +47,7 @@ impl StartableCommand for command::runtime::MOVIEWAIT {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         state_info: Self::StateInfo,
@@ -101,7 +101,7 @@ impl StartableCommand for command::runtime::MOVIEWAIT {
 impl UpdatableCommand for MOVIEWAIT {
     fn update(
         &mut self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         adv_state: &mut AdvState,

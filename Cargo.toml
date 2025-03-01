@@ -70,6 +70,9 @@ rayon = "1.10.0"
 # git version for deadlock fix https://github.com/gfx-rs/wgpu/pull/7221
 wgpu = { git = "https://github.com/gfx-rs/wgpu.git", rev = "9aafe4c236dde009956888da824d2a4b048d2bd6" }
 
+# using a patched tracy here to force it to not use rdtsc, because it's unreliable on my system
+tracy-client-sys = { git = "https://github.com/DCNick3/rust_tracy_client.git", rev = "a23b3d685ef1c5416e9cc466e3fa84dfb8dc5968" }
+
 [profile.release]
 debug = true
 #lto = 'thin'

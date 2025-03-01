@@ -16,7 +16,7 @@ impl StartableCommand for command::runtime::PAGEBACK {
 
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         needs_page_back: bool,
@@ -26,12 +26,10 @@ impl StartableCommand for command::runtime::PAGEBACK {
             return self.token.finish().into();
         }
 
-        let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
+        let mut clone_ctx = context.pre_render.render_clone_ctx();
 
         adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
         adv_state.screen_layer_mut().pageback(&mut clone_ctx, false);
-
-        clone_ctx.finish(context.pre_render.queue);
 
         self.token.finish().into()
     }

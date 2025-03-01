@@ -11,16 +11,25 @@ use wgpu::util::DeviceExt as _;
 
 pub use self::{bytes_address::BytesAddress, dynamic_buffer::DynamicBufferBackend};
 use crate::{
+    RenderClone, RenderCloneCtx,
     buffer::types::{ArrayBufferType, IndexMarker, RawMarker, VertexMarker},
     vertices::VertexType,
-    RenderClone, RenderCloneCtx,
 };
 
 const PHYSICAL_SIZE_ALIGNMENT: BytesAddress = BytesAddress::new(4);
 
 pub enum BufferUsage {
+    /// MAP_WRITE | COPY_SRC
+    StagingWrite,
+    /// MAP_READ | COPY_DST
+    StagingRead,
+    // TODO: maybe create specialized dynamic buffers for index/vertex/uniform?
+    // uniform buffers have very different layout requirements, so it will reduce wasted space somewhat
     /// COPY_DST | INDEX | VERTEX | UNIFORM
-    DynamicBuffer,
+    Dynamic,
+    // `Dynamic` for GPUs with MAPPABLE_PRIMARY_BUFFERS feature (integrated GPUs normally)
+    /// MAP_WRITE | INDEX | VERTEX | UNIFORM
+    DynamicMappable,
     /// VERTEX
     Vertex,
     /// INDEX
@@ -30,8 +39,18 @@ pub enum BufferUsage {
 impl From<BufferUsage> for wgpu::BufferUsages {
     fn from(value: BufferUsage) -> Self {
         match value {
-            BufferUsage::DynamicBuffer => {
+            BufferUsage::StagingWrite => {
+                wgpu::BufferUsages::MAP_WRITE | wgpu::BufferUsages::COPY_SRC
+            }
+            BufferUsage::StagingRead => wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            BufferUsage::Dynamic => {
                 wgpu::BufferUsages::COPY_DST
+                    | wgpu::BufferUsages::INDEX
+                    | wgpu::BufferUsages::VERTEX
+                    | wgpu::BufferUsages::UNIFORM
+            }
+            BufferUsage::DynamicMappable => {
+                wgpu::BufferUsages::MAP_WRITE
                     | wgpu::BufferUsages::INDEX
                     | wgpu::BufferUsages::VERTEX
                     | wgpu::BufferUsages::UNIFORM
@@ -45,6 +64,8 @@ impl From<BufferUsage> for wgpu::BufferUsages {
 #[derive(Debug)]
 pub struct Buffer<O: BufferOwnership, T: BufferType> {
     ownership: O,
+    // TODO: do we still want to allow suballocation of owned buffers like this?
+    // it seems that only suballocating buffer slices may be enough
     offset: BytesAddress,
     /// Logical size of the buffer, in bytes
     ///
@@ -55,7 +76,8 @@ pub struct Buffer<O: BufferOwnership, T: BufferType> {
 
 #[derive(Debug)]
 pub struct BufferRef<'a, T: BufferType> {
-    slice: wgpu::BufferSlice<'a>,
+    buffer: &'a wgpu::Buffer,
+    offset: BytesAddress,
     size: BytesAddress,
     phantom: PhantomData<T>,
 }
@@ -66,6 +88,7 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
         device: &wgpu::Device,
         size_bytes: BytesAddress,
         usage: BufferUsage,
+        mapped_at_creation: bool,
         label: Option<&str>,
     ) -> Self {
         let offset = BytesAddress::new(0);
@@ -80,7 +103,7 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
             label,
             size: physical_size.get(),
             usage: usage.into(),
-            mapped_at_creation: false,
+            mapped_at_creation,
         });
 
         Buffer {
@@ -161,27 +184,16 @@ impl<O: BufferOwnership, T: BufferType> Buffer<O, T> {
     }
 
     pub fn as_buffer_ref(&self) -> BufferRef<T> {
-        let slice = self
-            .ownership
-            .get()
-            .slice(self.offset.get()..(self.offset + self.logical_size).get());
-
         BufferRef {
-            slice,
+            buffer: self.ownership.get(),
+            offset: self.offset,
             size: self.logical_size,
             phantom: PhantomData,
         }
     }
 
-    pub fn as_buffer_binding(&self) -> wgpu::BufferBinding {
-        let offset = self.offset.get();
-        let size = self.logical_size.get();
-
-        wgpu::BufferBinding {
-            buffer: self.ownership.get(),
-            offset,
-            size: Some(wgpu::BufferSize::new(size).unwrap()),
-        }
+    pub fn raw_bytes_size(&self) -> BytesAddress {
+        self.logical_size
     }
 }
 
@@ -199,13 +211,9 @@ impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
 
         let new_offset = self.offset + offset;
 
-        let slice = self
-            .ownership
-            .get()
-            .slice(new_offset.get()..(new_offset + size).get());
-
         BufferRef {
-            slice,
+            buffer: self.ownership.get(),
+            offset: new_offset,
             size,
             phantom: PhantomData,
         }
@@ -213,6 +221,42 @@ impl<O: BufferOwnership, T: ArrayBufferType> Buffer<O, T> {
 
     pub fn count(&self) -> usize {
         self.logical_size.get() as usize / size_of::<T::Element>()
+    }
+}
+
+// TODO: these ops only make sense for buffers that are mapped (or at least are allowed to be mapped
+// maybe we should enforce this on the level of types?
+impl<'a, T: BufferType> BufferRef<'a, T> {
+    fn get_range(&self) -> impl std::ops::RangeBounds<wgpu::BufferAddress> {
+        self.offset.get()..(self.offset.get() + self.size.get())
+    }
+
+    pub fn as_wgpu_slice(&self) -> wgpu::BufferSlice<'a> {
+        self.buffer.slice(self.get_range())
+    }
+
+    pub fn as_buffer_binding(&self) -> wgpu::BufferBinding {
+        let offset = self.offset.get();
+        let size = self.size.get();
+
+        wgpu::BufferBinding {
+            buffer: self.buffer,
+            offset,
+            size: Some(wgpu::BufferSize::new(size).unwrap()),
+        }
+    }
+
+    pub fn get_mapped_range(&self) -> wgpu::BufferView<'a> {
+        // TODO: the call to `as_wgpu_slice` could go on the next version of wgpu since the merge of https://github.com/gfx-rs/wgpu/pull/7123
+        self.as_wgpu_slice().get_mapped_range()
+    }
+
+    pub fn get_mapped_range_mut(&self) -> wgpu::BufferViewMut<'a> {
+        self.as_wgpu_slice().get_mapped_range_mut()
+    }
+
+    pub fn into_parts(self) -> (&'a wgpu::Buffer, BytesAddress, BytesAddress) {
+        (self.buffer, self.offset, self.size)
     }
 }
 
@@ -256,24 +300,44 @@ pub type AnyIndexBuffer = AnyBuffer<IndexMarker>;
 pub type VertexBufferRef<'a, T> = BufferRef<'a, VertexMarker<T>>;
 pub type IndexBufferRef<'a> = BufferRef<'a, IndexMarker>;
 
-impl<T: BufferType> SharedBuffer<T> {
-    pub fn slice_bytes(&self, start: BytesAddress, size: BytesAddress) -> Self {
-        let ownership = self.ownership.clone();
+impl<O: BufferOwnership> Buffer<O, RawMarker> {
+    pub fn slice_bytes(&self, start: BytesAddress, size: BytesAddress) -> BufferRef<RawMarker> {
+        let ownership = &self.ownership;
 
         let offset = self.offset + start;
 
         assert!((self.offset..self.offset + self.logical_size).contains(&offset));
         assert!((self.offset..=self.offset + self.logical_size).contains(&(offset + size)));
 
-        assert!(T::is_valid_offset(offset));
-        assert!(T::is_valid_logical_size(size));
+        assert!(RawMarker::is_valid_offset(offset));
+        assert!(RawMarker::is_valid_logical_size(size));
 
-        Self {
-            ownership,
+        BufferRef {
+            buffer: ownership.get(),
             offset,
-            logical_size: size,
-            phantom: Default::default(),
+            size,
+            phantom: PhantomData,
         }
+    }
+}
+
+impl<T: BufferType> OwnedBuffer<T> {
+    pub fn map_async(
+        self,
+        mode: wgpu::MapMode,
+        callback: impl FnOnce(Self, Result<(), wgpu::BufferAsyncError>) + Send + 'static,
+    ) where
+        Self: Send + 'static,
+    {
+        self.ownership
+            .get()
+            .clone()
+            .slice(..)
+            .map_async(mode, |result| callback(self, result))
+    }
+
+    pub fn unmap(&self) {
+        self.ownership.get().unmap();
     }
 }
 
@@ -316,7 +380,7 @@ impl<T: BufferType> From<OwnedBuffer<T>> for AnyBuffer<T> {
 impl<T: BufferType> From<SharedBuffer<T>> for AnyBuffer<T> {
     fn from(value: SharedBuffer<T>) -> Self {
         AnyBuffer {
-            ownership: AnyOwnership::Shared(value.ownership.clone()),
+            ownership: AnyOwnership::Shared(Box::new(value.ownership)),
             offset: value.offset,
             logical_size: value.logical_size,
             phantom: Default::default(),
@@ -332,7 +396,20 @@ impl<O: BufferOwnership> Buffer<O, RawMarker> {
             ownership: self.ownership,
             offset: self.offset,
             logical_size: self.logical_size,
-            phantom: Default::default(),
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a> BufferRef<'a, RawMarker> {
+    pub fn downcast<T: BufferType>(self) -> BufferRef<'a, T> {
+        assert!(T::is_valid_offset(self.offset));
+        assert!(T::is_valid_logical_size(self.size));
+        BufferRef {
+            buffer: self.buffer,
+            offset: self.offset,
+            size: self.size,
+            phantom: PhantomData,
         }
     }
 }
@@ -399,32 +476,29 @@ impl<T: VertexType> VertexSource<'_, T> {
             VertexSource::VertexBuffer {
                 vertices: vertex_buffer,
             } => {
-                pass.set_vertex_buffer(0, vertex_buffer.slice);
+                pass.set_vertex_buffer(0, vertex_buffer.as_wgpu_slice());
             }
             VertexSource::VertexAndIndexBuffer {
                 vertices: vertex_buffer,
                 indices: index_buffer,
             } => {
-                pass.set_vertex_buffer(0, vertex_buffer.slice);
-                pass.set_index_buffer(index_buffer.slice, wgpu::IndexFormat::Uint16);
+                pass.set_vertex_buffer(0, vertex_buffer.as_wgpu_slice());
+                pass.set_index_buffer(index_buffer.as_wgpu_slice(), wgpu::IndexFormat::Uint16);
             }
             VertexSource::VertexData {
                 vertices: vertex_data,
             } => {
                 let vertex_buffer = dynamic_buffer.get_vertex_with_data(vertex_data);
-                pass.set_vertex_buffer(0, vertex_buffer.as_buffer_ref().slice);
+                pass.set_vertex_buffer(0, vertex_buffer.as_wgpu_slice());
             }
             VertexSource::VertexAndIndexData {
                 vertices: vertex_data,
                 indices: index_data,
             } => {
                 let vertex_buffer = dynamic_buffer.get_vertex_with_data(vertex_data);
+                pass.set_vertex_buffer(0, vertex_buffer.as_wgpu_slice());
                 let index_buffer = dynamic_buffer.get_index_with_data(index_data);
-                pass.set_vertex_buffer(0, vertex_buffer.as_buffer_ref().slice);
-                pass.set_index_buffer(
-                    index_buffer.as_buffer_ref().slice,
-                    wgpu::IndexFormat::Uint16,
-                );
+                pass.set_index_buffer(index_buffer.as_wgpu_slice(), wgpu::IndexFormat::Uint16);
             }
         }
     }

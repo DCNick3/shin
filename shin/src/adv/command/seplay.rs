@@ -18,7 +18,7 @@ impl StartableCommand for command::runtime::SEPLAY {
 
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _state_info: (),

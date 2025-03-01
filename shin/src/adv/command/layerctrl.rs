@@ -54,7 +54,7 @@ impl StartableCommand for command::runtime::LAYERCTRL {
 
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         affected_layers: LayerOperationTargetList,
@@ -62,9 +62,7 @@ impl StartableCommand for command::runtime::LAYERCTRL {
     ) -> CommandStartResult {
         let (target_value, duration, flags, easing_param, ..) = self.params;
 
-        let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
-        adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
-        clone_ctx.finish(context.pre_render.queue);
+        adv_state.create_back_layer_group_if_needed(&mut context.pre_render.render_clone_ctx());
 
         if flags.unused_1() != 0 || flags.unused_2() != 0 || flags.unused_3() != 0 {
             panic!("LAYERCTRL: unused flags are set: {:?}", flags);

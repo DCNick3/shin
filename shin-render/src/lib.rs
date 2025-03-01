@@ -18,7 +18,7 @@ pub mod resizeable_texture;
 
 use enum_iterator::Sequence;
 use glam::{Mat4, Vec2, Vec3, Vec4, vec3, vec4};
-use shin_core::primitives::color::FloatColor4;
+use shin_primitives::color::FloatColor4;
 use shin_render_shader_types::{
     buffer::VertexSource,
     texture::TextureSource,
@@ -254,6 +254,13 @@ impl RenderProgramWithArguments<'_> {
             RenderProgramWithArguments::Fill { .. } => ShaderName::Fill,
             RenderProgramWithArguments::Sprite { .. } => ShaderName::Sprite,
             RenderProgramWithArguments::Font { .. } => ShaderName::Font,
+            RenderProgramWithArguments::FontBorder { .. } => ShaderName::FontBorder,
+            RenderProgramWithArguments::Layer { .. } => ShaderName::Layer,
+            RenderProgramWithArguments::Mask { .. } => ShaderName::Mask,
+            RenderProgramWithArguments::Movie { .. } => ShaderName::Movie,
+            RenderProgramWithArguments::WiperDefault { .. } => ShaderName::WiperDefault,
+            RenderProgramWithArguments::WiperMask { .. } => ShaderName::WiperMask,
+
             ref program => todo!("Implement shader for {:?}", program),
         }
     }

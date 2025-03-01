@@ -1,34 +1,8 @@
 use std::sync::Arc;
 
-use drop_bomb::DropBomb;
-
-pub struct RenderCloneCtx<'d> {
+pub struct RenderCloneCtx<'d, 'e> {
     pub device: &'d wgpu::Device,
-    pub encoder: wgpu::CommandEncoder,
-    bomb: DropBomb,
-}
-
-impl<'d> RenderCloneCtx<'d> {
-    pub fn new(device: &'d wgpu::Device) -> Self {
-        Self {
-            device,
-            encoder: device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("RenderCloneCtx"),
-            }),
-            bomb: DropBomb::new("RenderCloneCtx not finished"),
-        }
-    }
-
-    pub fn finish(self, queue: &wgpu::Queue) {
-        let Self {
-            device: _,
-            encoder,
-            mut bomb,
-        } = self;
-
-        queue.submit([encoder.finish()]);
-        bomb.defuse();
-    }
+    pub encoder: &'e mut wgpu::CommandEncoder,
 }
 
 pub use shin_derive::RenderClone;

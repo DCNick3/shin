@@ -15,7 +15,7 @@ impl StartableCommand for command::runtime::MSGWAIT {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _state_info: (),
@@ -34,7 +34,7 @@ impl StartableCommand for command::runtime::MSGWAIT {
 impl UpdatableCommand for MSGWAIT {
     fn update(
         &mut self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,

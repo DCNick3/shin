@@ -2385,6 +2385,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5881e4c3c2433fe4905bb19cfd2b5d49d4248274862b68c27c33d9ba4e13f9ec"
 
 [[package]]
+name = "generator"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc6bd114ceda131d3b1d665eba35788690ad37f5916457286b32ab6fd3c438dd"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "log",
+ "rustversion",
+ "windows 0.58.0",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3526,6 +3539,19 @@ name = "log"
 version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
+
+[[package]]
+name = "loom"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "419e0dc8046cb947daa77eb95ae174acfbddb7673b4151f56d1eed8e93fbfaca"
+dependencies = [
+ "cfg-if",
+ "generator",
+ "scoped-tls",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "lru"
@@ -5449,7 +5475,6 @@ dependencies = [
  "shin-window",
  "smallvec 2.0.0-alpha.10",
  "tracing",
- "tracing-subscriber",
  "wgpu 24.0.1",
  "winit",
 ]
@@ -5574,6 +5599,7 @@ dependencies = [
  "spin_sleep_util",
  "tracing",
  "tracing-subscriber",
+ "wgpu 24.0.1",
  "winit",
 ]
 
@@ -5598,8 +5624,9 @@ dependencies = [
  "enum-iterator",
  "glam 0.29.2",
  "image",
+ "log",
  "rustc-hash 2.1.1",
- "shin-core",
+ "shin-primitives",
  "shin-render-shader-types",
  "shin-render-shaders",
  "sketches-ddsketch",
@@ -5612,12 +5639,12 @@ name = "shin-render-shader-types"
 version = "0.7.0"
 dependencies = [
  "bytemuck",
- "drop_bomb",
  "encase",
  "enum-iterator",
  "glam 0.29.2",
  "shin-derive",
  "shin-primitives",
+ "tracing",
  "wgpu 24.0.1",
 ]
 
@@ -5639,6 +5666,7 @@ dependencies = [
  "shin-render-shader-types",
  "spirv",
  "syn 2.0.98",
+ "tracing",
  "wgpu 24.0.1",
 ]
 
@@ -5708,7 +5736,9 @@ dependencies = [
  "shin-tasks",
  "tracing",
  "tracing-subscriber",
+ "tracing-tracy",
  "tracing-wasm",
+ "tracy-client",
  "web-sys",
  "wgpu 24.0.1",
  "winit",
@@ -6492,6 +6522,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-tracy"
+version = "0.11.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0eaa1852afa96e0fe9e44caa53dc0bd2d9d05e0f2611ce09f97f8677af56e4ba"
+dependencies = [
+ "tracing-core",
+ "tracing-subscriber",
+ "tracy-client",
+]
+
+[[package]]
 name = "tracing-wasm"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6500,6 +6541,26 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "tracy-client"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d90a2c01305b02b76fdd89ac8608bae27e173c829a35f7d76a345ab5d33836db"
+dependencies = [
+ "loom",
+ "once_cell",
+ "tracy-client-sys",
+]
+
+[[package]]
+name = "tracy-client-sys"
+version = "0.24.3"
+source = "git+https://github.com/DCNick3/rust_tracy_client.git?rev=a23b3d685ef1c5416e9cc466e3fa84dfb8dc5968#a23b3d685ef1c5416e9cc466e3fa84dfb8dc5968"
+dependencies = [
+ "cc",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]

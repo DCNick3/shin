@@ -12,7 +12,7 @@ impl StartableCommand for command::runtime::SEVOL {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _state_info: (),

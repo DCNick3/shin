@@ -15,7 +15,8 @@ use shin_render::{
     shaders::types::texture::{DepthStencilTarget, TextureTarget, TextureTargetKind},
 };
 use shin_tasks::AsyncTask;
-use tracing::{info, warn};
+use tracing::{info, info_span, warn};
+use tracing_subscriber::{Layer as _, layer::SubscriberExt as _, util::SubscriberInitExt as _};
 use winit::{
     application::ApplicationHandler,
     dpi::PhysicalSize,
@@ -62,6 +63,7 @@ pub trait ShinApp: Sized {
         context: AppContext<Self>,
         input: EnumMap<Self::ActionType, ActionState>,
         elapsed_time: Duration,
+        command_encoder: &mut wgpu::CommandEncoder,
     );
     // can't pass context here because `RenderPass` borrows a bunch of stuff from there
     // let's hope it won't be an issue ;)
@@ -530,6 +532,8 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 }
             }
             WindowEvent::RedrawRequested => {
+                let _span = info_span!("redraw").entered();
+
                 let WinitAppState::Operational {
                     proxy: _,
                     last_update,
@@ -559,51 +563,81 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
                 // these should probably be passed directly or some other abstraction should be devised
                 let input_state = input_state.update(instantaneous_input_state, elapsed);
 
-                app.update(
-                    AppContext {
-                        event_loop,
-                        event_loop_proxy,
-                        winit,
-                        wgpu,
-                        render,
-                    },
-                    input_state,
-                    elapsed,
-                );
+                let mut update_encoder =
+                    wgpu.device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("Update"),
+                        });
+
+                info_span!("update").in_scope(|| {
+                    app.update(
+                        AppContext {
+                            event_loop,
+                            event_loop_proxy,
+                            winit,
+                            wgpu,
+                            render,
+                        },
+                        input_state,
+                        elapsed,
+                        &mut update_encoder,
+                    );
+                });
                 raw_input_state.finish_frame();
 
-                let mut encoder = wgpu
-                    .device
-                    .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+                let mut render_encoder =
+                    wgpu.device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("Render"),
+                        });
+
                 let (viewport, surface_texture) = render.surface.get_current_texture().unwrap();
 
-                let mut pass = RenderPass::new(
-                    &mut render.pipelines,
-                    &mut render.dynamic_buffer,
-                    &render.sampler_store,
-                    &wgpu.device,
-                    &mut encoder,
-                    TextureTarget {
-                        kind: TextureTargetKind::Screen,
-                        view: &surface_texture.view,
-                    },
-                    Some(DepthStencilTarget {
-                        view: render.surface_depth_stencil_buffer.resize_and_get_view(),
-                    }),
-                    Some(viewport),
-                    "app",
-                );
+                info_span!("render").in_scope(|| {
+                    let mut pass = RenderPass::new(
+                        &mut render.pipelines,
+                        &mut render.dynamic_buffer,
+                        &render.sampler_store,
+                        &wgpu.device,
+                        &mut render_encoder,
+                        TextureTarget {
+                            kind: TextureTargetKind::Screen,
+                            view: &surface_texture.view,
+                        },
+                        Some(DepthStencilTarget {
+                            view: render.surface_depth_stencil_buffer.resize_and_get_view(),
+                        }),
+                        Some(viewport),
+                        "app",
+                    );
 
-                let context = RenderContext { winit, wgpu };
+                    let context = RenderContext { winit, wgpu };
 
-                app.render(context, &mut pass);
+                    app.render(context, &mut pass);
+                });
 
-                drop(pass);
+                info_span!("submit").in_scope(|| {
+                    let mut dynamic_buffer_encoder =
+                        wgpu.device
+                            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                                label: Some("DynamicBuffer"),
+                            });
+                    render.dynamic_buffer.finish(&mut dynamic_buffer_encoder);
 
-                wgpu.queue.submit(std::iter::once(encoder.finish()));
+                    wgpu.queue.submit([
+                        dynamic_buffer_encoder.finish(),
+                        update_encoder.finish(),
+                        render_encoder.finish(),
+                    ]);
+                    render.dynamic_buffer.recall();
+                });
 
-                winit.window.pre_present_notify();
-                surface_texture.texture.present();
+                info_span!("present").in_scope(|| {
+                    winit.window.pre_present_notify();
+                    surface_texture.texture.present();
+                });
+
+                tracy_client::frame_mark();
 
                 winit.window.request_redraw();
             }
@@ -617,6 +651,25 @@ impl<A: ShinApp> ApplicationHandler<ShinAppEventImpl<A::EventType>> for WinitApp
         };
 
         winit.window.request_redraw();
+    }
+}
+
+pub fn init_tracing() {
+    cfg_if::cfg_if! {
+        if #[cfg(target_arch = "wasm32")] {
+            console_error_panic_hook::set_once();
+            tracing_wasm::set_as_global_default();
+        } else {
+            // tracy_client::Client::start();
+
+            tracing_subscriber::registry()
+                .with(tracing_tracy::TracyLayer::default()
+                    .with_filter(tracing_subscriber::filter::filter_fn(|m| m.module_path().is_some_and(|v| v.starts_with("shin")))))
+                .with(tracing_subscriber::fmt::layer()
+                    .with_filter(tracing_subscriber::EnvFilter::builder().from_env_lossy())
+                )
+            .init();
+        }
     }
 }
 

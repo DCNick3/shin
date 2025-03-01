@@ -1,16 +1,16 @@
 use std::{collections::VecDeque, time::Duration};
 
-use enum_map::{enum_map, Enum, EnumMap};
+use enum_map::{Enum, EnumMap, enum_map};
 use glam::{Mat4, Vec3};
 use shin_input::{
-    inputs::{GamepadButton, VirtualGamepadButton},
     Action, ActionState, RawInputState,
+    inputs::{GamepadButton, VirtualGamepadButton},
 };
 use shin_primitives::color::UnormColor;
 use shin_render::{
+    DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
     render_pass::RenderPass,
     shaders::types::{buffer::VertexSource, vertices::PosColVertex},
-    DrawPrimitive, RenderProgramWithArguments, RenderRequestBuilder,
 };
 use shin_window::{AppContext, RenderContext, ShinApp};
 use tracing::info;
@@ -269,6 +269,7 @@ impl ShinApp for HelloApp {
         context: AppContext<HelloApp>,
         input: EnumMap<HelloAction, ActionState>,
         elapsed_time: Duration,
+        _command_encoder: &mut wgpu::CommandEncoder,
     ) {
         if input[HelloAction::Back].is_clicked {
             context.event_loop.exit();

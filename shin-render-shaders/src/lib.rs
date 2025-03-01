@@ -6,6 +6,7 @@ use shin_render_shader_types::{
     texture::TextureSamplerStore,
     vertices::VertexType,
 };
+use tracing::info_span;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ShaderBindingGroupDescriptor {
@@ -182,14 +183,17 @@ impl<'a, S: Shader> TypedRenderPipeline<'a, S> {
         vertices: VertexSource<S::Vertex>,
     ) {
         render_pass.set_pipeline(self.pipeline);
-        S::set_bindings(
-            device,
-            dynamic_buffer,
-            sampler_store,
-            &self.context.bind_group_layout,
-            render_pass,
-            bindings,
-        );
+        info_span!("set_bindings").in_scope(|| {
+            S::set_bindings(
+                device,
+                dynamic_buffer,
+                sampler_store,
+                &self.context.bind_group_layout,
+                render_pass,
+                bindings,
+            )
+        });
+
         vertices.bind(dynamic_buffer, render_pass);
         match vertices.info() {
             VertexSourceInfo::VertexBuffer { vertex_count } => {
@@ -198,7 +202,7 @@ impl<'a, S: Shader> TypedRenderPipeline<'a, S> {
             VertexSourceInfo::VertexAndIndexBuffer { index_count } => {
                 render_pass.draw_indexed(0..index_count, 0, 0..1);
             }
-        }
+        };
     }
 }
 

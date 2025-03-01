@@ -19,7 +19,7 @@ impl StartableCommand for command::runtime::SEWAIT {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _state_info: (),
@@ -39,7 +39,7 @@ impl StartableCommand for command::runtime::SEWAIT {
 impl UpdatableCommand for SEWAIT {
     fn update(
         &mut self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,

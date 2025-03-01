@@ -158,6 +158,7 @@ impl AnyLayerMut<'_> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn render_layers_default_cb(
     color: FloatColor4,
 ) -> impl Fn(&mut RenderPass, &TransformParams, u8) {
@@ -200,6 +201,7 @@ pub fn render_layers_default_cb(
     }
 }
 
+#[tracing::instrument(skip_all)]
 #[inline]
 pub fn render_layers_with_bg<F>(
     pass: &mut RenderPass,
@@ -243,6 +245,7 @@ where
     stencil_ref
 }
 
+#[tracing::instrument(skip_all)]
 pub fn render_layer_without_bg(
     pass: &mut RenderPass,
     transform: &TransformParams,

@@ -11,6 +11,24 @@ shin-render = { path = "../shin-render" }
 
 tracing = { workspace = true }
 
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-tracy = { version = "0.11.4", default-features = false, features = [
+    "system-tracing",
+    "context-switch-tracing",
+    "sampling",
+    "code-transfer",
+    "broadcast",
+    "callstack-inlines",
+] }
+tracy-client = { version = "0.18.0", default-features = false, features = [
+    "system-tracing",
+    "context-switch-tracing",
+    "sampling",
+    "code-transfer",
+    "broadcast",
+    "callstack-inlines",
+] }
+
 cfg-if = "1.0.0"
 
 enum-map = { workspace = true }
@@ -23,6 +41,9 @@ derive-where = "1.2.7"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3.70", features = ["Document"] }
+
+[features]
+tracy = ["tracing-tracy/enable"]
 
 [dev-dependencies]
 dpi = { workspace = true }

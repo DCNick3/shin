@@ -113,6 +113,7 @@ impl Adv {
     }
 
     // TODO: impl Scene for Adv
+    #[tracing::instrument(skip_all)]
     pub fn render(&self, pass: &mut RenderPass) {
         self.adv_state.render(pass);
     }
@@ -368,6 +369,7 @@ impl AdvState {
         // self.back_layer_group = Some(self.root_layer_group.render_clone(ctx));
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn render(&self, pass: &mut RenderPass) {
         pass.clear(Some(UnormColor::BLACK), Some(0), Some(1.0));
         render_layer_without_bg(pass, &TransformParams::default(), &self.root_layer_group, 0)

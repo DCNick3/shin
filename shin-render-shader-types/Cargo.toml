@@ -7,6 +7,8 @@ edition = "2024"
 shin-derive = { path = "../shin-derive" }
 shin-primitives = { path = "../shin-primitives", features = ["encase"] }
 
+tracing = { workspace = true }
+
 # TODO: having to depend on wgpu is a bit suboptimal, because we use this crate in build.rs
 # We MAY circumvent it by redefining some of the types and providing optional conversions
 wgpu = { workspace = true }
@@ -21,7 +23,6 @@ bytemuck = { workspace = true, features = ["derive"] }
 encase = { workspace = true, features = ["glam"] }
 
 enum-iterator = { workspace = true }
-drop_bomb = "0.1.5"
 
 [lints]
 workspace = true

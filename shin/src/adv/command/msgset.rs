@@ -18,7 +18,7 @@ impl StartableCommand for command::runtime::MSGSET {
 
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         scenario: &Arc<Scenario>,
         vm_state: &VmState,
         _state_info: (),
@@ -65,7 +65,7 @@ impl StartableCommand for command::runtime::MSGSET {
 impl UpdatableCommand for MSGSET {
     fn update(
         &mut self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,

@@ -156,6 +156,7 @@ impl NewDrawableLayerNeedsSeparatePass for MovieLayerImpl {
 }
 
 impl NewDrawableLayer for MovieLayerImpl {
+    #[tracing::instrument(skip_all)]
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,

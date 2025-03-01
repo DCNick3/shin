@@ -134,7 +134,7 @@ impl StartableCommand for command::runtime::LAYERLOAD {
 
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         state_info: LayerLoadStateInfo,
@@ -177,7 +177,7 @@ impl StartableCommand for command::runtime::LAYERLOAD {
 impl UpdatableCommand for LAYERLOAD {
     fn update(
         &mut self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,
@@ -189,9 +189,7 @@ impl UpdatableCommand for LAYERLOAD {
 
         // NB: here the game also loads a wiper, but we don't support `LayerGroup`-level wiping
 
-        let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
-        adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
-        clone_ctx.finish(context.pre_render.queue);
+        adv_state.create_back_layer_group_if_needed(&mut context.pre_render.render_clone_ctx());
 
         let mut plane_layer_group = adv_state.plane_layer_group_mut(self.state_info.plane);
 
@@ -208,13 +206,7 @@ impl UpdatableCommand for LAYERLOAD {
             let mut layer = if info.already_the_same {
                 previous_layer.unwrap()
             } else {
-                let mut ctx = RenderCloneCtx::new(context.pre_render.device);
-
-                let res = layer.render_clone(&mut ctx);
-
-                ctx.finish(context.pre_render.queue);
-
-                res
+                layer.render_clone(&mut context.pre_render.render_clone_ctx())
             };
 
             if let UserLayer::Bustup(layer) = &mut layer {

@@ -8,7 +8,7 @@ license = "MPL-2.0"
 authors = ["DCNick3"]
 
 [dependencies]
-shin-core = { path = "../shin-core" }
+shin-primitives = { path = "../shin-primitives" }
 shin-render-shader-types = { path = "../shin-render-shader-types" }
 shin-render-shaders = { path = "../shin-render-shaders" }
 
@@ -32,6 +32,7 @@ image = { workspace = true, default-features = false }
 enum-iterator = { workspace = true }
 
 sketches-ddsketch = "0.3.0"
+log = "0.4.26"
 
 [lints]
 workspace = true

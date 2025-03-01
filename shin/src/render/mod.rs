@@ -5,7 +5,10 @@ use shin_render::{
     render_pass::RenderPass,
     render_texture::RenderTexture,
     resize::SurfaceResizeSource,
-    shaders::types::texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget},
+    shaders::types::{
+        RenderCloneCtx,
+        texture::{DepthStencilTarget, TextureSamplerStore, TextureTarget},
+    },
     shin_orthographic_projection_matrix,
 };
 use winit::dpi::PhysicalSize;
@@ -80,5 +83,12 @@ impl PreRenderContext<'_, '_, '_, '_> {
             None,
             label,
         )
+    }
+
+    pub fn render_clone_ctx(&mut self) -> RenderCloneCtx {
+        RenderCloneCtx {
+            device: self.device,
+            encoder: self.encoder,
+        }
     }
 }

@@ -59,15 +59,13 @@ impl StartableCommand for command::runtime::LAYERUNLOAD {
 
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         state_info: LayerLoadStateInfo,
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        let mut clone_ctx = RenderCloneCtx::new(context.pre_render.device);
-        adv_state.create_back_layer_group_if_needed(&mut clone_ctx);
-        clone_ctx.finish(context.pre_render.queue);
+        adv_state.create_back_layer_group_if_needed(&mut context.pre_render.render_clone_ctx());
 
         let plane_layer_group = adv_state.plane_layer_group_mut(state_info.plane);
 

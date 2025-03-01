@@ -16,6 +16,14 @@ impl BytesAddress {
         self.0
     }
 
+    pub fn max(self, other: Self) -> Self {
+        Self(self.0.max(other.0))
+    }
+
+    pub fn min(self, other: Self) -> Self {
+        Self(self.0.min(other.0))
+    }
+
     pub const fn is_aligned_to(&self, alignment: BytesAddress) -> bool {
         let remainder = self.0 % alignment.0;
         remainder == 0
@@ -37,6 +45,12 @@ impl BytesAddress {
         } else {
             self + alignment - remainder
         }
+    }
+}
+
+impl std::fmt::Display for BytesAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 

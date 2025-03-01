@@ -28,15 +28,13 @@ impl StartableCommand for command::runtime::MASKLOAD {
 
     fn start(
         self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         scenario: &Arc<Scenario>,
         vm_state: &VmState,
         _state_info: (),
         adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        let mut render_clone_ctx = RenderCloneCtx::new(context.pre_render.device);
-        adv_state.create_back_layer_group_if_needed(&mut render_clone_ctx);
-        render_clone_ctx.finish(context.pre_render.queue);
+        adv_state.create_back_layer_group_if_needed(&mut context.pre_render.render_clone_ctx());
 
         let Some(mask_id) = self.mask_id.repr() else {
             adv_state
@@ -73,7 +71,7 @@ impl StartableCommand for command::runtime::MASKLOAD {
 impl UpdatableCommand for MASKLOAD {
     fn update(
         &mut self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         adv_state: &mut AdvState,

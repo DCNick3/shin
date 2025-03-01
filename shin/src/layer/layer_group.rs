@@ -402,6 +402,7 @@ impl<T> NewDrawableLayer for LayerGroupNewDrawableDelegate<'_, T>
 where
     T: Layer,
 {
+    #[tracing::instrument(skip_all)]
     fn render_drawable_indirect(
         &mut self,
         context: &mut PreRenderContext,
@@ -572,6 +573,7 @@ where
         self.layers_to_render = delegate.layers_to_render;
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(
         &self,
         pass: &mut RenderPass,

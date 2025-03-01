@@ -18,7 +18,7 @@ impl StartableCommand for command::runtime::WAIT {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _state_info: (),
@@ -38,7 +38,7 @@ impl StartableCommand for command::runtime::WAIT {
 impl UpdatableCommand for WAIT {
     fn update(
         &mut self,
-        context: &UpdateContext,
+        context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         _vm_state: &VmState,
         _adv_state: &mut AdvState,

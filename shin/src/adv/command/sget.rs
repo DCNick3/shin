@@ -11,7 +11,7 @@ impl StartableCommand for command::runtime::SGET {
 
     fn start(
         self,
-        _context: &UpdateContext,
+        _context: &mut UpdateContext,
         _scenario: &Arc<Scenario>,
         vm_state: &VmState,
         _state_info: (),
