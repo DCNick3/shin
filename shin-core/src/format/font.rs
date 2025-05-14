@@ -2,14 +2,14 @@
 
 use std::{
     borrow::Cow,
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     io,
     io::{Read, Seek, SeekFrom},
 };
 
 use anyhow::anyhow;
 use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
-use glam::{vec2, Vec2};
+use glam::{Vec2, vec2};
 use image::GrayImage;
 use strum::EnumIter;
 
@@ -204,7 +204,10 @@ impl BinRead for LazyGlyph {
         let header = GlyphHeader::read_options(reader, endian, ())?;
         let texture_size = (header.texture_width, header.texture_height);
         let compressed_size = header.compressed_size as usize;
-        let uncompressed_size = header.texture_width as usize * header.texture_height as usize;
+        let initial_mip_size = header.texture_width as usize * header.texture_height as usize;
+        // take the sizes of 3 map-maps into account
+        let uncompressed_size =
+            initial_mip_size + initial_mip_size / 4 + initial_mip_size / 16 + initial_mip_size / 64;
         let info = header.into();
 
         let data = if compressed_size == 0 {
