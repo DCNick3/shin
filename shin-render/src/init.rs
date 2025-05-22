@@ -147,7 +147,9 @@ pub async fn init_wgpu<'window>(
     let backends = wgpu::Backends::from_env().unwrap_or(wgpu::Backends::all());
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
         backends,
-        flags: InstanceFlags::debugging(),
+        // this will disable vulkan validation in release mode
+        // TODO: add a compile-time flag to toggle this
+        flags: InstanceFlags::default(), // InstanceFlags::debugging(),
         ..Default::default()
     });
     let surface = instance

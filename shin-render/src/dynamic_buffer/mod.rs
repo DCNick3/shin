@@ -96,7 +96,6 @@ impl DynamicBuffer {
 }
 
 impl DynamicBufferBackend for DynamicBuffer {
-    #[tracing::instrument(skip_all)]
     fn get_with_raw_data(&mut self, alignment: BytesAddress, data: &[u8]) -> BufferRef<RawMarker> {
         let logical_size = BytesAddress::new(data.len() as _);
 

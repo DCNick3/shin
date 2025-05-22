@@ -28,7 +28,7 @@ heapless = { workspace = true }
 
 indexmap = { workspace = true }
 
-tracing = { workspace = true }
+tracing = { workspace = true } # NOTE: enabling `release_max_level_off` increases perf a lot
 
 clap = { version = "4.5.9", features = ["derive"] }
 clap-num = "1.1.1"
