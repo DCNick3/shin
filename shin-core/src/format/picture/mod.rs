@@ -475,7 +475,7 @@ pub fn read_picture_header(source: &[u8]) -> Result<PictureHeaderInfo> {
         bail!("File size mismatch");
     }
 
-    if !matches!(header.field_20, 0 | 1) {
+    if !matches!(header.field_20, 0 | 1 | 2 | 3) {
         bail!("Unknown field_20 value {}", header.field_20);
     }
 
@@ -508,7 +508,7 @@ pub fn read_picture<B: PictureBuilder>(source: &[u8], builder_args: B::Args) -> 
         bail!("File size mismatch");
     }
 
-    if !matches!(header.field_20, 0 | 1) {
+    if !matches!(header.field_20, 0 | 1 | 2 | 3) {
         bail!("Unknown field_20 value {}", header.field_20);
     }
 
