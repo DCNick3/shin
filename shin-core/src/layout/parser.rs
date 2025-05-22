@@ -10,6 +10,8 @@ pub enum ParsedCommand {
     EnableLipsync,
     /// @-
     DisableLipsync,
+    /// @/
+    VoiceWait,
     /// @b
     RubiContent(String),
     /// @<
@@ -71,6 +73,7 @@ impl<'a> MessageTextParser<'a> {
                 ParsedCommand::Char(codepoint) => layouter.on_char(codepoint),
                 ParsedCommand::EnableLipsync => layouter.on_lipsync_enabled(),
                 ParsedCommand::DisableLipsync => layouter.on_lipsync_disabled(),
+                ParsedCommand::VoiceWait => layouter.on_voice_wait(),
                 ParsedCommand::RubiContent(text) => layouter.on_rubi_content(text),
                 ParsedCommand::RubiBaseStart => layouter.on_rubi_base_start(),
                 ParsedCommand::RubiBaseEnd => layouter.on_rubi_base_end(),
@@ -162,6 +165,7 @@ impl Iterator for MessageTextParser<'_> {
         Some(match second_char {
             '+' => ParsedCommand::EnableLipsync,
             '-' => ParsedCommand::DisableLipsync,
+            '/' => ParsedCommand::VoiceWait,
             'b' => ParsedCommand::RubiContent(self.read_string_argument()),
             '<' => ParsedCommand::RubiBaseStart,
             '>' => ParsedCommand::RubiBaseEnd,
