@@ -2,6 +2,7 @@
 
 mod assembler;
 mod audio;
+mod bustup;
 mod rom;
 mod savedata;
 mod scenario;
@@ -13,17 +14,16 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use assembler::{assembler_command, AssemblerCommand};
+use assembler::{AssemblerCommand, assembler_command};
+use bustup::BustupCommand;
 use clap::{CommandFactory, Parser};
-use clap_complete::{generate, Shell};
+use clap_complete::{Shell, generate};
 use image::{GenericImageView, Rgba, RgbaImage};
 use itertools::Itertools;
-use rom::{rom_command, RomCommand};
-use savedata::{savedata_command, SavedataCommand};
-use scenario::{scenario_command, ScenarioCommand};
-use shin_core::format::{
-    audio::AudioSource, bustup::default_builder::DefaultBustupBuilder, picture::SimpleMergedPicture,
-};
+use rom::{RomCommand, rom_command};
+use savedata::{SavedataCommand, savedata_command};
+use scenario::{ScenarioCommand, scenario_command};
+use shin_core::format::{audio::AudioSource, picture::SimpleMergedPicture};
 use tracing_subscriber::EnvFilter;
 
 #[derive(clap::Parser, Debug)]
@@ -112,17 +112,6 @@ enum FontCommand {
     Decode {
         /// Path to the FNT file
         font_path: PathBuf,
-        /// Path to the output directory
-        output_path: PathBuf,
-    },
-}
-
-#[derive(clap::Subcommand, Debug)]
-enum BustupCommand {
-    /// Convert a BUP file into a bunch of PNG files (one base image, one per expression, and one per mouth position)
-    Decode {
-        /// Path to the BUP file
-        bustup_path: PathBuf,
         /// Path to the output directory
         output_path: PathBuf,
     },
@@ -258,7 +247,7 @@ fn font_command(command: FontCommand) -> Result<()> {
         } => {
             use std::fmt::Write;
 
-            use shin_core::format::font::{read_lazy_font, GlyphMipLevel, GlyphTrait};
+            use shin_core::format::font::{GlyphMipLevel, GlyphTrait, read_lazy_font};
 
             let font = File::open(path)?;
             let mut font = BufReader::new(font);
@@ -306,89 +295,6 @@ fn font_command(command: FontCommand) -> Result<()> {
 
                 new_glyph_pic.save(output_path.join(format!("{:04}.png", glyph_id.0)))?;
             }
-            Ok(())
-        }
-    }
-}
-
-fn bustup_command(command: BustupCommand) -> Result<()> {
-    match command {
-        BustupCommand::Decode {
-            bustup_path,
-            output_path,
-        } => {
-            use std::fmt::Write;
-
-            let bustup = std::fs::read(bustup_path)?;
-            let bustup =
-                shin_core::format::bustup::read_bustup::<DefaultBustupBuilder>(&bustup, ())?;
-
-            std::fs::create_dir_all(&output_path)?;
-
-            let mut metadata = String::new();
-            writeln!(metadata, "expressions:")?;
-            for (expression_name, expression) in bustup.expressions.iter().sorted_by_key(|v| v.0) {
-                writeln!(metadata, "  \"{}\":", expression_name.replace('\"', "\\\""))?;
-                if let Some(face1) = &expression.face1 {
-                    writeln!(
-                        metadata,
-                        "    face1_pos: {:?}",
-                        (face1.offset_x, face1.offset_y)
-                    )?;
-                }
-                if let Some(face2) = &expression.face2 {
-                    writeln!(
-                        metadata,
-                        "    face2_pos: {:?}",
-                        (face2.offset_x, face2.offset_y)
-                    )?;
-                }
-
-                writeln!(metadata, "    mouths:")?;
-                for (i, mouth) in expression.mouths.iter().enumerate() {
-                    writeln!(
-                        metadata,
-                        "      {}: {:?}",
-                        i,
-                        (mouth.offset_x, mouth.offset_y)
-                    )?;
-                }
-                writeln!(metadata, "    eyes:")?;
-                for (i, eye) in expression.eyes.iter().enumerate() {
-                    writeln!(metadata, "      {}: {:?}", i, (eye.offset_x, eye.offset_y))?;
-                }
-            }
-            std::fs::write(output_path.join("metadata.txt"), metadata)?;
-
-            bustup.base_image.save(output_path.join("base.png"))?;
-
-            for (expression_name, expression) in bustup.expressions.iter() {
-                if let Some(face1) = &expression.face1 {
-                    face1
-                        .data
-                        .save(output_path.join(format!("{}_face1.png", expression_name)))?;
-                }
-                if let Some(face2) = &expression.face2 {
-                    face2
-                        .data
-                        .save(output_path.join(format!("{}_face2.png", expression_name)))?;
-                }
-
-                for (i, mouth) in expression.mouths.iter().enumerate() {
-                    if !mouth.is_empty() {
-                        mouth.data.save(
-                            output_path.join(format!("{}_mouth_{}.png", expression_name, i)),
-                        )?;
-                    }
-                }
-                for (i, eye) in expression.eyes.iter().enumerate() {
-                    if !eye.is_empty() {
-                        eye.data
-                            .save(output_path.join(format!("{}_eye_{}.png", expression_name, i)))?;
-                    }
-                }
-            }
-
             Ok(())
         }
     }
@@ -482,7 +388,7 @@ fn main() -> Result<()> {
         SduAction::Picture(cmd) => picture_command(cmd),
         SduAction::Mask(cmd) => mask_command(cmd),
         SduAction::Font(cmd) => font_command(cmd),
-        SduAction::Bustup(cmd) => bustup_command(cmd),
+        SduAction::Bustup(cmd) => bustup::bustup_command(cmd),
         SduAction::TextureArchive(cmd) => texture_archive_command(cmd),
         SduAction::Audio(cmd) => audio::audio_command(cmd),
         SduAction::Savedata(cmd) => savedata_command(cmd),

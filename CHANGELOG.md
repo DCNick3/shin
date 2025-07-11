@@ -8,7 +8,11 @@
 - Add fallbacks from SPIR-V shaders to wgsl ones, allowing us to run on platforms not supporting SPIR-V shaders.
 - Rewrite `shin-tasks`. Now it is no longer a fork of `bevy_tasks`, but a much simpler library setting up rayon &
   async-executor tasks pools. May support wasm in the future.
+
 - Relax looping assertion in shin-core to allow more NXA files to be decoded.
+- Add a new bustup extraction mode into `sdu`: `bake`. It will combine all the bustup parts, allowing to get a sprite
+  that looks close to its in-game appearance without fiddling with files.
+  This representation is, however, very inefficient in terms of storage space.
 
 # Version 0.7.0
 
