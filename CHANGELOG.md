@@ -1,4 +1,4 @@
-# Unreleased
+# Version 0.8.0
 
 - Implement wipes. Now instead of flickering on, the scene changes are animated, like in the original implementation.
 - Implement novel mode messagebox.
