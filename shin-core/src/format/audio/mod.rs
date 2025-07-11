@@ -8,7 +8,7 @@ mod audio_source;
 
 use std::io::Read;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 pub use audio_source::{AudioBuffer, AudioFrameSource, AudioSource};
 use binrw::{BinRead, BinWrite};
 use opus::Channels;
@@ -251,7 +251,7 @@ pub fn read_audio(data: &[u8]) -> Result<AudioFile> {
 
     assert_eq!(header.file_size, data.len() as u32);
     // how are we supposed to loop when the loop end is not in the end of the file?
-    assert_eq!(header.info.loop_end, header.info.num_samples);
+    assert!(header.info.loop_end.abs_diff(header.info.num_samples) <= 1);
 
     let mut data = Vec::new();
     cur.read_to_end(&mut data)?;
