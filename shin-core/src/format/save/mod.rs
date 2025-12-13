@@ -217,38 +217,78 @@ impl<'a, E: Endianness> BitRead<'a, E> for SaveVectors {
 }
 
 /// Stores game settings
-#[derive(Debug, Clone, Serialize, Deserialize, BitRead, BitWrite)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
-    #[size = 7]
     pub v0_bgmvol: u8,
-    #[size = 7]
     pub v1_sfxvol: u8,
-    #[size = 7]
     pub v2_voicevol: u8,
-    #[size = 7]
     pub v3_sysvol: u8,
     pub v4_voicefocus: bool,
     pub v5_voicepanapot: bool,
     pub v6: bool,
-    #[size = 2]
     pub v7: u8,
-    #[size = 2]
     pub v8: u8,
-    #[size = 7]
     pub v9_msgspeed: u8,
-    #[size = 7]
     pub v10_skipspeed: u8,
     pub v11_disallowskipunread: bool,
     pub v12: bool,
-    #[size = 7]
     pub v13_msgwinalpha: u8,
     pub v14_showroutenavi: bool,
     pub v15: bool,
     pub v16_showtoucheffect: bool,
     pub v17_showscenetitle: bool,
     pub v18_showsongtitle: bool,
-    #[size = 32]
     pub v19: u32,
+}
+
+impl<'a, E: Endianness> BitRead<'a, E> for Settings {
+    fn read(reader: &mut bitbuffer::BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
+        reader.align()?;
+
+        let v0_bgmvol = reader.read_int(7)?;
+        let v1_sfxvol = reader.read_int(7)?;
+        let v2_voicevol = reader.read_int(7)?;
+        let v3_sysvol = reader.read_int(7)?;
+        let v4_voicefocus = reader.read_bool()?;
+        let v5_voicepanapot = reader.read_bool()?;
+        let v6 = reader.read_bool()?;
+        let v7 = reader.read_int(2)?;
+        let v8 = reader.read_int(2)?;
+        let v9_msgspeed = reader.read_int(7)?;
+        let v10_skipspeed = reader.read_int(7)?;
+        let v11_disallowskipunread = reader.read_bool()?;
+        let v12 = reader.read_bool()?;
+        let v13_msgwinalpha = reader.read_int(7)?;
+        let v14_showroutenavi = reader.read_bool()?;
+        let v15 = reader.read_bool()?;
+        let v16_showtoucheffect = reader.read_bool()?;
+        let v17_showscenetitle = reader.read_bool()?;
+        let v18_showsongtitle = reader.read_bool()?;
+        let v19 = reader.read_int(32)?;
+
+        Ok(Self {
+            v0_bgmvol,
+            v1_sfxvol,
+            v2_voicevol,
+            v3_sysvol,
+            v4_voicefocus,
+            v5_voicepanapot,
+            v6,
+            v7,
+            v8,
+            v9_msgspeed,
+            v10_skipspeed,
+            v11_disallowskipunread,
+            v12,
+            v13_msgwinalpha,
+            v14_showroutenavi,
+            v15,
+            v16_showtoucheffect,
+            v17_showscenetitle,
+            v18_showsongtitle,
+            v19,
+        })
+    }
 }
 
 /// Stores minimal info necessary to load a save.
@@ -290,12 +330,30 @@ fn parse_date_time<E: Endianness>(
     Ok(datetime)
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, BitRead, BitWrite)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameDataEntry {
     pub scenario_id: i32,
     pub random_seed: u32,
     pub save_position: u32,
     pub selection_data: SelectionData,
+}
+
+impl<'a, E: Endianness> BitRead<'a, E> for GameDataEntry {
+    fn read(reader: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
+        reader.align()?;
+
+        let scenario_id = reader.read_int(32)?;
+        let random_seed = reader.read_int(32)?;
+        let save_position = reader.read_int(32)?;
+        let selection_data = SelectionData::read(reader)?;
+
+        Ok(Self {
+            scenario_id,
+            random_seed,
+            save_position,
+            selection_data,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
