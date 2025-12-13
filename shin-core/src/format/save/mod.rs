@@ -188,17 +188,15 @@ impl<'a, E: Endianness> BitRead<'a, E> for PersistData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveVectors {
-    pub seen_messages_mask: Vec<u32>,
-    // seen choices?
-    pub vec2: Vec<u32>,
-    // chosen variants?
-    pub vec3: Vec<u8>,
-    // unlocked CGs
-    pub vec4: Vec<u32>,
-    // unlocked BGMs
-    pub vec5: Vec<u32>,
-    // unlocked tips?
-    pub vec6: Vec<u32>,
+    /// This stores a mask of all seen messages to not skip unseen messages (if the setting is enabled)
+    pub seen_messages: Vec<u32>,
+    /// This stores a mask of all seen choice variants to change how they are displayed
+    pub select_seen_choices: Vec<u32>,
+    /// This stores
+    pub select_chosen_variants: Vec<u8>,
+    pub unlocked_cgs: Vec<u32>,
+    pub unlocked_bgms: Vec<u32>,
+    pub unlocked_movies: Vec<u32>,
 }
 
 impl<'a, E: Endianness> BitRead<'a, E> for SaveVectors {
@@ -206,12 +204,12 @@ impl<'a, E: Endianness> BitRead<'a, E> for SaveVectors {
         stream.align()?;
 
         Ok(Self {
-            seen_messages_mask: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
-            vec2: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
-            vec3: read_vec(stream, read_u16, |stream| stream.read_int(4))?,
-            vec4: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
-            vec5: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
-            vec6: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
+            seen_messages: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
+            select_seen_choices: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
+            select_chosen_variants: read_vec(stream, read_u16, |stream| stream.read_int(4))?,
+            unlocked_cgs: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
+            unlocked_bgms: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
+            unlocked_movies: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
         })
     }
 }
@@ -219,6 +217,7 @@ impl<'a, E: Endianness> BitRead<'a, E> for SaveVectors {
 /// Stores game settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
+    // it appears that some settings do not have an in-game toggle
     pub v0_bgmvol: u8,
     pub v1_sfxvol: u8,
     pub v2_voicevol: u8,

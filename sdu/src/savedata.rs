@@ -5,13 +5,14 @@ use shin_core::format::save::Savedata;
 
 #[derive(clap::Subcommand, Debug)]
 pub enum SavedataCommand {
-    /// Deobfuscates the save file
+    /// Deobfuscates a save file
     Deobfuscate {
-        /// Path to the save file
+        /// Path to the obfuscated save file
         save_path: PathBuf,
-        /// Path to the output decrypted file
+        /// Path to the output deobfuscated file
         output_path: PathBuf,
-        /// Key to use for deobfuscation (defaults to a game-specific key)
+        /// Key to use for deobfuscation (defaults to a game-specific key).
+        /// Takes precedence over `--key-seed`.
         #[clap(long)]
         key: Option<u32>,
         /// Key seed to use for deobfuscation (defaults to a game-specific key)
@@ -19,13 +20,14 @@ pub enum SavedataCommand {
         #[clap(long)]
         key_seed: Option<String>,
     },
-    /// Obfuscate the save file
+    /// Obfuscate a save file
     Obfuscate {
-        /// Path to the save file
+        /// Path to a deobfuscated save file to obfuscate
         save_path: PathBuf,
-        /// Path to the output encrypted file
+        /// Path to the output obfuscated file
         output_path: PathBuf,
-        /// Key to use for obfuscation (defaults to a game-specific key)
+        /// Key to use for obfuscation (defaults to a game-specific key).
+        /// Takes precedence over `--key-seed`.
         #[clap(long)]
         key: Option<u32>,
         /// Key seed to use for obfuscation (defaults to a game-specific key)
@@ -33,11 +35,14 @@ pub enum SavedataCommand {
         #[clap(long)]
         key_seed: Option<String>,
     },
-    /// Decode the save file into a human-readable format
+    /// Decode a save file into a human-readable format
+    ///
+    /// NOTE: there are no guarantees about the stability of the output format, besides it being readable by the same version of `sdu`.
+    /// The format might change as more reverse-engineering progress is made.
     Decode {
-        /// Path to the save file
+        /// Path to an obfuscated save file to decode
         save_path: PathBuf,
-        /// Path to the output yaml file
+        /// Path to the output file. Outputs to stdout if not provided
         output_path: PathBuf,
     },
 }
