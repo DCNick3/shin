@@ -18,14 +18,14 @@ pub use self::{
 use crate::{
     format::scenario::{
         instruction_elements::{CodeAddress, NumberSpec, Register},
-        types::{Pad4, U16SmallList, U8SmallList, U8SmallNumberList},
+        types::{Pad4, U8SmallList, U8SmallNumberList, U16SmallList},
     },
     vm::command::CompiletimeCommand,
 };
 
 // NOTE: theoretically, it might have sense to use the same macro as we do for Command to create separate runtime and compile-time instruction representations
 // But I believe this not really necessary.
-// First of all, there aren't a lot of instructions. It doesn't hurt that much to repeat the `IntoRuntimeForm` invokactions for some of types (numbers).
+// First of all, there aren't a lot of instructions. It doesn't hurt that much to repeat the `IntoRuntimeForm` invocations for some of the types (numbers).
 // Second, the types we would need to convert are not like the ones used in commands, and they are sometimes nasty (think about expressions for example). It's just easier to convert & execute them in one go.
 // Finally, unlike commands, instruction don't have to live for a long time in a game loop, but are always executed immediately without yielding control to the game engine.
 

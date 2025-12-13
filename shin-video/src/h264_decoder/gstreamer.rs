@@ -1,13 +1,13 @@
 use std::io::{Read, Seek};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use dpi::PhysicalSize;
 use gst::prelude::*;
 use once_cell::sync::Lazy;
 use tracing::{debug, error, trace, warn};
 
 use crate::{
-    h264_decoder::{nv12::Nv12Frame, FrameTiming},
+    h264_decoder::{FrameTiming, nv12::Nv12Frame},
     mp4::Mp4TrackReader,
     mp4_bitstream_converter::Mp4BitstreamConverter,
 };
@@ -244,12 +244,11 @@ impl super::H264DecoderTrait for GStreamerH264Decoder {
         self.frame_number += 1;
         trace!(
             "Got a new frame! (frame #{}, start_time={})",
-            self.frame_number,
-            start_time
+            self.frame_number, start_time
         );
 
         let y_len = (self.frame_size.width * self.frame_size.height) as usize;
-        let uv_len = (y_len / 2) as usize;
+        let uv_len = y_len / 2;
 
         let mut y_plane = vec![0; y_len];
         let mut uv_plane = vec![0; uv_len];
