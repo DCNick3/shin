@@ -10,6 +10,7 @@ glam = { workspace = true }
 encase = { workspace = true, optional = true }
 
 parking_lot = { workspace = true }
+num-traits = "0.2.19"
 
 [features]
 encase = ["dep:encase"]

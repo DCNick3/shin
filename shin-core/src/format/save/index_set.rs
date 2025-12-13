@@ -2,11 +2,14 @@ use std::fmt;
 
 use bitbuffer::{BitRead, Endianness};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use shin_primitives::bit_utils::BitPosition;
 
 use crate::format::save::BitReadStream;
 
 type WordType = u32;
 const WORD_BITS: usize = WordType::BITS as usize;
+
+type Position = BitPosition<WordType>;
 
 #[derive(Clone)]
 pub struct IndexSet {
@@ -99,43 +102,6 @@ impl<'de> Deserialize<'de> for IndexSet {
         D: Deserializer<'de>,
     {
         todo!()
-    }
-}
-
-struct Position {
-    pub byte_offset: usize,
-    pub bit_offset: u8,
-}
-
-impl Position {
-    pub fn from_bit_index(value: usize) -> Self {
-        Self {
-            byte_offset: value / WORD_BITS,
-            bit_offset: (value % WORD_BITS) as u8,
-        }
-    }
-    pub fn as_bit_index(&self) -> usize {
-        self.byte_offset * WORD_BITS + self.bit_offset as usize
-    }
-    pub fn mask(&self) -> WordType {
-        1 << self.bit_offset
-    }
-    pub fn increment(&mut self) -> bool {
-        self.add_bits(1)
-    }
-
-    pub fn add_bits(&mut self, value: u8) -> bool {
-        self.bit_offset += value;
-        if self.bit_offset >= WORD_BITS as u8 {
-            // while possible to support, we do not want this
-            assert_eq!(self.bit_offset, WORD_BITS as u8);
-
-            self.bit_offset = 0;
-            self.byte_offset += 1;
-            true
-        } else {
-            false
-        }
     }
 }
 
