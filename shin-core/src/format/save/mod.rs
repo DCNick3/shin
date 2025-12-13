@@ -7,8 +7,9 @@ use num_integer::Integer;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
-use crate::crc32;
+use crate::{crc32, format::save::index_set::IndexSet};
 
+pub mod index_set;
 mod obfuscation;
 
 type Endian = bitbuffer::BigEndian;
@@ -189,27 +190,30 @@ impl<'a, E: Endianness> BitRead<'a, E> for PersistData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveVectors {
     /// This stores a mask of all seen messages to not skip unseen messages (if the setting is enabled)
-    pub seen_messages: Vec<u32>,
+    pub seen_messages: IndexSet,
     /// This stores a mask of all seen choice variants to change how they are displayed
-    pub select_seen_choices: Vec<u32>,
-    /// This stores
-    pub select_chosen_variants: Vec<u8>,
-    pub unlocked_cgs: Vec<u32>,
-    pub unlocked_bgms: Vec<u32>,
-    pub unlocked_movies: Vec<u32>,
+    pub select_seen_choices: IndexSet,
+    /// This stores the last variant chosen. Not sure if the game uses this information
+    pub select_last_choices: Vec<u8>,
+    /// This stores indices of unlocked CGs
+    pub unlocked_cgs: IndexSet,
+    /// This stores indices of unlocked BGMs
+    pub unlocked_bgms: IndexSet,
+    /// This stores indices of unlocked movies
+    pub unlocked_movies: IndexSet,
 }
 
 impl<'a, E: Endianness> BitRead<'a, E> for SaveVectors {
-    fn read(stream: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
-        stream.align()?;
+    fn read(reader: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
+        reader.align()?;
 
         Ok(Self {
-            seen_messages: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
-            select_seen_choices: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
-            select_chosen_variants: read_vec(stream, read_u16, |stream| stream.read_int(4))?,
-            unlocked_cgs: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
-            unlocked_bgms: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
-            unlocked_movies: read_vec(stream, read_u16, |stream| stream.read_int(32))?,
+            seen_messages: IndexSet::read(reader)?,
+            select_seen_choices: IndexSet::read(reader)?,
+            select_last_choices: read_vec(reader, read_u16, |stream| stream.read_int(4))?,
+            unlocked_cgs: IndexSet::read(reader)?,
+            unlocked_bgms: IndexSet::read(reader)?,
+            unlocked_movies: IndexSet::read(reader)?,
         })
     }
 }
