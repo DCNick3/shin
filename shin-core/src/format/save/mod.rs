@@ -434,7 +434,8 @@ pub struct GameDataEntry {
     pub scenario_id: i32,
     pub random_seed: u32,
     pub save_position: u32,
-    pub selection_data: SelectionData,
+    /// Stores values on taken paths for various (potentially) divergent instructions, like SELECT
+    pub route_data: RouteData,
 }
 
 impl GameDataEntry {
@@ -444,13 +445,13 @@ impl GameDataEntry {
         let scenario_id = reader.read_int(32)?;
         let random_seed = reader.read_int(32)?;
         let save_position = reader.read_int(32)?;
-        let selection_data = SelectionData::read(reader)?;
+        let selection_data = RouteData::read(reader)?;
 
         Ok(Self {
             scenario_id,
             random_seed,
             save_position,
-            selection_data,
+            route_data: selection_data,
         })
     }
 
@@ -459,7 +460,7 @@ impl GameDataEntry {
             scenario_id,
             random_seed,
             save_position,
-            ref selection_data,
+            route_data: ref selection_data,
         } = self;
 
         writer.align();
@@ -467,14 +468,14 @@ impl GameDataEntry {
         writer.write_int(32, scenario_id);
         writer.write_int(32, random_seed);
         writer.write_int(32, save_position);
-        SelectionData::write(selection_data, writer);
+        RouteData::write(selection_data, writer);
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SelectionData(Vec<u8>);
+pub struct RouteData(Vec<u8>);
 
-impl SelectionData {
+impl RouteData {
     fn read(reader: &mut BitBuffer) -> bit_read::Result<Self> {
         let data = bit_read::read_vec(reader, bit_read::read_u32, bit_read::read_u8)?;
 

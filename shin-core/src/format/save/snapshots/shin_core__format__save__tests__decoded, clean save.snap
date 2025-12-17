@@ -120,7 +120,7 @@ SaveData(
       scenario_id: 0,
       random_seed: 1675009056,
       save_position: 2,
-      selection_data: SelectionData([
+      route_data: RouteData([
         128,
         0,
         0,
@@ -1154,7 +1154,7 @@ SaveData(
       scenario_id: 0,
       random_seed: 1675009056,
       save_position: 2,
-      selection_data: SelectionData([
+      route_data: RouteData([
         128,
         0,
         0,
