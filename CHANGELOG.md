@@ -1,3 +1,12 @@
+# Version 0.8.1
+
+This version only contains some improvements to savedata handling in sdu.
+
+- Fix a bug where some savefiles were not decoded promerly due to several missing `.align` calls
+- Update naming of some savefile fields to reflect latest RE
+- Implement savefile encoding, accessible via `sdu save encode`. This allows one to edit the decoded savefile and to
+  insert it back into the game.
+
 # Version 0.8.0
 
 - Implement wipes. Now instead of flickering on, the scene changes are animated, like in the original implementation.
