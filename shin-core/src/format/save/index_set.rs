@@ -1,7 +1,7 @@
 use std::fmt;
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use shin_primitives::bit_utils::{BitBuffer, BitPosition, bit_read};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::SeqAccess};
+use shin_primitives::bit_utils::{BitBuffer, BitPosition, bit_read, bit_write};
 
 type WordType = u32;
 const WORD_BITS: usize = WordType::BITS as usize;
@@ -69,12 +69,23 @@ impl IndexSet {
         }
     }
 
-    pub(super) fn bit_read(stream: &mut BitBuffer) -> bit_read::Result<Self> {
-        let bits = bit_read::read_vec(stream, bit_read::read_u16, bit_read::read_u32)?;
+    pub fn read(reader: &mut BitBuffer) -> bit_read::Result<Self> {
+        let bits = bit_read::read_vec(reader, bit_read::read_u16, bit_read::read_u32)?;
 
         assert_eq!(bits.len() % Self::ALLOC_AHEAD, 0);
 
         Ok(Self { bits })
+    }
+
+    pub fn write(&self, writer: &mut BitBuffer) {
+        assert_eq!(self.bits.len() % Self::ALLOC_AHEAD, 0);
+
+        bit_write::write_vec(
+            &self.bits,
+            writer,
+            bit_write::write_u16,
+            bit_write::write_u32,
+        );
     }
 }
 
@@ -98,7 +109,28 @@ impl<'de> Deserialize<'de> for IndexSet {
     where
         D: Deserializer<'de>,
     {
-        todo!()
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = IndexSet;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence of integers")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut set = IndexSet::new();
+                while let Some(index) = seq.next_element()? {
+                    set.add(index);
+                }
+                Ok(set)
+            }
+        }
+
+        deserializer.deserialize_seq(Visitor)
     }
 }
 

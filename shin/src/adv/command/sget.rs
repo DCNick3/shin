@@ -17,7 +17,7 @@ impl StartableCommand for command::runtime::SGET {
         _state_info: (),
         _adv_state: &mut AdvState,
     ) -> CommandStartResult {
-        let value = vm_state.persist.get(self.slot_number);
+        let value = vm_state.persist.get(self.slot_number.try_into().unwrap());
         self.token.finish(value).into()
     }
 }

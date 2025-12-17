@@ -52,7 +52,7 @@ pub fn read_array<T, const N: usize>(
     Ok(res.map(|v| v.unwrap()))
 }
 
-pub fn parse_opt<T>(
+pub fn read_opt<T>(
     reader: &mut BitBuffer,
     parse: impl Fn(&mut BitBuffer) -> Result<T>,
 ) -> Result<Option<T>> {

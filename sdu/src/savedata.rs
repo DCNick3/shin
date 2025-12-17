@@ -1,7 +1,7 @@
 use std::{fs::File, path::PathBuf};
 
 use anyhow::{Context, Result};
-use shin_core::format::save::Savedata;
+use shin_core::format::save::SaveData;
 
 #[derive(clap::Subcommand, Debug)]
 pub enum SavedataCommand {
@@ -38,12 +38,21 @@ pub enum SavedataCommand {
     /// Decode a save file into a human-readable format
     ///
     /// NOTE: there are no guarantees about the stability of the output format, besides it being readable by the same version of `sdu`.
-    /// The format might change as more reverse-engineering progress is made.
+    /// The format might change as more reverse-engineering progress is made. Currently, it's a RON-serialized object (https://github.com/ron-rs/ron).
     Decode {
         /// Path to an obfuscated save file to decode
         save_path: PathBuf,
         /// Path to the output file. Outputs to stdout if not provided
         output_path: Option<PathBuf>,
+    },
+    /// Encodes a save file from a human-readable format to the game format.
+    ///
+    /// The human-readable formatted-file can be created with `sdu save decode`.
+    Encode {
+        /// Path to the input text file.
+        text_save_path: PathBuf,
+        /// Path to the output encoded save file.
+        output_path: PathBuf,
     },
 }
 
@@ -57,11 +66,11 @@ pub fn savedata_command(command: SavedataCommand) -> Result<()> {
         } => {
             let savedata = std::fs::read(save_path)?;
 
-            let key = key.or_else(|| key_seed.as_deref().map(Savedata::obfuscation_key_from_seed));
+            let key = key.or_else(|| key_seed.as_deref().map(SaveData::obfuscation_key_from_seed));
 
             let savedata = match key {
-                None => Savedata::deobfuscate(&savedata),
-                Some(key) => Savedata::deobfuscate_with_key(&savedata, key),
+                None => SaveData::deobfuscate(&savedata),
+                Some(key) => SaveData::deobfuscate_with_key(&savedata, key),
             }?;
 
             std::fs::write(output_path, savedata)?;
@@ -76,11 +85,11 @@ pub fn savedata_command(command: SavedataCommand) -> Result<()> {
         } => {
             let savedata = std::fs::read(save_path)?;
 
-            let key = key.or_else(|| key_seed.as_deref().map(Savedata::obfuscation_key_from_seed));
+            let key = key.or_else(|| key_seed.as_deref().map(SaveData::obfuscation_key_from_seed));
 
             let savedata = match key {
-                None => Savedata::obfuscate(&savedata),
-                Some(key) => Savedata::obfuscate_with_key(&savedata, key),
+                None => SaveData::obfuscate(&savedata),
+                Some(key) => SaveData::obfuscate_with_key(&savedata, key),
             };
 
             std::fs::write(output_path, savedata)?;
@@ -92,8 +101,8 @@ pub fn savedata_command(command: SavedataCommand) -> Result<()> {
             save_path,
             output_path,
         } => {
-            let savedata = std::fs::read(save_path)?;
-            let savedata = Savedata::decode(&savedata)?;
+            let savedata_bytes = std::fs::read(&save_path).context("Reading the savefile")?;
+            let savedata = SaveData::decode(&savedata_bytes).context("Decoding the savefile")?;
 
             let pretty_config = ron::ser::PrettyConfig::default().compact_arrays(true);
 
@@ -108,6 +117,20 @@ pub fn savedata_command(command: SavedataCommand) -> Result<()> {
                 ron::ser::to_writer_pretty(output, &savedata, pretty_config)
                     .context("Writing human-readable savedata")?;
             }
+
+            Ok(())
+        }
+        SavedataCommand::Encode {
+            text_save_path,
+            output_path,
+        } => {
+            let ron_bytes = std::fs::read(&text_save_path).context("Reading the text savefile")?;
+            let savedata = ron::de::from_bytes::<SaveData>(&ron_bytes)
+                .context("Deserializing the text savefile")?;
+
+            let savedata_bytes = savedata.encode();
+
+            std::fs::write(&output_path, &savedata_bytes).context("Writing the savefile")?;
 
             Ok(())
         }
