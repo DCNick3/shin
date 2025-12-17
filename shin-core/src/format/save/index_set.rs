@@ -1,10 +1,7 @@
 use std::fmt;
 
-use bitbuffer::{BitRead, Endianness};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use shin_primitives::bit_utils::BitPosition;
-
-use crate::format::save::BitReadStream;
+use shin_primitives::bit_utils::{BitBuffer, BitPosition, bit_read};
 
 type WordType = u32;
 const WORD_BITS: usize = WordType::BITS as usize;
@@ -29,12 +26,13 @@ impl IndexSet {
     /// Returns `true` if this index wasn't present in the set before, `false` if it was present there already.
     pub fn add(&mut self, index: usize) -> bool {
         let pos = Position::from_bit_index(index);
+        let mask = 1 << pos.bit_offset;
 
         if pos.byte_offset < self.bits.len() {
-            if self.bits[pos.byte_offset] & pos.mask() != 0 {
+            if self.bits[pos.byte_offset] & mask != 0 {
                 false
             } else {
-                self.bits[pos.byte_offset] |= pos.mask();
+                self.bits[pos.byte_offset] |= mask;
                 true
             }
         } else {
@@ -42,7 +40,7 @@ impl IndexSet {
             let new_size = (pos.byte_offset + 1).next_multiple_of(Self::ALLOC_AHEAD);
             self.bits.resize(new_size, 0);
 
-            self.bits[pos.byte_offset] |= pos.mask();
+            self.bits[pos.byte_offset] |= mask;
 
             true
         }
@@ -51,8 +49,9 @@ impl IndexSet {
     /// Checks if an index is present in the [`IndexSet`]
     pub fn contains(&self, index: usize) -> bool {
         let pos = Position::from_bit_index(index);
+        let mask = 1 << pos.bit_offset;
         if pos.byte_offset < self.bits.len() {
-            self.bits[pos.byte_offset] & pos.mask() != 0
+            self.bits[pos.byte_offset] & mask != 0
         } else {
             false
         }
@@ -69,21 +68,19 @@ impl IndexSet {
             position: Position::from_bit_index(0),
         }
     }
+
+    pub(super) fn bit_read(stream: &mut BitBuffer) -> bit_read::Result<Self> {
+        let bits = bit_read::read_vec(stream, bit_read::read_u16, bit_read::read_u32)?;
+
+        assert_eq!(bits.len() % Self::ALLOC_AHEAD, 0);
+
+        Ok(Self { bits })
+    }
 }
 
 impl fmt::Debug for IndexSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.iter()).finish()
-    }
-}
-
-impl<'a, E: Endianness> BitRead<'a, E> for IndexSet {
-    fn read(stream: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
-        let bits = super::read_vec(stream, super::read_u16, |stream| stream.read_int(32))?;
-
-        assert_eq!(bits.len() % Self::ALLOC_AHEAD, 0);
-
-        Ok(Self { bits })
     }
 }
 
@@ -120,13 +117,15 @@ impl Iterator for IndexSetIter<'_> {
                 // avoid jumping over the byte boundary
                 WORD_BITS as u8 - self.position.bit_offset,
             );
-            let next_byte = self.position.add_bits(skip_zeroes);
+            let next_byte = self.position.advance(skip_zeroes);
 
-            if !next_byte && self.position.mask() & value != 0 {
+            let mask = 1 << self.position.bit_offset;
+
+            if !next_byte && (value & mask) != 0 {
                 // found an index to return!
                 let result = self.position.as_bit_index();
 
-                if self.position.increment() {
+                if self.position.advance_one() {
                     self.iter.next().unwrap();
                 }
 

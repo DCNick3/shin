@@ -9,6 +9,7 @@ bytemuck = { workspace = true, features = ["derive"] }
 glam = { workspace = true }
 encase = { workspace = true, optional = true }
 
+# used by the fallback stateless reader impl
 parking_lot = { workspace = true }
 num-traits = "0.2.19"
 

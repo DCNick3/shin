@@ -1,72 +1,18 @@
 //! Support for decrypting and decoding save files.
 
 use anyhow::Result;
-use bitbuffer::{BitRead, BitWrite, BitWriteStream, Endianness};
 use chrono::{NaiveDate, NaiveDateTime};
 use num_integer::Integer;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
+use shin_primitives::bit_utils::{BitBuffer, BitReadError, bit_read};
 
 use crate::{crc32, format::save::index_set::IndexSet};
 
 pub mod index_set;
 mod obfuscation;
 
-type Endian = bitbuffer::BigEndian;
-const ENDIAN: Endian = bitbuffer::BigEndian;
-type BitReadStream<'a, E = Endian> = bitbuffer::BitReadStream<'a, E>;
-
 const GAME_KEY: u32 = crc32::crc32("うみねこのなく頃に咲".as_bytes(), 0);
-
-fn read_u8<E: Endianness>(reader: &mut BitReadStream<E>) -> bitbuffer::Result<u8> {
-    reader.read_int(8)
-}
-
-fn read_u16<E: Endianness>(reader: &mut BitReadStream<E>) -> bitbuffer::Result<u16> {
-    reader.read_int(16)
-}
-
-fn read_u32<E: Endianness>(reader: &mut BitReadStream<E>) -> bitbuffer::Result<u32> {
-    reader.read_int(32)
-}
-
-fn read_vec<'a, T, E: Endianness, L: TryInto<usize>>(
-    reader: &mut BitReadStream<'a, E>,
-    parse_len: impl Fn(&mut BitReadStream<'a, E>) -> bitbuffer::Result<L>,
-    parse: impl Fn(&mut BitReadStream<'a, E>) -> bitbuffer::Result<T>,
-) -> bitbuffer::Result<Vec<T>> {
-    let len = parse_len(reader)?.try_into().map_err(|_| ()).unwrap();
-    let mut vec = Vec::with_capacity(len);
-    for _ in 0..len {
-        vec.push(parse(reader)?);
-    }
-    Ok(vec)
-}
-
-fn read_array<'a, T, E: Endianness, const N: usize>(
-    reader: &mut BitReadStream<'a, E>,
-    parse: impl Fn(&mut BitReadStream<'a, E>) -> bitbuffer::Result<T>,
-) -> bitbuffer::Result<[T; N]> {
-    let mut res = [(); N].map(|_| None);
-
-    for res in res.iter_mut() {
-        *res = Some(parse(reader)?);
-    }
-
-    Ok(res.map(|v| v.unwrap()))
-}
-
-fn parse_opt<'a, T, E: Endianness>(
-    reader: &mut BitReadStream<'a, E>,
-    parse: impl Fn(&mut BitReadStream<'a, E>) -> bitbuffer::Result<T>,
-) -> bitbuffer::Result<Option<T>> {
-    let is_some = reader.read_bool()?;
-    if is_some {
-        Ok(Some(parse(reader)?))
-    } else {
-        Ok(None)
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Savedata {
@@ -115,14 +61,11 @@ impl Savedata {
     /// Can fail if the CRC check fails or the decoding fails.
     pub fn decode_with_key(data: &[u8], key: u32) -> Result<Self> {
         let data = Self::deobfuscate_with_key(data, key)?;
-        let buffer = bitbuffer::BitReadBuffer::new(&data, ENDIAN);
-        let mut reader = BitReadStream::new(buffer);
+        let mut reader = BitBuffer::with_data(data, 0);
         Ok(Self::read(&mut reader)?)
     }
-}
 
-impl<'a, E: Endianness> BitRead<'a, E> for Savedata {
-    fn read(reader: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
+    fn read(reader: &mut BitBuffer) -> Result<Self, BitReadError> {
         let some_ctr: u32 = reader.read_int(8)?;
         if some_ctr == 0 {
             todo!("Construct default Savedata")
@@ -133,13 +76,14 @@ impl<'a, E: Endianness> BitRead<'a, E> for Savedata {
 
         let save_menu_position = reader.read_int(7)?;
         let play_seconds = reader.read_int(32)?;
-        reader.align()?;
+        reader.align();
 
         let persist_data = PersistData::read(reader)?;
         let save_vectors = SaveVectors::read(reader)?;
         let settings = Settings::read(reader)?;
-        let auto_save_slot = parse_opt(reader, GameData::read)?;
-        let manual_save_slots = read_array(reader, |r| parse_opt(r, GameData::read))?;
+        let auto_save_slot = bit_read::parse_opt(reader, GameData::read)?;
+        let manual_save_slots =
+            bit_read::read_array(reader, |r| bit_read::parse_opt(r, GameData::read))?;
 
         Ok(Self {
             save_menu_position,
@@ -179,11 +123,13 @@ impl PersistData {
         }
         self.0[index as usize] = value.try_into().expect("value too large");
     }
-}
 
-impl<'a, E: Endianness> BitRead<'a, E> for PersistData {
-    fn read(stream: &mut bitbuffer::BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
-        Ok(Self(read_vec(stream, read_u16, |r| r.read_int(16))?))
+    fn read(stream: &mut BitBuffer) -> bit_read::Result<Self> {
+        Ok(Self(bit_read::read_vec(
+            stream,
+            bit_read::read_u16,
+            bit_read::read_i16,
+        )?))
     }
 }
 
@@ -203,17 +149,17 @@ pub struct SaveVectors {
     pub unlocked_movies: IndexSet,
 }
 
-impl<'a, E: Endianness> BitRead<'a, E> for SaveVectors {
-    fn read(reader: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
-        reader.align()?;
+impl SaveVectors {
+    fn read(reader: &mut BitBuffer) -> bit_read::Result<Self> {
+        reader.align();
 
         Ok(Self {
-            seen_messages: IndexSet::read(reader)?,
-            select_seen_choices: IndexSet::read(reader)?,
-            select_last_choices: read_vec(reader, read_u16, |stream| stream.read_int(4))?,
-            unlocked_cgs: IndexSet::read(reader)?,
-            unlocked_bgms: IndexSet::read(reader)?,
-            unlocked_movies: IndexSet::read(reader)?,
+            seen_messages: IndexSet::bit_read(reader)?,
+            select_seen_choices: IndexSet::bit_read(reader)?,
+            select_last_choices: bit_read::read_vec(reader, bit_read::read_u16, |r| r.read_int(4))?,
+            unlocked_cgs: IndexSet::bit_read(reader)?,
+            unlocked_bgms: IndexSet::bit_read(reader)?,
+            unlocked_movies: IndexSet::bit_read(reader)?,
         })
     }
 }
@@ -244,9 +190,9 @@ pub struct Settings {
     pub v19: u32,
 }
 
-impl<'a, E: Endianness> BitRead<'a, E> for Settings {
-    fn read(reader: &mut bitbuffer::BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
-        reader.align()?;
+impl Settings {
+    fn read(reader: &mut BitBuffer) -> bit_read::Result<Self> {
+        reader.align();
 
         let v0_bgmvol = reader.read_int(7)?;
         let v1_sfxvol = reader.read_int(7)?;
@@ -301,9 +247,9 @@ pub struct GameData {
     entry: GameDataEntry,
 }
 
-impl<'a, E: Endianness> BitRead<'a, E> for GameData {
-    fn read(reader: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
-        let date = parse_date_time(reader)?;
+impl GameData {
+    fn read(reader: &mut BitBuffer) -> bit_read::Result<Self> {
+        let date = read_date_time(reader)?;
         let v6_arr_count: u32 = reader.read_int(1)?;
         assert_eq!(v6_arr_count, 0);
 
@@ -316,9 +262,7 @@ impl<'a, E: Endianness> BitRead<'a, E> for GameData {
     }
 }
 
-fn parse_date_time<E: Endianness>(
-    reader: &mut BitReadStream<E>,
-) -> bitbuffer::Result<NaiveDateTime> {
+fn read_date_time(reader: &mut BitBuffer) -> bit_read::Result<NaiveDateTime> {
     let year: u32 = reader.read_int(12)?;
     let month = reader.read_int(4)?;
     let day = reader.read_int(5)?;
@@ -341,9 +285,9 @@ pub struct GameDataEntry {
     pub selection_data: SelectionData,
 }
 
-impl<'a, E: Endianness> BitRead<'a, E> for GameDataEntry {
-    fn read(reader: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
-        reader.align()?;
+impl GameDataEntry {
+    fn read(reader: &mut BitBuffer) -> bit_read::Result<Self> {
+        reader.align();
 
         let scenario_id = reader.read_int(32)?;
         let random_seed = reader.read_int(32)?;
@@ -362,14 +306,10 @@ impl<'a, E: Endianness> BitRead<'a, E> for GameDataEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SelectionData(Vec<u8>);
 
-impl<'a, E: Endianness> BitRead<'a, E> for SelectionData {
-    fn read(reader: &mut BitReadStream<'a, E>) -> bitbuffer::Result<Self> {
-        Ok(Self(read_vec(reader, read_u32, read_u8)?))
-    }
-}
+impl SelectionData {
+    fn read(reader: &mut BitBuffer) -> bit_read::Result<Self> {
+        let data = bit_read::read_vec(reader, bit_read::read_u32, bit_read::read_u8)?;
 
-impl<E: Endianness> BitWrite<E> for SelectionData {
-    fn write(&self, _stream: &mut BitWriteStream<E>) -> bitbuffer::Result<()> {
-        todo!()
+        Ok(Self(data))
     }
 }
