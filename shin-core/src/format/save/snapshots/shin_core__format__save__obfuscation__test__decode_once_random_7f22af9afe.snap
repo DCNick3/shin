@@ -1,5 +1,5 @@
 ---
-source: shin-core/src/format/save/crypto.rs
+source: shin-core/src/format/save/obfuscation.rs
 expression: "decode_once(&data, key)"
 ---
 "3139424ef6"

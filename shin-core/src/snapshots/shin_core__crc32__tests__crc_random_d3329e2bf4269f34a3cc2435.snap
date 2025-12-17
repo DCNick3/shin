@@ -1,5 +1,5 @@
 ---
-source: shin-core/src/format/save/crc32.rs
+source: shin-core/src/crc32.rs
 expression: "crc32(&data, init)"
 ---
 2359497524

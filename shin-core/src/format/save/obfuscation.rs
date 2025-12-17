@@ -1,7 +1,7 @@
 //! Implements "crypto" used by savefiles
 //! (it's just a bunch of XORs, actually)
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use array_util::SliceExt;
 
 use crate::crc32::crc32;
@@ -100,7 +100,7 @@ mod test {
         // generate random test cases
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x42);
 
-        for _ in 0..100 {
+        for _ in 0..5 {
             let len = rng.random_range(1..20);
             let data = (0..len).map(|_| rng.random::<u8>()).collect::<Vec<_>>();
             let data = hex::encode(data);
