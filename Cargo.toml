@@ -105,29 +105,3 @@ useless_format = "allow"
 shared-version = true
 publish = false # can't publish yet because of enum-map git dep
 tag-prefix = ""
-
-# Config for 'dist'
-[workspace.metadata.dist]
-# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.28.1-prerelease.2"
-# Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
-# CI backends to support
-ci = "github"
-# The installers to generate for each app
-installers = ["shell", "powershell"]
-# Which actions to run on pull requests
-pr-run-mode = "plan"
-# Whether to install an updater program
-install-updater = false
-# Path that installers should place binaries in
-install-path = "CARGO_HOME"
-
-# build the aarch64 linux release on an aarch64 runner
-[workspace.metadata.dist.github-custom-runners]
-aarch64-unknown-linux-gnu = "ubuntu-24.04-arm"
-
-# install additional packages when building the linux release
-[workspace.metadata.dist.dependencies.apt]
-libasound2-dev = '*'
-libudev-dev = '*'
